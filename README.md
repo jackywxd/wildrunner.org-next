@@ -35,12 +35,9 @@ pnpm deploy    # 部署到 Cloudflare Workers
 
 ## 当前进度
 
-- Phase 0：脚手架 ✓
-- Phase 1：源码/Velite 移植 ✓
-- Phase 2：OG / Images / Web Analytics ✓
-- Phase 3：Workers Builds 文档 ✓（DNS 切流需人工确认）
-
-详见 [docs/workers-builds.md](docs/workers-builds.md)。
+- Phase 0–2：✓
+- Phase 3 staging：✓ https://wildrunner-org-next.small-tooth-cc10.workers.dev
+- 生产域名切流：待确认（见 [docs/workers-builds.md](docs/workers-builds.md)）
 
 ## Phase 2 说明
 

@@ -290,20 +290,15 @@ Phase 2 — Cloudflare 适配（已完成 2026-07-20）
 - 分析：新增 `CloudflareWebAnalytics`（`NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` 可选注入 beacon）
 - 验证（Node 22+）：`opennextjs-cloudflare preview` 下 `/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` `/og` `/fonts/...` 均为 200；`/og` 返回 PNG 1920x1080
 
-Phase 3 — CI/CD 与域名（文档已就绪 2026-07-20）
+Phase 3 — CI/CD 与域名（staging 已上线 2026-07-20）
 
-- 已写 [docs/workers-builds.md](docs/workers-builds.md)：Workers Builds 构建/部署命令、密钥清单、自定义域切流步骤
-- 首次部署前需：`wrangler r2 bucket create wildrunner-org-next-opennext-cache`，再 `pnpm deploy` 到 `*.workers.dev`
-- **未自动切** `wildrunner.org` DNS（避免打断现网）；staging 验收后再在 Dashboard 绑定域名
+- R2 cache bucket：`wildrunner-org-next-opennext-cache` 已创建
+- Staging Worker 已部署：https://wildrunner-org-next.small-tooth-cc10.workers.dev
+- 验证：`/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` `/gallery/fuji-100` `/og` `/fonts/...` → 200
+- Workers Builds 说明见 [docs/workers-builds.md](docs/workers-builds.md)
+- **未切** `wildrunner.org` 生产 DNS（避免打断现网）；验收 staging 后再在 Dashboard 绑定自定义域
 - 旧 Docker/Traefik 待 DNS 切流后再停
 
-本地一键部署（需 Cloudflare 登录 + Node ≥22）：
-
-```bash
-nvm use 24
-pnpm exec wrangler r2 bucket create wildrunner-org-next-opennext-cache
-pnpm deploy
-```
 
 Phase 4 — 优化（非阻塞上线）
 
