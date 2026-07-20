@@ -290,14 +290,13 @@ Phase 2 — Cloudflare 适配（已完成 2026-07-20）
 - 分析：新增 `CloudflareWebAnalytics`（`NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` 可选注入 beacon）
 - 验证（Node 22+）：`opennextjs-cloudflare preview` 下 `/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` `/og` `/fonts/...` 均为 200；`/og` 返回 PNG 1920x1080
 
-Phase 3 — CI/CD 与域名（staging 已上线 2026-07-20）
+Phase 3 — CI/CD 与域名（生产已切流 2026-07-20）
 
-- R2 cache bucket：`wildrunner-org-next-opennext-cache` 已创建
-- Staging Worker 已部署：https://wildrunner-org-next.small-tooth-cc10.workers.dev
-- 验证：`/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` `/gallery/fuji-100` `/og` `/fonts/...` → 200
-- Workers Builds 说明见 [docs/workers-builds.md](docs/workers-builds.md)
-- **未切** `wildrunner.org` 生产 DNS（避免打断现网）；验收 staging 后再在 Dashboard 绑定自定义域
-- 旧 Docker/Traefik 待 DNS 切流后再停
+- Worker `wildrunner-org-next` 已绑定 `wildrunner.org/*`、`www.wildrunner.org/*`
+- 生产验证：apex/www 首页、文章、相册、`/og`、字体 → 200，`x-opennext: 1`
+- R2 cache：`wildrunner-org-next-opennext-cache`
+- 架构与部署说明已写入 [README.md](README.md)、[docs/workers-builds.md](docs/workers-builds.md)
+- 旧 Docker/Traefik / Vercel 源站可下线（确认无回滚需求后）
 
 
 Phase 4 — 优化（非阻塞上线）

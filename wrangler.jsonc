@@ -35,8 +35,18 @@
 	},
 	"observability": {
 		"enabled": true
-	}
-	// Custom domains: attach in Dashboard → Worker → Domains & Routes
-	// (wildrunner.org / www) after *.workers.dev staging is verified.
-	// See docs/workers-builds.md
+	},
+	"workers_dev": true,
+	"preview_urls": true,
+	// Production: zone routes on wildrunner.org (DNS proxied in Cloudflare).
+	"routes": [
+		{
+			"pattern": "wildrunner.org/*",
+			"zone_name": "wildrunner.org"
+		},
+		{
+			"pattern": "www.wildrunner.org/*",
+			"zone_name": "wildrunner.org"
+		}
+	]
 }
