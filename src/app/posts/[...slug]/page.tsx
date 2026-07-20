@@ -42,9 +42,11 @@ export async function generateMetadata({
   let { title, description, image, author } = post;
 
   const newTitle = `${title} | ${author}`;
-  let ogImage = image
-    ? `${baseURL}/_next/image?url=${encodeURIComponent(image.src)}&w=1026&h=1026&q=75`
-    : `${baseURL}/og?title=${title}|${post.author ?? ""}`;
+  // Prefer the R2 CDN URL for social crawlers; avoid /_next/image which Workers
+  // may not optimize the same way for unauthenticated bots.
+  const ogImage = image?.src
+    ? image.src
+    : `${baseURL}/og?title=${encodeURIComponent(`${title}|${post.author ?? ""}`)}`;
 
   return {
     title: newTitle,

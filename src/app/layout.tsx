@@ -10,6 +10,7 @@ import App from "@/components/app";
 import Providers from "./providers";
 import PageTransitionEffect from "@/components/transition/PageTransitionEffect";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
+import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
@@ -44,6 +45,7 @@ export default function RootLayout({
             <NextTopLoader showSpinner={false} />
             <PageTransitionEffect>{children}</PageTransitionEffect>
             <TailwindIndicator />
+            <CloudflareWebAnalytics />
           </App>
         </Providers>
       </body>

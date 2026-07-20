@@ -36,6 +36,14 @@ pnpm deploy    # 部署到 Cloudflare Workers
 ## 当前进度
 
 - Phase 0：脚手架 ✓
-- Phase 1：源码/Velite 移植 ✓（content symlink；`/og` 待 Phase 2）
-- Phase 2：OG / Images / Web Analytics
-- Phase 3：Workers Builds + 自定义域
+- Phase 1：源码/Velite 移植 ✓
+- Phase 2：OG / Images / Web Analytics ✓
+- Phase 3：Workers Builds 文档 ✓（DNS 切流需人工确认）
+
+详见 [docs/workers-builds.md](docs/workers-builds.md)。
+
+## Phase 2 说明
+
+- OG 字体：`public/fonts/Inter-Regular.ttf`
+- Web Analytics：在 `.env.local` / Workers 环境变量设置 `NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN`
+- preview / deploy 需要 **Node.js ≥ 22**（`nvm use 24`）

@@ -1,25 +1,30 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
 
-async function loadFont() {
-  const fontPath = path.join(
-    process.cwd(),
-    "src/assets/fonts/Inter-Regular.ttf"
-  );
-  return readFile(fontPath);
+async function loadFont(request: Request): Promise<ArrayBuffer | null> {
+  try {
+    // Serve from public/ so the font is available via Workers Assets in production
+    // and via Next static files in local `next dev`.
+    const fontUrl = new URL("/fonts/Inter-Regular.ttf", request.url);
+    const res = await fetch(fontUrl);
+    if (!res.ok) {
+      console.warn(`OG font fetch failed: ${res.status} ${fontUrl.href}`);
+      return null;
+    }
+    return res.arrayBuffer();
+  } catch (error) {
+    console.warn("OG font load error:", error);
+    return null;
+  }
 }
 
 // OpenNext Cloudflare does not support the Edge runtime; use the default Node/workerd runtime.
 export async function GET(request: Request) {
   const url = new URL(request.url);
   let title = url.searchParams.get("title") || siteConfig.title;
-
-  const fontData = await loadFont();
-
-  // we also need to decode the title to avoid encoding issues
   title = decodeURIComponent(title);
+
+  const fontData = await loadFont(request);
 
   return new ImageResponse(
     (
@@ -32,7 +37,7 @@ export async function GET(request: Request) {
         <div
           tw="flex flex-col flex-1 w-full h-full"
           style={{
-            fontFamily: "Inter",
+            fontFamily: fontData ? "Inter" : "sans-serif",
             fontStyle: "normal",
             color: "white",
           }}
@@ -98,13 +103,15 @@ export async function GET(request: Request) {
     {
       width: 1920,
       height: 1080,
-      fonts: [
-        {
-          name: "Inter",
-          data: fontData,
-          style: "normal",
-        },
-      ],
+      fonts: fontData
+        ? [
+            {
+              name: "Inter",
+              data: fontData,
+              style: "normal",
+            },
+          ]
+        : undefined,
     }
   );
 }

@@ -36,4 +36,7 @@
 	"observability": {
 		"enabled": true
 	}
+	// Custom domains: attach in Dashboard → Worker → Domains & Routes
+	// (wildrunner.org / www) after *.workers.dev staging is verified.
+	// See docs/workers-builds.md
 }

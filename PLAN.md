@@ -282,45 +282,28 @@ Phase 1 剩余（可选）
 - 将 `src/content` 从 symlink 改为正式拷贝 / submodule
 - 补齐本机 `.env.local` 中的 R2 密钥后跑通 `pnpm content`
 
-Phase 2 — Cloudflare 适配
+Phase 2 — Cloudflare 适配（已完成 2026-07-20）
 
+- `/og`：字体改为从 `public/fonts/Inter-Regular.ttf` 经 `fetch(request.url)` 加载，兼容 workerd Assets；失败时降级无自定义字体
+- 文章 OG 图：改用 R2 CDN 直链，避免社交爬虫依赖 `/_next/image`
+- `next/image`：沿用 wrangler `IMAGES` binding（OpenNext Cloudflare Images）
+- 分析：新增 `CloudflareWebAnalytics`（`NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` 可选注入 beacon）
+- 验证（Node 22+）：`opennextjs-cloudflare preview` 下 `/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` `/og` `/fonts/...` 均为 200；`/og` 返回 PNG 1920x1080
 
+Phase 3 — CI/CD 与域名（文档已就绪 2026-07-20）
 
+- 已写 [docs/workers-builds.md](docs/workers-builds.md)：Workers Builds 构建/部署命令、密钥清单、自定义域切流步骤
+- 首次部署前需：`wrangler r2 bucket create wildrunner-org-next-opennext-cache`，再 `pnpm deploy` 到 `*.workers.dev`
+- **未自动切** `wildrunner.org` DNS（避免打断现网）；staging 验收后再在 Dashboard 绑定域名
+- 旧 Docker/Traefik 待 DNS 切流后再停
 
+本地一键部署（需 Cloudflare 登录 + Node ≥22）：
 
-/og 在 workerd 下验证字体与 ImageResponse
-
-
-
-next/image + R2 remotePatterns；meta 中硬编码 /_next/image 的路径做兼容测试
-
-
-
-MDX new Function 在 Workers 下验证
-
-
-
-用 Cloudflare Web Analytics 替换 PostHog provider
-
-
-
-可选：R2 binding + remote bindings 便于本地连生产桶
-
-Phase 3 — CI/CD 与域名
-
-
-
-
-
-Workers Builds：install → LFS pull → velite/build/deploy；配置 build secrets
-
-
-
-自定义域切流：先 staging Worker 子域验收 → 再切 wildrunner.org DNS
-
-
-
-停用 Docker/Traefik 生产（旧仓保留只读备份）
+```bash
+nvm use 24
+pnpm exec wrangler r2 bucket create wildrunner-org-next-opennext-cache
+pnpm deploy
+```
 
 Phase 4 — 优化（非阻塞上线）
 
