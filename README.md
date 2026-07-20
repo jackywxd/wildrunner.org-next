@@ -61,9 +61,9 @@ flowchart TB
 
 ### 构建时（Node ≥ 22）
 
-- **Velite**：MDX → `.velite/*.json`；本地图经 sharp/HEIC → WebP 后上传 R2
-- **日常 `pnpm build`** 不跑 Velite（使用已有 `.velite`）；内容变更时执行 `pnpm content`
-- **仓库内 `src/content`**：仅 MDX/JSON 文本；大图在旧仓 Git LFS / 生产 R2
+- **Velite**：MDX → `.velite/*.json`；`src/content` 内本地图/视频经 sharp/HEIC → WebP 后上传 R2
+- **日常 `pnpm build`** 不跑 Velite（使用已有 `.velite`）；内容或媒体变更时执行 `pnpm content`
+- **媒体**：图片/视频与 MDX 同仓管理，经 **Git LFS** 跟踪（见 `.gitattributes`）
 
 ### 不包含
 
@@ -90,7 +90,7 @@ flowchart TB
 wildrunner.org-next/
 ├── src/app/           # 页面：/ posts gallery about og
 ├── src/components/    # UI、MDX、相册、Analytics
-├── src/content/       # MDX/JSON（无大图）
+├── src/content/       # MDX/JSON + 原始图片/视频（Git LFS）
 ├── src/lib/           # veliteUtils（R2/sharp）等
 ├── public/fonts/      # OG 字体（Workers Assets）
 ├── .velite/            # Velite 生成物（本地/CI，gitignore）
@@ -109,10 +109,12 @@ wildrunner.org-next/
 nvm use 24          # 或任意 Node ≥ 22
 pnpm install
 cp .env.example .env.local   # 填入 R2 与站点 URL
+git lfs pull                 # 拉取 content 媒体（约 1.4GB）
 
-pnpm content        # 可选：重建 .velite（需完整 R2 密钥 + 本地媒体）
-pnpm dev            # http://localhost:3000（Next Turbopack）
-pnpm preview        # 本地 workerd（接近生产）
+pnpm content                 # 内容/媒体变更后：重建 .velite 并上传 R2
+pnpm dev                     # http://localhost:3000
+pnpm preview                 # 本地 workerd
+pnpm deploy                  # 部署到 Cloudflare Workers
 ```
 
 ### 常用脚本

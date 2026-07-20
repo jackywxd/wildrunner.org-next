@@ -51,5 +51,3 @@ next-env.d.ts
 .wrangler
 .dev.vars*
 !.dev.vars.example
-
-# Local content note: src/content may be a symlink to the legacy repo during Phase 1
