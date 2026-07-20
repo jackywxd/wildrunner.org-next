@@ -1,0 +1,67 @@
+{
+  "heroTitleEn": "Run wild, run free",
+  "heroTitleZh": "心如野馬，馳騁天下",
+  "metadata": {
+    "title": {
+      "default": "野馬營",
+      "template": "%s | 野馬營"
+    },
+    "description": "這裡記錄一群在溫哥華相遇的優秀跑者們共同經歷的珍貴時光和比賽回憶。相遇是難得的緣分，願這裡成為這段美好時光的永久見證，未來仍能回味當年那顆狂野的心",
+    "authors": [{ "name": "追雲逐雪", "url": "https://wildrunner.org" }],
+    "keywords": [
+      "技术",
+      "编程",
+      "摄影",
+      "博客",
+      "野馬營",
+      "超馬",
+      "越野跑",
+      "馬拉松",
+      "UTMB",
+      "巨人之旅",
+      "西部100",
+      "北極",
+      "加拿大",
+      "溫哥華"
+    ],
+    "openGraph": {
+      "title": {
+        "default": "野馬營",
+        "template": "%s | 野馬營"
+      },
+      "description": "野馬營，一群野馬，一個家",
+      "url": "https://wildrunfree.org",
+      "siteName": "野馬營",
+      "images": [
+        {
+          "url": "https://wildrunner.org/images/blog-cover.jpg",
+          "width": 1200,
+          "height": 630,
+          "alt": "野馬營 封面图片"
+        }
+      ],
+      "locale": "en",
+      "type": "website"
+    }
+  },
+  "social": {
+    "github": "https://github.com/jackywxd"
+  },
+  "topNavItems": [
+    {
+      "label": "文章",
+      "href": "/posts",
+      "icon": "ph:article-medium"
+    },
+    {
+      "label": "相册",
+      "href": "/gallery",
+      "icon": "clarity:image-gallery-line"
+    },
+    {
+      "label": "关于",
+      "href": "/about",
+      "icon": "heroicons:user-circle"
+    }
+  ]
+}

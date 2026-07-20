@@ -269,25 +269,18 @@ Phase 0 — 脚手架（已完成 2026-07-20）
 - Worker 名：`wildrunner-org-next`；部署到 *.workers.dev 需账号登录后执行 `pnpm deploy`
 - 备注：OpenNext 生产 build 勿用 `--turbopack`；pnpm 需 allow `esbuild`/`workerd`/`sharp` 构建脚本
 
-Phase 1 — 代码与内容迁移
+Phase 1 — 代码与内容迁移（已完成主体 2026-07-20）
 
+- 已移植 `src/app|components|lib|store|config|constants|context|styles|assets|types` 与 `velite.config.ts` / Tailwind 3 / locales
+- `src/content`：Phase 1 使用 symlink 指向旧仓 `wildrunner.org/src/content`（避免复制 1.4GB）；正式独立仓时再拷贝或 submodule
+- `.velite`：从旧仓拷贝构建缓存；日常 `pnpm build` **不**自动跑 Velite；内容变更时执行 `pnpm content`（需完整 R2 环境变量，见 `.env.example`）后 `pnpm build`
+- 已移除 PostHog；Cloudflare Web Analytics 留 Phase 2
+- `/og` 去掉 `runtime = "edge"`；workerd 下字体加载仍返回 500，Phase 2 继续修
+- 本地验证：`opennextjs-cloudflare build` 成功；preview `/` `/posts` `/gallery` `/about` `/posts/2025/fuji-100` → 200
 
-
-
-
-移植 src/app、src/components、src/lib、src/store、src/config、src/styles、src/assets、public/locales
-
-
-
-移植 velite.config.ts + veliteUtils.ts；构建钩子改为与 OpenNext 兼容（Velite 在 next build / OpenNext build 前显式 velite build，避免仅依赖 Webpack 插件）
-
-
-
-内容与 LFS：文档化 git lfs pull 与构建内存（≥8GB）
-
-
-
-清理：axios/cheerio/SMTP、空 src/routes、未使用 about.mdx 决策
+Phase 1 剩余（可选）
+- 将 `src/content` 从 symlink 改为正式拷贝 / submodule
+- 补齐本机 `.env.local` 中的 R2 密钥后跑通 `pnpm content`
 
 Phase 2 — Cloudflare 适配
 
