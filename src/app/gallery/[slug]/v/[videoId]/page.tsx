@@ -39,12 +39,14 @@ export async function generateMetadata({
   }
 
   const { gallery, video } = result;
-  const title = `${videoTitle(video.filename)} | ${gallery.name}`;
-  const description = `${gallery.name} · ${videoTitle(video.filename)}`;
-  const pageUrl = `${baseURL}/gallery/${gallery.slug}/v/${getVideoId(video)}`;
+  const videoName = videoTitle(video.filename);
+  // Avoid "A | B | C" when gallery.name already contains "|"
+  const title = `${videoName} · ${gallery.name}`;
+  const description = `${gallery.name} · ${siteConfig.description}`;
+  const pageUrl = `${baseURL}/gallery/${gallery.slug}/v/${encodeURIComponent(getVideoId(video))}`;
   const ogImage = buildVideoOgImageUrl({
     baseURL,
-    title: videoTitle(video.filename),
+    title: videoName,
     subtitle: gallery.name,
     coverSrc: resolveGalleryCoverSrc(gallery),
   });
@@ -53,7 +55,7 @@ export async function generateMetadata({
     title,
     description,
     openGraph: {
-      title,
+      title: videoName,
       description,
       type: "video.other",
       url: pageUrl,
@@ -67,7 +69,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: videoName,
       description,
       images: [ogImage],
     },

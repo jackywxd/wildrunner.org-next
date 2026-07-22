@@ -11,10 +11,12 @@ import Providers from "./providers";
 import PageTransitionEffect from "@/components/transition/PageTransitionEffect";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
+import { getSiteBaseURL } from "@/config/site";
 
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteBaseURL()),
   title: {
     template: "%s | Wild Runner Website",
     default: "Wild Runner",
