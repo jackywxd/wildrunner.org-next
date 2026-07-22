@@ -1,3 +1,5 @@
+"use client";
+
 import { NextPage } from "next";
 import React, { useMemo } from "react";
 import { galleries } from "#site/content";
@@ -5,10 +7,9 @@ import { RdPhoto } from "@/lib/veliteUtils";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import { Icon } from "@iconify-icon/react";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
+import { GalleryVideos } from "@/app/gallery/_components/GalleryVideos";
 
 const GalleryPage: NextPage = () => {
-  // to increase performance, we need to memoize the featured images
-  // if its length is larger than 20, let's splice it to 20
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {
       return acc.concat(gallery.images.filter((image) => image.featured));
@@ -16,11 +17,12 @@ const GalleryPage: NextPage = () => {
     return featured.length > 20 ? featured.slice(0, 20) : featured;
   }, [galleries]);
 
-  // for each gallery, we also need to find if it its not empty and if it has more than 10 images
-  // if so, let's splice it to 10; after that sort the galleries by created date
-  const galleriesWithMoreThan10Images = useMemo(() => {
+  const gallerySections = useMemo(() => {
     return galleries
-      .filter((gallery) => gallery.images.length > 0)
+      .filter(
+        (gallery) =>
+          gallery.images.length > 0 || (gallery.videos?.length ?? 0) > 0
+      )
       .sort((a, b) => {
         const dateA = new Date(a?.created ?? 0);
         const dateB = new Date(b?.created ?? 0);
@@ -42,9 +44,9 @@ const GalleryPage: NextPage = () => {
             images={featuredImages}
             autoplay={true}
             featured={true}
-          ></SwiperLightbox>
+          />
         </section>
-        {galleriesWithMoreThan10Images.map((gallery) => (
+        {gallerySections.map((gallery) => (
           <section key={gallery.slug} className="-mx-content">
             <button className="group btn btn-ghost btn-lg rounded-2xl mb-2 outline-transparent border-none p-0">
               <Link
@@ -52,6 +54,13 @@ const GalleryPage: NextPage = () => {
                 className="px-content flex items-center not-prose"
               >
                 <h1 className="text-h1">{gallery.name}</h1>
+                {(gallery.videos?.length ?? 0) > 0 && (
+                  <Icon
+                    className="text-h2 ml-1 opacity-70"
+                    icon="heroicons:play-circle"
+                    inline
+                  />
+                )}
                 <Icon
                   className="text-h2 transition-apple group-hover:translate-x-1/3"
                   icon="heroicons:chevron-right"
@@ -59,10 +68,18 @@ const GalleryPage: NextPage = () => {
                 />
               </Link>
             </button>
-            <SwiperLightbox
-              images={gallery.images}
-              maxHeight={160}
-            ></SwiperLightbox>
+            {(gallery.videos?.length ?? 0) > 0 && (
+              <div className="mb-3">
+                <GalleryVideos
+                  videos={gallery.videos}
+                  gallerySlug={gallery.slug}
+                  compact
+                />
+              </div>
+            )}
+            {gallery.images.length > 0 && (
+              <SwiperLightbox images={gallery.images} maxHeight={160} />
+            )}
           </section>
         ))}
       </div>

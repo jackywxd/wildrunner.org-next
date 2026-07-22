@@ -10,6 +10,7 @@ import {
   convertToWebP,
   setFeaturedImages,
   uploadVideoToR2,
+  uploadVideosInDir,
   isVideoFile,
 } from "@/lib/veliteUtils";
 import { projectRootPath, staticBasePath } from "@/base-path";
@@ -253,17 +254,19 @@ const galleries = defineCollection({
       featured: s.array(s.string()).default([]),
       path: s.path(),
     })
-    .transform(async (data) => ({
-      ...data,
-      permalink: `/gallery/${data.slug}`,
-      images: setFeaturedImages(
-        data.featured,
-        await convertImagesToWebP(
-          path.join(projectRootPath, veliteRoot, data.path),
-          path.join(data.path)
-        )
-      ),
-    })),
+    .transform(async (data) => {
+      const dir = path.join(projectRootPath, veliteRoot, data.path);
+      const slugPath = path.join(data.path);
+      return {
+        ...data,
+        permalink: `/gallery/${data.slug}`,
+        images: setFeaturedImages(
+          data.featured,
+          await convertImagesToWebP(dir, slugPath)
+        ),
+        videos: await uploadVideosInDir(dir, slugPath),
+      };
+    }),
 });
 
 const posts = defineCollection({
@@ -333,7 +336,7 @@ export default defineConfig({
   },
   collections: { posts, galleries, authors, globals },
   complete: async (data, context) => {
-    // 检查必要的环境变量
+    // 检查必要的环境变量（pnpm content 通过 --env-file=.env.local 注入）
     const requiredEnvVars = [
       "R2_PUBLIC_URL",
       "S3_ENDPOINT",
@@ -346,8 +349,9 @@ export default defineConfig({
       (varName) => !process.env[varName]
     );
     if (missingVars.length > 0) {
-      console.warn(`⚠️ 缺少环境变量: ${missingVars.join(", ")}`);
-      console.warn("请确保设置了所有必要的R2配置环境变量");
+      throw new Error(
+        `缺少 R2 环境变量: ${missingVars.join(", ")}。请配置 .env.local 后使用 pnpm content`
+      );
     }
 
     console.log("✅ Velite 构建完成，所有图片已上传到 Cloudflare R2");

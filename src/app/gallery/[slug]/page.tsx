@@ -5,6 +5,7 @@ import { galleries, globals } from "#site/content";
 import { notFound } from "next/navigation";
 import PhotoGallery from "@/app/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
+import { resolveGalleryOgImage } from "@/lib/galleryOg";
 
 interface GalleryDetailPageProps {
   params: Promise<{
@@ -16,9 +17,8 @@ export async function generateMetadata({
   params,
 }: GalleryDetailPageProps): Promise<Metadata> {
   const gallery = getGalleryBySlug((await params).slug);
-  const baseURL = siteConfig.baseURL;
+  const baseURL = siteConfig.baseURL ?? "";
 
-  let ogImage = `${baseURL}/og?title=${gallery?.name}`;
   if (gallery == null) {
     return {
       title: `错误：找不到相册`,
@@ -32,6 +32,8 @@ export async function generateMetadata({
 
   const title = `${gallery.name} | 相册`;
   const description = `${gallery.name}的照片`;
+  const ogImage = resolveGalleryOgImage(gallery, baseURL);
+
   return {
     title,
     description,
@@ -42,7 +44,7 @@ export async function generateMetadata({
       images: [
         {
           url: ogImage,
-          alt: gallery?.name,
+          alt: gallery.name,
         },
       ],
     },
@@ -67,10 +69,15 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
   const gallery = getGalleryBySlug((await params).slug);
   if (!gallery) notFound();
 
+  const videoCount = gallery.videos?.length ?? 0;
+
   return (
     <div className="prose-article flex flex-col gap-4">
       <h1>{gallery.name}</h1>
-      <div className="text-end opacity-80">{gallery.images.length}张照片</div>
+      <div className="text-end opacity-80">
+        {gallery.images.length}张照片
+        {videoCount > 0 ? ` · ${videoCount}个视频` : null}
+      </div>
       <PhotoGallery gallery={gallery} />
     </div>
   );

@@ -6,6 +6,8 @@ import {
   galleries,
   Gallery,
 } from "#site/content";
+import { getVideoId } from "@/lib/videoId";
+import type { RdVideo } from "@/lib/veliteUtils";
 
 export function getPostBySlug(slug: string): Post | undefined {
   return posts.find((post) => post.slug === slug);
@@ -29,4 +31,20 @@ export function getAuthorBySlug(slug: string): Author | undefined {
 
 export function getGalleryBySlug(slug: string): Gallery | undefined {
   return galleries.find((gallery) => gallery.slug === slug);
+}
+
+export function getGalleryVideo(
+  gallerySlug: string,
+  videoId: string
+): { gallery: Gallery; video: RdVideo } | undefined {
+  const gallery = getGalleryBySlug(gallerySlug);
+  if (!gallery) return undefined;
+
+  const decoded = decodeURIComponent(videoId);
+  const video = (gallery.videos ?? []).find(
+    (v) => getVideoId(v) === decoded || getVideoId(v) === videoId
+  );
+  if (!video) return undefined;
+
+  return { gallery, video };
 }

@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import ExifReader from "exifreader";
@@ -7,9 +8,43 @@ import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
   NotFound,
   HeadObjectCommandOutput,
 } from "@aws-sdk/client-s3";
+
+/** Long-lived CDN cache for immutable build-time media on images.wildrunner.org */
+export const R2_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
+function copySourceForKey(key: string): string {
+  const bucket = process.env.S3_BUCKET!;
+  const encodedKey = key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${bucket}/${encodedKey}`;
+}
+
+/** Ensure existing R2 objects get Cache-Control so Cloudflare edge can cache them. */
+async function ensureObjectCacheControl(
+  key: string,
+  head: HeadObjectCommandOutput
+): Promise<void> {
+  if (head.CacheControl?.includes("max-age")) return;
+
+  await getS3Client().send(
+    new CopyObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: key,
+      CopySource: copySourceForKey(key),
+      CacheControl: R2_CACHE_CONTROL,
+      ContentType: head.ContentType,
+      Metadata: head.Metadata,
+      MetadataDirective: "REPLACE",
+    })
+  );
+  console.log(`📦 Set Cache-Control on R2 object: ${key}`);
+}
 
 export type RdPhoto = {
   filename: string;
@@ -26,6 +61,8 @@ export type RdPhoto = {
 
 // 视频文件类型定义
 export type RdVideo = {
+  /** Stable URL segment from filename stem (CJK kept; spaces/punct → `-`) */
+  id: string;
   filename: string;
   src: string;
   slug: string;
@@ -34,6 +71,10 @@ export type RdVideo = {
   mimeType: string;
   lastModified: string;
 };
+
+import { videoIdFromFilename } from "@/lib/videoId";
+
+export { videoIdFromFilename, getVideoId } from "@/lib/videoId";
 
 // 支持的视频格式
 const supportedVideoFormats = [
@@ -49,19 +90,36 @@ const supportedVideoFormats = [
   "ogv",
 ];
 
-// 添加 R2 客户端配置
-const s3Client = new S3Client({
-  region: "auto",
-  endpoint: process.env.S3_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
-  },
-});
+function publicUrlForKey(key: string): string {
+  return `${process.env.R2_PUBLIC_URL}/${key
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+}
+
+// Lazy R2 client — env must be loaded before first use (see pnpm content --env-file)
+let _s3Client: S3Client | null = null;
+function getS3Client() {
+  if (_s3Client) return _s3Client;
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+  const endpoint = process.env.S3_ENDPOINT;
+  if (!accessKeyId || !secretAccessKey || !endpoint) {
+    throw new Error(
+      "缺少 S3/R2 环境变量（S3_ENDPOINT / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY）。请配置 .env.local 后运行 pnpm content"
+    );
+  }
+  _s3Client = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+  return _s3Client;
+}
 
 async function getExistingImageMetadata(key: string): Promise<RdPhoto | null> {
   try {
-    const headResult = (await s3Client.send(
+    const headResult = (await getS3Client().send(
       new HeadObjectCommand({
         Bucket: process.env.S3_BUCKET!,
         Key: key,
@@ -71,10 +129,11 @@ async function getExistingImageMetadata(key: string): Promise<RdPhoto | null> {
     // 使用 metadata（小写）
     const metadata = headResult.Metadata;
     if (metadata) {
+      await ensureObjectCacheControl(key, headResult);
       return {
         filename: path.basename(key),
-        src: `${process.env.R2_PUBLIC_URL}/${key}`,
-        slug: `${process.env.R2_PUBLIC_URL}/${key}`,
+        src: publicUrlForKey(key),
+        slug: publicUrlForKey(key),
         featured: metadata.featured === "true",
         width: parseInt(metadata.width || "0"),
         height: parseInt(metadata.height || "0"),
@@ -335,12 +394,13 @@ export const convertToWebP = async (
   const blurDataURL = await generateBlurDataUrl(sharpedImage);
   const src = `${process.env.R2_PUBLIC_URL}/${key}`;
 
-  await s3Client.send(
+  await getS3Client().send(
     new PutObjectCommand({
       Bucket: process.env.S3_BUCKET!,
       Key: key,
       Body: webpBuffer,
       ContentType: "image/webp",
+      CacheControl: R2_CACHE_CONTROL,
       Metadata: {
         width: metadata.width!.toString(),
         height: metadata.height!.toString(),
@@ -421,7 +481,7 @@ export async function convertHeicToJpeg(inputBuffer: Buffer): Promise<Buffer> {
 // 检查视频文件是否存在于 R2
 async function getExistingVideoMetadata(key: string): Promise<RdVideo | null> {
   try {
-    const headResult = (await s3Client.send(
+    const headResult = (await getS3Client().send(
       new HeadObjectCommand({
         Bucket: process.env.S3_BUCKET!,
         Key: key,
@@ -430,10 +490,15 @@ async function getExistingVideoMetadata(key: string): Promise<RdVideo | null> {
 
     const metadata = headResult.Metadata;
     if (metadata) {
+      await ensureObjectCacheControl(key, headResult);
+      const filename = metadata.originalname
+        ? decodeURIComponent(metadata.originalname)
+        : path.basename(key);
       return {
-        filename: path.basename(key),
-        src: `${process.env.R2_PUBLIC_URL}/${key}`,
-        slug: `${process.env.R2_PUBLIC_URL}/${key}`,
+        id: videoIdFromFilename(filename),
+        filename,
+        src: publicUrlForKey(key),
+        slug: publicUrlForKey(key),
         size: parseInt(metadata.size || "0"),
         extension: metadata.extension || "",
         mimeType: metadata.mimetype || "",
@@ -459,12 +524,40 @@ function getVideoMimeType(extension: string): string {
     flv: "video/x-flv",
     webm: "video/webm",
     mkv: "video/x-matroska",
-    m4v: "video/x-m4v",
+    // M4V is MP4-compatible; browsers play it more reliably as video/mp4
+    m4v: "video/mp4",
     "3gp": "video/3gpp",
     ogv: "video/ogg",
   };
   return mimeTypes[extension.toLowerCase()] || "video/mp4";
 }
+
+const getVideoFiles = async (dir: string): Promise<string[]> => {
+  const files = await fs.readdir(dir);
+  return files.filter((file) =>
+    supportedVideoFormats.includes(path.extname(file).toLowerCase().slice(1))
+  );
+};
+
+/** Upload all supported videos in a gallery/post directory to R2 */
+export const uploadVideosInDir = async (
+  inputPath: string,
+  slug: string
+): Promise<RdVideo[]> => {
+  const videoFiles = await getVideoFiles(inputPath);
+  const videos: RdVideo[] = [];
+
+  for (const file of videoFiles) {
+    try {
+      const video = await uploadVideoToR2(inputPath, slug, file);
+      videos.push(video);
+    } catch (error) {
+      console.error(`Error uploading video ${file}:`, error);
+    }
+  }
+
+  return videos;
+};
 
 // 上传视频文件到 R2
 export const uploadVideoToR2 = async (
@@ -490,8 +583,6 @@ export const uploadVideoToR2 = async (
   const key = `${slug}/${file}`;
   const mimeType = getVideoMimeType(extension);
 
-  // console.log(`🎬 Uploading video: ${file} in ${inputPath} with slug: ${slug}`);
-
   // 检查文件是否已存在于 R2
   const existingMetadata = await getExistingVideoMetadata(key);
   if (existingMetadata) {
@@ -499,35 +590,34 @@ export const uploadVideoToR2 = async (
     return existingMetadata;
   }
 
-  let fileBuffer: Buffer;
   try {
-    // 读取视频文件
-    fileBuffer = await fs.readFile(filePath);
-
-    // 获取文件统计信息
     const stats = await fs.stat(filePath);
 
-    // 上传到 R2
-    await s3Client.send(
+    // Stream upload — avoid loading large videos (e.g. 4K m4v) into memory
+    await getS3Client().send(
       new PutObjectCommand({
         Bucket: process.env.S3_BUCKET!,
         Key: key,
-        Body: fileBuffer,
+        Body: createReadStream(filePath),
         ContentType: mimeType,
+        ContentLength: stats.size,
+        CacheControl: R2_CACHE_CONTROL,
         Metadata: {
           size: stats.size.toString(),
           extension: extension,
           mimetype: mimeType,
           lastmodified: stats.mtime.toISOString(),
-          originalname: file,
+          // R2/S3 metadata values should be ASCII; encode filenames with spaces
+          originalname: encodeURIComponent(file),
         },
       })
     );
 
-    const src = `${process.env.R2_PUBLIC_URL}/${key}`;
+    const src = publicUrlForKey(key);
     console.log(`✅ Uploaded video to R2: ${file} -> ${src}`);
 
     return {
+      id: videoIdFromFilename(file),
       filename: file,
       src: src,
       slug: src,

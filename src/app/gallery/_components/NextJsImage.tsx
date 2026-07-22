@@ -1,87 +1,50 @@
-import { RenderImageContext, RenderImageProps } from "react-photo-album";
+import type { RenderImageContext, RenderImageProps } from "react-photo-album";
 import "react-photo-album/rows.css";
-import React, { useEffect, useRef, useState } from "react";
-import BlurImage from "@/components/BlurImage";
+import Image from "next/image";
 
-export const LazyImage = (
+type GalleryPhoto = {
+  src: string;
+  width: number;
+  height: number;
+  blurDataURL?: string;
+};
+
+/** First N album tiles get priority for LCP; the rest stay lazy. */
+const PRIORITY_COUNT = 3;
+
+export function NextJsImage(
   { alt = "", title, sizes }: RenderImageProps,
-  { photo, width, height }: RenderImageContext
-) => {
-  const [isInView, setIsInView] = useState(false);
-  const imgRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && imgRef.current) {
-          console.log("isIntersecting", entry.isIntersecting);
-          setIsInView(true);
-          observer.unobserve(imgRef.current);
-        }
-      },
-      {
-        rootMargin: "100px",
-        threshold: 0.1,
-      }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => {
-      if (imgRef.current) {
-        observer.unobserve(imgRef.current);
-      }
-    };
-  }, []);
+  { photo, width, height, index }: RenderImageContext
+) {
+  const galleryPhoto = photo as GalleryPhoto;
+  const hasBlur = Boolean(galleryPhoto.blurDataURL);
+  const priority = index < PRIORITY_COUNT;
 
   return (
     <div
-      ref={imgRef}
       style={{
         width: "100%",
         position: "relative",
         aspectRatio: `${width} / ${height}`,
       }}
     >
-      {isInView ? (
-        <BlurImage
-          src={photo.src}
-          blurDataURL={(photo as any).blurDataURL}
-          alt={alt}
-          title={title}
-          sizes={sizes}
-        />
-      ) : // if is not inView, it won't be seen anyway
-      null}
+      <Image
+        fill
+        src={galleryPhoto.src}
+        alt={alt}
+        title={title}
+        sizes={sizes}
+        className="object-cover rounded-sm"
+        priority={priority}
+        loading={priority ? undefined : "lazy"}
+        placeholder={hasBlur ? "blur" : "empty"}
+        blurDataURL={hasBlur ? galleryPhoto.blurDataURL : undefined}
+      />
     </div>
   );
-};
+}
 
-//  function NextJsImage(
-//   { alt = "", title, sizes }: RenderImageProps,
-//   { photo, width, height }: RenderImageContext
-// ) {
-//   return (
-//     <div
-//       style={{
-//         width: "100%",
-//         position: "relative",
-//         aspectRatio: `${width} / ${height}`,
-//       }}
-//     >
-//       <Image
-//         fill
-//         src={photo}
-//         alt={alt}
-//         title={title}
-//         sizes={sizes}
-//         loading="lazy"
-//         placeholder={"blurDataURL" in photo ? "blur" : undefined}
-//       />
-//     </div>
-//   );
-// }
+/** @deprecated Prefer NextJsImage — kept as alias for existing imports */
+export const LazyImage = NextJsImage;
 
-export default LazyImage;
+export default NextJsImage;
