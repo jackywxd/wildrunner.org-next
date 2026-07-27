@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
 	"name": "wildrunner-org-next",
-	"compatibility_date": "2026-07-19",
+	"compatibility_date": "2026-07-27",
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"
@@ -15,9 +15,7 @@
 		{
 			"binding": "D1",
 			"database_name": "wildrunner-org-next",
-			// Filled after `wrangler d1 create wildrunner-org-next`
-			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
-			"remote": true
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c"
 		}
 	],
 	"services": [
@@ -47,8 +45,13 @@
 		"binding": "AI",
 		"remote": true
 	},
+	"stream": {
+		"binding": "STREAM",
+		"remote": true
+	},
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"head_sampling_rate": 1
 	},
 	"workers_dev": true,
 	"preview_urls": true,

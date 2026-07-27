@@ -22,7 +22,12 @@
     "upload": "opennextjs-cloudflare build && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=playwright.config.ts --ui"
+    "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
+    "assert:bindings": "node scripts/assert-bindings.mjs",
+    "assert:lfs": "node scripts/assert-no-lfs-in-builds.mjs",
+    "migrate:velite": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts",
+    "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts --dry-run",
+    "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts --remote"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
@@ -99,6 +104,7 @@
     "eslint-config-next": "15.5.20",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "velite": "^0.3.1",
     "wrangler": "^4.112.0"

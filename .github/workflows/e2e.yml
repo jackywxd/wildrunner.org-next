@@ -10,9 +10,11 @@ on:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: false
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -22,9 +24,11 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Run Playwright
+      - name: Assert Cloudflare bindings
+        run: pnpm assert:bindings
+      - name: Assert Workers Builds LFS policy
+        run: pnpm assert:lfs
+      - name: Apply local D1 migrations
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
@@ -32,7 +36,32 @@ jobs:
           if [ -z "$PAYLOAD_SECRET" ]; then
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
+          pnpm payload migrate
+      - name: Migration dry-run counts
+        run: pnpm migrate:velite:dry
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+          NEXTJS_ENV: test
+          GIT_LFS_SKIP_SMUDGE: "1"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
           pnpm test:e2e
+      - name: OpenNext Cloudflare build
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          NEXT_PUBLIC_ENV: test
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm exec opennextjs-cloudflare build
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
