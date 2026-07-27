@@ -1,3 +1,10 @@
+> **⚠️ 本文档已归档（2026-07-27）。**
+> 下述 Phase 0–3（Docker/Traefik → Cloudflare Workers + OpenNext + Velite，无 DB/CMS）已于 2026-07-20 完成并切流，内容作为历史记录保留。
+> 此后架构方向发生了根本性变更：`feat/payload-cms-migration` 分支引入了 **Payload CMS 3 + D1 + R2 + Cloudflare Stream + Workers AI**，与本计划第 130 行「不引入 D1/第三方 CMS」的约束相反。
+> 当前进行中的迁移计划见 **[PLAN-payload.md](./PLAN-payload.md)**，请以该文档为准。
+
+---
+
 Cloudflare 迁移计划（输出至 PLAN.md）
 
 现状结论

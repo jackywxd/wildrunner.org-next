@@ -1,59 +1,65 @@
-# Payload CMS on Cloudflare (D1 + R2 + Workers AI)
-
-Phase 0+ scaffold notes. Full migration plan lives in the Cursor plan file.
+# Payload CMS on Cloudflare (D1 + R2 + Images/Stream + Workers AI)
 
 ## Bindings (`wrangler.jsonc`)
 
 | Binding | Resource |
 |---------|----------|
 | `D1` | D1 database `wildrunner-org-next` |
-| `R2` | Media originals bucket `wildrunner-storage` (public CDN: `images.wildrunner.org`) |
+| `R2` | Media originals bucket `wildrunner-storage` (CDN: `images.wildrunner.org`) |
 | `NEXT_INC_CACHE_R2_BUCKET` | OpenNext ISR cache |
 | `IMAGES` | Cloudflare Images optimization for `next/image` |
+| `STREAM` | Cloudflare Stream ingest / playback metadata |
 | `AI` | Workers AI (article assist) |
 | `ASSETS` / `WORKER_SELF_REFERENCE` | OpenNext |
 
+Assert locally: `pnpm assert:bindings`.
+
 ## Local env
 
-Copy and fill:
-
 ```bash
-# .env.local
-PAYLOAD_SECRET=<openssl rand -hex 32>
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_ENV=development
-R2_PUBLIC_URL=https://images.wildrunner.org
+cp .env.example .env.local
+# set PAYLOAD_SECRET=$(openssl rand -hex 32)
+cp .dev.vars.example .dev.vars
 ```
-
-Existing Velite `S3_*` vars remain for legacy `pnpm content` until Phase 7 cutover.
 
 ## Scripts
 
 ```bash
 pnpm install
-pnpm generate:types        # Cloudflare + Payload types
+pnpm generate:types
 pnpm generate:importmap
-pnpm payload migrate       # apply D1 migrations (uses wrangler proxy)
-pnpm dev                   # site + /admin
-pnpm test:e2e              # Playwright gate
+pnpm payload migrate
+pnpm migrate:velite:dry
+pnpm migrate:velite           # local D1/R2
+pnpm migrate:velite:remote    # production D1/R2 + STREAM ingest
+pnpm dev
+pnpm test:e2e
+pnpm assert:lfs
 ```
+
+## Media rules
+
+- Images: originals in R2; public UI must use `next/image` (`/_next/image` + `IMAGES`).
+- Videos: originals in R2; public playback uses Cloudflare Stream iframe once `streamId` + `streamReady`.
+- While Stream is processing (or missing), UI shows processing state — **no production R2 mp4 fallback**.
+- Social crawlers may use original CDN URLs for OG images (documented exception).
+
+## AI assist
+
+- API: authenticated `POST /api/ai/expand-post`
+- Admin: Posts edit form includes **AI 完善文章** (`src/components/admin/AIAssistField.tsx`)
+- Never auto-publishes; D1-backed rate limit (`ai_rate_limits`)
 
 ## CI / Workers Builds
 
-- **Do not enable Git LFS** in Workers Builds (media lives in R2).
-- Set `GIT_LFS_SKIP_SMUDGE=1` if clone still tries LFS.
-- Playwright runs via GitHub Actions (`.github/workflows/e2e.yml`), separate from Workers Builds.
-- Workers Builds still must not run Velite; after cutover it runs OpenNext + D1 migrate only.
+- GitHub Actions: bindings + LFS policy + D1 migrate + Playwright + OpenNext build
+- Workers Builds: `pnpm payload migrate && opennextjs-cloudflare build` — **no Velite, no Git LFS**
+- Details: [`docs/workers-builds.md`](workers-builds.md), [`docs/payload-testing.md`](payload-testing.md)
 
-## Phase 1 notes
+## Cutover checklist
 
-Collections: `users`, `media`, `authors`, `posts`, `galleries` · Global: `site`.
-
-- Drafts enabled on `posts` / `galleries` (`_status`).
-- Public read only published; writes require login.
-- D1 `push` is **off** — use `pnpm payload migrate` after schema changes.
-- Local: `pnpm dev` (webpack). Avoid `dev:turbo` with Payload admin.
-
-### First admin
-
-Open http://localhost:3000/admin and create the first user, or let Playwright seed `admin@wildrunner.test` via API.
+1. Run remote migrate once (`pnpm migrate:velite:remote`) and review `reports/payload-migration.json`.
+2. Confirm Stream pending list is empty or documented for retry.
+3. Point Workers Builds build command to migrate + OpenNext (see workers-builds.md).
+4. Merge `feat/payload-cms-migration` → `main` after Playwright green.
+5. Keep Velite scripts only as offline tools; public site must not import `#site/content`.
