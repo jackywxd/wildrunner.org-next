@@ -3,16 +3,20 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { galleries } from "#site/content";
 import { siteConfig } from "@/config/site";
-import { getGalleryVideo } from "@/store/velite";
 import {
   buildVideoOgImageUrl,
   resolveGalleryCoverSrc,
 } from "@/lib/galleryOg";
-import { getVideoId } from "@/lib/videoId";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  getGalleryBySlug,
+  getGalleryVideo,
+} from "@/lib/content";
+import { StreamVideoPlayer } from "@/components/stream-video-player";
+import { streamHlsUrl } from "@/lib/stream";
+import { refreshStreamReady } from "@/lib/stream-ingest";
 
 interface GalleryVideoPageProps {
   params: Promise<{
@@ -20,6 +24,8 @@ interface GalleryVideoPageProps {
     videoId: string;
   }>;
 }
+
+export const dynamic = "force-dynamic";
 
 function videoTitle(filename: string): string {
   return filename.replace(/\.[^.]+$/, "");
@@ -29,7 +35,8 @@ export async function generateMetadata({
   params,
 }: GalleryVideoPageProps): Promise<Metadata> {
   const { slug, videoId } = await params;
-  const result = getGalleryVideo(slug, videoId);
+  const gallery = await getGalleryBySlug(slug);
+  const result = gallery ? getGalleryVideo(gallery, videoId) : undefined;
   const baseURL = siteConfig.baseURL ?? "";
 
   if (!result) {
@@ -37,19 +44,27 @@ export async function generateMetadata({
       title: "错误：找不到视频",
     };
   }
+  if (result.video.streamId && !result.video.streamReady) {
+    result.video.streamReady = await refreshStreamReady(
+      result.video.mediaId,
+      result.video.streamId,
+    );
+  }
 
-  const { gallery, video } = result;
+  const { gallery: g, video } = result;
   const videoName = videoTitle(video.filename);
-  // Avoid "A | B | C" when gallery.name already contains "|"
-  const title = `${videoName} · ${gallery.name}`;
-  const description = `${gallery.name} · ${siteConfig.description}`;
-  const pageUrl = `${baseURL}/gallery/${gallery.slug}/v/${encodeURIComponent(getVideoId(video))}`;
+  const title = `${videoName} · ${g.name}`;
+  const description = `${g.name} · ${siteConfig.description}`;
+  const pageUrl = `${baseURL}/gallery/${g.slug}/v/${encodeURIComponent(video.id)}`;
   const ogImage = buildVideoOgImageUrl({
     baseURL,
     title: videoName,
-    subtitle: gallery.name,
-    coverSrc: resolveGalleryCoverSrc(gallery),
+    subtitle: g.name,
+    coverSrc: resolveGalleryCoverSrc(g),
   });
+  const streamVideoUrl = video.streamReady
+    ? streamHlsUrl(video.streamId)
+    : null;
 
   return {
     title,
@@ -60,12 +75,9 @@ export async function generateMetadata({
       type: "video.other",
       url: pageUrl,
       images: [{ url: ogImage, alt: title }],
-      videos: [
-        {
-          url: video.src,
-          type: video.mimeType || "video/mp4",
-        },
-      ],
+      videos: streamVideoUrl
+        ? [{ url: streamVideoUrl, type: "application/x-mpegURL" }]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
@@ -76,54 +88,43 @@ export async function generateMetadata({
   };
 }
 
-export async function generateStaticParams() {
-  return galleries.flatMap((gallery) =>
-    (gallery.videos ?? []).map((video) => ({
-      slug: gallery.slug,
-      videoId: getVideoId(video),
-    }))
-  );
-}
-
 export default async function GalleryVideoPage({
   params,
 }: GalleryVideoPageProps) {
   const { slug, videoId } = await params;
-  const result = getGalleryVideo(slug, videoId);
+  const gallery = await getGalleryBySlug(slug);
+  const result = gallery ? getGalleryVideo(gallery, videoId) : undefined;
   if (!result) notFound();
+  if (result.video.streamId && !result.video.streamReady) {
+    result.video.streamReady = await refreshStreamReady(
+      result.video.mediaId,
+      result.video.streamId,
+    );
+  }
 
-  const { gallery, video } = result;
+  const { gallery: g, video } = result;
   const title = videoTitle(video.filename);
 
   return (
     <div className="container relative max-w-7xl flex flex-col gap-4 py-6 lg:py-10">
       <Link
-        href={`/gallery/${gallery.slug}`}
+        href={`/gallery/${g.slug}`}
         className={cn(
           buttonVariants({ variant: "ghost" }),
-          "self-start -ml-2 px-2"
+          "self-start -ml-2 px-2",
         )}
       >
         <ChevronLeft className="mr-1 size-4" />
-        {gallery.name}
+        {g.name}
       </Link>
 
       <h1 className="!mb-0 text-4xl font-black leading-[1.12] text-foreground">
         {title}
       </h1>
-      <p className="!mt-0 text-sm text-muted-foreground">{gallery.name}</p>
+      <p className="!mt-0 text-sm text-muted-foreground">{g.name}</p>
 
       <div className="w-full overflow-hidden rounded-none border border-border bg-black">
-        <video
-          src={video.src}
-          controls
-          playsInline
-          preload="metadata"
-          className="aspect-video w-full"
-        >
-          <source src={video.src} type={video.mimeType || "video/mp4"} />
-          {video.filename}
-        </video>
+        <StreamVideoPlayer video={video} />
       </div>
     </div>
   );

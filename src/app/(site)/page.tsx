@@ -1,18 +1,25 @@
 import Link from "next/link";
 
-import { galleries, posts } from "#site/content";
 import Marquee from "@/components/magicui/Marquee";
 import PhotoCard from "@/components/PhotoCard";
 import { siteConfig } from "@/config/site";
-import { RdPhoto } from "@/lib/veliteUtils";
+import type { SitePhoto } from "@/lib/content-types";
+import {
+  getPublishedGalleries,
+  getPublishedPosts,
+  getSiteGlobals,
+} from "@/lib/content";
 import Races from "@/components/races";
-import { globals } from "#site/content";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function generateMetadata() {
-  const title = siteConfig.title;
-  const description = siteConfig.description;
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const globals = await getSiteGlobals();
+  const title = globals.metadata.titleDefault || siteConfig.title;
+  const description =
+    globals.metadata.description || siteConfig.description;
   const baseURL = siteConfig.baseURL;
 
   const ogImage = `${baseURL}/og?title=${encodeURIComponent(title)}`;
@@ -41,21 +48,30 @@ export function generateMetadata() {
   };
 }
 
-export default function Home() {
-  const imageCount = galleries?.reduce((acc, gallery) => {
+export default async function Home() {
+  const [globals, galleries, posts] = await Promise.all([
+    getSiteGlobals(),
+    getPublishedGalleries(),
+    getPublishedPosts(),
+  ]);
+
+  const imageCount = galleries.reduce((acc, gallery) => {
     return acc + gallery.images.length;
   }, 0);
 
-  let featuredImages = galleries?.reduce((acc, gallery) => {
+  let featuredImages = galleries.reduce((acc, gallery) => {
     return acc.concat(gallery.images.filter((image) => image.featured));
-  }, [] as RdPhoto[]);
+  }, [] as SitePhoto[]);
 
   featuredImages =
     featuredImages.length > 20 ? featuredImages.slice(0, 20) : featuredImages;
 
   const filteredPosts = posts
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .filter((post) => post.published);
+    .filter((post) => post.published)
+    .sort(
+      (a, b) =>
+        new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
+    );
 
   return (
     <main className="container relative max-w-6xl py-6 lg:py-10">
@@ -69,7 +85,7 @@ export default function Home() {
           </h1>
           {siteConfig.description && (
             <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-              {siteConfig.description}
+              {globals.metadata.description || siteConfig.description}
             </p>
           )}
 

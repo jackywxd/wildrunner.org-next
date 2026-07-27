@@ -1,13 +1,15 @@
 import React from "react";
-import { posts } from "#site/content";
+import type { SitePost } from "@/lib/content-types";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { Pencil } from "lucide-react"; // Example from lucide-react
+import { Pencil } from "lucide-react";
+import { postPublicPath } from "@/lib/content-paths";
 
-export default function Races({ allRaces }: { allRaces: typeof posts }) {
+export default function Races({ allRaces }: { allRaces: SitePost[] }) {
   const rs = allRaces.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) =>
+      new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
   );
   return (
     <div className="max-w-4xl py-6 lg:py-10">
@@ -24,24 +26,26 @@ export default function Races({ allRaces }: { allRaces: typeof posts }) {
                   <span className="sr-only">Under Construction</span>
                 </span>
               ) : (
-                <Link href={race.slug} className="absolute inset-0">
+                <Link
+                  href={postPublicPath(race.slug)}
+                  className="absolute inset-0"
+                >
                   <span className="sr-only">View Article</span>
                 </Link>
               )}
               {race.image && (
                 <div className="flex mx-auto w-[200px] h-[120px] xl:w-[300px] xl:h-[200px] overflow-hidden justify-center items-center bg-cover">
                   <Image
-                    src={race.image}
+                    src={race.image.src}
                     alt={race.title}
-                    width={300}
-                    height={200}
+                    width={race.image.width}
+                    height={race.image.height}
                     sizes="(max-width: 1280px) 200px, 300px"
                     priority={index < 2}
                     loading={index < 2 ? undefined : "lazy"}
                     className="grayscale transition-colors overflow-hidden bg-cover bg-center object-contain"
-                    placeholder={
-                      "blurDataURL" in race.image ? "blur" : undefined
-                    }
+                    placeholder={race.image.blurDataURL ? "blur" : undefined}
+                    blurDataURL={race.image.blurDataURL}
                   />
                 </div>
               )}

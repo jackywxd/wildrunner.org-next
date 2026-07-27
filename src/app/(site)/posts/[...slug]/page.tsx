@@ -1,16 +1,20 @@
 import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { posts as allBlogs } from "#site/content";
 import { cn, formatDate } from "@/lib/utils";
 import "@/styles/mdx.css";
 
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
-import { Mdx } from "@/components/mdx-component";
+import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  getPostBySlugParam,
+  getPublishedPostSlugs,
+} from "@/lib/content";
+import { postPublicPath } from "@/lib/content-paths";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -18,35 +22,23 @@ interface BlogPageItemProps {
   }>;
 }
 
-async function getBlogFromParams(params: BlogPageItemProps["params"]) {
-  const slug = (await params).slug.join("/");
-  const blog = allBlogs.find((blog) => blog.slugAsParams === slug);
-
-  if (!blog) {
-    return null;
-  }
-
-  return blog;
-}
-
 export async function generateMetadata({
   params,
 }: BlogPageItemProps): Promise<Metadata> {
   const baseURL = siteConfig.baseURL;
-  const post = await getBlogFromParams(params);
+  const slugParam = (await params).slug.join("/");
+  const post = await getPostBySlugParam(slugParam);
 
   if (!post) {
     return {};
   }
 
-  let { title, description, image, author } = post;
+  const { title, description, image, author } = post;
 
-  const newTitle = `${title} | ${author}`;
-  // Prefer the R2 CDN URL for social crawlers; avoid /_next/image which Workers
-  // may not optimize the same way for unauthenticated bots.
+  const newTitle = `${title} | ${author ?? siteConfig.author}`;
   const ogImage = image?.src
     ? image.src
-    : `${baseURL}/og?title=${encodeURIComponent(`${title}|${post.author ?? ""}`)}`;
+    : `${baseURL}/og?title=${encodeURIComponent(`${title}|${author ?? ""}`)}`;
 
   return {
     title: newTitle,
@@ -55,7 +47,7 @@ export async function generateMetadata({
       title: newTitle,
       description,
       type: "article",
-      url: `${baseURL}/${post.slug}`,
+      url: `${baseURL}${postPublicPath(post.slug)}`,
       images: [
         {
           url: ogImage,
@@ -73,13 +65,15 @@ export async function generateMetadata({
 }
 
 export async function generateStaticParams() {
-  return allBlogs.map((blog) => ({
-    slug: blog.slugAsParams.split("/"),
+  const slugs = await getPublishedPostSlugs();
+  return slugs.map((slug) => ({
+    slug: slug.split("/"),
   }));
 }
 
 export default async function BlogPageItem({ params }: BlogPageItemProps) {
-  const blog = await getBlogFromParams(params);
+  const slugParam = (await params).slug.join("/");
+  const blog = await getPostBySlugParam(slugParam);
   if (!blog) {
     notFound();
   }
@@ -121,17 +115,20 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
         {blog.image && (
           <div className="mx-auto my-8 w-1/2 max-w-[720px]">
             <Image
-              src={blog.image}
+              src={blog.image.src}
               alt={blog.title}
-              width={720}
-              height={405}
+              width={blog.image.width}
+              height={blog.image.height}
               priority
               className="mx-auto grayscale"
-              placeholder={"blurDataURL" in blog.image ? "blur" : undefined}
+              sizes="(max-width: 768px) 90vw, 720px"
             />
           </div>
         )}
-        <Mdx code={blog.body} />
+        <PayloadRichText
+          data={blog.content}
+          className="prose prose-neutral dark:prose-invert max-w-none"
+        />
         <hr className="mt-12 h-0 border-t-2 border-border" />
         <div className="flex justify-start py-6 lg:py-10">
           <Link

@@ -8,14 +8,13 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import Video from "yet-another-react-lightbox/plugins/video";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 import React from "react";
 import PhotoAlbum from "react-photo-album";
-import type { Gallery } from "#site/content";
-import { NextJsImage } from "@/app/gallery/_components/NextJsImage";
-import { GalleryVideos } from "@/app/gallery/_components/GalleryVideos";
+import type { SiteGallery } from "@/lib/content-types";
+import { NextJsImage } from "@/app/(site)/gallery/_components/NextJsImage";
+import { GalleryVideos } from "@/app/(site)/gallery/_components/GalleryVideos";
 
 interface Photo {
   src: string;
@@ -24,16 +23,16 @@ interface Photo {
   blurDataURL: string;
 }
 
-function toPhotos(images: Gallery["images"]): Photo[] {
+function toPhotos(images: SiteGallery["images"]): Photo[] {
   return images.map((img) => ({
     src: img.src,
     width: img.width,
     height: img.height,
-    blurDataURL: img.blurDataURL,
+    blurDataURL: img.blurDataURL ?? "",
   }));
 }
 
-export const PhotoGallery: React.FC<{ gallery: Gallery }> = ({ gallery }) => {
+export const PhotoGallery: React.FC<{ gallery: SiteGallery }> = ({ gallery }) => {
   const [index, setIndex] = useState(-1);
   // Seed first paint immediately (avoid empty → useEffect delay hurting LCP)
   const [photos, setPhotos] = useState<Photo[]>(() =>
@@ -57,19 +56,8 @@ export const PhotoGallery: React.FC<{ gallery: Gallery }> = ({ gallery }) => {
       width: photo.width,
       height: photo.height,
     }));
-    const videoSlides: Slide[] = (gallery.videos ?? []).map((video) => ({
-      type: "video" as const,
-      width: 1920,
-      height: 1080,
-      sources: [
-        {
-          src: video.src,
-          type: video.mimeType || "video/mp4",
-        },
-      ],
-    }));
-    return [...imageSlides, ...videoSlides];
-  }, [photos, gallery.videos]);
+    return imageSlides;
+  }, [photos]);
 
   return (
     <>
@@ -105,12 +93,7 @@ export const PhotoGallery: React.FC<{ gallery: Gallery }> = ({ gallery }) => {
         open={index >= 0}
         index={index}
         close={() => setIndex(-1)}
-        plugins={[Fullscreen, Slideshow, Thumbnails, Zoom, Video]}
-        video={{
-          controls: true,
-          playsInline: true,
-          autoPlay: true,
-        }}
+        plugins={[Fullscreen, Slideshow, Thumbnails, Zoom]}
       />
     </>
   );

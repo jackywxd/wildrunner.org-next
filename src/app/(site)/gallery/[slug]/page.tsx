@@ -1,11 +1,16 @@
 import React from "react";
 import type { Metadata } from "next";
-import { getGalleryBySlug } from "@/store/velite";
-import { galleries, globals } from "#site/content";
 import { notFound } from "next/navigation";
-import PhotoGallery from "@/app/gallery/_components/PhotoGallery";
+import PhotoGallery from "@/app/(site)/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
 import { resolveGalleryOgImage } from "@/lib/galleryOg";
+import {
+  getGalleryBySlug,
+  getPublishedGalleries,
+  getSiteGlobals,
+} from "@/lib/content";
+
+export const dynamic = "force-dynamic";
 
 interface GalleryDetailPageProps {
   params: Promise<{
@@ -16,7 +21,8 @@ interface GalleryDetailPageProps {
 export async function generateMetadata({
   params,
 }: GalleryDetailPageProps): Promise<Metadata> {
-  const gallery = getGalleryBySlug((await params).slug);
+  const gallery = await getGalleryBySlug((await params).slug);
+  const globals = await getSiteGlobals();
   const baseURL = siteConfig.baseURL ?? "";
 
   if (gallery == null) {
@@ -58,7 +64,8 @@ export async function generateMetadata({
 }
 
 export async function generateStaticParams() {
-  return galleries.map(async (gallery) => ({
+  const galleries = await getPublishedGalleries();
+  return galleries.map((gallery) => ({
     slug: gallery.slug,
   }));
 }
@@ -66,7 +73,7 @@ export async function generateStaticParams() {
 const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
   params,
 }) => {
-  const gallery = getGalleryBySlug((await params).slug);
+  const gallery = await getGalleryBySlug((await params).slug);
   if (!gallery) notFound();
 
   const videoCount = gallery.videos?.length ?? 0;
@@ -81,7 +88,7 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {gallery.images.length}张照片
           {videoCount > 0 ? ` · ${videoCount}个视频` : null}
         </div>
-      <PhotoGallery gallery={gallery} />
+        <PhotoGallery gallery={gallery} />
       </div>
     </div>
   );

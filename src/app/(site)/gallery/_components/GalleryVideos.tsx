@@ -2,17 +2,11 @@
 
 import Link from "next/link";
 import { Share2 } from "lucide-react";
-import { getVideoId } from "@/lib/videoId";
-
-type GalleryVideoItem = {
-  id?: string;
-  filename: string;
-  src: string;
-  mimeType?: string;
-};
+import type { SiteVideo } from "@/lib/content-types";
+import { StreamVideoPlayer } from "@/components/stream-video-player";
 
 type GalleryVideosProps = {
-  videos: GalleryVideoItem[];
+  videos: SiteVideo[];
   gallerySlug: string;
   /** Compact strip for gallery index; full width on detail */
   compact?: boolean;
@@ -34,7 +28,7 @@ export function GalleryVideos({
       }
     >
       {videos.map((video, index) => {
-        const videoId = getVideoId(video);
+        const videoId = video.id;
         const shareHref = `/gallery/${gallerySlug}/v/${videoId}`;
 
         return (
@@ -46,21 +40,15 @@ export function GalleryVideos({
                 : "w-full overflow-hidden border border-border bg-black"
             }
           >
-            <video
-              src={video.src}
-              controls
-              playsInline
-              // First video: metadata for poster/seek; rest: none until user interacts
-              preload={index === 0 ? "metadata" : "none"}
+            <StreamVideoPlayer
+              video={video}
+              compact={compact}
               className={
                 compact
                   ? "aspect-video h-[160px] w-full object-contain"
                   : "aspect-video w-full"
               }
-            >
-              <source src={video.src} type={video.mimeType || "video/mp4"} />
-              {video.filename}
-            </video>
+            />
             <div
               className={
                 compact

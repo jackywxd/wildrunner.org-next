@@ -2,12 +2,12 @@
 
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { RdPhoto } from "@/lib/veliteUtils";
+import type { SitePhoto } from "@/lib/content-types";
 import { useWindowSize } from "usehooks-ts";
 import { calculateDisplayedDimensions } from "@/lib/utils";
 
 interface IPhotoCardProps {
-  item: RdPhoto;
+  item: SitePhoto;
   maxWidth?: number;
   maxHeight?: number;
   isMobile?: boolean;

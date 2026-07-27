@@ -10,7 +10,7 @@ import "swiper/css/pagination";
 import { Swiper, SwiperRef, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import PhotoCard from "@/components/PhotoCard";
-import { RdPhoto } from "@/lib/veliteUtils";
+import type { SitePhoto } from "@/lib/content-types";
 import min from "lodash/min";
 import { motion, AnimatePresence } from "framer-motion";
 import { transitionApple } from "@/styles/framer-motion";
@@ -84,7 +84,7 @@ import { Icon } from "@iconify-icon/react";
 // }
 
 const SwiperLightbox: React.FC<{
-  images: RdPhoto[];
+  images: SitePhoto[];
   autoplay?: boolean;
   maxHeight?: number;
   featured?: boolean;

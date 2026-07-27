@@ -7,13 +7,15 @@ import { siteConfig } from "@/config/site";
 import { SOCIALS } from "@/constants";
 import { cn } from "@/lib/utils";
 import { Metadata } from "next";
-import { globals } from "#site/content";
+import { getSiteGlobals } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "About",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const globals = await getSiteGlobals();
+
   return (
     <div className="container relative max-w-6xl py-6 lg:py-10">
       <PageHeader title="About" description="Let's get to know each other" />
@@ -42,7 +44,7 @@ export default function AboutPage() {
                   target="_blank"
                   className={cn(
                     buttonVariants({ variant: "ghost" }),
-                    "text-primary px-0 hover:bg-primary transition-colors rounded-full p-2 size-8 bg-primary/80"
+                    "text-primary px-0 hover:bg-primary transition-colors rounded-full p-2 size-8 bg-primary/80",
                   )}
                 >
                   <social.icon className="size-6" />
