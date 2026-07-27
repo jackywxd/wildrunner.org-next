@@ -45,7 +45,15 @@ pnpm test:e2e              # Playwright gate
 - Playwright runs via GitHub Actions (`.github/workflows/e2e.yml`), separate from Workers Builds.
 - Workers Builds still must not run Velite; after cutover it runs OpenNext + D1 migrate only.
 
-## Media strategy (later phases)
+## Phase 1 notes
 
-- Images: R2 original → Cloudflare `IMAGES` / `next/image`
-- Videos: R2 original → Cloudflare Stream playback
+Collections: `users`, `media`, `authors`, `posts`, `galleries` · Global: `site`.
+
+- Drafts enabled on `posts` / `galleries` (`_status`).
+- Public read only published; writes require login.
+- D1 `push` is **off** — use `pnpm payload migrate` after schema changes.
+- Local: `pnpm dev` (webpack). Avoid `dev:turbo` with Payload admin.
+
+### First admin
+
+Open http://localhost:3000/admin and create the first user, or let Playwright seed `admin@wildrunner.test` via API.

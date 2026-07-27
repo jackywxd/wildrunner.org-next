@@ -1,0 +1,4 @@
+# Local Wrangler secrets for Payload / OpenNext
+# Copy values from .env.local as needed (do not commit real secrets).
+PAYLOAD_SECRET=
+NEXTJS_ENV=development

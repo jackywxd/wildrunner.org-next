@@ -66,6 +66,9 @@ export default buildConfig({
   },
   db: sqliteD1Adapter({
     binding: cloudflare.env.D1,
+    // Drizzle push recreates indexes that already exist on D1 and crashes /admin.
+    // Schema changes go through Payload migrations instead.
+    push: false,
     prodMigrations: migrations,
   }),
   logger: isProduction ? cloudflareLogger : undefined,

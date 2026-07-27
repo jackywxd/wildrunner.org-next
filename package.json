@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev:turbo": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack",
     "dev:content": "node --env-file=.env.local ./node_modules/velite/bin/velite.js --watch",
     "content": "node --env-file=.env.local ./node_modules/velite/bin/velite.js",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
