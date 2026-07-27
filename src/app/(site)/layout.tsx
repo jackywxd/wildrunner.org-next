@@ -33,11 +33,11 @@ export const metadata: Metadata = {
 };
 
 const fontCode = localFont({
-  src: "../assets/fonts/GeistMonoVF.woff2",
+  src: "../../assets/fonts/GeistMonoVF.woff2",
   variable: "--font-code",
 });
 
-export default function RootLayout({
+export default function SiteLayout({
   children,
 }: Readonly<{
   children: ReactNode;

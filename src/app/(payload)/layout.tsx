@@ -22,10 +22,18 @@ const serverFunction: ServerFunctionClient = async function (args) {
   })
 }
 
+/**
+ * Separate root layout for /admin so site chrome (theme, framer-motion, etc.)
+ * does not wrap Payload and cause DOM insertBefore / hydration crashes.
+ */
 const Layout = ({ children }: Args) => (
-  <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
-    {children}
-  </RootLayout>
+  <html lang="en" suppressHydrationWarning>
+    <body>
+      <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
+        {children}
+      </RootLayout>
+    </body>
+  </html>
 )
 
 export default Layout

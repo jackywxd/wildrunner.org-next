@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     localPatterns: [
       {
+        pathname: "/static/**",
+      },
+      {
         pathname: "/api/media/file/**",
       },
     ],
