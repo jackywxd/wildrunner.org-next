@@ -65,9 +65,11 @@ flowchart TB
 - **日常 `pnpm build`** 不跑 Velite（使用已有 `.velite`）；内容或媒体变更时执行 `pnpm content`
 - **媒体**：图片/视频与 MDX 同仓管理，经 **Git LFS** 跟踪（见 `.gitattributes`）
 
-### 不包含
+### 不包含（迁移前）
 
 数据库、鉴权、Server Actions、Cron、Docker、Traefik、PostHog。
+
+> **进行中**：分支 `feat/payload-cms-migration` 正将内容迁到 **Payload CMS 3**（D1 + R2 + Workers AI + Playwright）。见 [`docs/payload-migration.md`](docs/payload-migration.md)。
 
 ---
 

@@ -43,8 +43,12 @@ Install（可选）：`pnpm install --frozen-lockfile`
 | `NEXT_PUBLIC_ENV` | Plaintext | `production` |
 | `NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` | Secret | 可选 |
 | `R2_PUBLIC_URL` | Plaintext | `https://images.wildrunner.org` |
+| `PAYLOAD_SECRET` | Secret | Payload CMS（`feat/payload-cms-migration` 起需要） |
+| `GIT_LFS_SKIP_SMUDGE` | Plaintext | `1`（若 clone 仍尝试 LFS） |
 
 `S3_*` **仅本机** `pnpm content` 需要，见 [`.env.example`](../.env.example)。
+
+Payload / D1 / R2 / Playwright 细节见 [`docs/payload-migration.md`](payload-migration.md)。
 
 ## 已配置资源
 

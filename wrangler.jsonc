@@ -11,6 +11,15 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"d1_databases": [
+		{
+			"binding": "D1",
+			"database_name": "wildrunner-org-next",
+			// Filled after `wrangler d1 create wildrunner-org-next`
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+			"remote": true
+		}
+	],
 	"services": [
 		{
 			// Self-reference service binding, the service name must match the worker name
@@ -20,11 +29,12 @@
 		}
 	],
 	"r2_buckets": [
-		// Use R2 incremental cache
-		// See https://opennext.js.org/cloudflare/caching
+		{
+			"binding": "R2",
+			"bucket_name": "wildrunner-storage"
+		},
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			// Create before deploy: pnpm wrangler r2 bucket create wildrunner-org-next-opennext-cache
 			"bucket_name": "wildrunner-org-next-opennext-cache"
 		}
 	],
@@ -32,6 +42,9 @@
 		// Enable image optimization
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
+	},
+	"ai": {
+		"binding": "AI"
 	},
 	"observability": {
 		"enabled": true
