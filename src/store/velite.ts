@@ -1,50 +1,6 @@
-import {
-  posts,
-  Post,
-  authors,
-  Author,
-  galleries,
-  Gallery,
-} from "#site/content";
-import { getVideoId } from "@/lib/videoId";
-import type { RdVideo } from "@/lib/veliteUtils";
+export {
+  getGalleryBySlug,
+  getGalleryVideo,
+} from "@/lib/content";
 
-export function getPostBySlug(slug: string): Post | undefined {
-  return posts.find((post) => post.slug === slug);
-}
-
-export function getPostsByColumn(column: string): typeof posts {
-  return posts.filter((post) => post.columns.includes(column));
-}
-
-export function getPostsByCategory(category: string): typeof posts {
-  return posts.filter((post) => post.categories.includes(category));
-}
-
-export function getPostsByAuthor(author: string): typeof posts {
-  return posts.filter((post) => post.author.includes(author));
-}
-
-export function getAuthorBySlug(slug: string): Author | undefined {
-  return authors.find((author) => author.slug === slug);
-}
-
-export function getGalleryBySlug(slug: string): Gallery | undefined {
-  return galleries.find((gallery) => gallery.slug === slug);
-}
-
-export function getGalleryVideo(
-  gallerySlug: string,
-  videoId: string
-): { gallery: Gallery; video: RdVideo } | undefined {
-  const gallery = getGalleryBySlug(gallerySlug);
-  if (!gallery) return undefined;
-
-  const decoded = decodeURIComponent(videoId);
-  const video = (gallery.videos ?? []).find(
-    (v) => getVideoId(v) === decoded || getVideoId(v) === videoId
-  );
-  if (!video) return undefined;
-
-  return { gallery, video };
-}
+export type { SiteGallery, SitePost, SiteVideo } from "@/lib/content-types";

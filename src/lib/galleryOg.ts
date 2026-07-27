@@ -1,6 +1,6 @@
-import type { Gallery } from "#site/content";
+import type { SiteGallery } from "@/lib/content-types";
 
-type GalleryLike = Pick<Gallery, "name" | "cover" | "featured" | "images">;
+type GalleryLike = Pick<SiteGallery, "name" | "cover" | "featured" | "images">;
 
 /**
  * Prefer R2 CDN URLs for social crawlers; avoid /_next/image which Workers

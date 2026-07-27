@@ -1,8 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { posts } from "#site/content";
+import type { SitePost } from "@/lib/content-types";
 
-type Posts = typeof posts;
+type Posts = SitePost[];
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -24,23 +24,13 @@ export function filterPosts(
     column?: string;
     category?: string;
     tag?: string;
-  }
+  },
 ): Posts {
-  const columns = params.column ? params.column.split(",") : [];
-  const categories = params.category ? params.category.split(",") : [];
-
-  return posts.filter((post) => {
-    const columnMatch =
-      columns.length > 0
-        ? columns.some((col) => post.columns.includes(col))
-        : true;
-    const categoryMatch =
-      categories.length > 0
-        ? categories.some((cat) => post.categories.includes(cat))
-        : true;
-
-    return columnMatch && categoryMatch;
-  });
+  if (!params.column && !params.category && !params.tag) {
+    return posts;
+  }
+  // Legacy Velite column/category filters are not modeled in Payload yet.
+  return posts;
 }
 
 export function calculateDisplayedDimensions(
