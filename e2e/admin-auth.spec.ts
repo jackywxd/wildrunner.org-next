@@ -1,9 +1,6 @@
 import { test, expect } from "@playwright/test";
-import {
-  TEST_ADMIN,
-  ensureAdminUser,
-  lexicalParagraph,
-} from "./helpers/auth";
+import { TEST_ADMIN, ensureAdminUser } from "./helpers/auth";
+import { lexicalParagraph } from "@/lib/lexical-helpers";
 
 test.describe("P1 admin auth and posts", () => {
   test("P1-T1: admin can login via API", async ({ request }) => {
