@@ -4,48 +4,56 @@
 
 @layer base {
   :root {
-    --background: 270 100% 95%;
-    --foreground: 270 5% 0%;
-    --card: 270 50% 90%;
-    --card-foreground: 270 5% 10%;
-    --popover: 270 100% 95%;
-    --popover-foreground: 270 100% 0%;
-    --primary: 270 95.2% 75.3%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 270 30% 70%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 232 30% 85%;
-    --muted-foreground: 270 5% 35%;
-    --accent: 232 30% 80%;
-    --accent-foreground: 270 5% 10%;
+    /* Wild Runner Design System (Modernist) — 浅色 mono */
+    --background: 0 4.0% 95.1%; /* #F3F2F2 */
+    --foreground: 20 4.9% 12.0%; /* #201E1D */
+    --card: 0 2.3% 91.6%; /* #EAE9E9 */
+    --card-foreground: 20 4.9% 12.0%;
+    --popover: 0 4.0% 95.1%;
+    --popover-foreground: 20 4.9% 12.0%;
+    --primary: 264 94.9% 61.4%; /* #8A3FFA */
+    --primary-foreground: 0 4.0% 95.1%;
+    --secondary: 0 2.3% 91.6%;
+    --secondary-foreground: 20 4.9% 12.0%;
+    --muted: 0 4.8% 83.5%; /* neutral-300 */
+    --muted-foreground: 0 1.6% 37.1%; /* neutral-700 */
+    --accent: 264 100.0% 91.8%; /* accent-200 (hover/outline tint) */
+    --accent-foreground: 20 4.9% 12.0%;
     --destructive: 0 100% 30%;
-    --destructive-foreground: 270 5% 90%;
-    --border: 270 30% 50%;
-    --input: 270 30% 18%;
-    --ring: 270 95.2% 75.3%;
-    --radius: 0.5rem;
+    --destructive-foreground: 20 4.9% 12.0%;
+    --border: 0 4.8% 83.5%; /* neutral-300 */
+    --input: 0 4.8% 83.5%;
+    --ring: 264 94.9% 61.4%; /* focus ring */
+
+    /* DS: no radius */
+    --radius: 0px;
+
+    /* Fonts: next/font/google sets `--font-archivo/--font-noto` on the element. */
+    --font-heading: var(--font-archivo), system-ui, sans-serif;
+    --font-body: var(--font-archivo), var(--font-noto), system-ui, sans-serif;
   }
+
   .dark {
-    --background: 270 50% 5%;
-    --foreground: 270 5% 90%;
-    --card: 270 50% 0%;
-    --card-foreground: 270 5% 90%;
-    --popover: 270 50% 5%;
-    --popover-foreground: 270 5% 90%;
-    --primary: 270 95.2% 75.3%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 270 30% 10%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 232 30% 15%;
-    --muted-foreground: 270 5% 60%;
-    --accent: 232 30% 15%;
-    --accent-foreground: 270 5% 90%;
-    --destructive: 0 100% 30%;
-    --destructive-foreground: 270 5% 90%;
-    --border: 270 30% 18%;
-    --input: 270 30% 18%;
-    --ring: 270 95.2% 75.3%;
-    --radius: 0.5rem;
+    /* Dark surface: ink ground, light type, same accent purple */
+    --background: 20 4.9% 8%; /* near #201E1D */
+    --foreground: 0 4.0% 95.1%; /* #F3F2F2 */
+    --card: 20 4% 12%;
+    --card-foreground: 0 4.0% 95.1%;
+    --popover: 20 4.9% 8%;
+    --popover-foreground: 0 4.0% 95.1%;
+    --primary: 264 94.9% 61.4%; /* #8A3FFA */
+    --primary-foreground: 0 4.0% 95.1%;
+    --secondary: 20 4% 14%;
+    --secondary-foreground: 0 4.0% 95.1%;
+    --muted: 20 3% 18%;
+    --muted-foreground: 0 2% 65%;
+    --accent: 264 40% 18%;
+    --accent-foreground: 0 4.0% 95.1%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 4.0% 95.1%;
+    --border: 20 3% 22%;
+    --input: 20 3% 22%;
+    --ring: 264 94.9% 61.4%;
   }
 }
 
@@ -55,5 +63,37 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 15px;
+    line-height: 1.8;
+    font-weight: 400;
   }
+}
+
+/* Modernist interaction defaults */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, hsl(var(--primary)) 30%, transparent);
+}
+
+/* Design System: grayscale for content photography */
+.grayscale {
+  filter: none;
+}
+
+/* DS Typography: headings use Archivo */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }

@@ -43,14 +43,14 @@ export default function BlogPage() {
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
       <PageHeader title="Posts" description="" />
-      <hr className="my-8" />
+      <hr className="my-8 h-0 border-t-2 border-border" />
 
       {blogs.length ? (
         <div className="grid gap-10 sm:grid-cols-2">
           {blogs.map((blog, index) => (
             <article
               key={blog.slug}
-              className="group relative flex flex-col space-y-2"
+              className="group relative flex flex-col space-y-2 border border-border bg-secondary p-4"
             >
               {blog.image && (
                 <div className="flex w-full h-[200px] overflow-hidden justify-center items-center">
@@ -60,7 +60,7 @@ export default function BlogPage() {
                     width={804}
                     height={452}
                     sizes="(max-width: 640px) 100vw, 400px"
-                    className="transition-colors"
+                    className="transition-colors grayscale"
                     priority={index < 2}
                     loading={index < 2 ? undefined : "lazy"}
                     placeholder={
@@ -70,10 +70,10 @@ export default function BlogPage() {
                 </div>
               )}
 
-              <h2 className="text-2xl font-extrabold text-primary">
+              <h2 className="text-2xl font-extrabold text-foreground group-hover:text-primary">
                 {blog.title}
               </h2>
-              <p className="text-muted-foreground underline font-bold">
+              <p className="text-muted-foreground">
                 {blog.author}
               </p>
               {blog.description && (

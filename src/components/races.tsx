@@ -10,16 +10,16 @@ export default function Races({ allRaces }: { allRaces: typeof posts }) {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   return (
-    <div className="container max-w-4xl py-6 lg:py-10">
+    <div className="max-w-4xl py-6 lg:py-10">
       {rs.length ? (
         <div className="grid gap-10 sm:grid-cols-2">
           {rs.map((race, index) => (
             <article
               key={race.slug}
-              className="group relative flex flex-col space-y-2"
+              className="group relative flex flex-col space-y-2 border border-border bg-secondary p-4"
             >
               {!race.published ? (
-                <span className="absolute inset-0 flex items-center justify-center bg-gray-300 opacity-50">
+                <span className="absolute inset-0 flex items-center justify-center bg-background opacity-60">
                   <Pencil size={80} className="text-gray-800" />
                   <span className="sr-only">Under Construction</span>
                 </span>
@@ -38,14 +38,14 @@ export default function Races({ allRaces }: { allRaces: typeof posts }) {
                     sizes="(max-width: 1280px) 200px, 300px"
                     priority={index < 2}
                     loading={index < 2 ? undefined : "lazy"}
-                    className="transition-colors rounded-xl overflow-hidden bg-cover bg-center object-contain"
+                    className="grayscale transition-colors overflow-hidden bg-cover bg-center object-contain"
                     placeholder={
                       "blurDataURL" in race.image ? "blur" : undefined
                     }
                   />
                 </div>
               )}
-              <h2 className="text-2xl font-extrabold text-primary">
+              <h2 className="text-2xl font-extrabold text-foreground group-hover:text-primary">
                 {race.title}
               </h2>
               {race.description && (

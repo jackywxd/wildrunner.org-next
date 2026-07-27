@@ -34,7 +34,7 @@ export function NextJsImage(
         alt={alt}
         title={title}
         sizes={sizes}
-        className="object-cover rounded-sm"
+        className="object-cover grayscale"
         priority={priority}
         loading={priority ? undefined : "lazy"}
         placeholder={hasBlur ? "blur" : "empty"}

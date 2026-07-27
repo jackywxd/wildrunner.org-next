@@ -1,0 +1,8 @@
+[
+  {
+    "name": "追雲逐雪",
+    "slug": "jackywxd",
+    "bio": "const{jsx:e}=arguments[0];function _createMdxContent(n){const t={p:\"p\",...n.components};return e(t.p,{children:\"Runner, skier, riders and Cloud architect, security expert, programer, full stack developer.\"})}return{default:function(n={}){const{wrapper:t}=n.components||{};return t?e(t,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "permalink": "/author/jackywxd"
+  }
+]

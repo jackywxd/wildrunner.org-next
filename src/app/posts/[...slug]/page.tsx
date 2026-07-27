@@ -96,7 +96,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           </time>
         )}
 
-        <h1 className="mt-2 inline-block text-4xl font-bold capitalize leading-tight text-primary lg:text-5xl">
+        <h1 className="mt-2 inline-block text-4xl font-extrabold capitalize leading-tight text-foreground lg:text-5xl">
           {blog.title}
         </h1>
 
@@ -107,7 +107,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               alt={blog.author}
               width={42}
               height={42}
-              className="rounded-full bg-white"
+              className="grayscale border border-border bg-secondary"
             />
             <div className="flex-1 text-left leading-tight">
               <p className="font-medium">{blog.author}</p>
@@ -126,14 +126,14 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               width={720}
               height={405}
               priority
-              className="mx-auto"
+              className="mx-auto grayscale"
               placeholder={"blurDataURL" in blog.image ? "blur" : undefined}
             />
           </div>
         )}
         <Mdx code={blog.body} />
-        <hr className="mt-12" />
-        <div className="flex justify-center py-6 lg:py-10">
+        <hr className="mt-12 h-0 border-t-2 border-border" />
+        <div className="flex justify-start py-6 lg:py-10">
           <Link
             href="/posts"
             className={cn(buttonVariants({ variant: "ghost" }))}

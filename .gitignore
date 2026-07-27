@@ -44,10 +44,13 @@ next-env.d.ts
 # OpenNext
 .open-next
 
-# Velite generated content
-.velite
+# Velite output (.velite/) is committed so Workers Builds can deploy without
+# running Velite or checking out ~11GB of Git LFS media.
 # Velite may copy linked assets here during local builds; media lives in R2 / src/content
-/public/static
+# Keep brand SVGs tracked for header / dark mode logos.
+/public/static/*
+!/public/static/brand/
+!/public/static/brand/**
 
 # wrangler files
 .wrangler

@@ -50,7 +50,7 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({
       }}
     >
       <div
-        className="relative rounded-2xl overflow-hidden"
+        className="relative overflow-hidden"
         style={{
           width: displayedWidth || "100%",
           height: displayedHeight || "100%",
@@ -66,7 +66,7 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({
           loading={priority ? undefined : "lazy"}
           placeholder={hasBlur ? "blur" : "empty"}
           blurDataURL={hasBlur ? blurDataURL : undefined}
-          className="rounded-2xl object-cover w-full h-full"
+          className="grayscale object-cover w-full h-full"
           style={{ margin: 0 }}
         />
       </div>

@@ -72,13 +72,17 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
   const videoCount = gallery.videos?.length ?? 0;
 
   return (
-    <div className="prose-article flex flex-col gap-4">
-      <h1>{gallery.name}</h1>
-      <div className="text-end opacity-80">
-        {gallery.images.length}张照片
-        {videoCount > 0 ? ` · ${videoCount}个视频` : null}
-      </div>
+    <div className="container relative max-w-7xl py-6 lg:py-10">
+      <div className="flex flex-col gap-4">
+        <h1 className="text-4xl font-black leading-[1.12] text-foreground">
+          {gallery.name}
+        </h1>
+        <div className="text-left text-sm text-muted-foreground">
+          {gallery.images.length}张照片
+          {videoCount > 0 ? ` · ${videoCount}个视频` : null}
+        </div>
       <PhotoGallery gallery={gallery} />
+      </div>
     </div>
   );
 };

@@ -26,7 +26,7 @@ const config = {
     },
     extend: {
       fontFamily: {
-        lexend: ["var(--font-lexend)", ...fontFamily.sans],
+        lexend: ["var(--font-body)", ...fontFamily.sans],
         code: ["var(--font-code)", ...fontFamily.sans],
       },
       colors: {
@@ -65,9 +65,14 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        none: "0px",
+        sm: "0px",
+        md: "0px",
+        lg: "0px",
+        xl: "0px",
+        "2xl": "0px",
+        "3xl": "0px",
+        full: "0px",
       },
       keyframes: {
         "accordion-down": {

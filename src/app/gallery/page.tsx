@@ -15,7 +15,7 @@ const GalleryPage: NextPage = () => {
       return acc.concat(gallery.images.filter((image) => image.featured));
     }, [] as RdPhoto[]);
     return featured.length > 20 ? featured.slice(0, 20) : featured;
-  }, [galleries]);
+  }, []);
 
   const gallerySections = useMemo(() => {
     return galleries
@@ -33,43 +33,56 @@ const GalleryPage: NextPage = () => {
           ? { ...gallery, images: gallery.images.slice(0, 10) }
           : gallery;
       });
-  }, [galleries]);
+  }, []);
 
   return (
-    <>
-      <div className="prose-article flex flex-col gap-4">
-        <section className="-mx-content">
-          <h1 className="px-content mb-2">精选照片</h1>
-          <SwiperLightbox
-            images={featuredImages}
-            autoplay={true}
-            featured={true}
-          />
+    <div className="container max-w-7xl py-6 lg:py-10">
+      <div className="flex flex-col gap-6">
+        <section className="border-t-2 border-border pt-8">
+          <h1 className="text-4xl font-extrabold text-foreground">相册</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            精选照片与视频入口
+          </p>
+          <div className="mt-8">
+            <h2 className="text-xl font-extrabold">精选照片</h2>
+            <SwiperLightbox
+              images={featuredImages}
+              autoplay={true}
+              featured={true}
+            />
+          </div>
         </section>
+
         {gallerySections.map((gallery) => (
-          <section key={gallery.slug} className="-mx-content">
-            <button className="group btn btn-ghost btn-lg rounded-2xl mb-2 outline-transparent border-none p-0">
-              <Link
-                href={`gallery/${gallery.slug}`}
-                className="px-content flex items-center not-prose"
-              >
-                <h1 className="text-h1">{gallery.name}</h1>
+          <section
+            key={gallery.slug}
+            className="border-t-2 border-border pt-8"
+          >
+            <Link
+              href={`/gallery/${gallery.slug}`}
+              className="group flex items-center justify-between gap-4"
+            >
+              <h1 className="text-2xl font-extrabold text-foreground">
+                {gallery.name}
+              </h1>
+              <div className="flex items-center gap-3">
                 {(gallery.videos?.length ?? 0) > 0 && (
                   <Icon
-                    className="text-h2 ml-1 opacity-70"
+                    className="opacity-70"
                     icon="heroicons:play-circle"
                     inline
                   />
                 )}
                 <Icon
-                  className="text-h2 transition-apple group-hover:translate-x-1/3"
+                  className="opacity-70 transition-transform group-hover:translate-x-1/3"
                   icon="heroicons:chevron-right"
                   inline
                 />
-              </Link>
-            </button>
+              </div>
+            </Link>
+
             {(gallery.videos?.length ?? 0) > 0 && (
-              <div className="mb-3">
+              <div className="mt-4">
                 <GalleryVideos
                   videos={gallery.videos}
                   gallerySlug={gallery.slug}
@@ -77,13 +90,16 @@ const GalleryPage: NextPage = () => {
                 />
               </div>
             )}
+
             {gallery.images.length > 0 && (
-              <SwiperLightbox images={gallery.images} maxHeight={160} />
+              <div className="mt-4">
+                <SwiperLightbox images={gallery.images} maxHeight={160} />
+              </div>
             )}
           </section>
         ))}
       </div>
-    </>
+    </div>
   );
 };
 

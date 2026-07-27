@@ -1,0 +1,851 @@
+[
+  {
+    "title": "UTMB - 2023",
+    "slug": "posts/2023/utmb",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:e,jsx:n,jsxs:t}=arguments[0];function _createMdxContent(o){const r={p:\"p\",...o.components},{YouTube:c}=r;return c||function(e,n){throw new Error(\"Expected \"+(n?\"component\":\"object\")+\" `\"+e+\"` to be defined: you likely forgot to import, pass, or provide it.\")}(\"YouTube\",!0),t(e,{children:[n(r.p,{children:\"2023年我們六個人踏上了UTMB的徵程。\"}),\"\\n\",n(c,{id:\"hmidfqoX6cc\"})]})}return{default:function(e={}){const{wrapper:t}=e.components||{};return t?n(t,{...e,children:n(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "raw": "2023年我們六個人踏上了UTMB的徵程。\n\n<YouTube id=\"hmidfqoX6cc\"/>",
+    "path": "posts/2023/utmb",
+    "toc": [],
+    "date": "2023-09-01T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2023/utmb/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2023/utmb/cover.webp",
+      "featured": false,
+      "width": 1728,
+      "height": 1576,
+      "blurWidth": 20,
+      "blurHeight": 18,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRmQBAABXRUJQVlA4WAoAAAAQAAAAEwAAEQAAQUxQSBgBAAANgGXbdtrmPckyhZnpt8w0/9W/ToHJ4cQog6TyGCJiAuDfdHQ9er19EP8ySs1QeprLAVD9glCpt+ZTR6PQUyRPRIIQZDpmglmhjG4MmQhTYRTDJpjT1OrUxZ4GFgqakAD97N4JamMdXCETQEOABjGuwlmxUba0e7C7aYG48YylapMb1DZ++0GkFJgxLTO+NJv9UmGbnDtCycwgXqFrpCJUtMcjpkg2DTNRrh0UIrVUj0F1oib2+6vUVZNTFVaSMvfz5G6HuRubQtmfBWk+nxcOI0lPSWJG0kgfpjKthbYnw3S16rfJVisVEllZGw7bUHIyDQrlLNIMtuUGx7lKm12XUCUB0bRLtk6RIgC45RxHShIOiBzBFEQgVlA4ICYAAADQAgCdASoUABIAPtFiqk+oJaOiKAgBABoJaQAAPaOgAP7ywgAAAA=="
+    },
+    "description": "記錄我們六個人參加的UTMB，最後我們都安全完賽了。",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 7.720000000000001
+    },
+    "year": "2023",
+    "slugAsParams": "2023/utmb"
+  },
+  {
+    "title": "芝加哥馬拉松",
+    "slug": "posts/2024/chicago-marathon-2024",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:n,jsx:i,jsxs:l}=arguments[0];function _createMdxContent(e){const a={a:\"a\",h2:\"h2\",img:\"img\",li:\"li\",ol:\"ol\",p:\"p\",ul:\"ul\",...e.components};return l(n,{children:[i(a.p,{children:\"芝加哥馬拉松作為世界六大馬拉松賽事之一，一直以來都備受矚目。今年，我有幸與島哥和Laura一同踏上了這場盛大的跑步盛宴。\"}),\"\\n\",i(a.p,{children:\"溫哥華跑友在本次賽事中表現出色，不少人都交出了令人欣喜的成績單。其中，Eric Duan以2小時45分鐘的佳績脫穎而出，而眾多女選手也展現了驚人的實力。\"}),\"\\n\",i(a.p,{children:\"今年的賽事更是見證了一個歷史性的時刻。來自肯亞的Ruth Chepngetich以驚人的2小時09分56秒的成績摘得女子組桂冠，不僅打破了女子馬拉松世界紀錄，更成為首位突破2小時10分大關的女子馬拉松選手。值得一提的是，目前男女馬拉松的世界紀錄均誕生於芝加哥馬拉松賽道,充分證明了這條賽道的卓越品質,為跑者創造佳績提供了絕佳的舞台。\"}),\"\\n\",i(a.p,{children:\"儘管我個人的表現未能達到預期，但整個旅程依舊精彩紛呈，充滿歡樂，特別分享此次芝加哥之行中，除了跑步之外的種種體驗與心得。\"}),\"\\n\",i(a.h2,{id:\"芝加哥的交通\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#芝加哥的交通\",children:\"芝加哥的交通\"})}),\"\\n\",i(a.p,{children:\"從機場到市區最方便的方式是乘坐CTA的Blue Line機場線，day pass是5美金，可以乘坐公交和CTA。可以下載ventra app，註冊後直接購買，免去排隊。這裡注意的是CTA和Metra不一樣，CTA是公交，Metra是火車。我們這次去Expo座的是Metra，結果以為買了day pass不需要再買票，結果被查票的查了，還好只有兩站地，查票的也沒有罰款。\"}),\"\\n\",i(a.h2,{id:\"位置最佳的酒店\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#位置最佳的酒店\",children:\"位置最佳的酒店\"})}),\"\\n\",i(a.p,{children:\"位置最好的酒店是Hilton，就在賽道旁邊，步行到達起點，距離終點也很近。\"}),\"\\n\",i(a.p,{children:\"HILTON CHICAGO - HEADQUARTER HOTEL\\n720 S Michigan Ave\\nChicago, IL 60605\\nPhone: 312-922-4400\\nFax: 312-922-5240\"}),\"\\n\",i(a.p,{children:\"要訂這個酒店需要提前很久，我是2023年10月就訂了，提前了1年多。每晚的價錢350美金，加上其他的稅，最後每晚上400多美金。一個房間可以最多住4個人，所以如果4個人一起住，每個人分攤下來也就100多美金。\"}),\"\\n\",i(a.h2,{id:\"推薦的飯店\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#推薦的飯店\",children:\"推薦的飯店\"})}),\"\\n\",i(a.p,{children:\"以下是一些值得推薦的芝加哥餐廳：\"}),\"\\n\",l(a.ol,{children:[\"\\n\",l(a.li,{children:[\"明軒（Minghin Cuisine）：粵菜連鎖店，位置便利，價格合理。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址1：1234 S Michigan Ave, Chicago, IL 60605\"}),\"\\n\",i(a.li,{children:\"地址2：333 E Benton Pl #300, Chicago, IL 60601\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"Au Cheval：以漢堡聞名的美式餐廳，常常排隊。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：800 W Randolph St, Chicago, IL 60607\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"Girl & the Goat：創意美式料理，需提前預訂。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：809 W Randolph St, Chicago, IL 60607\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"Lou Malnati's Pizzeria：芝加哥深盤披薩的代表之一。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"多個分店，市中心位置：805 S State St, Chicago, IL 60605\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"Portillo's：芝加哥風味的熱狗和意大利牛肉三明治。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：100 W Ontario St, Chicago, IL 60654\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"The Purple Pig：地中海風味餐廳，以小吃和葡萄酒聞名。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：444 N Michigan Ave, Chicago, IL 60611\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\"]}),\"\\n\",i(a.p,{children:\"這些餐廳涵蓋了不同的口味和價位，從當地特色到國際美食，相信能滿足不同跑者的需求。建議根據個人喜好和位置選擇，並在繁忙時段提前預訂。\"}),\"\\n\",i(a.p,{children:\"明軒（Minghin Cuisine）是以前跑過芝加哥的前輩推薦的飯店，在Hilton附近走路能到達。週六我們總共去了三次，早、中、晚，最後我們都感覺有點補碳過份了。不過味道還是挺好的，價錢也不貴，三個人吃一頓飯人均25-30美金。\"}),\"\\n\",i(a.h2,{id:\"推薦的活動\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#推薦的活動\",children:\"推薦的活動\"})}),\"\\n\",i(a.p,{children:\"芝加哥除了马拉松比赛外，还有许多值得体验的活动。以下是一些推荐：\"}),\"\\n\",l(a.ol,{children:[\"\\n\",l(a.li,{children:[\"建筑游船之旅：芝加哥以其独特的建筑风格而闻名。乘坐游船沿着芝加哥河欣赏城市天际线，是了解这座城市历史和建筑的绝佳方式。DuSable Bridge邊上可以參加Wendella Tours & Cruises的遊船。購買的連結：（\",i(a.a,{href:\"https://www.wendellaboats.com/Boat-Tours/chicagos-original-architecture-tour/%EF%BC%89\",children:\"https://www.wendellaboats.com/Boat-Tours/chicagos-original-architecture-tour/）\"})]}),\"\\n\",i(a.li,{children:\"参观艺术博物馆：芝加哥艺术博物馆是世界上最大的艺术博物馆之一，收藏了大量印象派和后印象派作品。\"}),\"\\n\",i(a.li,{children:\"登顶威利斯大厦：在这座108层高的摩天大楼顶部的观景台，可以360度俯瞰整个芝加哥。\"}),\"\\n\",i(a.li,{children:\"千禧公园散步：这个现代化的城市公园融合了艺术、建筑和绿色空间，是放松身心的好去处。\"}),\"\\n\",i(a.li,{children:\"品尝深盘披萨：芝加哥以其独特的深盘披萨而闻名，不妨尝试一下这道当地特色美食。\"}),\"\\n\",i(a.li,{children:\"观看体育比赛：如果时间允许，可以考虑观看一场芝加哥公牛队的篮球比赛或芝加哥小熊队的棒球比赛。\"}),\"\\n\"]}),\"\\n\",i(a.p,{children:\"这些活动不仅能让你更深入地了解芝加哥，还能帮助你在马拉松后放松身心，充分享受这座城市的魅力。而芝加哥的幾個地標都在Hilton附近，步行即可到达：\"}),\"\\n\",l(a.ol,{children:[\"\\n\",l(a.li,{children:['云门(Cloud Gate)：又称\"豆子\"，位于千禧公园，是芝加哥的标志性雕塑。',\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：201 E Randolph St, Chicago, IL 60602\"}),\"\\n\",i(a.li,{children:\"步行距离：约10分钟\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"皇冠喷泉(Crown Fountain)：互动视频雕塑，同样位于千禧公园。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：201 E Randolph St, Chicago, IL 60602\"}),\"\\n\",i(a.li,{children:\"步行距离：约10分钟\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"芝加哥艺术博物馆(Art Institute of Chicago)：世界顶级艺术博物馆之一。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：111 S Michigan Ave, Chicago, IL 60603\"}),\"\\n\",i(a.li,{children:\"步行距离：约5分钟\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"白金汉喷泉(Buckingham Fountain)：格兰特公园内的大型喷泉。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"地址：301 S Columbus Dr, Chicago, IL 60605\"}),\"\\n\",i(a.li,{children:\"步行距离：约7分钟\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:['密歇根大道(Michigan Avenue)：著名的购物街，又称\"壮丽一英里\"。',\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"位置：就在希尔顿酒店门口\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\",l(a.li,{children:[\"芝加哥河步道(Chicago Riverwalk)：沿芝加哥河的休闲步道。\",\"\\n\",l(a.ul,{children:[\"\\n\",i(a.li,{children:\"起点：Lake Shore Dr & E Wacker Dr, Chicago, IL 60601\"}),\"\\n\",i(a.li,{children:\"步行距离：约15-20分钟\"}),\"\\n\"]}),\"\\n\"]}),\"\\n\"]}),\"\\n\",i(a.p,{children:\"另外還可以去耐克旗艦店，對面四層樓的星巴克Starbucks Reserve Roastery，都不是太遠。\"}),\"\\n\",i(a.h2,{id:\"經典相片\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#經典相片\",children:\"經典相片\"})}),\"\\n\",i(a.p,{children:\"跑芝加哥最經典相片是背景有Chicago標誌的劇院，垂直标志上用发光的槽形字母拼出“CHICAGO”字样，是芝加哥市的象征，也是美国少数仍在使用的原始外露灯泡电灯招牌之一。這次只有跑得比較快的Eric收穫了一張經典相片，不過在KK的幫助下，我們每個人都收穫了一張。\"}),\"\\n\",l(a.p,{children:[\"這大概是今年最佳的相片，黑人大哥的表情太搞笑了。\\n\",i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/14621729021454_.pic.webp\",alt:\"搞笑相片\",width:\"584\",height:\"873\",blurdataurl:\"data:image/webp;base64,UklGRpgAAABXRUJQVlA4IIwAAABQBQCdASoUAB4APsFSpEunpSQhsAwA8BgJQBb3BDfQ8Z8/tDCta+vfpl+sL9riftV1DIAA/ppCczNT/hTyG6kpirfbodGfWglp3BEA1aP0qVutJWY6FQmKNQxd9i+B063/fEuJM1Nq9lgt8qpbVAJXMxY0bbSLt0UFWczbxYkJp4SpH253pXr1pg2AAA==\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",l(a.p,{children:[\"我們其他人雖然沒有像Eric那樣跑得快，但是在KK的幫助下，也各都收穫了一張經典難忘的相片。\\n\",i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/14821729053883_.pic.webp\",alt:\"KK惡搞相片\",width:\"1331\",height:\"2057\",blurdataurl:\"data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAADwBACdASoUAB8APtFapUuoJSOhsAgBABoJQBYdhDdqp1IXNH2k7HmtHC0Mq/HizaIA/rafsDBxCO/R9CIuR+2d+FM230YX9BziTiu6Jrsc7zS0RWmfmu6dfI5yWrSp47Ini580VIO5/qLKQ1YSnaq5RZ56biwg7JgTPelSPFvhvqfYMwo2NLQh3FeANIxXCTbmv4mHI2P/IAAA\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",i(a.p,{children:i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/16611729304974_.pic.webp\",alt:\"KK惡搞相片\",width:\"1196\",height:\"1733\",blurdataurl:\"data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAACwBQCdASoUAB0APtFYpUuoJSOhsAgBABoJZACdMoACZ8LbQTRicVxQA/8/iGdDqIYT+XQHkAAA/sQbaQnENePivVU1/tUfWLXtwec3ZFxv3QjF6WX2vqk/NQTjghZZD43hBYd+7bxDbTyREPFBTlwcLwEPq3uZIh8xCiGm3EXaGjGpe5lvqouxtDxa1mskF0Ba4chFMYy54AAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",i(a.p,{children:i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/16631729305211_.pic.webp\",alt:\"KK惡搞相片\",width:\"746\",height:\"1055\",blurdataurl:\"data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAABQBACdASoUABwAPtFUokuoJKMhsAgBABoJZQCw7B4bPNO9A2QHs+c+ZIQcAP6YkOqRKJ6T0zeYpKF1X1O7TpuK0T2t4jcJ4Xay+AaRnZY9MSr6iVW8tndFDoM73B0cMyJ2UscKmjWYXDJOKxLKhJJdKu90zwxszwTLIAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",i(a.p,{children:i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/17321729391282_.pic.webp\",alt:\"KK惡搞相片\",width:\"1080\",height:\"1440\",blurdataurl:\"data:image/webp;base64,UklGRqIAAABXRUJQVlA4IJYAAACQBQCdASoUABsAPtFan0uoJaKhsBgMAQAaCUATpmmIJ56NN08NGg6hY234QX7XwJiBNeeeAAD+mbenz3Yatu/84FWeAkWZ39Sb35Xr9qYcmVQyux4mYCbEOGbMxcTNIMBTgydfeZ9O2cVYnFQLjymlYfcNWcaz2w76hU3ibdxG0NTQLJ+Xw9tgXATiPbjKzTgZigXbgAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",i(a.p,{children:i(a.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon-2024/17271729390425_.pic.webp\",alt:\"KK惡搞相片\",width:\"1080\",height:\"1440\",blurdataurl:\"data:image/webp;base64,UklGRqwAAABXRUJQVlA4IKAAAAAQBQCdASoUABsAPtFYpEuoJSOhsAgBABoJQBfJAz81NCBcdcJ3UZ7g62mYKa98IiAAAP7Q6Nmz1dS+Gt8myJKUDj52qmfEC+wE81iexV8UYuEG2dceMXEfh/tYCySDyG3w/A+T+AoKDW9G3HuBvXJU2HZJPtNgUNF0kkPvWU6bevogMEezDbH7GQ4PDM4o41b9Oi/UBrqmotLsOkvQEAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",i(a.h2,{id:\"感謝\",children:i(a.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#感謝\",children:\"感謝\"})}),\"\\n\",i(a.p,{children:\"印象深刻的是芝加哥的chi跑團組織的非常好，從賽前的補碳會、賽中的義工組織和賽後的相片分享都非常周到和專業。很感謝他們的辛勤付出！！\"})]})}return{default:function(n={}){const{wrapper:l}=n.components||{};return l?i(l,{...n,children:i(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "芝加哥馬拉松作為世界六大馬拉松賽事之一，一直以來都備受矚目。今年，我有幸與島哥和Laura一同踏上了這場盛大的跑步盛宴。\n\n溫哥華跑友在本次賽事中表現出色，不少人都交出了令人欣喜的成績單。其中，Eric Duan以2小時45分鐘的佳績脫穎而出，而眾多女選手也展現了驚人的實力。\n\n今年的賽事更是見證了一個歷史性的時刻。來自肯亞的Ruth Chepngetich以驚人的2小時09分56秒的成績摘得女子組桂冠，不僅打破了女子馬拉松世界紀錄，更成為首位突破2小時10分大關的女子馬拉松選手。值得一提的是，目前男女馬拉松的世界紀錄均誕生於芝加哥馬拉松賽道,充分證明了這條賽道的卓越品質,為跑者創造佳績提供了絕佳的舞台。\n\n儘管我個人的表現未能達到預期，但整個旅程依舊精彩紛呈，充滿歡樂，特別分享此次芝加哥之行中，除了跑步之外的種種體驗與心得。\n\n## 芝加哥的交通\n從機場到市區最方便的方式是乘坐CTA的Blue Line機場線，day pass是5美金，可以乘坐公交和CTA。可以下載ventra app，註冊後直接購買，免去排隊。這裡注意的是CTA和Metra不一樣，CTA是公交，Metra是火車。我們這次去Expo座的是Metra，結果以為買了day pass不需要再買票，結果被查票的查了，還好只有兩站地，查票的也沒有罰款。\n\n## 位置最佳的酒店\n\n位置最好的酒店是Hilton，就在賽道旁邊，步行到達起點，距離終點也很近。\n\nHILTON CHICAGO - HEADQUARTER HOTEL\n720 S Michigan Ave\nChicago, IL 60605\nPhone: 312-922-4400\nFax: 312-922-5240\n\n要訂這個酒店需要提前很久，我是2023年10月就訂了，提前了1年多。每晚的價錢350美金，加上其他的稅，最後每晚上400多美金。一個房間可以最多住4個人，所以如果4個人一起住，每個人分攤下來也就100多美金。\n\n## 推薦的飯店\n\n以下是一些值得推薦的芝加哥餐廳：\n\n1. 明軒（Minghin Cuisine）：粵菜連鎖店，位置便利，價格合理。\n   - 地址1：1234 S Michigan Ave, Chicago, IL 60605\n   - 地址2：333 E Benton Pl #300, Chicago, IL 60601\n2. Au Cheval：以漢堡聞名的美式餐廳，常常排隊。\n   - 地址：800 W Randolph St, Chicago, IL 60607\n3. Girl & the Goat：創意美式料理，需提前預訂。\n   - 地址：809 W Randolph St, Chicago, IL 60607\n4. Lou Malnati's Pizzeria：芝加哥深盤披薩的代表之一。\n   - 多個分店，市中心位置：805 S State St, Chicago, IL 60605\n5. Portillo's：芝加哥風味的熱狗和意大利牛肉三明治。\n   - 地址：100 W Ontario St, Chicago, IL 60654\n6. The Purple Pig：地中海風味餐廳，以小吃和葡萄酒聞名。\n   - 地址：444 N Michigan Ave, Chicago, IL 60611\n\n這些餐廳涵蓋了不同的口味和價位，從當地特色到國際美食，相信能滿足不同跑者的需求。建議根據個人喜好和位置選擇，並在繁忙時段提前預訂。\n\n明軒（Minghin Cuisine）是以前跑過芝加哥的前輩推薦的飯店，在Hilton附近走路能到達。週六我們總共去了三次，早、中、晚，最後我們都感覺有點補碳過份了。不過味道還是挺好的，價錢也不貴，三個人吃一頓飯人均25-30美金。\n\n## 推薦的活動\n芝加哥除了马拉松比赛外，还有许多值得体验的活动。以下是一些推荐：\n1. 建筑游船之旅：芝加哥以其独特的建筑风格而闻名。乘坐游船沿着芝加哥河欣赏城市天际线，是了解这座城市历史和建筑的绝佳方式。DuSable Bridge邊上可以參加Wendella Tours & Cruises的遊船。購買的連結：（https://www.wendellaboats.com/Boat-Tours/chicagos-original-architecture-tour/）\n2. 参观艺术博物馆：芝加哥艺术博物馆是世界上最大的艺术博物馆之一，收藏了大量印象派和后印象派作品。\n3. 登顶威利斯大厦：在这座108层高的摩天大楼顶部的观景台，可以360度俯瞰整个芝加哥。\n4. 千禧公园散步：这个现代化的城市公园融合了艺术、建筑和绿色空间，是放松身心的好去处。\n5. 品尝深盘披萨：芝加哥以其独特的深盘披萨而闻名，不妨尝试一下这道当地特色美食。\n6. 观看体育比赛：如果时间允许，可以考虑观看一场芝加哥公牛队的篮球比赛或芝加哥小熊队的棒球比赛。\n\n这些活动不仅能让你更深入地了解芝加哥，还能帮助你在马拉松后放松身心，充分享受这座城市的魅力。而芝加哥的幾個地標都在Hilton附近，步行即可到达：\n\n1. 云门(Cloud Gate)：又称\"豆子\"，位于千禧公园，是芝加哥的标志性雕塑。\n   - 地址：201 E Randolph St, Chicago, IL 60602\n   - 步行距离：约10分钟\n2. 皇冠喷泉(Crown Fountain)：互动视频雕塑，同样位于千禧公园。\n   - 地址：201 E Randolph St, Chicago, IL 60602\n   - 步行距离：约10分钟\n3. 芝加哥艺术博物馆(Art Institute of Chicago)：世界顶级艺术博物馆之一。\n   - 地址：111 S Michigan Ave, Chicago, IL 60603\n   - 步行距离：约5分钟\n4. 白金汉喷泉(Buckingham Fountain)：格兰特公园内的大型喷泉。\n   - 地址：301 S Columbus Dr, Chicago, IL 60605\n   - 步行距离：约7分钟\n5. 密歇根大道(Michigan Avenue)：著名的购物街，又称\"壮丽一英里\"。\n   - 位置：就在希尔顿酒店门口\n6. 芝加哥河步道(Chicago Riverwalk)：沿芝加哥河的休闲步道。\n   - 起点：Lake Shore Dr & E Wacker Dr, Chicago, IL 60601\n   - 步行距离：约15-20分钟\n\n另外還可以去耐克旗艦店，對面四層樓的星巴克Starbucks Reserve Roastery，都不是太遠。\n\n## 經典相片\n\n跑芝加哥最經典相片是背景有Chicago標誌的劇院，垂直标志上用发光的槽形字母拼出“CHICAGO”字样，是芝加哥市的象征，也是美国少数仍在使用的原始外露灯泡电灯招牌之一。這次只有跑得比較快的Eric收穫了一張經典相片，不過在KK的幫助下，我們每個人都收穫了一張。\n\n這大概是今年最佳的相片，黑人大哥的表情太搞笑了。\n![搞笑相片](14621729021454_.pic.jpg)\n\n我們其他人雖然沒有像Eric那樣跑得快，但是在KK的幫助下，也各都收穫了一張經典難忘的相片。\n![KK惡搞相片](14821729053883_.pic.jpg)\n\n![KK惡搞相片](16611729304974_.pic.jpg)\n\n![KK惡搞相片](16631729305211_.pic.jpg)\n\n![KK惡搞相片](17321729391282_.pic.jpg)\n\n![KK惡搞相片](17271729390425_.pic.jpg)\n\n\n## 感謝\n\n印象深刻的是芝加哥的chi跑團組織的非常好，從賽前的補碳會、賽中的義工組織和賽後的相片分享都非常周到和專業。很感謝他們的辛勤付出！！",
+    "path": "posts/2024/chicago-marathon-2024",
+    "toc": [
+      {
+        "title": "芝加哥的交通",
+        "url": "#芝加哥的交通",
+        "items": []
+      },
+      {
+        "title": "位置最佳的酒店",
+        "url": "#位置最佳的酒店",
+        "items": []
+      },
+      {
+        "title": "推薦的飯店",
+        "url": "#推薦的飯店",
+        "items": []
+      },
+      {
+        "title": "推薦的活動",
+        "url": "#推薦的活動",
+        "items": []
+      },
+      {
+        "title": "經典相片",
+        "url": "#經典相片",
+        "items": []
+      },
+      {
+        "title": "感謝",
+        "url": "#感謝",
+        "items": []
+      }
+    ],
+    "date": "2024-10-13T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "logo.webp",
+      "src": "https://images.wildrunner.org/posts/2024/chicago-marathon-2024/logo.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/chicago-marathon-2024/logo.webp",
+      "featured": false,
+      "width": 437,
+      "height": 179,
+      "blurWidth": 20,
+      "blurHeight": 8,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRggBAABXRUJQVlA4WAoAAAAQAAAAEwAABwAAQUxQSHwAAAANcB3Jtmmtde7RfTYSePknxD/bRzuNiAjMPXZRV4AosMAyvdmx1ZOakkBSssolmFGz/QsfYcrCEAIAdJqTTj7voOEUz89fEM2RHzHcr6WI1+kfy1eARczLJ4fdrCl0+vv6Ar37dsPBKCeJCf2uB4DmZXsw3Q60+UdaZywAVlA4IGYAAABQAgCdASoUAAgAAsBMJbACdMoRwHuAA5OV2AAA/vAJPUdfg5Rf1aIkTqb6xG8fOa+lO8HIUIMHVvyuQu12f7+DgCGkBex9/ZzWNlmWnUOET+F3/3D1pbFKZPkZF5kzE4o3iraEgAA="
+    },
+    "description": "六大馬之一的芝加哥馬拉松從來不缺少人氣，今年我和島哥、Laura跑了芝加哥。",
+    "metadata": {
+      "readingTime": 4,
+      "wordCount": 1020.3600000000001
+    },
+    "year": "2024",
+    "slugAsParams": "2024/chicago-marathon-2024"
+  },
+  {
+    "title": "芝加哥馬拉松 - Chiacago Marathon 2024",
+    "slug": "posts/2024/chicago-marathon",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:a,jsx:e,jsxs:n}=arguments[0];function _createMdxContent(i){const l={a:\"a\",h2:\"h2\",img:\"img\",li:\"li\",p:\"p\",ul:\"ul\",...i.components};return n(a,{children:[e(l.p,{children:\"芝加哥馬拉松是我六大裡的第五大，也是跑的最慢的一個，需要認真總結一下。\"}),\"\\n\",e(l.h2,{id:\"賽前\",children:e(l.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽前\",children:\"賽前\"})}),\"\\n\",e(l.p,{children:\"今年的比賽比較多，不過馬拉松只有年初的兩個，分別是四月的倫敦和五月初的溫哥華BMO。然後就都是越野的比賽了，7月魁北克的QMT的110K、8月的胖狗120M和Squamish 50/50，另外九月底的Whistler by UTMB。所以自從五月的溫哥華馬拉松之後主要的訓練內容都是越野的低心率跑，一次間歇和Tempo都沒有跑過。\"}),\"\\n\",e(l.p,{children:\"去年完賽UTMB之後柏林跑了307，給了我一個錯覺越野並不會影響馬拉松的成績。所以今年的芝加哥我的期望還是很高的，雖然倫敦只跑了328，溫哥華跑了317。不過年中的越野賽的成績不錯，完成了胖狗120M和Squamish 50/50的背靠背。特別是兩週前的Whistler by UTMB，70K組別4000多米的爬升跑了12個小時45分，這個成績其實一般，不過對於我而言已經是比較快的一個時間了。Whistler本來還想跑一個25K的背靠背，後來放棄了最主要的考量就是想著不要影響2周後的芝加哥馬拉松。\"}),\"\\n\",e(l.p,{children:\"跑柏林和倫敦的時候，前半程我還是可以保持415左右的配速，只是後半程掉速了。所以這次我的目標基本上是能保持這個配速到30公里就好了，這應該算是一個比較合理的目標吧。\"}),\"\\n\",e(l.h2,{id:\"比賽日\",children:e(l.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#比賽日\",children:\"比賽日\"})}),\"\\n\",e(l.p,{children:\"比賽日的天氣可以用完美來形容，早上起來13度左右，體感很舒服。最重要是沒有風，芝加哥是出名的大風，我們賽前已經體會到了大風的恐怖。而且今年我們住的Hilton位置很完美，早上五點起床，六點多我們三個才從酒店出發去起點。我到了C區就去排隊排空，然後7點進入C區等待起跑。沒想到在C區還碰到了黑哥，我們一起站在了300兔子的後面。\"}),\"\\n\",e(l.p,{children:\"起跑的時候跟著300兔子，開頭兩公里跑了4分的配速，感覺有點快，提醒自己要慢一點。沒想到5公里後已經不慢不行了，開始感覺大腿抬不起來。10公里後擺臂也感覺沒有力了，特別是左手。這是自從2019年BQ後從來沒有的情況，心裡很鬱悶，只能咬牙堅持，眼睜睜地看著配速往下掉，被無數人拍肩膀，心率從160一直掉到了140。最後35K大腿還開始有點抽筋的跡象，到一個aid station那裡抹了一點防止抽筋的lotion後才堅持到了終點，最後完賽時間是3:36。\"}),\"\\n\",e(l.h2,{id:\"總結\",children:e(l.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#總結\",children:\"總結\"})}),\"\\n\",e(l.p,{children:\"這次深刻體會到了什麼是心有餘而力不足，心率很低，可是肌肉就是罷工了。這可能和我今年長時間低心率跑有關係，也可能和兩週前剛剛跑了一個70公里越野賽有關，不過歸根到底，還是實力的問題。\"}),\"\\n\",e(l.p,{children:\"越野和馬拉松的確是兩種截然不同的運動，跑馬拉松需要持續高心率跑3個小時以上，另外使用的核心肌肉群和發力方式也完全不一樣。以後要多跑間歇和tempo，讓自己的心率和肌肉都能夠適應高強度下長時間工作。一直以來我都很羨慕那些跑馬拉松可以跑到力竭的人，因為我自己做不到，心率剛剛上去，身體馬上就開啟了保護機制，不讓我做傻事。好像肌肉不允許我把他們給逼急了，所以跑馬拉松我從來沒有抽過筋。這個“習慣”的好處是不容易受傷，不過壞處就是成績上不去。\"}),\"\\n\",e(l.p,{children:\"叮噹則提到一個挺有道理的說法：心率上不去了，从另外一個角度說明很多肌群已疲倦，沒有那麼多肌肉在有效做功了，心脏覺得不需要泵出那麼多血液來供應他們了。\"}),\"\\n\",e(l.p,{children:\"雖然成績不理想，不過總算完成了六大裡的五大，就剩下東京了，心裡還是很高興的。希望11月的Road to the majors可以抽中東京，那就完美了。\"}),\"\\n\",e(l.p,{children:\"這次有幸和跑了245的Eric Duan同房，從他身上學習到了很多東西：\"}),\"\\n\",n(l.ul,{children:[\"\\n\",e(l.li,{children:\"準備比賽的check-list，避免少帶東西\"}),\"\\n\",e(l.li,{children:\"關注每一個細節，賽前如何補碳，比賽的時候如何放鹽丸都考慮到了\"}),\"\\n\",e(l.li,{children:\"賽前仔細研究賽道，甚至可以記下每個拐彎的位置\"}),\"\\n\"]}),\"\\n\",e(l.p,{children:\"深刻體會到跑馬拉松是一個純技術活，細節決定了成敗，要想出成績必須要認真對待。\"}),\"\\n\",e(l.h2,{id:\"相片\",children:e(l.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#相片\",children:\"相片\"})}),\"\\n\",e(l.p,{children:\"感謝芝加哥chi跑團的義工拍的相片，效果感覺比官方的相片還好。\"}),\"\\n\",n(l.p,{children:[e(l.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon/you_are_beatiful.webp\",alt:\"you are beatiful\",width:\"6818\",height:\"4755\",blurdataurl:\"data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADQAwCdASoUAA4APtFWo0uoJKMhsAgBABoJQBOgA2SOFdfSyB/pCAAA26MTCXsXFQoWK+wTO0b2l9hze5aNcO0SUwtXlG9FKUbKhWT79RKoNMVyE5nJxpzXAAA=\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n這相片很明顯能看出左手抬不起來\"]}),\"\\n\",e(l.p,{children:e(l.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon/0L4A7576.webp\",alt:\"China Town\",width:\"2096\",height:\"1398\",blurdataurl:\"data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAADQAwCdASoUAA0APtFUpEuoJKOhsAgBABoJQBOgBBz3V4+t9aTuhgAA/i93bVOYmoJeG1mvQamM40pahsUEY10dxQGbo4i8mxl4Yi55HC8P7tX8ja18kM94Nbqhf4AAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",n(l.p,{children:[\"!下面是官方的相片\\n\",e(l.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon/856259_1089_0036.webp\",alt:\"經過唐人街\",width:\"4000\",height:\"2666\",blurdataurl:\"data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAAAQBACdASoUAA0APtFWpEuoJKOhsAgBABoJZwC2yB9CsaPW/jrwQ8v8AADLE76eOCa5mjieQHg13offEg7nusSpmU91d8viuJ7WWyzwUOqSAwAA\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",e(l.p,{children:e(l.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon/856290_1162_0011.webp\",alt:\"衝線\",width:\"2784\",height:\"4176\",blurdataurl:\"data:image/webp;base64,UklGRqAAAABXRUJQVlA4IJQAAADwBACdASoUAB4APtFWo0uoJKMhsAgBABoJbACdMtSEACT2IYgH01Z2oO6/QH0TZUAA+CPL5CnykUjQo6TAf0LGVdwS7lk1LRbnnsP129TyzcrF5hvP0kANnh12OQOyhldb72BeeVbI/Cs6sD/jmFWJkAHGiEcIh3RFpD7bNi+jTf6FswL9/5d77ac+oYKwm9uoQIAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(l.p,{children:e(l.img,{src:\"https://images.wildrunner.org/posts/2024/chicago-marathon/856277_1016_0045.webp\",alt:\"獎牌\",width:\"2666\",height:\"4000\",blurdataurl:\"data:image/webp;base64,UklGRqoAAABXRUJQVlA4IJ4AAACQBACdASoUAB4APtFcqE4oJSQiKAqpABoJQBbZAhWJ5J/ieZ4SQ7ctYvKVXAAA/uvziarnu9o95Tv0tADyVWXZxbtaHN9BxDA9XtwshZq4K6mUnhIVwPjvtNc9IK5VQT1bGEiSDQfvKl8bFxxDqABnoSXtw9gvwHpLSkyup+zaC5FkEKcu+DRXKcWYbLz849PaYl34fpOhOeFtCNgAAA==\",loading:\"lazy\",placeholder:\"blur\"})})]})}return{default:function(a={}){const{wrapper:n}=a.components||{};return n?e(n,{...a,children:e(_createMdxContent,{...a})}):_createMdxContent(a)}};",
+    "raw": "芝加哥馬拉松是我六大裡的第五大，也是跑的最慢的一個，需要認真總結一下。\n\n## 賽前\n今年的比賽比較多，不過馬拉松只有年初的兩個，分別是四月的倫敦和五月初的溫哥華BMO。然後就都是越野的比賽了，7月魁北克的QMT的110K、8月的胖狗120M和Squamish 50/50，另外九月底的Whistler by UTMB。所以自從五月的溫哥華馬拉松之後主要的訓練內容都是越野的低心率跑，一次間歇和Tempo都沒有跑過。\n\n去年完賽UTMB之後柏林跑了307，給了我一個錯覺越野並不會影響馬拉松的成績。所以今年的芝加哥我的期望還是很高的，雖然倫敦只跑了328，溫哥華跑了317。不過年中的越野賽的成績不錯，完成了胖狗120M和Squamish 50/50的背靠背。特別是兩週前的Whistler by UTMB，70K組別4000多米的爬升跑了12個小時45分，這個成績其實一般，不過對於我而言已經是比較快的一個時間了。Whistler本來還想跑一個25K的背靠背，後來放棄了最主要的考量就是想著不要影響2周後的芝加哥馬拉松。\n\n跑柏林和倫敦的時候，前半程我還是可以保持415左右的配速，只是後半程掉速了。所以這次我的目標基本上是能保持這個配速到30公里就好了，這應該算是一個比較合理的目標吧。\n\n## 比賽日\n比賽日的天氣可以用完美來形容，早上起來13度左右，體感很舒服。最重要是沒有風，芝加哥是出名的大風，我們賽前已經體會到了大風的恐怖。而且今年我們住的Hilton位置很完美，早上五點起床，六點多我們三個才從酒店出發去起點。我到了C區就去排隊排空，然後7點進入C區等待起跑。沒想到在C區還碰到了黑哥，我們一起站在了300兔子的後面。\n\n起跑的時候跟著300兔子，開頭兩公里跑了4分的配速，感覺有點快，提醒自己要慢一點。沒想到5公里後已經不慢不行了，開始感覺大腿抬不起來。10公里後擺臂也感覺沒有力了，特別是左手。這是自從2019年BQ後從來沒有的情況，心裡很鬱悶，只能咬牙堅持，眼睜睜地看著配速往下掉，被無數人拍肩膀，心率從160一直掉到了140。最後35K大腿還開始有點抽筋的跡象，到一個aid station那裡抹了一點防止抽筋的lotion後才堅持到了終點，最後完賽時間是3:36。\n\n## 總結\n這次深刻體會到了什麼是心有餘而力不足，心率很低，可是肌肉就是罷工了。這可能和我今年長時間低心率跑有關係，也可能和兩週前剛剛跑了一個70公里越野賽有關，不過歸根到底，還是實力的問題。\n\n越野和馬拉松的確是兩種截然不同的運動，跑馬拉松需要持續高心率跑3個小時以上，另外使用的核心肌肉群和發力方式也完全不一樣。以後要多跑間歇和tempo，讓自己的心率和肌肉都能夠適應高強度下長時間工作。一直以來我都很羨慕那些跑馬拉松可以跑到力竭的人，因為我自己做不到，心率剛剛上去，身體馬上就開啟了保護機制，不讓我做傻事。好像肌肉不允許我把他們給逼急了，所以跑馬拉松我從來沒有抽過筋。這個“習慣”的好處是不容易受傷，不過壞處就是成績上不去。\n\n叮噹則提到一個挺有道理的說法：心率上不去了，从另外一個角度說明很多肌群已疲倦，沒有那麼多肌肉在有效做功了，心脏覺得不需要泵出那麼多血液來供應他們了。\n\n雖然成績不理想，不過總算完成了六大裡的五大，就剩下東京了，心裡還是很高興的。希望11月的Road to the majors可以抽中東京，那就完美了。\n\n這次有幸和跑了245的Eric Duan同房，從他身上學習到了很多東西：\n- 準備比賽的check-list，避免少帶東西\n- 關注每一個細節，賽前如何補碳，比賽的時候如何放鹽丸都考慮到了\n- 賽前仔細研究賽道，甚至可以記下每個拐彎的位置\n\n深刻體會到跑馬拉松是一個純技術活，細節決定了成敗，要想出成績必須要認真對待。\n\n## 相片\n感謝芝加哥chi跑團的義工拍的相片，效果感覺比官方的相片還好。\n\n![you are beatiful](you_are_beatiful.jpg)\n這相片很明顯能看出左手抬不起來\n\n![China Town](0L4A7576.jpg)\n\n!下面是官方的相片\n![經過唐人街](856259_1089_0036.jpg)\n\n![衝線](856290_1162_0011.jpg)\n\n![獎牌](856277_1016_0045.jpg)",
+    "path": "posts/2024/chicago-marathon",
+    "toc": [
+      {
+        "title": "賽前",
+        "url": "#賽前",
+        "items": []
+      },
+      {
+        "title": "比賽日",
+        "url": "#比賽日",
+        "items": []
+      },
+      {
+        "title": "總結",
+        "url": "#總結",
+        "items": []
+      },
+      {
+        "title": "相片",
+        "url": "#相片",
+        "items": []
+      }
+    ],
+    "date": "2024-10-13T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "result.webp",
+      "src": "https://images.wildrunner.org/posts/2024/chicago-marathon/result.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/chicago-marathon/result.webp",
+      "featured": false,
+      "width": 1220,
+      "height": 1580,
+      "blurWidth": 20,
+      "blurHeight": 26,
+      "exif": {
+        "ImageWidth": 1220,
+        "ImageHeight": 1580
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAABwAwCdASoUABoAPtFepk6oJSOiKAqpABoJaQAALnRbRMUUncAA/vYQ8k2TichHzA84ny9YOj3TxDwuykAAAA=="
+    },
+    "description": "芝加哥馬拉松是我六大裡的第五大，也是跑的最慢的一個，需要認真總結一下。",
+    "metadata": {
+      "readingTime": 3,
+      "wordCount": 732.32
+    },
+    "year": "2024",
+    "slugAsParams": "2024/chicago-marathon"
+  },
+  {
+    "title": "胖狗 ｜ FatDog | 2024",
+    "slug": "posts/2024/fat-dog",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:n,jsx:e,jsxs:i}=arguments[0];function _createMdxContent(r){const t={li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...r.components};return i(n,{children:[e(t.p,{children:\"The Fat Dog 120 is an ultramarathon trail race held annually in British Columbia, Canada. It's known for its challenging course, stunning scenery, and strong community spirit. Here's a breakdown of key details:\"}),\"\\n\",e(t.p,{children:e(t.strong,{children:\"Race Overview:\"})}),\"\\n\",i(t.ul,{children:[\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Distance:\"}),\" 120 miles (193 km)\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Elevation Gain:\"}),\"  26,240 feet (8,000 meters)\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Course:\"}),\" Point-to-point, starting near East Gate, BC and finishing in E.C. Manning Provincial Park.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Terrain:\"}),\"  Technical, single-track trails, with significant elevation changes and remote sections.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Scenery:\"}),\"  High alpine meadows, forests, river crossings, and panoramic views.\"]}),\"\\n\"]}),\"\\n\",e(t.p,{children:e(t.strong,{children:\"Key Features:\"})}),\"\\n\",i(t.ul,{children:[\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Challenging:\"}),\" This is a difficult race due to its length, elevation gain, and technical terrain. It requires significant training and experience in ultramarathons.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Scenic:\"}),\" The course showcases some of the most beautiful landscapes in southwestern British Columbia.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Well-Supported:\"}),\"  Fat Dog 120 prides itself on its aid stations and volunteer support to help runners reach the finish line.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Community:\"}),\" The race fosters a strong sense of camaraderie among participants and volunteers.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Sustainability:\"}),\"  The organizers are committed to minimizing the race's environmental impact and maintaining the trails.\"]}),\"\\n\"]}),\"\\n\",e(t.p,{children:e(t.strong,{children:\"Additional Information:\"})}),\"\\n\",i(t.ul,{children:[\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Pacers:\"}),\" Allowed for 120-mile runners after the Cascade Aid Station (56km).\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Trail Work Requirement:\"}),\" Runners are required to complete trail maintenance hours to participate.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Race Guide:\"}),\"  Provides detailed information about the course, rules, aid stations, and what to expect. You can find the most up-to-date guide on the official Fat Dog 120 website.\"]}),\"\\n\"]}),\"\\n\",e(t.p,{children:e(t.strong,{children:\"Tips for Potential Runners:\"})}),\"\\n\",i(t.ul,{children:[\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Experience:\"}),\" Have a solid background in ultra-distance trail running.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Training:\"}),\"  Prepare for significant elevation gain and technical trails.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Gear:\"}),\"  Ensure you have the appropriate clothing, footwear, and hydration equipment.\"]}),\"\\n\",i(t.li,{children:[e(t.strong,{children:\"Crew/Pacers:\"}),\"  Consider having a crew and/or pacers to support you throughout the race.\"]}),\"\\n\"]}),\"\\n\",e(t.p,{children:\"If you're looking for an epic challenge in a stunning location, the Fat Dog 120 might be the race for you. Be sure to check the official website for the most current details and registration information.\"})]})}return{default:function(n={}){const{wrapper:i}=n.components||{};return i?e(i,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "The Fat Dog 120 is an ultramarathon trail race held annually in British Columbia, Canada. It's known for its challenging course, stunning scenery, and strong community spirit. Here's a breakdown of key details:\n\n**Race Overview:**\n\n* **Distance:** 120 miles (193 km)\n* **Elevation Gain:**  26,240 feet (8,000 meters)\n* **Course:** Point-to-point, starting near East Gate, BC and finishing in E.C. Manning Provincial Park.\n* **Terrain:**  Technical, single-track trails, with significant elevation changes and remote sections.\n* **Scenery:**  High alpine meadows, forests, river crossings, and panoramic views.\n\n**Key Features:**\n\n* **Challenging:** This is a difficult race due to its length, elevation gain, and technical terrain. It requires significant training and experience in ultramarathons.\n* **Scenic:** The course showcases some of the most beautiful landscapes in southwestern British Columbia.\n* **Well-Supported:**  Fat Dog 120 prides itself on its aid stations and volunteer support to help runners reach the finish line.\n* **Community:** The race fosters a strong sense of camaraderie among participants and volunteers.\n* **Sustainability:**  The organizers are committed to minimizing the race's environmental impact and maintaining the trails.\n\n**Additional Information:**\n\n* **Pacers:** Allowed for 120-mile runners after the Cascade Aid Station (56km).\n* **Trail Work Requirement:** Runners are required to complete trail maintenance hours to participate.\n* **Race Guide:**  Provides detailed information about the course, rules, aid stations, and what to expect. You can find the most up-to-date guide on the official Fat Dog 120 website.\n\n**Tips for Potential Runners:**\n\n* **Experience:** Have a solid background in ultra-distance trail running.\n* **Training:**  Prepare for significant elevation gain and technical trails.\n* **Gear:**  Ensure you have the appropriate clothing, footwear, and hydration equipment.\n* **Crew/Pacers:**  Consider having a crew and/or pacers to support you throughout the race.\n\nIf you're looking for an epic challenge in a stunning location, the Fat Dog 120 might be the race for you. Be sure to check the official website for the most current details and registration information.",
+    "path": "posts/2024/fat-dog",
+    "toc": [],
+    "date": "2024-08-09T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2024/fat-dog/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/fat-dog/cover.webp",
+      "featured": false,
+      "width": 2048,
+      "height": 2048,
+      "blurWidth": 20,
+      "blurHeight": 20,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRsAAAABXRUJQVlA4ILQAAADQBQCdASoUABQAPtFao02oJSMiKA1RABoJbACdMoSA/oMgCnAbYC7Rt5fAQQ5/3dsz5oVwBpYAAPnfLtKPtqTJvzueV+Wd0tI/7Np5MXnhhryxWA6bN/0GG35rKaEjsaekurd8alNt3DNyY6AhicecYwSzMY4hKUICPIgJfD6p6H4e3U6a73GcpSTo3dBHc88Eje57BT+Ye/IQsbBtOr7vyb/Gxff+bP7Av5cKkK7zJ3qHAAA="
+    },
+    "description": "Learn how to strongly type process.env in Typescript by either augmentng global type or validating it at runtime with t3-env.",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 307
+    },
+    "year": "2024",
+    "slugAsParams": "2024/fat-dog"
+  },
+  {
+    "title": "2024，我的越野元年",
+    "slug": "posts/2024/my-ultra-races",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "老齊",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:e,jsx:a,jsxs:A}=arguments[0];function _createMdxContent(l){const r={a:\"a\",h2:\"h2\",h3:\"h3\",img:\"img\",p:\"p\",...l.components};return A(e,{children:[a(r.h2,{id:\"2024我的越野元年\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#2024我的越野元年\",children:\"2024，我的越野元年\"})}),\"\\n\",a(r.p,{children:\"认识老齐的人都知道，他是个跑渣。遇到跑步的朋友就聊自行车，以此掩饰自己的尴尬。朋友们也渐渐都知道这是他的套路，只是不忍心戳穿，笑一笑就过去了。但是，在大温地区待久了，身边都是热爱运动的朋友，所以慢慢的也开始跑步，后来竟也参加了本地的跑步比赛，半马还有全马，居然也勉强完赛了！他后来也听说过什么跑马的尽头是越野，也知道本地的好多位大神都去欧洲参加了UTMB的比赛。只是对于他而言，那实在是太遥远的事情。作为一个成年人，他知道自己是不应该对生活有什么非分的要求的。飞鸟和鱼的距离实在有点大，能跑个步就行了，何况还有自行车。\"}),\"\\n\",a(r.p,{children:\"但是阿甘的妈妈说过：“生活就像一盒巧克力，你永远不知道下一块会是什么味道。”2023年9月底，几位越野大神牵头要带大家去丝瓜迷失(Squamish)秋游，那里是本地已经举办多年的丝瓜50越野赛的赛道。老齐觉得机会难得，能跟大神们一起去看看丝瓜50  的赛道也是不错的，赶紧举手报名。至于原本计划好一起去岛上骑车的小伙伴们，他已经顾不上了。\"}),\"\\n\",A(r.p,{children:[a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/01.webp\",alt:\"老齐和朋友们在丝瓜50公里赛道上\",width:\"3783\",height:\"2837\",blurdataurl:\"data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAADwAwCdASoUAA8APtFWpEuoJKOhsAgBABoJYwC06BcIjdF29nspUSHAAPXBlAmtSZNL4/gtLf1GecJb19qa7rQBzJK/IePtlVgVdOdkCSu+hpDXFWyBr1L0T+Tb4AAA\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n2023年9月30日那天，天气非常好。跑越野的大神们个个英姿飒爽，谈笑风生并不影响脚下的速度，树根和石头以及路线的上下起伏对他们也如平地一般。对于老齐这只菜鸟，大家自然也都是非常关照，尽量放慢速度等他。当时他并不知道这是越野大神们发展下线的标准操作：要有耐心，就像钓鱼一样，线不能抻的太紧。就这样走走停停，加上中午在大学城附近充分的休息补给，老齐竟然也完成了丝瓜50公里的线路，虽然他是最后一个。秋日暖阳下斑斓的色彩和经年的落叶铺就的绵软的赛道让老齐产生了幻觉，似乎觉得他也能跑越野。那天他有点儿上头，直接的后果就是接下来报名了第二年好几个本地的越野比赛：4月份的Diez Vista，7月份的Knee Knacker，8月份的丝瓜50英里和9月底的Ultra Trail Whistler by UTMB。2024是老齐的越野元年！\"]}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/02.webp\",alt:\"老齐和朋友们在丝瓜50公里赛道上\",width:\"4032\",height:\"3024\",blurdataurl:\"data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAABwAwCdASoUAA8APtFWpEwoJKOiMAgBABoJZQCsABWYHg3t0sAA/V4UBh/I7vTTtBCfNhJhD547ZWfO+z+30rt2SutKmd/e5NSqdbvWAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.p,{children:\"✦ . 　⁺ 　 . ✦ . 　⁺ 　 . ✦\"}),\"\\n\",a(r.p,{children:\"激情如潮水，来的快去的也快。比赛还是半年之后的事情，着什么急呢。船到桥头自然直，Hakuna matata!  虽然大神们提醒过，越野跑和路跑不同，要多上山练习，可是老齐已经忘记了。再加上右腿髋关节因负重训练受了一点伤，他从2月份First Half比赛之后就完全停止了跑步训练，更不用说跑山了。开春3月份骑行俱乐部的活动就开始了，他又忙着去骑车了！\"}),\"\\n\",a(r.p,{children:\"该来的终究要来，4月13日的Diez Vista 50公里比赛如期而至，老齐是靠日历上提前设置的提醒才记起来这个比赛的。一点儿都没有准备啊，心里那是没着没落的，只能硬着头皮上。死猪不怕开水烫这句话用在这里实在是再合适不过了！🐷\"}),\"\\n\",a(r.h3,{id:\"diez-vista\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#diez-vista\",children:\"Diez Vista\"})}),\"\\n\",A(r.p,{children:[a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/03.webp\",alt:\"Diez Vista\",width:\"1664\",height:\"1248\",blurdataurl:\"data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAAAQBACdASoUAA8APtFapkyoJSOiMAgBABoJYgCdMoADTMKEOzdV+K9CAAD+1B8Ra9L6cxtmgZNkzFuuuQDu9Dp8AKxYnZNa1KJoPTrHxzd6LdY/ovr2Dq4Ltrs7pKP2CW4AAA==\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n比赛是早上8点钟从Sasamat Lake湖边的White Pine Beach开始。因为来这里游过几次开水，所以地方还算熟悉。和他一起比赛的有户外老兵马哥，岛哥、Sa姐和画家哥那天也正好来山上训练，于是就一起出发。这个比赛的赛道算是比较容易的，可是老齐当时并不觉得。未经沧海全是水，没去过巫山都是云！一开始大家还能在一起走，慢慢的老齐就跟不上了，毕竟是没有训练。他是每站必进，吃点东西，喝点水，磨蹭一会儿。比赛熬到了下午时分，从30公里处折返的时候，太阳已经很晒了，还在往30公里折返点跑的选手很多已经无精打采。此时老齐感觉自己的右脚已经受伤了，他只能慢慢往前挪。在终点前几公里的地方还有一大段碎石路面，像是新石器时代的原始人打磨出来的切割器，每一片都很锋利。\"]}),\"\\n\",A(r.p,{children:[a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/04.webp\",alt:\"Diez Vista\",width:\"1872\",height:\"1248\",blurdataurl:\"data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACwAwCdASoUAA0APtFWpEuoJKOhsAgBABoJYgBVI4ecOsPtxWDMAAD+wGMzPnTqD2V1rzgzqhCKnKuxIjxpdNGF5dsMBWVhd3PAYxBouA+UQZvuaOG2MJ9SrMu41s0ATpfM9SfgAAA=\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n在他好不容易来到终点的时候，时间已经是下午四点半，已经早早跑完的马哥、岛哥、Sa姐和画家哥已经在湖边等到无可奈何。从后来发出来的比赛照片来看，他们几位下山的时候都是飞下来的，一个个极其享受的样子。这个比赛老齐的完赛时间是8小时32分。虽然受伤，可还是完赛了。对于一个没有训练的人来说，还能要求什么呢？\"]}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/05.webp\",alt:\"Diez Vista\",width:\"936\",height:\"1248\",blurdataurl:\"data:image/webp;base64,UklGRpYAAABXRUJQVlA4IIoAAACwBACdASoUABsAPtFWo0uoJKMhsAgBABoJQBOmZDAJh0Bq6xt5cp/pq1tTYSGAAP4sKN8/v6sKLo/A8f4FsJChXkD2QulifmF4qnkW/aTxy4UMBLnqv80qNaj5BG6Ogh+g28fDyZ6KCXLeri0o4s2yRufj6c7OyTWcDFA2LYNhZeBrtR9fObwAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.h3,{id:\"knee-knacker\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#knee-knacker\",children:\"Knee Knacker\"})}),\"\\n\",a(r.p,{children:\"Knee Knacker是一个非营利机构举办的独立赛事，赛道是北岸从马蹄湾到Deep Cove的Baden-Powell Centennial Trail (BP Trail)，全程48公里，是加拿大最难的30英里赛道之一。参赛选手限制在262人，都是通过抽签决定。老齐居然第一年报名就中签了，beginner's luck.  比赛时间是7月13日。在比赛之前，主办方还组织了若干次训练跑，让大家去体验一下不同的赛段。老齐只参加了其中一次，还遇上大雨迷了路。\"}),\"\\n\",a(r.p,{children:\"比赛那天，老齐带着一种无知者无畏的心态就上山了。他事先完全没有做功课，到底有几个补给站，每个站点的关门时间是几点钟都不知道。BP的赛道不是白给的，上来1000米的爬升就给他来了个下马威。本以为爬到山顶之后往下走的路总可以快一点吧，谁知接下来的部分都是技术路段，各种树根石头，根本跑不起来。到了第一个大补给站的时候，他已经被告知时间很紧张了。虽然这一站不会被关门，但是一点都不能减速。可是速度不是说提就能提起来的，老齐终于还是在下一个站点Cleveland Dam被关门了。被关门的感觉是不爽的，可也是一种解脱。好歹算是跑了一半的距离，后半程的赛道一点儿都不容易。群里的Mae那天是做志愿者，多亏她开车送老齐到Deep Cove终点。当天的天气是极好的，王青、Sunny和叮当在终点准备了各种好吃的等群里的参赛选手冲线，可她们万万没有想到第一个等到的会是老齐，而且是坐车来的。后来听Yong哥说，这个比赛中签率还挺低的，老齐这个参赛名额算是白瞎了！\"}),\"\\n\",A(r.p,{children:[a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/06.webp\",alt:\"Knee Knacker\",width:\"3088\",height:\"2320\",blurdataurl:\"data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAACQBACdASoUAA8APtFUo0uoJKMhsAgBABoJbACdMoMlmBADLttuil24kfaNjKAA77xfL9JVBdU5jmyOKTQchlyZ6X7/BxrqPX74sL8WthUahxmi1uRb9JtcM7unE259sxWEM7hiRYsskQAA\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n\",a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/07.webp\",alt:\"Knee Knacker\",width:\"4032\",height:\"3024\",blurdataurl:\"data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAABwBACdASoUAA8APtFWo0uoJKMhsAgBABoJZgCdICfzWAs2D8ohdTgxAxfWAADLDj4iyucLworCfc3ZjRBY59Zze9wTJdIGySaK75z5e1eB4Q6Zgu8L7vDZm59Ha1zSulKfrgAA\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",a(r.h3,{id:\"squamish-50-miles\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#squamish-50-miles\",children:\"Squamish 50 Miles\"})}),\"\\n\",a(r.p,{children:\"因为去年夏天已经和大神们跑过了丝瓜50公里的赛道，老齐从一开始就决定要报名50英里的比赛。丝瓜的比赛有三个组别，周六是50英里，周日是50公里和23公里。丝瓜50是很多越野大神几年前起步的地方，因此一向是群里朋友们热衷的赛事。今年果然又是一个大爬梯，各个组别参赛选手加到一起得有20人了。群主追云提前订了一个大house，方便大家在一起玩的开心。然鹅，周五晚上的聚餐老齐竟然因为其他事情的耽搁无法参加，只能隔着屏幕看着大家举办补碳大会发来的各种美照流口水。等他赶到的时候已经是半夜了，大家都已经睡下，他于是就胡乱在客厅的地毯上凑合了一夜，旁边是石大夫和MT。\"}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/08.webp\",alt:\"Squamish 50 Miles\",width:\"4032\",height:\"3024\",blurdataurl:\"data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAADwAwCdASoUAA8APtFUo0uoJKMhsAgBABoJYwCw7CPtRFWbi6P/6iIAAP6PgulVKItILJR6ZhAXWkkcmb338CKH9jmh5/iTNbbSxJuWil2XC5tcPf3XVbiD16PGzETc3gbBd/ymujwAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.p,{children:\"有了上次Knee Knacker被关门的经验，这次老齐提前就规划好了撤退的路线。大学城是个大站，也有我们的小伙伴在，交通还方便。如果要退赛，就在这里退！哦，还是先说比赛吧。50英里的比赛是在黎明前东方已经露出曙光的时候出发的，背景是壮观的酋长岩（Stawamus Chief）。因为是从城里出发，所以前面十公里大家都是带着头灯在马路上跑。路是平的，大家速度都很快。前半程的比赛波澜不惊，都是在山林里各种穿梭，起起伏伏。中间有一段很长的大上坡，虽然慢，也熬人，但老齐觉得还能坚持。最难的地方是一段大下坡的技术路段，他走的实在太慢了，也开始问自己为什么要参加越野比赛。路跑不香吗？自行车不香吗？\"}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/09.webp\",alt:\"Squamish 50 Miles\",width:\"1400\",height:\"1098\",blurdataurl:\"data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAACQBACdASoUABAAPtFUpEuoJKOhsAgBABoJYgCdMoMljEo9fPa4lcty+kX4nTAA9naZtARXi5WkH/3+U6YpUQk/TkxybUcVRnDO+zRSGxKQUqniQ2oMQrcrB98evepiHKfvAAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.p,{children:\"等到快到大学城那站的时候，老齐已经快被晒蔫了，腿上也没有了丝毫的力气。虽然离这一站的关门时间还早的很，可是接下来20公里还是有很多爬升，如果坚持下去的话，怕是要跑到晚上10点钟了。久已潜伏心底的退赛念头此时突然跑了出来。为什么要这么折磨自己呢？比赛不是为了享受吗？如果万一受伤的话，那么下周二的长途骑行岂不是要泡汤了？于是，在离大学城几公里的地方，老齐决定要退赛了，一下子觉得心情放松了很多，接下来的几公里也不难了。\"}),\"\\n\",a(r.p,{children:\"爬上大学城的台阶，进到补给站，老齐直接告诉负责登记时间的志愿者，他要退赛。这里是第五个补给站，大约53公里处。June和Rachel在这一站给大家做私补。可是，让老齐没想到的是，MT这个浓眉大眼的精英选手竟然也在这一站退赛了！\"}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/10.webp\",alt:\"Squamish 50 Miles\",width:\"1986\",height:\"3520\",blurdataurl:\"data:image/webp;base64,UklGRsAAAABXRUJQVlA4ILQAAABQBgCdASoUACMAPslYpkunpaQhqrgN+PAZCUATpmTBJQR6zJc9C3/hA3nZTUhWHxntJSpQ+W0vrfjIAAD1SKr4qrFneEydz2oYVSRY+kAY7n1gufhbtKVb8yYq1+ZS6uCnHIfYBb6/C5XiwN7LVerDehnc49fl/SZKo/AlDpP9F0JL/4Vr+tn/RhYdT6Nr46LacMW5Oq1aRWGwAI26TeCZqiBH3WLd7P+GPXwhnYoo18VTwAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/11.webp\",alt:\"Squamish 50 Miles\",width:\"1440\",height:\"1080\",blurdataurl:\"data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAADQAwCdASoUAA8APtFYpEwoJSOiMAgBABoJYwAAUpIgRvQEuxTDKyAA/tRm3zjatNzYZ9vb0F9qzUAqo7T0lZC3CganneHxWNVpBJuT4CLfMx8uiHimNFiywq+OhQAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.h3,{id:\"ultra-trail-whistler-by-utmb-70k\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#ultra-trail-whistler-by-utmb-70k\",children:\"Ultra Trail Whistler by UTMB, 70k\"})}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/12.webp\",alt:\"Ultra Trail Whistler by UTMB\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAADQAwCdASoUABsAPsVQoEunpKMhsAwA8BiJZwAAW+uCr1cwfaJZzQAA/vhI8aUamJK6XIpwdVWEOjClhSBHyLa8GQRlK9UdHrPYzXiQEtdR2RYdksPQYNToRkgAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(r.p,{children:\"Whistler的比赛是UTMB第一次来加拿大办比赛。因为是第一年，所以赛道前后更改了三次。一开始是有100公里、50公里和25公里三个组别。后来100公里的路线调整到了61公里。老齐最初报名的是50公里组别，现在看到100公里组别（可以拿到三块石头）只比50公里多11公里，爬升也差不了多少，于是决定换到100公里组别。可谁知这个组别的距离后来又调整到70公里。别管那么多了，硬着头皮上吧！\"}),\"\\n\",a(r.p,{children:\"照例，比赛前一天下午领物，晚上组织补碳大会。老齐要和石大夫一起走，得下午六点才能出发。于是大同代为领物并把老齐事先准备的鲍鱼捞饭交给存包的工作人员（老齐对于比赛中最走心的环节永远是补给，而不是比赛本身）。他和石大夫晚上九点多赶到的时候，补碳大会仍在热烈的进行中。大家给他俩留了很多好吃的。在这个集体中，老齐经常是备受关照的那一个，他觉得很温暖。\"}),\"\\n\",a(r.p,{children:\"70公里组的选手早上五点钟出发，天很黑，也很冷。在出发点片刻的欢呼和喧嚣过后，便是参赛选手们逶迤前行沙沙的脚步声。大家都戴着头灯，队伍也慢慢拉开变成一条长龙，像是夜行军的队伍。赛道的前30公里都是上坡，路还算好走。这一段是老齐整个赛程中走的最舒服的一段。第一个补给站是Roundhouse，Jeremy今天做志愿者，负责这个站点。现在天还早，还不到鲍鱼捞饭时间。Jeremy告诉老齐，他会计算时间在老齐返回之前把鲍鱼捞饭先帮他加热好。补给站有自己人的感觉真好！这次比赛线路设计不太好，据说是因为志愿者人数不够的原因，线路有好几个loop，大圈儿套小圈儿。Roundhouse补给站要前后经过四次，Whistler Summit要经过两次，最后的Middle of Nowhere要经过两次。整个白天就是在这样不停的绕圈中度过的。第二次经过Whistler Summit下山的时候，天已经非常冷了。老齐随便吃点东西，赶紧下山。本以为下山的路会好走一些，谁知道竟是十几公里的树根烂泥路，想快也快不起来。等到最后一次经过最后一个补给站的时候，距离终点就只有3公里了。可是这3公里的距离竟然也不是直路，更不是平路，老齐居然也走了40分钟。他再次下定决心，以后再也不跑什么越野赛了！\"}),\"\\n\",a(r.p,{children:\"等到老齐终于冲过终点的时候，时间已经是晚上9:45了，还有不少的志愿者在终点为选手们欢呼、拍照、发奖牌。感谢他们的付出！虽然没有白天热闹，但老齐也知足了。比起他的长途骑行，这已经很好了。骑车的时候，经常是一个人黑灯瞎火骑到一个地方，看一下手表时间，自己给自己打个卡，一次骑行就算结束了。这里终究是比赛，还是有人欢呼、拍照和发奖牌的！夜色深沉，也有些冷，老齐蹒跚走到路边的台阶坐下，掏出手机给关心他的朋友们发了微信：终于完赛，累劈了！\"}),\"\\n\",a(r.h3,{id:\"后记\",children:a(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#后记\",children:\"后记\"})}),\"\\n\",a(r.p,{children:\"2024年是老齐的越野元年。他一共报了四场比赛，第一场完赛但受伤，第二场被关门，第三场退赛，第四场勉强算是无伤完赛。他跟朋友们说，明年要改元，改成大铁元年，越野跑是不能再搞了。不过谁知道呢？老齐的话有时候也没准儿，让我们拭目以待吧。\"}),\"\\n\",a(r.p,{children:a(r.img,{src:\"https://images.wildrunner.org/posts/2024/my-ultra-races/13.webp\",alt:\"老齐\",width:\"249\",height:\"229\",blurdataurl:\"data:image/webp;base64,UklGRowAAABXRUJQVlA4IIAAAAAwBQCdASoUABIAPtFUokuoJKMhsAgBABoJYgC1Gw6DQKWnlLZ9smMJHdhd04x+I/fkAAD+6+dcbr1nzxUw+YFeoUjKPV6+uE7q2FpUZB7wtjzuAa84AQXkIU9VTKg1GsAZXkvod37FGwQ0Ne5WCd3s9GAfnJAxxxPwSwultgAAAA==\",loading:\"lazy\",placeholder:\"blur\"})})]})}return{default:function(e={}){const{wrapper:A}=e.components||{};return A?a(A,{...e,children:a(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "raw": "## 2024，我的越野元年\n\n认识老齐的人都知道，他是个跑渣。遇到跑步的朋友就聊自行车，以此掩饰自己的尴尬。朋友们也渐渐都知道这是他的套路，只是不忍心戳穿，笑一笑就过去了。但是，在大温地区待久了，身边都是热爱运动的朋友，所以慢慢的也开始跑步，后来竟也参加了本地的跑步比赛，半马还有全马，居然也勉强完赛了！他后来也听说过什么跑马的尽头是越野，也知道本地的好多位大神都去欧洲参加了UTMB的比赛。只是对于他而言，那实在是太遥远的事情。作为一个成年人，他知道自己是不应该对生活有什么非分的要求的。飞鸟和鱼的距离实在有点大，能跑个步就行了，何况还有自行车。\n\n但是阿甘的妈妈说过：“生活就像一盒巧克力，你永远不知道下一块会是什么味道。”2023年9月底，几位越野大神牵头要带大家去丝瓜迷失(Squamish)秋游，那里是本地已经举办多年的丝瓜50越野赛的赛道。老齐觉得机会难得，能跟大神们一起去看看丝瓜50  的赛道也是不错的，赶紧举手报名。至于原本计划好一起去岛上骑车的小伙伴们，他已经顾不上了。\n\n![老齐和朋友们在丝瓜50公里赛道上](01.jpg)\n2023年9月30日那天，天气非常好。跑越野的大神们个个英姿飒爽，谈笑风生并不影响脚下的速度，树根和石头以及路线的上下起伏对他们也如平地一般。对于老齐这只菜鸟，大家自然也都是非常关照，尽量放慢速度等他。当时他并不知道这是越野大神们发展下线的标准操作：要有耐心，就像钓鱼一样，线不能抻的太紧。就这样走走停停，加上中午在大学城附近充分的休息补给，老齐竟然也完成了丝瓜50公里的线路，虽然他是最后一个。秋日暖阳下斑斓的色彩和经年的落叶铺就的绵软的赛道让老齐产生了幻觉，似乎觉得他也能跑越野。那天他有点儿上头，直接的后果就是接下来报名了第二年好几个本地的越野比赛：4月份的Diez Vista，7月份的Knee Knacker，8月份的丝瓜50英里和9月底的Ultra Trail Whistler by UTMB。2024是老齐的越野元年！\n\n![老齐和朋友们在丝瓜50公里赛道上](02.jpg)\n\n✦ . 　⁺ 　 . ✦ . 　⁺ 　 . ✦\n\n激情如潮水，来的快去的也快。比赛还是半年之后的事情，着什么急呢。船到桥头自然直，Hakuna matata!  虽然大神们提醒过，越野跑和路跑不同，要多上山练习，可是老齐已经忘记了。再加上右腿髋关节因负重训练受了一点伤，他从2月份First Half比赛之后就完全停止了跑步训练，更不用说跑山了。开春3月份骑行俱乐部的活动就开始了，他又忙着去骑车了！\n\n该来的终究要来，4月13日的Diez Vista 50公里比赛如期而至，老齐是靠日历上提前设置的提醒才记起来这个比赛的。一点儿都没有准备啊，心里那是没着没落的，只能硬着头皮上。死猪不怕开水烫这句话用在这里实在是再合适不过了！🐷\n\n### Diez Vista\n\n![Diez Vista](03.jpg)\n比赛是早上8点钟从Sasamat Lake湖边的White Pine Beach开始。因为来这里游过几次开水，所以地方还算熟悉。和他一起比赛的有户外老兵马哥，岛哥、Sa姐和画家哥那天也正好来山上训练，于是就一起出发。这个比赛的赛道算是比较容易的，可是老齐当时并不觉得。未经沧海全是水，没去过巫山都是云！一开始大家还能在一起走，慢慢的老齐就跟不上了，毕竟是没有训练。他是每站必进，吃点东西，喝点水，磨蹭一会儿。比赛熬到了下午时分，从30公里处折返的时候，太阳已经很晒了，还在往30公里折返点跑的选手很多已经无精打采。此时老齐感觉自己的右脚已经受伤了，他只能慢慢往前挪。在终点前几公里的地方还有一大段碎石路面，像是新石器时代的原始人打磨出来的切割器，每一片都很锋利。\n\n![Diez Vista](04.jpg)\n在他好不容易来到终点的时候，时间已经是下午四点半，已经早早跑完的马哥、岛哥、Sa姐和画家哥已经在湖边等到无可奈何。从后来发出来的比赛照片来看，他们几位下山的时候都是飞下来的，一个个极其享受的样子。这个比赛老齐的完赛时间是8小时32分。虽然受伤，可还是完赛了。对于一个没有训练的人来说，还能要求什么呢？\n\n![Diez Vista](05.jpg)\n\n### Knee Knacker\n\nKnee Knacker是一个非营利机构举办的独立赛事，赛道是北岸从马蹄湾到Deep Cove的Baden-Powell Centennial Trail (BP Trail)，全程48公里，是加拿大最难的30英里赛道之一。参赛选手限制在262人，都是通过抽签决定。老齐居然第一年报名就中签了，beginner's luck.  比赛时间是7月13日。在比赛之前，主办方还组织了若干次训练跑，让大家去体验一下不同的赛段。老齐只参加了其中一次，还遇上大雨迷了路。\n\n比赛那天，老齐带着一种无知者无畏的心态就上山了。他事先完全没有做功课，到底有几个补给站，每个站点的关门时间是几点钟都不知道。BP的赛道不是白给的，上来1000米的爬升就给他来了个下马威。本以为爬到山顶之后往下走的路总可以快一点吧，谁知接下来的部分都是技术路段，各种树根石头，根本跑不起来。到了第一个大补给站的时候，他已经被告知时间很紧张了。虽然这一站不会被关门，但是一点都不能减速。可是速度不是说提就能提起来的，老齐终于还是在下一个站点Cleveland Dam被关门了。被关门的感觉是不爽的，可也是一种解脱。好歹算是跑了一半的距离，后半程的赛道一点儿都不容易。群里的Mae那天是做志愿者，多亏她开车送老齐到Deep Cove终点。当天的天气是极好的，王青、Sunny和叮当在终点准备了各种好吃的等群里的参赛选手冲线，可她们万万没有想到第一个等到的会是老齐，而且是坐车来的。后来听Yong哥说，这个比赛中签率还挺低的，老齐这个参赛名额算是白瞎了！\n\n![Knee Knacker](06.jpg)\n![Knee Knacker](07.jpg)\n\n### Squamish 50 Miles\n\n因为去年夏天已经和大神们跑过了丝瓜50公里的赛道，老齐从一开始就决定要报名50英里的比赛。丝瓜的比赛有三个组别，周六是50英里，周日是50公里和23公里。丝瓜50是很多越野大神几年前起步的地方，因此一向是群里朋友们热衷的赛事。今年果然又是一个大爬梯，各个组别参赛选手加到一起得有20人了。群主追云提前订了一个大house，方便大家在一起玩的开心。然鹅，周五晚上的聚餐老齐竟然因为其他事情的耽搁无法参加，只能隔着屏幕看着大家举办补碳大会发来的各种美照流口水。等他赶到的时候已经是半夜了，大家都已经睡下，他于是就胡乱在客厅的地毯上凑合了一夜，旁边是石大夫和MT。\n\n![Squamish 50 Miles](08.jpg)\n\n有了上次Knee Knacker被关门的经验，这次老齐提前就规划好了撤退的路线。大学城是个大站，也有我们的小伙伴在，交通还方便。如果要退赛，就在这里退！哦，还是先说比赛吧。50英里的比赛是在黎明前东方已经露出曙光的时候出发的，背景是壮观的酋长岩（Stawamus Chief）。因为是从城里出发，所以前面十公里大家都是带着头灯在马路上跑。路是平的，大家速度都很快。前半程的比赛波澜不惊，都是在山林里各种穿梭，起起伏伏。中间有一段很长的大上坡，虽然慢，也熬人，但老齐觉得还能坚持。最难的地方是一段大下坡的技术路段，他走的实在太慢了，也开始问自己为什么要参加越野比赛。路跑不香吗？自行车不香吗？\n\n![Squamish 50 Miles](09.jpg)\n\n等到快到大学城那站的时候，老齐已经快被晒蔫了，腿上也没有了丝毫的力气。虽然离这一站的关门时间还早的很，可是接下来20公里还是有很多爬升，如果坚持下去的话，怕是要跑到晚上10点钟了。久已潜伏心底的退赛念头此时突然跑了出来。为什么要这么折磨自己呢？比赛不是为了享受吗？如果万一受伤的话，那么下周二的长途骑行岂不是要泡汤了？于是，在离大学城几公里的地方，老齐决定要退赛了，一下子觉得心情放松了很多，接下来的几公里也不难了。\n\n爬上大学城的台阶，进到补给站，老齐直接告诉负责登记时间的志愿者，他要退赛。这里是第五个补给站，大约53公里处。June和Rachel在这一站给大家做私补。可是，让老齐没想到的是，MT这个浓眉大眼的精英选手竟然也在这一站退赛了！\n\n![Squamish 50 Miles](10.jpg)\n\n![Squamish 50 Miles](11.jpg)\n\n### Ultra Trail Whistler by UTMB, 70k\n\n![Ultra Trail Whistler by UTMB](12.jpg)\n\nWhistler的比赛是UTMB第一次来加拿大办比赛。因为是第一年，所以赛道前后更改了三次。一开始是有100公里、50公里和25公里三个组别。后来100公里的路线调整到了61公里。老齐最初报名的是50公里组别，现在看到100公里组别（可以拿到三块石头）只比50公里多11公里，爬升也差不了多少，于是决定换到100公里组别。可谁知这个组别的距离后来又调整到70公里。别管那么多了，硬着头皮上吧！\n\n照例，比赛前一天下午领物，晚上组织补碳大会。老齐要和石大夫一起走，得下午六点才能出发。于是大同代为领物并把老齐事先准备的鲍鱼捞饭交给存包的工作人员（老齐对于比赛中最走心的环节永远是补给，而不是比赛本身）。他和石大夫晚上九点多赶到的时候，补碳大会仍在热烈的进行中。大家给他俩留了很多好吃的。在这个集体中，老齐经常是备受关照的那一个，他觉得很温暖。\n\n70公里组的选手早上五点钟出发，天很黑，也很冷。在出发点片刻的欢呼和喧嚣过后，便是参赛选手们逶迤前行沙沙的脚步声。大家都戴着头灯，队伍也慢慢拉开变成一条长龙，像是夜行军的队伍。赛道的前30公里都是上坡，路还算好走。这一段是老齐整个赛程中走的最舒服的一段。第一个补给站是Roundhouse，Jeremy今天做志愿者，负责这个站点。现在天还早，还不到鲍鱼捞饭时间。Jeremy告诉老齐，他会计算时间在老齐返回之前把鲍鱼捞饭先帮他加热好。补给站有自己人的感觉真好！这次比赛线路设计不太好，据说是因为志愿者人数不够的原因，线路有好几个loop，大圈儿套小圈儿。Roundhouse补给站要前后经过四次，Whistler Summit要经过两次，最后的Middle of Nowhere要经过两次。整个白天就是在这样不停的绕圈中度过的。第二次经过Whistler Summit下山的时候，天已经非常冷了。老齐随便吃点东西，赶紧下山。本以为下山的路会好走一些，谁知道竟是十几公里的树根烂泥路，想快也快不起来。等到最后一次经过最后一个补给站的时候，距离终点就只有3公里了。可是这3公里的距离竟然也不是直路，更不是平路，老齐居然也走了40分钟。他再次下定决心，以后再也不跑什么越野赛了！\n\n等到老齐终于冲过终点的时候，时间已经是晚上9:45了，还有不少的志愿者在终点为选手们欢呼、拍照、发奖牌。感谢他们的付出！虽然没有白天热闹，但老齐也知足了。比起他的长途骑行，这已经很好了。骑车的时候，经常是一个人黑灯瞎火骑到一个地方，看一下手表时间，自己给自己打个卡，一次骑行就算结束了。这里终究是比赛，还是有人欢呼、拍照和发奖牌的！夜色深沉，也有些冷，老齐蹒跚走到路边的台阶坐下，掏出手机给关心他的朋友们发了微信：终于完赛，累劈了！\n\n### 后记\n\n2024年是老齐的越野元年。他一共报了四场比赛，第一场完赛但受伤，第二场被关门，第三场退赛，第四场勉强算是无伤完赛。他跟朋友们说，明年要改元，改成大铁元年，越野跑是不能再搞了。不过谁知道呢？老齐的话有时候也没准儿，让我们拭目以待吧。\n\n![老齐](13.jpg)",
+    "path": "posts/2024/my-ultra-races",
+    "toc": [
+      {
+        "title": "2024，我的越野元年",
+        "url": "#2024我的越野元年",
+        "items": [
+          {
+            "title": "Diez Vista",
+            "url": "#diez-vista",
+            "items": []
+          },
+          {
+            "title": "Knee Knacker",
+            "url": "#knee-knacker",
+            "items": []
+          },
+          {
+            "title": "Squamish 50 Miles",
+            "url": "#squamish-50-miles",
+            "items": []
+          },
+          {
+            "title": "Ultra Trail Whistler by UTMB, 70k",
+            "url": "#ultra-trail-whistler-by-utmb-70k",
+            "items": []
+          },
+          {
+            "title": "后记",
+            "url": "#后记",
+            "items": []
+          }
+        ]
+      }
+    ],
+    "date": "2024-12-13T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "06.webp",
+      "src": "https://images.wildrunner.org/posts/2024/my-ultra-races/06.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/my-ultra-races/06.webp",
+      "featured": false,
+      "width": 3088,
+      "height": 2320,
+      "blurWidth": 20,
+      "blurHeight": 15,
+      "exif": {
+        "Make": "Apple",
+        "Model": "iPhone SE (2nd generation)",
+        "DateTimeOriginal": "2024:07:13 07:51:20",
+        "ExposureTime": "1/1353",
+        "FNumber": "f/2.2",
+        "FocalLength": "2.87 mm",
+        "ImageWidth": 3088,
+        "ImageHeight": 2320
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAACQBACdASoUAA8APtFUo0uoJKMhsAgBABoJbACdMoMlmBADLttuil24kfaNjKAA77xfL9JVBdU5jmyOKTQchlyZ6X7/BxrqPX74sL8WthUahxmi1uRb9JtcM7unE259sxWEM7hiRYsskQAA"
+    },
+    "description": "老齊的越野元年",
+    "metadata": {
+      "readingTime": 8,
+      "wordCount": 2033.3200000000002
+    },
+    "year": "2024",
+    "slugAsParams": "2024/my-ultra-races"
+  },
+  {
+    "title": "Québec Méga Trail - QMT | 2024",
+    "slug": "posts/2024/qmt",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{jsx:n}=arguments[0];function _createMdxContent(t){const e={p:\"p\",...t.components};return n(e.p,{children:\"This is content\"})}return{default:function(t={}){const{wrapper:e}=t.components||{};return e?n(e,{...t,children:n(_createMdxContent,{...t})}):_createMdxContent(t)}};",
+    "raw": "This is content",
+    "path": "posts/2024/qmt",
+    "toc": [],
+    "date": "2024-07-06T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2024/qmt/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/qmt/cover.webp",
+      "featured": false,
+      "width": 769,
+      "height": 769,
+      "blurWidth": 20,
+      "blurHeight": 20,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAAAwBACdASoUABQAPtFepUyoJaOiMBgIAQAaCUATplAANSQ9P3cTT5S3KAAA/g759J6O3DuVJPqvnG9qU/225vedU4hf+xd/2e42CvgUQxHQM86P/YIstYkAAAA="
+    },
+    "description": "QMT是在東部魁北克省一個出名的越野賽，去年在永哥的張羅下，我們組成了一個13個人的大圖參加。",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 3
+    },
+    "year": "2024",
+    "slugAsParams": "2024/qmt"
+  },
+  {
+    "title": "马拉松之旅-从菜鸟到入坑的经历 2022-2024",
+    "slug": "posts/2024/royal-victoria-marathon",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "Elbert Qi",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:a,jsx:r,jsxs:e}=arguments[0];function _createMdxContent(l){const A={a:\"a\",h2:\"h2\",img:\"img\",p:\"p\",...l.components};return e(a,{children:[r(A.h2,{id:\"故事的开始\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#故事的开始\",children:\"故事的开始\"})}),\"\\n\",r(A.p,{children:\"追云和我认识十几年了，同为北美户外龙舟队的队友和广东同乡。我们在划龙舟之余经常聊跑步，聊 utmb。一直对跑马有一种敬畏的心情。以前爬山把膝盖弄坏了，一直以为跑步对于我这个膝盖有问题的人是可欲不可求的运动。后来我参加了龙舟运动，需要一种运动方式，可以让全身肌肉都可以得到锻炼，像骑车和跑步这种运动就自然而然成为我的下一个目标。感谢追云同学的鼓励，我写一写我开始跑马之后两年来的一些体会，现在年纪大了，怕以后忘记了。\"}),\"\\n\",r(A.p,{children:\"2022年疫情快结束的偶然机会，我参加了第一场半程马拉松比赛。赛前基本上没有怎么训练，只跑过一次全半程的就匆匆上场了。当时的目标就是把它全部跑完。结果2:05 跑完，能够完成就非常非常好了。乘胜追击，赛后就报了一个2022年十月的 第 100 届 Great Trek 半马，一举破二，跑了1：55。几个月内提高了10分钟，非常非常漂亮，于是我就报了 2023 BMO 温哥华国际半马，不仅又破二，而且比上次又提高10分钟，以 1:45 分完赛。这时很多跑友都鼓励我参加全马，我开始很犹豫，经过几次长距离慢跑训练之后，我决定挑战一下自己，就报了2024年的 BMO 温哥华国际马拉松的全马比赛。作为热身赛，又报了2024 二月的first half的半程马拉松比赛。\"}),\"\\n\",r(A.p,{children:\"我在报名跑马拉松的之前，认为跑步是划龙舟的最佳的交叉训练方式。因为跑步主要锻练下肢，龙舟的话呢，主要是上身和这个核心的力量。那么两者之间的话可以让全身的肌肉都得到锻炼。\\n2023年的冬季，为 2024 的 First Half 半程马拉松做备赛，平时身体锻炼主要是以划龙舟为主，把跑马的训练计划穿插进行，月跑量基本保持在150km左右。2024 二月份 FIRST half半程马拉松跑出了1小时37分，我自己都难以相信，我一个年过半百的人居然可以进入业余跑者的精英级别😲\"}),\"\\n\",r(A.h2,{id:\"2024-bmo-温哥华国际马拉松\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#2024-bmo-温哥华国际马拉松\",children:\"2024 BMO 温哥华国际马拉松\"})}),\"\\n\",r(A.p,{children:\"5月份 BMO 温哥华国际马拉松是我人生的第一场全马的比赛。跑友 Jerry 给了一个比赛的训练计划，但是由于要兼顾龙舟的训练比赛，无法把全马训练计划坚决地执行，月跑量也没有办法提升上去，只是在200km左右徘徊，而且参赛的前一天还参加了一整天的龙舟赛，所以体力和精神方面消耗了很多，在 BMO 温哥华马拉松比赛真正尝试到了什么是马拉松比赛，比赛时，我在前30km基本上都保持了在4分45秒的配速，到了30km的时候掉速非常厉害，基本上掉到530，甚至到730，双腿疼痛，无法抬起，最后10km 即使是平路也要走。最后以 3:38完成了我人生第一场马拉松。虽然比BQ的成绩慢了 3分钟，但是能够顺利完赛，也是觉得非常的幸运和满意。\"}),\"\\n\",r(A.p,{children:\"由于离BQ还差3分钟，心有不甘，所以就报名了参加10月份加拿大感恩节期间举办的维多利亚马拉松比赛，当时也是糊里糊涂报上了名。报完之后，跑群的跑友们，大家一致认为维多利亚的比赛非常难，因为赛道弯道非常多，而且有非常多高低起伏的坡度，特别是最后的5km，还是坡。我想，既然报了，那就认真准备吧，这次就把朋友给的训练计划拿出来。因为8月份去了美国冰川公园徒步两个星期，所以真正的训练时间只有短短的7周时间，我不敢怠慢，坚持按照训练计划进行训练。在周中的时候，主要是关注于间歇跑和temple run，周末的时候就会跑一些长距离。本来会在周末计划跑两个 LSD，但是由于家里的原因，赛前的第三周中断了一周训练，结果只有在赛前两周的时候，跑了一个30km LSD。不过幸运的是，那次的30km的长跑感觉非常好，跑完30km之后觉得还有很多力可以跑，对我真正参加比赛增强了信心。\"}),\"\\n\",r(A.h2,{id:\"2024-royal-victoria-marathon\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#2024-royal-victoria-marathon\",children:\"2024 Royal Victoria Marathon\"})}),\"\\n\",r(A.p,{children:\"2024的感恩节长周末，迎来了我人生第二次全程马拉松。比赛前一天，我乘坐公共交通从温哥华到达 BC 省的首府维多利亚。住的酒店是差不多六个月前就定下来的，离比赛的起点只有20分钟的路程。我到了维多利亚之后就去取号码布，到比赛的起点和终点，了解第二天比赛承包和起点的情况 。维马的起点和终点就是在 BC 省议会的广场前面，就在市中心的inner harbor, 环境非常优美。在维马的 expo 我 了解到，维马的全马比赛的线路基本上都是在海边和寂静的居民区里面。整个赛道非常优美，安静祥和，经过维多利亚的议会大厦，Empire 酒店，唐人街和加拿大 1号公路的起点附近，回程快到终点的时候 还经过维多利亚的游轮码头。\"}),\"\\n\",r(A.p,{children:\"比赛前一晚，标准动作就是做赛前前一天的补碳，去了唐人街，点一大碗炒米饭。平时炒一碟米饭，可以吃三餐，结果我一餐就把它搞下去了。\"}),\"\\n\",r(A.p,{children:\"2024年10月13号一大早，我5点钟就起床了。按照计划，赛前做最后一次的补碳，所以我就吃了一个方便面，再加两个 begal，一只香蕉。喝了一杯浓茶，顺利进行排空。早上六点半，我背着我的参赛包，用了20分钟时间走到了赛事的起点。大概7点钟左右，到达了赛事的起点，一路上碰到很多运动员都走过去。当时天还没有亮，太阳还没有出来，所以是摸着路灯走过去的。\"}),\"\\n\",r(A.p,{children:\"这次比赛 我一共准备了8 支胶和4颗盐丸，赛前30分钟吃了第一支胶。在比赛中每8km吃一支 胶，每10km含一颗盐丸。我把盐丸用嘴咬破，然后到补水站用水冲到肚子里。后来回来看盐完的说明书，应该把整粒吞到肚子里，盐丸可以在肚子里缓慢的释放电解质。我下一次马拉松比赛就知道怎么用盐丸了。\"}),\"\\n\",r(A.p,{children:\"这次维马的目标是能够BQ，3:30 以内，那平均配速应该是4分55左右。8:15全马和半马同时出发，前5km，虽然我尽量告诉自己要慢要慢，但是配速还是在440左右。6km-10km，速度稍微慢了一点点，但是经过10km的时候，大约是 46 分，配速440。到20km用了1小时34分，配速442。半码139配速442。一直到31km 我的配速基本上是保持在 445左右。  在31km 处迎来了一个3km长的rolling hill, 上坡下坡的组合，对我的体力有很大的挑战。这个时候我的配速有所下降，在455-500的左右。35km-37km 虽然是一个下坡，但对我配速根本没有任何的帮助。因为怕担心抽筋，所以我也保持同样的配速，甚至配速有时候降到530。37km-39km又是一个长长的上坡，我告诉自己，这次不可以走路，即使慢点，也一定要坚持跑，配速保持在550-510期间。39km-40km是一个下坡，配速也保持在 500 左右。40km~42km 的最后两公里基本上是平路，我把最后一支能量胶吃掉，做最后的冲刺，但经过了40多公里的跑步，双脚就是很难达到以前的状态，虽然如此，也保持在500的配速冲过了终点。最后以3小时28分56秒完赛。完成了BQ的目标，并且创造了自己个人最好成绩。\"}),\"\\n\",r(A.h2,{id:\"赛后总结\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#赛后总结\",children:\"赛后总结\"})}),\"\\n\",r(A.p,{children:\"回想维马，31km之后还是有所掉速，我对自己说，坚持不走路，怎么也要把它跑下来，虽然非常痛苦非常累。这次马拉松为我下一次马拉松提供了非常好的经验，我在以后的训练中要加强LSD的训练，在长距离让肌肉可以更加适应，防止 32km以后掉速。\"}),\"\\n\",r(A.p,{children:\"两周后的10月26号，刚刚从维马的疲劳中恢复过来，我又参加了在 UBC 举办的 Great Trek 半程马拉松比赛。Great Trek 的半程马拉松赛道是由两个基本一样的10km组成的，每个10km由三个个下坡，两个长上坡和一个很短上坡组成。一个半马下来 要经过6次下坡、6次上坡的考验， 其难度可以说跟维马相差无几。这次我在黑组也就是第一组出发，开始两公里跟着135的兔子跑，结果由于上坡下坡太多，在3km之后就慢慢让135的兔子甩在后面了。但我的配速平均一直保持在保持在430~440之间，没有让140的兔子超过我，最后以1小时37分完赛，平了年初在first half半程马拉松创造的个人最好成绩。我也期待明年2月份，在温哥华 first half 半程马拉松比赛能够突破自己的最好成绩，因为那个赛道据说是加拿大最快的半程马拉松赛道。\"}),\"\\n\",r(A.h2,{id:\"展望2025\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#展望2025\",children:\"展望2025\"})}),\"\\n\",r(A.p,{children:\"回顾2024年，我跑了两个半马和两个全马，同时兼顾龙舟竞技队的比赛。展望2025年，我将吸取2024年的训练比赛的经验和教训，在2025年会取得更好的成绩。\\n不知不觉我已入坑，参与到世界大满贯马拉松比赛的行列，明年已经报名参加芝加哥马拉松，并且在默默地努力看能不能够抽到伦敦、东京和纽约的比赛资格。未来几年就拭目以待，希望自己以后快乐训练，不要受伤，享受马拉松给我带来的快乐。\"}),\"\\n\",r(A.h2,{id:\"图片\",children:r(A.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#图片\",children:\"图片\"})}),\"\\n\",e(A.p,{children:[\"定妝照\\n\",r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1621730606921_.pic.webp\",alt:\"定妝照\",width:\"1280\",height:\"2275\",blurdataurl:\"data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAAAQBgCdASoUACQAPslUoUunpSMhsBqtUPAZCWQAvfFGggF4+FRTkUDgpSXC/ijwsXI3zeEYrjkYJQAA/tNKQQFk4NtcMqQOlSQutJBrJfVSmmWxfy661HBmnBSg3nozA3Ld16HFyTCyA+sMK8uqkh9adR12kf2uPYWYGFE4Ip5658hThSeCWp4hP/+OutNPsK1xwzfM9omk/AHZtkedW7egmW6BSYMmiGxIkxkAAAA=\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",r(A.p,{children:r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1661730606922_.pic.webp\",alt:\"定妝照\",width:\"1706\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAADQAwCdASoUAA8APtFUo0uoJKMhsAgBABoJZwCnFCHD8ZClxa7FmgAA/t50tuDdB4aSRzS4nAssk39CHV3k/AdlhR5L6aTI4/5vBg3aLIAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(A.p,{children:[\"出發\\n\",r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1681730606923_.pic.webp\",alt:\"出發\",width:\"960\",height:\"640\",blurdataurl:\"data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAABwBACdASoUAA0APtFUo0uoJKMhsAgBABoJYgCdMoMYHYAA+BeqCqGNCaUCgAD+aqTsXC1E0eQTO9MldnG5mgX+Mb47Be8BaajHd1dJrq18tHrCxCSEs127UIgVGc6DzrdF52kEj5Mt2PPNAhwKVkabBcZemujFxBzQ4Gg1G2NzavGZDAA=\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",e(A.p,{children:[\"獎牌\\n\",r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1641730606922_.pic.webp\",alt:\"獎牌\",width:\"1280\",height:\"1305\",blurdataurl:\"data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAAAwBQCdASoUABQAPsFMn0unpCKht/qoAPAYCWYAnTKEfgAkaVMeZJSlFdBGnjyHNyNPsADiO9d2yGhoHcEv3thCqlGwSv7XX50rGzG68GN5KeVn8ONYsnzmOasPTRhatvA+d1Hxp540cWjZLfG5Z45rU3hWAAAA\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",e(A.p,{children:[\"比赛結果\\n\",r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1671730606923_.pic.webp\",alt:\"比赛結果\",width:\"1080\",height:\"2400\",blurdataurl:\"data:image/webp;base64,UklGRqQAAABXRUJQVlA4IJgAAABwBQCdASoUACwAPtFQn0uoJKKhsBqtUQAaCWcAz2QWZoHAAvQidk5sGAxdnEoauh8XElOAAP7vxCIy7qRYgbI2CtOthQFNkeITGi7meOUGEd1TShhLxQJKNWeNlQy6J7z8V7CU3xb69Z+ztYLbMSrQSzjKGYPgE2QXswLQYFdxRXK5bDg7s31DHMhT4jeXRWXwHvpFwfygAA==\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",e(A.p,{children:[\"Expo\\n\",r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1691730606924_.pic.webp\",alt:\"Expo\",width:\"2275\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAACwAwCdASoUAAsAPtFUpEuoJKOhsAgBABoJZQCw7B01xPTA0hG1gAD90opq58BVRJ5kyS0gas2LmEuy/CQtlsRhAKccQdFvUUG9pZ769QQzKkna6segl04YxdKAAA==\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",r(A.p,{children:r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1701730606925_.pic.webp\",alt:\"Expo\",width:\"2275\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADwAwCdASoUAAsAPtFYpEuoJSOhsAgBABoJZQC7ACGazdas0dg5drwAAP5TEq1NvCedDp8/GkohMcEF+QqqzEuJe2VZzvt9N+AAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",r(A.p,{children:r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1711730606925_.pic.webp\",alt:\"Expo\",width:\"2275\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAABQBACdASoUAAsAPtFipk0oJiOiMAgBABoJYwCdMlUAvlsnvqbB41zs9d0gAPCKKeSjQI49vwjzQat3z+HPpQ+1PHWBHYmVs5uMEDOG0QLzzAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",r(A.p,{children:r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1631730606922_.pic_hd.webp\",alt:\"Expo\",width:\"4096\",height:\"2304\",blurdataurl:\"data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAAAQBACdASoUAAsAPtFUo0uoJKMhsAgBABoJagCdACHaTll4REykX3OA4AD44xe0NANxnYmqYZzFHF60SMeNc1BGqdwo27/YyM9Z56KpKR6jDwbFVR29Le5q6jg/gUdEGxp1HY2QAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",r(A.p,{children:r(A.img,{src:\"https://images.wildrunner.org/posts/2024/royal-victoria-marathon/1651730606922_.pic_hd.webp\",alt:\"Expo\",width:\"4096\",height:\"2304\",blurdataurl:\"data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAABQBACdASoUAAsAPtFWpEuoJKOhsAgBABoJZgCdMoGv/gNn2U6SHZVz/S1QAPdBVAwF3ImPpX+YI1FSGT/rZnwzOvC/LfHhE8PStE9gV4TOKyYlMEchQe+sMgnoLBgA\",loading:\"lazy\",placeholder:\"blur\"})})]})}return{default:function(a={}){const{wrapper:e}=a.components||{};return e?r(e,{...a,children:r(_createMdxContent,{...a})}):_createMdxContent(a)}};",
+    "raw": "## 故事的开始\n追云和我认识十几年了，同为北美户外龙舟队的队友和广东同乡。我们在划龙舟之余经常聊跑步，聊 utmb。一直对跑马有一种敬畏的心情。以前爬山把膝盖弄坏了，一直以为跑步对于我这个膝盖有问题的人是可欲不可求的运动。后来我参加了龙舟运动，需要一种运动方式，可以让全身肌肉都可以得到锻炼，像骑车和跑步这种运动就自然而然成为我的下一个目标。感谢追云同学的鼓励，我写一写我开始跑马之后两年来的一些体会，现在年纪大了，怕以后忘记了。\n\n2022年疫情快结束的偶然机会，我参加了第一场半程马拉松比赛。赛前基本上没有怎么训练，只跑过一次全半程的就匆匆上场了。当时的目标就是把它全部跑完。结果2:05 跑完，能够完成就非常非常好了。乘胜追击，赛后就报了一个2022年十月的 第 100 届 Great Trek 半马，一举破二，跑了1：55。几个月内提高了10分钟，非常非常漂亮，于是我就报了 2023 BMO 温哥华国际半马，不仅又破二，而且比上次又提高10分钟，以 1:45 分完赛。这时很多跑友都鼓励我参加全马，我开始很犹豫，经过几次长距离慢跑训练之后，我决定挑战一下自己，就报了2024年的 BMO 温哥华国际马拉松的全马比赛。作为热身赛，又报了2024 二月的first half的半程马拉松比赛。\n\n我在报名跑马拉松的之前，认为跑步是划龙舟的最佳的交叉训练方式。因为跑步主要锻练下肢，龙舟的话呢，主要是上身和这个核心的力量。那么两者之间的话可以让全身的肌肉都得到锻炼。\n2023年的冬季，为 2024 的 First Half 半程马拉松做备赛，平时身体锻炼主要是以划龙舟为主，把跑马的训练计划穿插进行，月跑量基本保持在150km左右。2024 二月份 FIRST half半程马拉松跑出了1小时37分，我自己都难以相信，我一个年过半百的人居然可以进入业余跑者的精英级别😲\n\n## 2024 BMO 温哥华国际马拉松\n5月份 BMO 温哥华国际马拉松是我人生的第一场全马的比赛。跑友 Jerry 给了一个比赛的训练计划，但是由于要兼顾龙舟的训练比赛，无法把全马训练计划坚决地执行，月跑量也没有办法提升上去，只是在200km左右徘徊，而且参赛的前一天还参加了一整天的龙舟赛，所以体力和精神方面消耗了很多，在 BMO 温哥华马拉松比赛真正尝试到了什么是马拉松比赛，比赛时，我在前30km基本上都保持了在4分45秒的配速，到了30km的时候掉速非常厉害，基本上掉到530，甚至到730，双腿疼痛，无法抬起，最后10km 即使是平路也要走。最后以 3:38完成了我人生第一场马拉松。虽然比BQ的成绩慢了 3分钟，但是能够顺利完赛，也是觉得非常的幸运和满意。\n\n由于离BQ还差3分钟，心有不甘，所以就报名了参加10月份加拿大感恩节期间举办的维多利亚马拉松比赛，当时也是糊里糊涂报上了名。报完之后，跑群的跑友们，大家一致认为维多利亚的比赛非常难，因为赛道弯道非常多，而且有非常多高低起伏的坡度，特别是最后的5km，还是坡。我想，既然报了，那就认真准备吧，这次就把朋友给的训练计划拿出来。因为8月份去了美国冰川公园徒步两个星期，所以真正的训练时间只有短短的7周时间，我不敢怠慢，坚持按照训练计划进行训练。在周中的时候，主要是关注于间歇跑和temple run，周末的时候就会跑一些长距离。本来会在周末计划跑两个 LSD，但是由于家里的原因，赛前的第三周中断了一周训练，结果只有在赛前两周的时候，跑了一个30km LSD。不过幸运的是，那次的30km的长跑感觉非常好，跑完30km之后觉得还有很多力可以跑，对我真正参加比赛增强了信心。\n\n## 2024 Royal Victoria Marathon\n2024的感恩节长周末，迎来了我人生第二次全程马拉松。比赛前一天，我乘坐公共交通从温哥华到达 BC 省的首府维多利亚。住的酒店是差不多六个月前就定下来的，离比赛的起点只有20分钟的路程。我到了维多利亚之后就去取号码布，到比赛的起点和终点，了解第二天比赛承包和起点的情况 。维马的起点和终点就是在 BC 省议会的广场前面，就在市中心的inner harbor, 环境非常优美。在维马的 expo 我 了解到，维马的全马比赛的线路基本上都是在海边和寂静的居民区里面。整个赛道非常优美，安静祥和，经过维多利亚的议会大厦，Empire 酒店，唐人街和加拿大 1号公路的起点附近，回程快到终点的时候 还经过维多利亚的游轮码头。\n\n比赛前一晚，标准动作就是做赛前前一天的补碳，去了唐人街，点一大碗炒米饭。平时炒一碟米饭，可以吃三餐，结果我一餐就把它搞下去了。\n\n2024年10月13号一大早，我5点钟就起床了。按照计划，赛前做最后一次的补碳，所以我就吃了一个方便面，再加两个 begal，一只香蕉。喝了一杯浓茶，顺利进行排空。早上六点半，我背着我的参赛包，用了20分钟时间走到了赛事的起点。大概7点钟左右，到达了赛事的起点，一路上碰到很多运动员都走过去。当时天还没有亮，太阳还没有出来，所以是摸着路灯走过去的。\n\n这次比赛 我一共准备了8 支胶和4颗盐丸，赛前30分钟吃了第一支胶。在比赛中每8km吃一支 胶，每10km含一颗盐丸。我把盐丸用嘴咬破，然后到补水站用水冲到肚子里。后来回来看盐完的说明书，应该把整粒吞到肚子里，盐丸可以在肚子里缓慢的释放电解质。我下一次马拉松比赛就知道怎么用盐丸了。\n\n这次维马的目标是能够BQ，3:30 以内，那平均配速应该是4分55左右。8:15全马和半马同时出发，前5km，虽然我尽量告诉自己要慢要慢，但是配速还是在440左右。6km-10km，速度稍微慢了一点点，但是经过10km的时候，大约是 46 分，配速440。到20km用了1小时34分，配速442。半码139配速442。一直到31km 我的配速基本上是保持在 445左右。  在31km 处迎来了一个3km长的rolling hill, 上坡下坡的组合，对我的体力有很大的挑战。这个时候我的配速有所下降，在455-500的左右。35km-37km 虽然是一个下坡，但对我配速根本没有任何的帮助。因为怕担心抽筋，所以我也保持同样的配速，甚至配速有时候降到530。37km-39km又是一个长长的上坡，我告诉自己，这次不可以走路，即使慢点，也一定要坚持跑，配速保持在550-510期间。39km-40km是一个下坡，配速也保持在 500 左右。40km~42km 的最后两公里基本上是平路，我把最后一支能量胶吃掉，做最后的冲刺，但经过了40多公里的跑步，双脚就是很难达到以前的状态，虽然如此，也保持在500的配速冲过了终点。最后以3小时28分56秒完赛。完成了BQ的目标，并且创造了自己个人最好成绩。\n\n## 赛后总结\n回想维马，31km之后还是有所掉速，我对自己说，坚持不走路，怎么也要把它跑下来，虽然非常痛苦非常累。这次马拉松为我下一次马拉松提供了非常好的经验，我在以后的训练中要加强LSD的训练，在长距离让肌肉可以更加适应，防止 32km以后掉速。\n\n两周后的10月26号，刚刚从维马的疲劳中恢复过来，我又参加了在 UBC 举办的 Great Trek 半程马拉松比赛。Great Trek 的半程马拉松赛道是由两个基本一样的10km组成的，每个10km由三个个下坡，两个长上坡和一个很短上坡组成。一个半马下来 要经过6次下坡、6次上坡的考验， 其难度可以说跟维马相差无几。这次我在黑组也就是第一组出发，开始两公里跟着135的兔子跑，结果由于上坡下坡太多，在3km之后就慢慢让135的兔子甩在后面了。但我的配速平均一直保持在保持在430~440之间，没有让140的兔子超过我，最后以1小时37分完赛，平了年初在first half半程马拉松创造的个人最好成绩。我也期待明年2月份，在温哥华 first half 半程马拉松比赛能够突破自己的最好成绩，因为那个赛道据说是加拿大最快的半程马拉松赛道。\n\n## 展望2025\n回顾2024年，我跑了两个半马和两个全马，同时兼顾龙舟竞技队的比赛。展望2025年，我将吸取2024年的训练比赛的经验和教训，在2025年会取得更好的成绩。\n不知不觉我已入坑，参与到世界大满贯马拉松比赛的行列，明年已经报名参加芝加哥马拉松，并且在默默地努力看能不能够抽到伦敦、东京和纽约的比赛资格。未来几年就拭目以待，希望自己以后快乐训练，不要受伤，享受马拉松给我带来的快乐。\n\n## 图片\n\n定妝照\n![定妝照](1621730606921_.pic.jpg)\n\n![定妝照](1661730606922_.pic.jpg)\n\n出發\n![出發](1681730606923_.pic.jpg)\n\n獎牌\n![獎牌](1641730606922_.pic.jpg)\n\n比赛結果\n![比赛結果](1671730606923_.pic.jpg)\n\nExpo\n![Expo](1691730606924_.pic.jpg)\n\n![Expo](1701730606925_.pic.jpg)\n\n![Expo](1711730606925_.pic.jpg)\n\n![Expo](1631730606922_.pic_hd.jpg)\n\n![Expo](1651730606922_.pic_hd.jpg)",
+    "path": "posts/2024/royal-victoria-marathon",
+    "toc": [
+      {
+        "title": "故事的开始",
+        "url": "#故事的开始",
+        "items": []
+      },
+      {
+        "title": "2024 BMO 温哥华国际马拉松",
+        "url": "#2024-bmo-温哥华国际马拉松",
+        "items": []
+      },
+      {
+        "title": "2024 Royal Victoria Marathon",
+        "url": "#2024-royal-victoria-marathon",
+        "items": []
+      },
+      {
+        "title": "赛后总结",
+        "url": "#赛后总结",
+        "items": []
+      },
+      {
+        "title": "展望2025",
+        "url": "#展望2025",
+        "items": []
+      },
+      {
+        "title": "图片",
+        "url": "#图片",
+        "items": []
+      }
+    ],
+    "date": "2024-10-13T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "rvm.webp",
+      "src": "https://images.wildrunner.org/posts/2024/royal-victoria-marathon/rvm.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/royal-victoria-marathon/rvm.webp",
+      "featured": false,
+      "width": 1500,
+      "height": 342,
+      "blurWidth": 20,
+      "blurHeight": 5,
+      "exif": {
+        "ImageWidth": 1500,
+        "ImageHeight": 342
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRtoAAABXRUJQVlA4WAoAAAAQAAAAEwAABAAAQUxQSF0AAAANcBQAYKLMz92NH7kJQ4PrgLszrxERsXLS/cwXy9k/OmsL+e32NFyDqOL3Z4vFCWnEPN9KhVjV28c9k58Nlhi5josvgZaAya/HmcmINRY6dGuNBT6BUlLHR1Br4zgAVlA4IFYAAACQAwCdASoUAAUAPtFUo0uoJKMhsAgBABoJaACdMoADSifyW5YAAP7TzHHZutYVmxnQ1h2RSXKrhOP/nnvxTc70+duvWIxJq2HRCs6wZAmN7WtRbwAAAA=="
+    },
+    "description": "Elbert Qi的維多利亞馬拉松賽記",
+    "metadata": {
+      "readingTime": 6,
+      "wordCount": 1526.2800000000002
+    },
+    "year": "2024",
+    "slugAsParams": "2024/royal-victoria-marathon"
+  },
+  {
+    "title": "Road to the majors",
+    "slug": "posts/2024/road-to-the-majors",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{jsx:t}=arguments[0];function _createMdxContent(e){const n={a:\"a\",h1:\"h1\",...e.components};return t(n.h1,{id:\"road-to-the-majors\",children:t(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#road-to-the-majors\",children:\"Road to the majors\"})})}return{default:function(e={}){const{wrapper:n}=e.components||{};return n?t(n,{...e,children:t(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "raw": "# Road to the majors",
+    "path": "posts/2024/road-to-the-majors",
+    "toc": [
+      {
+        "title": "Road to the majors",
+        "url": "#road-to-the-majors",
+        "items": []
+      }
+    ],
+    "date": "2024-10-15T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2024/road-to-the-majors/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/road-to-the-majors/cover.webp",
+      "featured": false,
+      "width": 2360,
+      "height": 1000,
+      "blurWidth": 20,
+      "blurHeight": 8,
+      "exif": {},
+      "blurDataURL": "data:image/webp;base64,UklGRkwAAABXRUJQVlA4IEAAAAAwAwCdASoUAAgAPtFUo0uoJKMhsAgBABoJQBYdhZuEGW2AAP7mtDlWgtW7tXFk70v+hXrL76hhlmCOTXk6IAAA"
+    },
+    "description": "Road to the majors",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 4
+    },
+    "year": "2024",
+    "slugAsParams": "2024/road-to-the-majors"
+  },
+  {
+    "title": "2024深圳100越野赛参赛纪实",
+    "slug": "posts/2024/shenzhen-100",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:A,jsx:e,jsxs:a}=arguments[0];function _createMdxContent(l){const n={a:\"a\",h2:\"h2\",h3:\"h3\",img:\"img\",p:\"p\",...l.components};return a(A,{children:[e(n.h2,{id:\"赛事背景与报名\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#赛事背景与报名\",children:\"赛事背景与报名\"})}),\"\\n\",e(n.p,{children:\"2024深圳100越野赛是深圳地区最具影响力的越野跑赛事之一，由深圳市文化广电旅游体育局和盐田区人民政府联合主办，朗途体育运营。赛事设有168公里、100公里、50公里、35公里和10公里亲子组五个组别，吸引了来自19个国家和地区的近5000名选手参赛。\"}),\"\\n\",e(n.p,{children:\"我本來報名的是168公里，但後來Eric提醒我說100公里組別才是與意大利頂級越野賽TORX®合作的賽事，有機會參加今年在意大利舉辦的TORX®賽事，於是我就退了168公里組別，和Eric一起報了100公里組別。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/CE52F7AC-E08F-47BA-A5A0-45E6611579B9_1_105_c.webp\",alt:\"賽道\",width:\"621\",height:\"1266\",blurdataurl:\"data:image/webp;base64,UklGRswAAABXRUJQVlA4IMAAAAAwBgCdASoUACkAPslUoEunpKMhtVgIAPAZCWgAtSFBVn5WAKZUDhMJUqruzDWnM+rBI7G2egQszY3cAP7gQrbvtBO6qloI/Gl082EfKvk1VOhBSgJ5mvh4C76DOSAGW3BdSChhVHbgrjia6OP7i+zCUVKYudkCLaGCmA6c/KnWooXdVlB+tAI97kKd4Ak/CnWRXqqpISAWJShNgoe5PzFUklOByJvxaGK2asEw5FZh/ViB+lvX5FFA7ERJZwAAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:\"100公里组别起点位于大梅沙海滨公园，赛道贯穿梅沙湾公园、东部华侨城、马峦山郊野公园等多个景点，累计爬升4768米，关门时间为28小时。大梅沙海滨公园是深圳著名的海滨公园，也是深圳市民休闲娱乐的好去处，附近就是鹽田港。\"}),\"\\n\",e(n.p,{children:\"上次Eric來深圳已經是20年前，而我二十多年前第一次來深圳出差就是去鹽田港。看來冥冥之中我們和深圳都是有緣的。只是沒想到我們出走半生，歸來的時候是以腳步丈量這座城市。\"}),\"\\n\",e(n.h2,{id:\"赛前准备\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#赛前准备\",children:\"赛前准备\"})}),\"\\n\",e(n.p,{children:\"比賽是2024年12月底，而我是12月初就回廣州了。賽前，我和廣州本地的一個跑友小牛（小牛是我在跑UTMB時候認識的廣州的跑友）一起訓練，認識了一些本地跑友。跑步最近幾年在中國十分火爆，很高興有機會認識更多廣州本地跑步的朋友。我們一起跑了一次次20公里的火鳳火線（火爐山-鳳凰山-火爐山）和30公里的火雷火線（火爐山-雷達站-火爐山）。這兩條都是廣州本地比較出名的越野訓練線路，另外還有更長的50公里的火帽火線（火爐山-帽峰山-火爐山）這次沒有嘗試。這些線路的特點是硬化路很多，和深圳100的線路比較類似，正好適合準備深圳100的比賽。而且這些路線補給很方便，天冷的時候半路還可以來一碗地道的姜醋豬腳，這對於喜歡吃吃喝喝的跑者來說，真是太方便了。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/IMG_4339.webp\",alt:\"和小牛一起訓練\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAADQAwCdASoUAAsAPtFWpEuoJKOhsAgBABoJaACdACB7t/AEWhghZ4AA/pl1oEi07WIb6av/g6fBgDokudum6UVh/5RMYZlS6LLJ83mexcD36WRAnwi3OWIJwMM18d8fI4iL0NGfdvp7wAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/29F51476-5B3A-4EB7-86AF-C0AEDAAD0D05_1_105_c.webp\",alt:\"和CBN本地跑群一起訓練\",width:\"1024\",height:\"768\",blurdataurl:\"data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAADQAwCdASoUAA8APtFUo0uoJKMhsAgBABoJYwDCgB3tQiw1WW6u3JQA/rn5+CTEA2nMPNDh7KMXP5kZ4JQ7+WdqbqlJAsuEgvvP1OG4lG33kgsOgaVRx16+SmXULcARQAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/6605C498-5679-47AE-AD3F-DC10825F525C_1_201_a.webp\",alt:\"路況\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRpgAAABXRUJQVlA4IIwAAADwBQCdASoUACQAPsFOokunpCMhtVgMAPAYCWcAw3AUPHPbXDULIpm49VYkKqXq2xUNp48JDIY+3AD+71l9KaH9OlTuS5jN4OBu5wISUfGbspN0IDXVwMEgooRGJFoV+ZfRGs/wmHdmPiqZtHIPUHi11fkU36kxQe9WCIDJfmUZDt9q2phrkTbC0FwAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/F9164BEB-0155-498F-A9B5-BBAD42C0F9E8_1_201_a.webp\",alt:\"半路來一碗姜醋豬腳\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRvgAAABXRUJQVlA4IOwAAADQBgCdASoUACQAPtFWp0+oJCMiKrgIAQAaCWYAqSdY/BmSwWVGTML+OTsNVT2qlgYyYbVX9YF+oTML3pbYqIAA/qxQb5pQ9LJ9THXO3kPAoJBL/74Q86EN3U8S5onq2rGS5Q2b/F8J9X6H7kaot5vdieIFrmvPdnizcEcVKKxwchSrNkg/+zCGua0YqdFuRxmgJXDaeX5omoxrwR3DqTVE2ebc/oDBV4gtUKVuCz43cTjni+d4ONnCHPrQM1k4n1i7+ek4T/oBS2bwvUkRBHUTxSqI8VLKemto3IaSSGSHv+/aGl8YyWFmGmAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.h2,{id:\"賽前花絮\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽前花絮\",children:\"賽前花絮\"})}),\"\\n\",e(n.p,{children:\"第一次參加國內的越野比賽，賽前去參加Expo的時候感覺氣氛很不錯，搞得像是一個嘉年華，有各種吃的喝的，還有各種遊戲，還有各種打卡拍照。\"}),\"\\n\",e(n.p,{children:\"不過最有趣的事是各種偶遇，先是碰到了鈞月，然後碰到了苗哥苗嫂，最後還碰到了和Eric一起跑TORX的大Tim。苗哥這次跑168公里，苗嫂則是跑100公里組別。當然，他們都是受邀精英選手，可以和精英選手一起拍照實在是太幸運了。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/6B1CD109-929B-45A2-AB2C-C0F03009E305_1_201_a.webp\",alt:\"鈞月\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRpgAAABXRUJQVlA4IIwAAAAQBQCdASoUACQAPtFYp0woJSOiMBVaqQAaCWMAwNwuT/TQAfLk4WNAdoCBJVDpgwdgAP7hq6KQpQzSzKQL86ku2N1KD90xeaw1eyMWqQbTxCqOUNZL52zRntUIbfnZ5QicxUfz6ojgeqxBVfsW7uX1YE3W7vTBPusEbvtBOFOi7yRi86SIJEW+/GswAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/92A980AB-F3D6-4015-83E9-AD77E3ED535F_1_201_a.webp\",alt:\"苗哥苗嫂\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRrgAAABXRUJQVlA4IKwAAADwBQCdASoUACQAPslWpEunpSOhsBVdUPAZCWMAxgQpGXIUO2mDU7XEQJPilwppFenR9wytn9efuAD+mF5pmVXRnrTnacVcxl23oolJRmZDhkIr9hUkEGQABacsBxUbafMbbPgwXvKvElMV6FzyVu+HQjtFE+ze6rC6pUf47QBV+60bVX2S/VELfOtY7rRuNuPCsd/+B/pPXwSzcr6RzquRduQg6IDGrAUgAAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/712BAAEC-333B-4F87-881D-EDD5BB516EDA_1_201_a.webp\",alt:\"大Tim\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRrgAAABXRUJQVlA4IKwAAACQBgCdASoUACQAPtFMl0uoI6GhtVgBABoJZACdMvwHAhOAZFjUgmgBtm5TDDwNmPPeudTvDETBIKN+EmbAAPxPEF0WxKAdXB7nxKCVtNqZ12qU59V1+vmjcryMwbCAopDYpKdfHj1R/BUfAhM2oNEwTFd0YIeQmQbDonNUAU8fvKOy3P8yefth4sisXUtjdgLJWGbyuqd+dn2Ym3KiqAO8aQL6EAgLAAkp3CAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/B5288E01-7974-4ABF-A797-30649D19AEE4_1_201_a.webp\",alt:\"eric合照\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAACQBQCdASoUACQAPs1QokunpKMhtVgIAPAZiWIAt7gNObOpt8APamf3kHuGG96tiKfR/zEoAAD3BGELcHH176xwOiiB8aMFOfI7B/ksfaLc8GxCTkTptezeEAaD0WAkg2RG7KmBq2WuwzjU/RsHl2g6hKFC9WgeSTbFMEKnnfrXLUkl8FuyS59KmA+2Fd/zPZ5NTvmSl0EWwgAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.h2,{id:\"比赛过程与赛道体验\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#比赛过程与赛道体验\",children:\"比赛过程与赛道体验\"})}),\"\\n\",e(n.p,{children:\"熱鬧歸熱鬧，考驗還是得面對。2024年12月28號早上六點，比賽正式開始。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/B9496F5A-F350-40B8-AEAC-895001520DE4_1_201_a.webp\",alt:\"eric合照\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAAAQBACdASoUAAsAPtFUo0uoJKMhsAgBABoJagCdMoABzZRxg24EcbEOQADh/aJL537ehryo6NF55Y+9Qw2FriO88P5Cm+FEBt6CZxOLamrVz/PToMmLN8Nw6LykDUtuVF3+T542B22oeHKLs6Bi5rPY/FmZc8yAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:\"我這次比賽主要是為了四月份的fuji100做準備，所以主要想以賽代練，以賽代訓，準備做一些以前沒有嘗試過的東西。fuji要求不能使用杖，所以這次比賽我沒有使用杖；另外由於硬化路很多，所以準備使用李寧的碳板路跑鞋來跑這次比賽。比賽以70公里為分界線，分為兩個部分：前70公里一路狂奔；後30公里小心翼翼，步步為艱。\"}),\"\\n\",e(n.h3,{id:\"前70公里\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#前70公里\",children:\"前70公里\"})}),\"\\n\",e(n.p,{children:\"比賽當天正好有寒潮，深圳的氣溫驟降，而且風很大，所以比賽當天早上還是挺冷的。跑到山頂的時候看到了日出，真是太美了，就是風太大了一點。出發後挺順利的，一個多小時就到了第一個補給站，喝了點咖啡，沒有多停留就繼續上路了。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/B55F4119-7FA6-4D73-A0C8-585FE383EF50_1_201_a.webp\",alt:\"山頂日出\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRlAAAABXRUJQVlA4IEQAAABwAwCdASoUAAsAPtE4sFMoIiWjmAEAGgllALDsG5maXOJxHmwA/R0X9OcWMCB2ua5n0V4fc2K3S4mbxmRiARp4BcKAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:\"前面幾個補給站都挺順利的，沒有什麼特別的，就是一路狂奔，感覺很爽。路跑鞋跑起來的確輕鬆，只是抓地力不夠，下坡的時候需要小心，很容易滑倒。前面沒有太多大下坡，所以問題不大。我上坡不快，但是平路和下坡就還是比較快的。所以經常發生上坡的時候被後面的人超過，下坡的時候又超過別人的情況。這中間還發生一件比較有趣的事情，從CP5開始，我就發現一個女生總是和我前後腳，上坡的時候她超我，然後下坡的時候我超過她，然後我們總是前後腳進站，就這樣一直到CP7。由於前後見面的次數多了，後來碰到的時候都會互相笑一笑，算是打招呼。我在CP7耽誤了一點時間，出來晚了一點，在一段平路追上來她。我忍不住跟她說，你跑的太好了吧，成功搭訕上，接下來一段路我們就一起邊跑邊聊。一聊才知道她真是大神，曾經是站台選手，2019年就完賽UTMB，完賽時間36過多小時。只是後來疫情這幾年耽誤了，這次是復出第一次參加越野賽，沒怎麼練。我說幸虧你沒有練，要是練了我就只能吃土了。就這樣邊走邊聊，下午4點出頭到達了梧桐山腳，完成了70公里，用時10小時12分。\"}),\"\\n\",e(n.h3,{id:\"後30公里\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#後30公里\",children:\"後30公里\"})}),\"\\n\",a(n.p,{children:[\"過了梧桐山門後，真正的考驗就開始了。這段有1000多米多爬升，開始還能跟得上這個女生，後來就有點吃力了。快到頂的時候感覺冷了，我就停下來加了一件衣服，就停了幾分鐘，後來我就再也沒有見到她了。後來有點遺憾沒有問她姓名，賽後查了一下成績單，原來她的名字叫Li Hongxia，完賽時間16小時23分，overall排名54，年齡組第一。還查到了她的UTMB Index(\",e(n.a,{href:\"https://utmb.world/runner/919237.hongxia.li)%EF%BC%8C%E7%9C%9F%E6%98%AF%E5%A4%A7%E7%A5%9E%E3%80%82\",children:\"https://utmb.world/runner/919237.hongxia.li)，真是大神。\"})]}),\"\\n\",e(n.p,{children:\"費了老大勁爬到梧桐山頂後，才發現惡夢才剛剛開始。因為下降也很陡，而我沒有杖，最要命的是路面有一層細沙，路跑鞋的抓地力不夠，很容易滑倒，而且沒有杖的輔助，下坡很難控制速度，天又黑了，所以這段路可以說是步步驚心。上山和下山一樣慢，天黑後看視線也差了，下山的時候頭碰了兩次樹枝，還好沒有受傷。後面30公里用了快8個小時，晚上11點多的時候終於到了終點，完賽時間17個小時12分。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/B74ACA76-2EDC-4BD2-9D64-4DD7DA9A1D5A_1_201_a.webp\",alt:\"梧桐山門\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAADwAwCdASoUAAsAPtFWpEuoJKOhsAgBABoJYwCdACPOJcsQ57pDT+oAAPKWbz3zARu+Tmq+KljPF++zxB+ty8EfZ/8loJuuOBQM4t8BBn1My4j3+ngAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/43AF91C6-970C-42DF-92C0-1F0BF411B359_1_105_c.webp\",alt:\"終點\",width:\"768\",height:\"1024\",blurdataurl:\"data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAADQBACdASoUABsAPtFWpk2oJCOiMBgIAQAaCUAW2QIeFlc/8JnIBChu8tX7u/P+gAD+5TiDfzwEbYSlQ/caNEDFJNuik5hjsqTdmgYDi/OMbw4vDgULqHBwS0Oe/Om5o3aIqgsc2VIP45FSmOXVBSi3eOEIeqRTHsQ20sze0Y9eIPcHi9kDSGmULr7wiWZwP7PvwqVUB4k7AAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/75DA28AE-D9E2-493A-A8D8-B877039AE725.webp\",alt:\"完赛\",width:\"981\",height:\"1331\",blurdataurl:\"data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAAAwBQCdASoUABsAPsFOnkunpCKht/qoAPAYCWoAsR6EgX+quMAAzOHaMfmnLWNwp+dKcAD+4Gw2jqX53PIWFQz9sgzpO/+bcF2kbrH3++oSSjuIXZOIjnuN7AY3HHA+rwzdJaseUBGXA+9uDkt5oUdsRjipMhraYh0hnkMrbDSEnQAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:\"完賽證書上的爬升只有4879米，但是我的手錶記錄的有5700米的爬升，差了1000米，可能是我的手錶虛高了。其他人記錄了5300-5600米的爬升，也都是比賽官網的爬升要多不少。\"}),\"\\n\",e(n.h3,{id:\"豪華補給站\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#豪華補給站\",children:\"豪華補給站\"})}),\"\\n\",e(n.p,{children:\"這次比賽的補給很豪華，這在賽前就已經聽說了，號稱會有乳鴿和佛跳牆。我倒是還都吃上了，貨真價實的有人參的佛跳牆。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/eb4018d3297c2398943c2cf830993852.webp\",alt:\"乳鴿\",width:\"1080\",height:\"1438\",blurdataurl:\"data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAABwBQCdASoUABsAPr1QnkunJSKht/qoAOAXiWIAxQr1O9xJbCsW1uEV8krUV8Hym7Dq70sAAP7tW+gbeC/4ILf6FAKJdaX75twqZJJywJRP+/Qfk3STSSbiu7DnsILaOHWHoMEQgUxrwGV4dlGJvlE3ke2cffkQNPGCJgAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/02165f587509541fbe9a9bc2acce6a08.webp\",alt:\"佛跳牆\",width:\"1080\",height:\"1438\",blurdataurl:\"data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAACwBACdASoUABsAPsVUoEunpSMhsAwA8BiJQBjmAgritwnmYGtVGjKbKwaHyUAAAP5rshDMAbXxm0/21/zATl6RjQ/OPcR42OCDx0c0mLImFKNfgp04WvbXkT5viRxgXtqYSAsRpe2iBhNsCS02iRkHncgUSZ9m1yS4X1OlPe9OsQImcCYCAAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/6DC48082-02D7-42AE-8550-E654F4F38A11_1_201_a.webp\",alt:\"有人參的佛跳牆\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAAAwBACdASoUAAsAPtFWpEuoJKOhsAgBABoJagC7MoACGx1xvwrRCe9JQoAA+6qwPO770YeoTwNdOlDQyVByI+W23HLXQlH/aAUJTWWAW+zqaGImPjlaSBusjD5bSO0UAIFxjOJWJeRIWyy5YL6YZAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(n.h2,{id:\"完赛感受与收获\",children:e(n.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#完赛感受与收获\",children:\"完赛感受与收获\"})}),\"\\n\",e(n.p,{children:\"第一次參加國內的越野賽，不過這次比賽整體體驗不錯，補給豪華，看到了深圳不一樣的風景，還是收穫滿滿的。雖然後面30公里挺煎熬的，但是還是堅持跑完了，為fuji100做了很好的準備。\"}),\"\\n\",e(n.p,{children:\"Eric由於剛剛長途旅行，時差還沒有調整過來，比賽的時候影響了狀態，比我慢了一點，不過他還是輕鬆跑完了。回來睡了一會，第二天就恢復了。早上去吃早餐，結果他選擇了豆漿油條，真是太好吃了，我們都覺得這是這次比賽最美味的早餐。原來在經過了各種折磨之後，最簡單的其實是最好的。\"}),\"\\n\",e(n.p,{children:e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/D1909811-D47E-44DB-83FE-153B6A244ABA.webp\",alt:\"合照\",width:\"3453\",height:\"2737\",blurdataurl:\"data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAACwAwCdASoUABAAPtFUpEuoJKOhsAgBABoJZQCw7B9BPW3pj/wZ3ADNW1v0QZnrrWA9UU8pA8F19JkbMQeJ++mt+ukNXRvcVV7tUFLtirjoJolUVThX2VvCLFAVAAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",a(n.p,{children:[e(n.img,{src:\"https://images.wildrunner.org/posts/2024/shenzhen-100/357E3E6B-2EC0-444D-8162-34F13F674C36_1_201_a.webp\",alt:\"最美味的豆漿油條\",width:\"2268\",height:\"4032\",blurdataurl:\"data:image/webp;base64,UklGRuoAAABXRUJQVlA4IN4AAABwBwCdASoUACQAPtFap0+oJKMiKrgIAQAaCUAVhmoB/lOofyuGD8/W22BJKop0VbYtjcsNMvnUGC2HuMaHdACJEGWcgADyo4YNpr0g+GADg2RjlnXi0RI7rF7mfayPQ4gLOL5GSZjhjBIhNsTD3JCKLDoXPMDjitWCDe/zbVXSZZWQ6s1dQMNk7ldKl+lfHzOj1Y2h89Hs4JC9GRNi2MoQhUCvg9BJK5c76mgLgSpQHDUVkjsTkL2L5/FJfbMqwXx5tQ/CEqwEYNy5M9/qt6SDpiUyGh8OczBWUcAAAAA=\",loading:\"lazy\",placeholder:\"blur\"}),\"·\"]})]})}return{default:function(A={}){const{wrapper:a}=A.components||{};return a?e(a,{...A,children:e(_createMdxContent,{...A})}):_createMdxContent(A)}};",
+    "raw": "## 赛事背景与报名\n2024深圳100越野赛是深圳地区最具影响力的越野跑赛事之一，由深圳市文化广电旅游体育局和盐田区人民政府联合主办，朗途体育运营。赛事设有168公里、100公里、50公里、35公里和10公里亲子组五个组别，吸引了来自19个国家和地区的近5000名选手参赛。\n\n我本來報名的是168公里，但後來Eric提醒我說100公里組別才是與意大利頂級越野賽TORX®合作的賽事，有機會參加今年在意大利舉辦的TORX®賽事，於是我就退了168公里組別，和Eric一起報了100公里組別。\n\n![賽道](CE52F7AC-E08F-47BA-A5A0-45E6611579B9_1_105_c.jpeg)\n\n100公里组别起点位于大梅沙海滨公园，赛道贯穿梅沙湾公园、东部华侨城、马峦山郊野公园等多个景点，累计爬升4768米，关门时间为28小时。大梅沙海滨公园是深圳著名的海滨公园，也是深圳市民休闲娱乐的好去处，附近就是鹽田港。\n\n上次Eric來深圳已經是20年前，而我二十多年前第一次來深圳出差就是去鹽田港。看來冥冥之中我們和深圳都是有緣的。只是沒想到我們出走半生，歸來的時候是以腳步丈量這座城市。\n\n## 赛前准备\n\n比賽是2024年12月底，而我是12月初就回廣州了。賽前，我和廣州本地的一個跑友小牛（小牛是我在跑UTMB時候認識的廣州的跑友）一起訓練，認識了一些本地跑友。跑步最近幾年在中國十分火爆，很高興有機會認識更多廣州本地跑步的朋友。我們一起跑了一次次20公里的火鳳火線（火爐山-鳳凰山-火爐山）和30公里的火雷火線（火爐山-雷達站-火爐山）。這兩條都是廣州本地比較出名的越野訓練線路，另外還有更長的50公里的火帽火線（火爐山-帽峰山-火爐山）這次沒有嘗試。這些線路的特點是硬化路很多，和深圳100的線路比較類似，正好適合準備深圳100的比賽。而且這些路線補給很方便，天冷的時候半路還可以來一碗地道的姜醋豬腳，這對於喜歡吃吃喝喝的跑者來說，真是太方便了。\n\n![和小牛一起訓練](IMG_4339.jpeg)\n\n![和CBN本地跑群一起訓練](29F51476-5B3A-4EB7-86AF-C0AEDAAD0D05_1_105_c.jpeg)\n\n![路況](6605C498-5679-47AE-AD3F-DC10825F525C_1_201_a.heic)\n\n![半路來一碗姜醋豬腳](F9164BEB-0155-498F-A9B5-BBAD42C0F9E8_1_201_a.heic)\n\n## 賽前花絮\n\n第一次參加國內的越野比賽，賽前去參加Expo的時候感覺氣氛很不錯，搞得像是一個嘉年華，有各種吃的喝的，還有各種遊戲，還有各種打卡拍照。\n\n不過最有趣的事是各種偶遇，先是碰到了鈞月，然後碰到了苗哥苗嫂，最後還碰到了和Eric一起跑TORX的大Tim。苗哥這次跑168公里，苗嫂則是跑100公里組別。當然，他們都是受邀精英選手，可以和精英選手一起拍照實在是太幸運了。\n\n![鈞月](6B1CD109-929B-45A2-AB2C-C0F03009E305_1_201_a.heic)\n\n![苗哥苗嫂](92A980AB-F3D6-4015-83E9-AD77E3ED535F_1_201_a.heic)\n\n![大Tim](712BAAEC-333B-4F87-881D-EDD5BB516EDA_1_201_a.heic)\n\n![eric合照](B5288E01-7974-4ABF-A797-30649D19AEE4_1_201_a.heic)\n\n\n## 比赛过程与赛道体验\n\n熱鬧歸熱鬧，考驗還是得面對。2024年12月28號早上六點，比賽正式開始。\n\n![eric合照](B9496F5A-F350-40B8-AEAC-895001520DE4_1_201_a.heic)\n\n我這次比賽主要是為了四月份的fuji100做準備，所以主要想以賽代練，以賽代訓，準備做一些以前沒有嘗試過的東西。fuji要求不能使用杖，所以這次比賽我沒有使用杖；另外由於硬化路很多，所以準備使用李寧的碳板路跑鞋來跑這次比賽。比賽以70公里為分界線，分為兩個部分：前70公里一路狂奔；後30公里小心翼翼，步步為艱。\n\n### 前70公里\n\n比賽當天正好有寒潮，深圳的氣溫驟降，而且風很大，所以比賽當天早上還是挺冷的。跑到山頂的時候看到了日出，真是太美了，就是風太大了一點。出發後挺順利的，一個多小時就到了第一個補給站，喝了點咖啡，沒有多停留就繼續上路了。\n\n![山頂日出](B55F4119-7FA6-4D73-A0C8-585FE383EF50_1_201_a.heic)\n\n前面幾個補給站都挺順利的，沒有什麼特別的，就是一路狂奔，感覺很爽。路跑鞋跑起來的確輕鬆，只是抓地力不夠，下坡的時候需要小心，很容易滑倒。前面沒有太多大下坡，所以問題不大。我上坡不快，但是平路和下坡就還是比較快的。所以經常發生上坡的時候被後面的人超過，下坡的時候又超過別人的情況。這中間還發生一件比較有趣的事情，從CP5開始，我就發現一個女生總是和我前後腳，上坡的時候她超我，然後下坡的時候我超過她，然後我們總是前後腳進站，就這樣一直到CP7。由於前後見面的次數多了，後來碰到的時候都會互相笑一笑，算是打招呼。我在CP7耽誤了一點時間，出來晚了一點，在一段平路追上來她。我忍不住跟她說，你跑的太好了吧，成功搭訕上，接下來一段路我們就一起邊跑邊聊。一聊才知道她真是大神，曾經是站台選手，2019年就完賽UTMB，完賽時間36過多小時。只是後來疫情這幾年耽誤了，這次是復出第一次參加越野賽，沒怎麼練。我說幸虧你沒有練，要是練了我就只能吃土了。就這樣邊走邊聊，下午4點出頭到達了梧桐山腳，完成了70公里，用時10小時12分。\n\n### 後30公里\n\n過了梧桐山門後，真正的考驗就開始了。這段有1000多米多爬升，開始還能跟得上這個女生，後來就有點吃力了。快到頂的時候感覺冷了，我就停下來加了一件衣服，就停了幾分鐘，後來我就再也沒有見到她了。後來有點遺憾沒有問她姓名，賽後查了一下成績單，原來她的名字叫Li Hongxia，完賽時間16小時23分，overall排名54，年齡組第一。還查到了她的UTMB Index(https://utmb.world/runner/919237.hongxia.li)，真是大神。\n\n費了老大勁爬到梧桐山頂後，才發現惡夢才剛剛開始。因為下降也很陡，而我沒有杖，最要命的是路面有一層細沙，路跑鞋的抓地力不夠，很容易滑倒，而且沒有杖的輔助，下坡很難控制速度，天又黑了，所以這段路可以說是步步驚心。上山和下山一樣慢，天黑後看視線也差了，下山的時候頭碰了兩次樹枝，還好沒有受傷。後面30公里用了快8個小時，晚上11點多的時候終於到了終點，完賽時間17個小時12分。\n\n![梧桐山門](B74ACA76-2EDC-4BD2-9D64-4DD7DA9A1D5A_1_201_a.heic)\n\n![終點](43AF91C6-970C-42DF-92C0-1F0BF411B359_1_105_c.jpeg)\n\n![完赛](75DA28AE-D9E2-493A-A8D8-B877039AE725.png)\n\n完賽證書上的爬升只有4879米，但是我的手錶記錄的有5700米的爬升，差了1000米，可能是我的手錶虛高了。其他人記錄了5300-5600米的爬升，也都是比賽官網的爬升要多不少。\n\n### 豪華補給站\n\n這次比賽的補給很豪華，這在賽前就已經聽說了，號稱會有乳鴿和佛跳牆。我倒是還都吃上了，貨真價實的有人參的佛跳牆。\n\n![乳鴿](eb4018d3297c2398943c2cf830993852.jpg)\n\n![佛跳牆](02165f587509541fbe9a9bc2acce6a08.jpg)\n\n![有人參的佛跳牆](6DC48082-02D7-42AE-8550-E654F4F38A11_1_201_a.heic)\n\n\n## 完赛感受与收获\n\n第一次參加國內的越野賽，不過這次比賽整體體驗不錯，補給豪華，看到了深圳不一樣的風景，還是收穫滿滿的。雖然後面30公里挺煎熬的，但是還是堅持跑完了，為fuji100做了很好的準備。\n\nEric由於剛剛長途旅行，時差還沒有調整過來，比賽的時候影響了狀態，比我慢了一點，不過他還是輕鬆跑完了。回來睡了一會，第二天就恢復了。早上去吃早餐，結果他選擇了豆漿油條，真是太好吃了，我們都覺得這是這次比賽最美味的早餐。原來在經過了各種折磨之後，最簡單的其實是最好的。\n\n![合照](D1909811-D47E-44DB-83FE-153B6A244ABA.heic)\n\n![最美味的豆漿油條](357E3E6B-2EC0-444D-8162-34F13F674C36_1_201_a.heic)·",
+    "path": "posts/2024/shenzhen-100",
+    "toc": [
+      {
+        "title": "赛事背景与报名",
+        "url": "#赛事背景与报名",
+        "items": []
+      },
+      {
+        "title": "赛前准备",
+        "url": "#赛前准备",
+        "items": []
+      },
+      {
+        "title": "賽前花絮",
+        "url": "#賽前花絮",
+        "items": []
+      },
+      {
+        "title": "比赛过程与赛道体验",
+        "url": "#比赛过程与赛道体验",
+        "items": [
+          {
+            "title": "前70公里",
+            "url": "#前70公里",
+            "items": []
+          },
+          {
+            "title": "後30公里",
+            "url": "#後30公里",
+            "items": []
+          },
+          {
+            "title": "豪華補給站",
+            "url": "#豪華補給站",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "完赛感受与收获",
+        "url": "#完赛感受与收获",
+        "items": []
+      }
+    ],
+    "date": "2024-12-28T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "torx-chn100-mountain-running-race.webp",
+      "src": "https://images.wildrunner.org/posts/2024/shenzhen-100/torx-chn100-mountain-running-race.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/shenzhen-100/torx-chn100-mountain-running-race.webp",
+      "featured": false,
+      "width": 1440,
+      "height": 810,
+      "blurWidth": 20,
+      "blurHeight": 11,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAABQBACdASoUAAsAPtFWpkuoJKOhsAgBABoJZgCdMoAKXgNbrxXdG749rX1AAP7B0BzSpG7dcb/y7l7seVUVJw3V55D37+JG4uI36Rrwh/qfweFpbqroN3Zy3C2WEDo44+39gv8E7j/VaKfgBWizEAsFAAA="
+    },
+    "description": "記錄2024深圳100越野賽的比賽過程與感受",
+    "metadata": {
+      "readingTime": 4,
+      "wordCount": 1153.16
+    },
+    "year": "2024",
+    "slugAsParams": "2024/shenzhen-100"
+  },
+  {
+    "title": "Squamish 50/50 by William Wang",
+    "slug": "posts/2024/squamish-50-50",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "William Wang",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:A,jsx:l,jsxs:e}=arguments[0];function _createMdxContent(a){const i={a:\"a\",h2:\"h2\",h3:\"h3\",img:\"img\",p:\"p\",...a.components};return e(A,{children:[l(i.p,{children:\"2023年11月的一天，我无意间在跑群里听到一个消息：温哥华最著名的越野比赛之一——Squamish 50/50即将开放报名。这场比赛向来以其赛道的挑战性和报名的火爆著称，名额总是转瞬即逝。两年多来，我一直专注于跑马拉松，已经完成了六大满贯的五个。2024年2月跑完东京马拉松后，这个梦想就将圆满达成。就在这时，心里冒出一个念头：是时候尝试一些新的挑战了。\"}),\"\\n\",l(i.p,{children:\"越野跑，一直是我心中一个陌生又充满吸引力的领域。而Squamish 50/50，无疑是一次绝佳的机会。于是，我早早设好闹钟，满怀期待地抢下了50英里和50公里背靠背的参赛名额。\"}),\"\\n\",l(i.h2,{id:\"赛前准备\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#赛前准备\",children:\"赛前准备\"})}),\"\\n\",l(i.p,{children:\"2024年6月9日，我跑完了西雅图隧道马拉松，这是我上半年的第五个马拉松，也是我首次成功破三的一场比赛。在实现这一重要里程碑后，我的越野跑备战正式开始了。\"}),\"\\n\",l(i.p,{children:\"恰逢几个跑友计划挑战著名的Triple Crown（三冠王越野挑战），我毫不犹豫地加入了他们的队伍。比赛当天清晨，野马营的大队长追云开车把我们送到起点。整段挑战过程中，我们需要在一天内完成70公里的赛程，同时克服3900米的累计爬升。这是一次全新的尝试，也让我第一次深刻感受到越野跑的独特魅力。从清晨的兴奋到黄昏时的疲惫，再到晚上9点顺利抵达的喜悦，这一天的经历仿佛是一场体力与意志的双重洗礼。\"}),\"\\n\",l(i.p,{children:\"随后，我的训练重心转移到Grouse Grind。这条以“自然阶梯”著称的线路，每次攀登都像是一场艰苦的拉练。在越野前辈阿虚师傅的陪同指导下，我逐渐适应了越野跑的节奏，从爬升的技巧到下坡的放松，一切都在有条不紊地进行。每一次汗流浃背的训练，都让我离Squamish 50/50更近一步。\"}),\"\\n\",l(i.h2,{id:\"比赛周末挑战的开始\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#比赛周末挑战的开始\",children:\"比赛周末：挑战的开始\"})}),\"\\n\",l(i.p,{children:\"8月16日周五，我和June还要阿须师傅一起去领取了Squamish 50/50的号码簿。和马拉松的号码簿相比，这个显得更小巧，但却需要用两天，因此必须妥善保管。当天晚上，十几位跑友聚在一起，准备补碳晚餐，气氛其乐融融。大家聊着比赛的赛道和策略，虽然对即将到来的挑战心怀敬畏，但更多的是期待。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1171735193051_.pic.webp\",alt:\"领取号码簿\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABwBQCdASoUABsAPsFIn0unpCKht/qoAPAYCUAW+yCQQSrWBgDbj4WYwivXaWj1JFDKMJQAAP7ziGmb8lYN9XI/rE1Gplg6eUbcV7GjAXT3Bnq5M8TXKdyGEhYqZ3S2dq7IBtFmbc71/bHwcPtyhyyrQ96OqmxKKfqYN+qRro3Z8iV2oJ+7As86oSYypjR8rt+x53DQTcgbO6AA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1201735193054_.pic.webp\",alt:\"補碳晚餐\",width:\"2269\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAACwAwCdASoUAAsAPtFWpEuoJKOhsAgBABoJZACsABA1Tlpwo37AAAD94xYNWzRuCxYlYEDoB67Gxi5mNDeNpxlqhWf5lr9JhMjSuphkhyuINr2GWLhLpcTfKxZoT7+lC+YR/4vtjomFGAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1181735193052_.pic.webp\",alt:\"大部隊合照\",width:\"1702\",height:\"1276\",blurdataurl:\"data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAADwAwCdASoUAA8APtFUo0uoJKMhsAgBABoJYwCw7CPtbQ+Nwwghtt4AAP6PgulVKItILJR6ZhAYcZZuwpbK9f5WR8pR4ofvDJS/PngpkjlEH212lNseyK8irRyv4GQnOvhFtq7OY0AAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"这次比赛，我给自己定的目标是“无伤安全完赛”，毕竟9月的柏林马拉松是我的重点赛事。\"}),\"\\n\",l(i.h3,{id:\"第一天50迈80公里\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#第一天50迈80公里\",children:\"第一天：50迈（80公里）\"})}),\"\\n\",l(i.p,{children:\"8月17日凌晨4点，我准时起床，简单吃了点早餐，搭车前往起点。5点半，背靠Chef山崖，带着头灯，我们正式出发。前10公里的平路是热身的好时机，我把配速控制在每公里5分40秒左右，很快，10多人的队伍便拉开了距离。\"}),\"\\n\",l(i.p,{children:\"到第一个补给站时，发现地点居然是在我以前去Whistler常充电的地方，颇有些亲切感。我补充了饼干和薯片，顺便上了厕所，然后离开补给站，进入赛道的山地部分。这段路开始上下坡，坡度不是很大，继续匀速推进。\"}),\"\\n\",l(i.p,{children:\"每个补给站是我最期待的地方。西瓜、饼干、薯片，还有可乐，是必不可少的能量来源。在大学城的补给站，我遇到了后援团的Rachel和June，吃到了他们带来的肉包子，瞬间觉得味道好极了。而在最后一个补给站，居然还有热饼和培根，这些美食让我暂时忘记了疲惫。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1231735193057_.pic.webp\",alt:\"補給站\",width:\"1702\",height:\"1276\",blurdataurl:\"data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAAAwBACdASoUAA8APtFapEwoJSOiMAgBABoJQBbZtQAykLpV9kakmTs5p8AA/jCVMrTiGhgCncGq7ZM24YQF1YkhPN9XwPawSGPAfEWdU1bx+3UHiNIOrsEi6BwT5TFK8AA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1211735193055_.pic.webp\",alt:\"半途大學站\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRpIAAABXRUJQVlA4IIYAAACQBACdASoUABsAPtFapUwoJSOiMAgBABoJaACw7BAU1WsYlVw8B6xHRwbpCMgA/lLEeDoCJrR7n/kbhVv2881jkR95tyHcCNs7bGlsGqlePT83hKGAMWhbrMjDq20Kz93ip1gmnLsEeuSeLdYMky6ftMXDs/8DjlT0EM03DXXOy9ZMNmAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"后半程，我和Jeremy一路结伴，边聊边跑。他分享着越野的经验，甚至鼓动我去报名香港百公里越野赛。比赛过程中，我发现我的背包不太合适，水袋的挤压让我胸口疼痛，最后只能把水袋放在背后。另外，长时间低头盯着路面，导致颈部像落枕一样，非常难受。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1191735193053_.pic.webp\",alt:\"沿途風光\",width:\"1702\",height:\"1276\",blurdataurl:\"data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAADwAwCdASoUAA8APtFYpEwoJSOiMAgBABoJaACdMoADTrrVFwjnOLVSAP6xPZTh8njI3JkH+IJ317Incbr/vEPvhCDZ1WoPnDBeNZ8emOmKlqfOIzEXME2usqDWxMiUTAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"比赛中还有个小插曲：下山时跑得太急，结果冲错了一个坡，只能爬回原路。好在只是多跑了一小段，远比跑友Andrew多跑10公里幸运得多。\"}),\"\\n\",l(i.p,{children:\"最后几公里回到马路上，我提速到每公里5分45秒，超了几个人，最终以12小时50分钟完成第一天的比赛。冲线后，赛事组织者Gary听说这是我第一次跑50迈，而且第二天还要跑50公里，特意奖励了一盒能量棒。终点处，跑友Wendy和June帮忙安排补给，我吃了包子、汉堡和啤酒，还享受了一次赛事的按摩服务。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1241735193057_.pic.webp\",alt:\"終點\",width:\"2274\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAAAwBACdASoUAAsAPtFUpEuoJKOhsAgBABoJZgCxDDZCrF3XvXtabAEDcAAA/qxLIPGoNpWlYoERgmsghU6JhYqJfRWVGqFxo/iNJ4uhxhwBHtCbMeeMezSBQDQl/M7wh4I+AAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"回到住处后，风渐渐刮了起来，预报说第二天有大雨。晚上的休息并不充分，直到半夜12点才睡着。\"}),\"\\n\",l(i.h3,{id:\"第二天50公里\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#第二天50公里\",children:\"第二天：50公里\"})}),\"\\n\",e(i.p,{children:[\"8月18日周日，凌晨3点半，我在闹钟中起床，收拾行李，准备第二天的比赛。这一天需要坐班车到起点，只有不到3小时的睡眠让我有些疲惫。出发时，天气预报显示有中雨，我决定穿防雨衣。但结果雨势不大，防雨衣一路都系在腰间，显得有些多余。\\n\",l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1261735193059_.pic.webp\",alt:\"出發\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAADwBACdASoUABsAPtFgqk+oJSOiKAgBABoJQBiiKAAMy2sqyys8wxr328DjMvm5O0AA/P+D05Z/ftS0JjJBv0L8W86htnzI9smBfqvfBp1vKdmziRm7ce80nqPXMZcy86RYHCuClY3nmrILVwPX+IYixlJ4dCBHiYC5NnXcQ2fHDAAA\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",l(i.p,{children:\"相比第一天，第二天的比赛明显更辛苦。特别是中段，我感到又困又累，连吃东西的胃口都减弱了。在大学城补给站，没有了昨天的包子，幸好遇到跑友Jessie，她分给了我一个茶叶蛋，这才稍微恢复了些力气。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1271735193060_.pic.webp\",alt:\"沿途風光\",width:\"1707\",height:\"1280\",blurdataurl:\"data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAACwAwCdASoUAA8APtFWpEuoJKOhsAgBABoJYgCdACHV/Qltz5ooEAD+UjLaBmbBLSMZgCRAZOVDQB08Glu49G+qjauKvjqt0BuXtriCQAAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"中段路程没有熟悉的跑友陪伴，这段路让我感到有些孤独，甚至一度产生了不想继续跑下去的念头。但想到比赛结束后还要赶去机场，坐飞机去多伦多出差，我强迫自己继续跑下去。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1281735193061_.pic.webp\",alt:\"大學\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRqIAAABXRUJQVlA4IJYAAACQBQCdASoUABsAPtFcpU6oJSMiKAqpABoJZACdMyQC66P8Bmw1GApejj6hRFkYVewClunUAAD+pl6rFiqP2cQvuXWzDdNPt1wqlZyONckEqsOb27ey7aXulsAzg/iPwrzHJyAgBU04fPnpLlxfvsvjjsm9m6fglYovsvy2htCIOk6uKdUYfi7Tbayzvhi3oQY4PQwAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1291735193062_.pic.webp\",alt:\"大學\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAADwBACdASoUABsAPrVInUunJCKht+gA4BaJQBOmUACcuJIv6FjUVcO5FcbhtWlZe8AA/vAD/CrlrVHx6S55w8uh069d073ieB2y1j2SRzL3vYNmbog2OSYUHp04bPxjhM3n7ReEW7W8hNw4c3fQ2EA8i21woNAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"在最后一个补给站，我吃到了热饼，胃口一下子回来了，连吃了三个，感觉自己已经挺过了最困难的阶段。跑到山下的马路时，一个义工告诉我：“按你这个速度，应该能超不少人。”这句话瞬间点燃了我的斗志，我越跑越快，配速一度达到每公里4分37秒，最后2、3公里甚至超了20多人。\"}),\"\\n\",l(i.p,{children:\"冲过终点的那一刻，我接过象征首次完成Squamish 50/50的蓝帽子。这一天的50公里，我用时9小时10分钟。由于赶飞机，我在终点没有停留太久，热心的老齐开车送我去停车场，结束了这次越野跑挑战。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1301735193064_.pic.webp\",alt:\"完賽\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRqQAAABXRUJQVlA4IJgAAADQBACdASoUABsAPtFcpU0oJSOiMBgIAQAaCWIAnTNkBM3KymL9wBJ4+gzCX7jQAAD+5ZQcj3T2PqF57+gNkIsoSpb/LCzcvOWJO4OZwBL4WzVXo9HIgJXhlg9UwTkWGsLVUw2nx1/5ROzIcHIAMUAHYSesQqrad7i47iguQ57W8bPOrYpFnAuIcSJqjTNYNq9fj1aTPBUmAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.h2,{id:\"总结\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#总结\",children:\"总结\"})}),\"\\n\",l(i.p,{children:\"从80公里到50公里，两天共计130公里的越野赛让我体验到了与马拉松截然不同的挑战。Squamish 50/50不仅是对体能的考验，更是对意志的磨炼。带着这次经验，我对未来的越野跑充满了期待，同时也更加珍惜比赛中每一段珍贵的回忆。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1351735193109_.pic.webp\",alt:\"官方相片\",width:\"1024\",height:\"1536\",blurdataurl:\"data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAAAwBQCdASoUAB4APtFWpk2oJCOiMBgIAQAaCWIAsR7yANL64wTNmIrRp9Ka7jAog4TurAD+yFRvCXThzbu1iUQNzYOl8SkhQCgiTD6iQ9jSLbNo7dT1M2R3w+Mz6MErC04lhJZ4nBC6YB/iaFa+DL5Zj0jBEGZv9PG6x6G6CaNM3kG39oY89DQctwg3tCcTEQNfCQrqMt/6tdRxsU7dr1Mh5PIzfQMbYUiZQlg67AA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/squamish-50-50/1361735193110_.pic.webp\",alt:\"官方相片\",width:\"1024\",height:\"1536\",blurdataurl:\"data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAABQBQCdASoUAB4APtFYpU0oJKOiMBgIAQAaCWQAZ4ABhp/xbxvLGaMVv+HLLRKVoxOp62gA/FqE5h9y4GJgEt4L92Pd0AXAhsf/jl+eXenIH2yJc4YwQEkmAV0zWEDOf4nqmTo4x2Y63uy9d98NBhfHFzMk61pHW/9Js4ZgN1Or2HKQmD5Ar1Z3QD96U5g7/AA=\",loading:\"lazy\",placeholder:\"blur\"})})]})}return{default:function(A={}){const{wrapper:e}=A.components||{};return e?l(e,{...A,children:l(_createMdxContent,{...A})}):_createMdxContent(A)}};",
+    "raw": "2023年11月的一天，我无意间在跑群里听到一个消息：温哥华最著名的越野比赛之一——Squamish 50/50即将开放报名。这场比赛向来以其赛道的挑战性和报名的火爆著称，名额总是转瞬即逝。两年多来，我一直专注于跑马拉松，已经完成了六大满贯的五个。2024年2月跑完东京马拉松后，这个梦想就将圆满达成。就在这时，心里冒出一个念头：是时候尝试一些新的挑战了。\n\n越野跑，一直是我心中一个陌生又充满吸引力的领域。而Squamish 50/50，无疑是一次绝佳的机会。于是，我早早设好闹钟，满怀期待地抢下了50英里和50公里背靠背的参赛名额。\n\n## 赛前准备\n\n2024年6月9日，我跑完了西雅图隧道马拉松，这是我上半年的第五个马拉松，也是我首次成功破三的一场比赛。在实现这一重要里程碑后，我的越野跑备战正式开始了。\n\n恰逢几个跑友计划挑战著名的Triple Crown（三冠王越野挑战），我毫不犹豫地加入了他们的队伍。比赛当天清晨，野马营的大队长追云开车把我们送到起点。整段挑战过程中，我们需要在一天内完成70公里的赛程，同时克服3900米的累计爬升。这是一次全新的尝试，也让我第一次深刻感受到越野跑的独特魅力。从清晨的兴奋到黄昏时的疲惫，再到晚上9点顺利抵达的喜悦，这一天的经历仿佛是一场体力与意志的双重洗礼。\n\n随后，我的训练重心转移到Grouse Grind。这条以“自然阶梯”著称的线路，每次攀登都像是一场艰苦的拉练。在越野前辈阿虚师傅的陪同指导下，我逐渐适应了越野跑的节奏，从爬升的技巧到下坡的放松，一切都在有条不紊地进行。每一次汗流浃背的训练，都让我离Squamish 50/50更近一步。\n\n## 比赛周末：挑战的开始\n\n8月16日周五，我和June还要阿须师傅一起去领取了Squamish 50/50的号码簿。和马拉松的号码簿相比，这个显得更小巧，但却需要用两天，因此必须妥善保管。当天晚上，十几位跑友聚在一起，准备补碳晚餐，气氛其乐融融。大家聊着比赛的赛道和策略，虽然对即将到来的挑战心怀敬畏，但更多的是期待。\n\n![领取号码簿](1171735193051_.pic.jpg)\n\n![補碳晚餐](1201735193054_.pic.jpg)\n\n![大部隊合照](1181735193052_.pic.jpg)\n\n这次比赛，我给自己定的目标是“无伤安全完赛”，毕竟9月的柏林马拉松是我的重点赛事。\n\n### 第一天：50迈（80公里）\n\n8月17日凌晨4点，我准时起床，简单吃了点早餐，搭车前往起点。5点半，背靠Chef山崖，带着头灯，我们正式出发。前10公里的平路是热身的好时机，我把配速控制在每公里5分40秒左右，很快，10多人的队伍便拉开了距离。\n\n到第一个补给站时，发现地点居然是在我以前去Whistler常充电的地方，颇有些亲切感。我补充了饼干和薯片，顺便上了厕所，然后离开补给站，进入赛道的山地部分。这段路开始上下坡，坡度不是很大，继续匀速推进。\n\n每个补给站是我最期待的地方。西瓜、饼干、薯片，还有可乐，是必不可少的能量来源。在大学城的补给站，我遇到了后援团的Rachel和June，吃到了他们带来的肉包子，瞬间觉得味道好极了。而在最后一个补给站，居然还有热饼和培根，这些美食让我暂时忘记了疲惫。\n\n![補給站](1231735193057_.pic.jpg)\n\n![半途大學站](1211735193055_.pic.jpg)\n\n后半程，我和Jeremy一路结伴，边聊边跑。他分享着越野的经验，甚至鼓动我去报名香港百公里越野赛。比赛过程中，我发现我的背包不太合适，水袋的挤压让我胸口疼痛，最后只能把水袋放在背后。另外，长时间低头盯着路面，导致颈部像落枕一样，非常难受。\n\n![沿途風光](1191735193053_.pic.jpg)\n\n比赛中还有个小插曲：下山时跑得太急，结果冲错了一个坡，只能爬回原路。好在只是多跑了一小段，远比跑友Andrew多跑10公里幸运得多。\n\n最后几公里回到马路上，我提速到每公里5分45秒，超了几个人，最终以12小时50分钟完成第一天的比赛。冲线后，赛事组织者Gary听说这是我第一次跑50迈，而且第二天还要跑50公里，特意奖励了一盒能量棒。终点处，跑友Wendy和June帮忙安排补给，我吃了包子、汉堡和啤酒，还享受了一次赛事的按摩服务。\n\n![終點](1241735193057_.pic.jpg)\n\n回到住处后，风渐渐刮了起来，预报说第二天有大雨。晚上的休息并不充分，直到半夜12点才睡着。\n\n### 第二天：50公里\n\n8月18日周日，凌晨3点半，我在闹钟中起床，收拾行李，准备第二天的比赛。这一天需要坐班车到起点，只有不到3小时的睡眠让我有些疲惫。出发时，天气预报显示有中雨，我决定穿防雨衣。但结果雨势不大，防雨衣一路都系在腰间，显得有些多余。\n![出發](1261735193059_.pic.jpg)\n\n相比第一天，第二天的比赛明显更辛苦。特别是中段，我感到又困又累，连吃东西的胃口都减弱了。在大学城补给站，没有了昨天的包子，幸好遇到跑友Jessie，她分给了我一个茶叶蛋，这才稍微恢复了些力气。\n\n![沿途風光](1271735193060_.pic.jpg)\n\n中段路程没有熟悉的跑友陪伴，这段路让我感到有些孤独，甚至一度产生了不想继续跑下去的念头。但想到比赛结束后还要赶去机场，坐飞机去多伦多出差，我强迫自己继续跑下去。\n\n![大學](1281735193061_.pic.jpg)\n\n![大學](1291735193062_.pic.jpg)\n\n在最后一个补给站，我吃到了热饼，胃口一下子回来了，连吃了三个，感觉自己已经挺过了最困难的阶段。跑到山下的马路时，一个义工告诉我：“按你这个速度，应该能超不少人。”这句话瞬间点燃了我的斗志，我越跑越快，配速一度达到每公里4分37秒，最后2、3公里甚至超了20多人。\n\n冲过终点的那一刻，我接过象征首次完成Squamish 50/50的蓝帽子。这一天的50公里，我用时9小时10分钟。由于赶飞机，我在终点没有停留太久，热心的老齐开车送我去停车场，结束了这次越野跑挑战。\n\n![完賽](1301735193064_.pic.jpg)\n\n## 总结\n\n从80公里到50公里，两天共计130公里的越野赛让我体验到了与马拉松截然不同的挑战。Squamish 50/50不仅是对体能的考验，更是对意志的磨炼。带着这次经验，我对未来的越野跑充满了期待，同时也更加珍惜比赛中每一段珍贵的回忆。\n\n![官方相片](1351735193109_.pic.jpg)\n\n![官方相片](1361735193110_.pic.jpg)",
+    "path": "posts/2024/squamish-50-50",
+    "toc": [
+      {
+        "title": "赛前准备",
+        "url": "#赛前准备",
+        "items": []
+      },
+      {
+        "title": "比赛周末：挑战的开始",
+        "url": "#比赛周末挑战的开始",
+        "items": [
+          {
+            "title": "第一天：50迈（80公里）",
+            "url": "#第一天50迈80公里",
+            "items": []
+          },
+          {
+            "title": "第二天：50公里",
+            "url": "#第二天50公里",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "总结",
+        "url": "#总结",
+        "items": []
+      }
+    ],
+    "date": "2024-12-25T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "1251735193058_.pic.webp",
+      "src": "https://images.wildrunner.org/posts/2024/squamish-50-50/1251735193058_.pic.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/squamish-50-50/1251735193058_.pic.webp",
+      "featured": false,
+      "width": 1280,
+      "height": 1707,
+      "blurWidth": 20,
+      "blurHeight": 27,
+      "exif": {
+        "exif": {
+          "Make": {},
+          "Model": {},
+          "DateTimeOriginal": {},
+          "ExposureTime": {},
+          "FNumber": {},
+          "ISOSpeedRatings": {},
+          "FocalLength": {}
+        }
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRqIAAABXRUJQVlA4IJYAAACwBQCdASoUABsAPtFWokuoJKMhsAgBABoJZgC7INiC7CZFJsnxtZTB9bNwhSeGiucWkNAEDJQA/t17dHrZKm94NQ7UxPBxP8dzItakYKu/NWawbvrWjXCBO5psRB/mPQF/1QAIwhm5b7WRYfIKb8Zljdq/iw2CarwsVcIf8GOCTHt88mIEEiajl1gokHNoB/qdWsRKwAA="
+    },
+    "description": "2023年11月的一天，我无意间在跑群里听到一个消息：温哥华最著名的越野比赛之一——Squamish 50/50即将开放报名。这场比赛向来以其赛道的挑战性和报名的火爆著称，名额总是转瞬即逝。两年多来，我一直专注于跑马拉松，已经完成了六大满贯的五个。2024年2月跑完东京马拉松后，这个梦想就将圆满达成。就在这时，心里冒出一个念头：是时候尝试一些新的挑战了。",
+    "metadata": {
+      "readingTime": 4,
+      "wordCount": 1019.8400000000001
+    },
+    "year": "2024",
+    "slugAsParams": "2024/squamish-50-50"
+  },
+  {
+    "title": "巨人之旅 ｜ TOR330 - Tor des Géants®",
+    "slug": "posts/2024/tor-330",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{jsx:e}=arguments[0];function _createMdxContent(n){const t={p:\"p\",...n.components};return e(t.p,{children:\"Distance: 330km\\nElevation gain: 24000 D+\\nMaximum time: 150 hours\\nStarting point: Courmayeur - Valle d'Aosta - Italy\\nFinishing point: Courmayeur - Valle d'Aosta - Italy\\nDate: 8-14 September 2024\\nAward ceremony: 15 September 2024\\nAvailable bibs: 1100\\nA common problem in TypeScript is that process.env doesn't give you autocomplete for the environment variables that actually exist in your system:\"})}return{default:function(n={}){const{wrapper:t}=n.components||{};return t?e(t,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "Distance: 330km\nElevation gain: 24000 D+\nMaximum time: 150 hours\nStarting point: Courmayeur - Valle d'Aosta - Italy\nFinishing point: Courmayeur - Valle d'Aosta - Italy\nDate: 8-14 September 2024\nAward ceremony: 15 September 2024\nAvailable bibs: 1100\nA common problem in TypeScript is that process.env doesn't give you autocomplete for the environment variables that actually exist in your system:",
+    "path": "posts/2024/tor-330",
+    "toc": [],
+    "date": "2024-09-08T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2024/tor-330/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/tor-330/cover.webp",
+      "featured": false,
+      "width": 240,
+      "height": 240,
+      "blurWidth": 20,
+      "blurHeight": 20,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAAAQBACdASoUABQAPtFYpk0oJKOiMBgIAQAaCUAXZnHYNTJCQsW5K2YuwAD+5xISL7I+uxUDv4AD/WkO1iSDt3W//O02e/4Cbn+IPKZNyIR4EhBHxadfTFwi+lJGMflv5PD6OBtCgAAAAA=="
+    },
+    "description": "今年MT和Eic踏上了征服巨人之旅的徵程",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 50
+    },
+    "year": "2024",
+    "slugAsParams": "2024/tor-330"
+  },
+  {
+    "title": "我的第一场百迈越野—UTMB",
+    "slug": "posts/2024/utmb",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "王青",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:A,jsx:l,jsxs:e}=arguments[0];function _createMdxContent(a){const i={a:\"a\",blockquote:\"blockquote\",h1:\"h1\",h2:\"h2\",hr:\"hr\",img:\"img\",p:\"p\",...a.components};return e(A,{children:[l(i.h1,{id:\"希望的夏天\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#希望的夏天\",children:\"希望的夏天\"})}),\"\\n\",l(i.h2,{id:\"王青\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#王青\",children:\"王青\"})}),\"\\n\",e(i.blockquote,{children:[\"\\n\",e(i.p,{children:[\"原文链接：\",l(i.a,{href:\"https://www.meipian.cn/56qiwr07\",children:\"https://www.meipian.cn/56qiwr07\"})]}),\"\\n\"]}),\"\\n\",l(i.hr,{}),\"\\n\",e(i.p,{children:[l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img1.webp\",alt:\"图1\",width:\"1500\",height:\"286\",blurdataurl:\"data:image/webp;base64,UklGRjwAAABXRUJQVlA4IDAAAADwAgCdASoUAAQAPtFUo0uoJKMhsAgBABoJZwDKAC5JAAD+8GNAVDl4KrF8Xl9DwAA=\",loading:\"lazy\",placeholder:\"blur\"}),\"\\n我的第一场百迈越野—UTMB\"]}),\"\\n\",l(i.p,{children:\"写不写UTMB百迈赛记，纠结了一周。睡眠不足，比赛的记忆被碎片化了，忘的忘乱的乱，难以拼凑。但考虑到脑力日渐衰退，现在不写的话以后更捡不起来了。回家以后弟妹问我：这是你跑步的第十年吧？从家门口蹓跶200米就气喘如牛跑3分钟要走5分钟，到10公里，到半马到马拉松，完成大满贯，再一步步来到UTMB，原来已经十年这么久了。\"}),\"\\n\",l(i.p,{children:\"那就按照时间线录一篇流水账吧，别忘记是怎样度过了2024年的夏天，怎样度过了这十年。\"}),\"\\n\",l(i.p,{children:\"住在温哥华，很难不爬山，也很难不越野。跟着朋友们试水越野的四五年，深知自己在山野的能力更低马拉松几个level，比赛没跑多少，因伤退赛和被cut倒是都经历了。UTMB这个176公里10000米➕的挑战，仿佛一个看得着也摸得着却很不现实的梦，大大超出我的能力。\"}),\"\\n\",e(i.p,{children:[\"2022年生病，23年春天玩赛了名古屋女子马，然后入院手术，直到秋天恢复跑步，近两年没有系统性训练。11月在朋友们的鼓励怂恿之下参加了墨西哥 Puerto Vallarta 50K越野赛，成绩虽然难看，但是跟好友一起玩耍的几天又重燃对跑步的热情，激活了Index分数，拿了新石头。\\n\",l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img2.webp\",alt:\"图2\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRsgAAABXRUJQVlA4ILwAAACQBQCdASoUABsAPtFap04oJSOiKAqpABoJZgCsMvUdMnHAE6OF7uyjZ+tf1QFt1wkqTjHAQAD3BstFfP6h+KykyKZQ/zsRwbNEiiTZGId3rZTgpPMIXqFEKoM99+A14QJgpY5CYG/MaXfzUq9Pd18H0HzvTw9TCLrfCYRNoRH/6KW6GVxmO8PuMt4XmOXHP2Mp2MmVkibp/GZUCqt/wmYu1+sH770RFurRSnp/1bfCSvjl4uIny7gGFMyAAA==\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",l(i.p,{children:\"24年初开始增加跑量，200，300，400，直到5月中旬山顶冰雪消融加上爬升。我和世界上最好的训练搭子Sunny 开始了grouse mountain 松鸡山上班的日常,以它为中心安排整个训练计划，有时从温哥华海拔最低点高尔夫球场跑到grouse grind 再一路向下跑回温哥华，70公里两千爬升完成当日训练，有时GG五到六趟只练爬升4000到5000米，爬四趟就加上HWY和BP或者BCMC下，或者在太平洋公园小道上硬刷50公里。每周三个大训练日，早5点起床晚7点回家，保证当日有7到12个小时运动时长。\"}),\"\\n\",l(i.p,{children:\"到后来不能说我俩对GG和Mt hwy 的每块石头了如指掌，只能说不管走到哪个位置都能一秒说出此刻精确爬升。\"}),\"\\n\",l(i.p,{children:\"在长长的训练时光里，我俩遇到熊遇到鹿遇到蛇和猫头鹰，山上的野果子吃了一波又一波。忍受无聊也享受惊喜和惊吓。有时候不免讨论:为什么要跑UTMB？马拉松不好吗？吃这么大苦最终目的是什么？讨论没有结果。现实就是各种钱都花了，各种罪都受了，沉没成本太高了。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img3.webp\",alt:\"图3\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAAAQBACdASoUAA8APtFUpEuoJKOhsAgBABoJaACdACKT5RsAo3X76j/unAD0btLVzNxP+HqRqq6i2kdKC4FJLfveIlPqZl57h13Ok6mIBRyKuTyd4z7kRugcpSSjiGvr//3WjqPnXyHUAAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img4.webp\",alt:\"图4\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAAAQBQCdASoUABsAPtFWpUwoJKOiMAgBABoJYwDCgBS/xF8qi/ZRYqDTzafa2QbODZgAAP2KDddZTDAZc5XicpkhHRGmJhiFIbPgVV+QyeZuy9eWMDpAmITyOXyVCIbXUEgTdG3O2ZimTjxV/Up1N5iXi0JfCJeaLPMKUf/nyGPAoYTjZfCRvQAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img5.webp\",alt:\"图5\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRrIAAABXRUJQVlA4IKYAAABQBQCdASoUABsAPsFGoEuno6Mht/qoAPAYCWgAnTMYAZDLWOgTeMDZ78wZKbwPWAjtWsAA/rwzBxTqBpuHeq/k/tofwYwt0qiHTnuyJAnqyNK6xKfBya6D2Rq/RH3qFfbFb2W9PiRdyRkaBMmAXQzaVTs0qUcsglDP722cmL9lvD5c3Ln5FN1ytd/c48630sdeSWwtI6pJGWMn8doucNvCYWMY6AAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img6.webp\",alt:\"图6\",width:\"1080\",height:\"2341\",blurdataurl:\"data:image/webp;base64,UklGRqoAAABXRUJQVlA4IJ4AAAAwBgCdASoUACsAPtFWpU2oJCMiKrgMAQAaCWcAwNwisIkJ8fGCoiK7Zb3MWrrU5HUvQD7uW483oNDgAP74bzpA2ZroLgLGUplw7iR/zsO5DLg6Rg6iRcXETik0F23poV/wG+fyNaqrSYcOGINT3pvWnMs7d4Hxw6xCXBePzYsJGBQXXDOA8p++RKbm/1M9NCSe3BlKtwSCSdTh8wAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"六七八三个集中训练月，我俩月跑量最高500➕接近600，月爬升最高25000米以上。\"}),\"\\n\",l(i.p,{children:\"7月初跟大伙儿拉练了一个魁北克mega trail 110公里，前三分之一顺利，后面陷进无休止的烂泥坑里崴了脚，立刻降速之后在山顶滑雪场被cut off。说不担心是假的，当月为了养脚降跑量到400公里，爬升维持，好在比赛没有逞强。诚实地说我不喜欢这个比赛，但医疗站包脚服务水平很高，我全程偷师，在UTMB赛前自己做了脚踝保护，感觉很有效。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img7.webp\",alt:\"图7\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAAAwBACdASoUAA8APtFUo0uoJKMhsAgBABoJZACdMoMrZEm1e/ePyefleEAAybLx0gIrARV6doovqCwYelnFc4v3jgTZm8fL6zjfMyaYYx2PlIjENMo4uuvlmVgF+ZfiAneJ4I8AAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img8.webp\",alt:\"图8\",width:\"1170\",height:\"2078\",blurdataurl:\"data:image/webp;base64,UklGRrAAAABXRUJQVlA4IKQAAACQBQCdASoUACMAPs1QokunpKMhtVgIAPAZiWMAg2cDGe9hg2icu31ALXE2Y8tb4xoz/kxJ8AD+fpPz3t6xdSLmL8AKqra5h3HSrkR7F2xWxn7aVYwzlLw9kqSxm0Y30omyW+GfumhQe/nUisALvZD37K+tegY7JGSLLs9Twi3fKHLZOKVNC/BWopXd9oNN653sWFrzwjmghWczRSjz+tAAAAAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"8月17号我俩飞到日内瓦，乘车去TMB起点Les Houches 。计划是5天内轻装穿越主要比赛线路，熟悉情况享受自然，让零海拔的心脏适应高原。生活在洛基山脉和北岸山脉之间的我们，每天看到的就是山海相融，一般的风景难以打动。但TMB路线颇为不同，秀丽无匹，让人心生亲近，不像北美的野性难驯。泉水淙淙相伴，山屋总在恰当时候出现，烟火气十足。当然意大利段和部分瑞士段还是有技术难度的。\"}),\"\\n\",l(i.p,{children:\"美中不足就是山屋餐食都是减肥餐，前菜主菜甜品都有，但统统粗粮芝士少量蛋白质脂肪极低，面对平均每日30公里两千多米爬升的消耗，我俩靠一天两瓶啤酒增加热量，晕晕乎乎上山，晕晕乎乎睡觉。最后一天回到镇上来不及买菜，冲进霞慕尼的中餐馆雪园饱餐，旁边的西人食客一直偷偷看两个饿死鬼到底能吃多少。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img9.webp\",alt:\"图9\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAAAwBQCdASoUABsAPr1OnkunJKKht/qoAOAXiWQAsR80QpgpO+2fcZ1xdR7397tREuokgAD9zFTJ6SucmT1Um93hj3ACH/kkxf6ey9eb6h32SW2SofY9LZlcpdLiMQPPQqIupm8mR18j/bdyPBP6idqWS7rgAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img10.webp\",alt:\"图10\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRqIAAABXRUJQVlA4IJYAAACwBACdASoUABsAPs1WpUunpKOhsBgMAPAZiUAVhmmILy3DrhdPOPnz1vfS4wAAAP20kUYzPa9YD7PRFd1bQ/KMsYz2WY+yEAOXejwX4HoytYggwZft+Ex8P1OsqDzDJ60Uu1vhJFM9oa7tCTKw0CoqO8lecLOcg8003ejW6kOyir8Hq/vrjNE4GubGFVoqhQminHcDQAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img11.webp\",alt:\"图11\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAACQBQCdASoUABsAPtFWpUwoJKOiKA1RABoJZgCdMxx+HuAALM6Q66/cZXccoq5NR16jVhtIAAD+ody9Gu1kdq5T1493hwMjj5TmMQ6/qIvWC1Ke9eAZ12S4qU7LenRyQT39vL5RBlkGL9wbR2ZOosMuvT1xQ89XQ3ZhR+7EPqQKW6+IAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img12.webp\",alt:\"图12\",width:\"1500\",height:\"1126\",blurdataurl:\"data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAADwAwCdASoUAA8APtFUpEuoJKOhsAgBABoJYgCdACHZhdomUGVmeiQAAP53B+mieIy08hIMuavSMg57Ze6dZ+8gvyGWx0YZE036oxoj9IH2EKOLWi1kPy2VBpU4XBoAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img13.webp\",alt:\"图13\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAABwBACdASoUAA8APtFapEwoJSOiMAgBABoJbACdMoS6D0ABgT87NwGXJ6nZeAD+eL7fYxVP/nx6/j1U9Lc7iGM6/i4p/AnxqzmYOvU8rt9XEVRQ6Si05bxiVoKwq7lsOMM4aUprvgAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"民宿在南针峰脚下，有个小院子，闹中取静非常方便。收拾停当，我俩找了一家温泉酒店，做全套干蒸湿蒸精油按摩。按摩小妹妹太漂亮了，就是手劲儿不大，过份温柔。\"}),\"\\n\",l(i.p,{children:\"Jeremy 和Sara 姐终于来了。女儿Emily 暑假结束回到伦敦几个小时就打包来法国找我，她的任务是为我们“BC的希望”小队做后勤。\"}),\"\\n\",l(i.p,{children:\"我们去了南针峰玩耍，其他时候就是领物，逛展览会，偶遇各路大咖，看其他各组的出发与归来。霞慕尼每天都过狂欢节，无与伦比的越野天堂。\\n钟，解睏但不多。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img14.webp\",alt:\"图14\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAAAQBACdASoUAA8APtFYpEwoJSOiMAgBABoJQBhQBER+i3qUtnPvoDpTAAD0UwspLia91GUSr6dDdVl39qhxbUSm+cXsgmrnQIiAvMULSfpOc757QN17aJXptJgfmLCqlvE/Oc59ZQi4mAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img15.webp\",alt:\"图15\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAADwAwCdASoUAA8APtFWpEuoJKOhsAgBABoJYwC7ACHXXyWbeoSr+IuQAP70T2zBNi3Wr8FJlIOHafTlO+QO/l1etmstkDOfNCIOd3mSDP6KDUK6z7K8wAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img16.webp\",alt:\"图16\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADwAwCdASoUAA8APtFUpEuoJKOhsAgBABoJYwCdACG8hATcstx2XalgAP4l3gP+YY4ya1Z3bHKBudxhdqLYzBXjV1chkWOWnkDMe4lkyGWWkws5VpmXTFIAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img17.webp\",alt:\"图17\",width:\"1280\",height:\"1707\",blurdataurl:\"data:image/webp;base64,UklGRqQAAABXRUJQVlA4IJgAAAAwBQCdASoUABsAPslUn0unpKKhsAwA8BkJQBahJAuAAyDrtm3AQ/Kzh9r5hLUoj6bwAAD+sM5AuJ5m6FwJwMd6gT/lFflnd7KjShGiYb0VuSBhuCvZgvpz7P6NROVD2hB0X6/5p/QbcXaqU97AV7N3o4DF5lG06riPKwYW4OkqDllmS97Gd94kuv4GZ8PFK0jjbnHGVBAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img18.webp\",alt:\"图18\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRsIAAABXRUJQVlA4ILYAAADQBQCdASoUABsAPtFWo0uoJKMhsAgBABoJQBYj2+BeIBODDI/J6RmDD7wZtz2ivgrkgsjKqGjIAP3jdzQAIEzS9WWArFvkf8So/cdlhlnCSU1cpwrp4cZrNAprV4sNSUHc3OxCmhfLiaV0EuIoniKPtyuTdr1ZFoMfYkC1KopgK8yOQuxCra/hj+pfJd3SBIaI1QN6t8RxkmYQe8s/w4P2dKGo1QzdF4bgZZ1xFoYPRdis5gAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img19.webp\",alt:\"图19\",width:\"1500\",height:\"1000\",blurdataurl:\"data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAAAwBACdASoUAA0APtFUo0uoJKMhsAgBABoJbACdMoACrfQSHFXouhbK0AAA/s8WkSRFzzYvkOEWTYR3fMma2ic0aFeOz+LqtknnJ8W5cn6BFgHYCJvLumPwBAtA54lXiQobGjpIgAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img20.webp\",alt:\"图20\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAADwBQCdASoUABsAPslQoUunpKMht/VYAPAZCWYAnTKDKQAjEGamZviwDRvaaFxER2vGuxev95IB0AD+70wS7V4K+sINc2hUK5+dYqoLkVPG1TBmqIeZOUvcFylzr71aiHETPQvZI+grw/Ygr5feEioPyZNTQ8VscP85gtbwu01GVi5BshP3+qFEVNWkSoES2r3ZOrz+ZgcKuD5elIkmqDLwgGDRFQPASXGo62OC+LI9rF53hzQ/dXXY5U3JGUAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img21.webp\",alt:\"图21\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRpIAAABXRUJQVlA4IIYAAACwBQCdASoUABsAPtFan0uoJaKhsBgMAQAaCWoAqSchhMoi9+tizWl1iQWy8rH1MWbgn0/LpwAA9ihkNiHDbr+Vh+LdBAjlR9l8HdRiYwPZOxlJ/g7Wald+oY4QqLy4fEyFANEz3v8F6/bdZYFWG6bpQfC5aN6YAJFE741j/t5X+Qh29QAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.hr,{}),\"\\n\",l(i.h2,{id:\"比赛日\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#比赛日\",children:\"比赛日\"})}),\"\\n\",l(i.p,{children:\"官方发布了高温预警，一升水强装增加到两升，以及各种防晒配置。傍晚6点，我和sunny 站在人群中听《征服天堂》响起，这是我脑海中预习过几百次的开场。在巨大的欢呼声中起跑，我尽量让自己平静下来。\"}),\"\\n\",l(i.p,{children:\"不受伤且完赛，这是我首百迈的唯一目标，2024夏日交响乐的最后乐章。清空思绪，脑中只保留路线补给时间，所谓why who how这些无用的问题可以暂时走开。\"}),\"\\n\",l(i.p,{children:\"来都来了。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img22.webp\",alt:\"图22\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRpgAAABXRUJQVlA4IIwAAADQBACdASoUABsAPtFiq0+oJaQiKAgBABoJQBOgAeTBZ06RM0qVl/KgoxcSNePHYAD+5ftIWHBbJFOgPJhSEZqcjB6Jjbv4zOno3o1QkmdQXmMfpbaIk19qnwa+OfEjTy0+MQ496uaZzzu03B7orXl01dpmbb4Zkgrtc+8o+h9AtKryD/bvdyC+rHAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img23.webp\",alt:\"图23\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAAAQBACdASoUAA8APtFWpEuoJKOhsAgBABoJQBWHKAASiRsGfhC0btp/YADKq4vx0HQMVy+bGP/+nluk+yyFSVm8TtDRFW6RPyYWRSf1d/Ego0eqWpC9BBbuAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"从霞慕尼到Les Houches 再到Gervais，入夜的小镇一片欢腾，热情的观众把跑者贴身挤成一条队伍，载歌载舞，欢呼声震耳欲聋。欧洲观众和义工们对越野的爱是深入骨髓的，不管深夜还是凌晨，山头还是乡村，处处都是自己人的感觉非常奇妙。\"}),\"\\n\",l(i.p,{children:\"但这是后话。当时的我尽量不被感染，因为我太功利了，太想完赛了，害怕被情绪左右快乐忘形。回望全程，基本上都是看心率行进，几乎没有一公里肆意奔跑，再缓的下坡也是小步慢颠，不允许自己多耗费无谓体力。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img24.webp\",alt:\"图24\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAAAwBACdASoUAA8APtFapEwoJSOiMAgBABoJQBdgBDwKeafjcPhGzpn2fVAA/vd8miRgScbcqlhrfI5s93yOyfdQRLAnlnYpmFmDiLvtN8Yhso2ueIAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"在排队爬山的状态下，午夜两点多，我来到了CP5 Les Chapieux，进站先被查了强装。此时50公里爬升2911，此时我捡到了Jeremy。\"}),\"\\n\",l(i.p,{children:\"不等我表示惊讶，他直接说姐我可能要退赛，到现在8个小时他吐掉了胃里所有的食物，喝水都吐。这一路上我已经看到了很多在路边呕吐的选手，肠胃敏感是长距离大敌，精英选手也经常折戟于此。他穿上了所有衣物包括羽绒服冲锋衣仍然瑟瑟发抖，决定走到下一个大站退赛。前面是Lac Comal 和Chécrouit，1221米和468米两座大山，然后才到库马约。我俩强颜欢笑拍了一张合照，相约终点再见。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img25.webp\",alt:\"图25\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRtQAAABXRUJQVlA4WAoAAAAQAAAAEwAAGgAAQUxQSBUAAAABF9D/iAgQadvM5Eze5vB5RP9zGd8AVlA4IJgAAABwBQCdASoUABsAPsFSpEunpSQhsAwA8BgJZACdIVcCcqsj74WkryhlifRAuCDIw5nTCarMAP6tEqaxedd4owZ3OKsa4w0yLDgxNcuPPaJwYFB7QewlzYCgQCmWHsh8snWpIujiIu6lSTznlohppUBTLP96+/JWjAGiPEqJhHMIBB7oNqoMM9Pa/qAm3oe93jiAPxqMl5pgAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"夜里爬山的好处是远方只能描个大概轮廓，头灯光圈所及即是全部。跟着灯火长蛇，踏踏实实往上走，走到晨曦微露，走到骄阳似火。意大利段极美，几公里的长乱石下坡是极限考验。进库马约前的雪场之字形下降土路仿佛误入沙丘片场，每个人都淹没在土雨中，鼻子嗓子和肺被糊得结结实实，赛后几天都咳出来黑色物质。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img26.webp\",alt:\"图26\",width:\"1280\",height:\"1599\",blurdataurl:\"data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACQBACdASoUABkAPtFgqU+oJSOiKAgBABoJZwDImBEYDNt2FpN6hFssPwghJOgA/u5+435Hms9ryRtpYufLxJLJUBKbTXxO/pvCJKLacANSl+nFFxgAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img27.webp\",alt:\"图27\",width:\"1170\",height:\"674\",blurdataurl:\"data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAADQAwCdASoUAAwAPtFWpUwoJKOiMAgBABoJYwAARk+jXHEQ3PF47IQA/p7LDMnEotSboYkJGooAMy4uZoUCgcaoJjEwEmWYnsiYgbalT0wMB+YVgAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img28.webp\",alt:\"图28\",width:\"1072\",height:\"741\",blurdataurl:\"data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAADwAwCdASoUAA4APtFWpEuoJKOhsAgBABoJYwCdH8AC+Qs/+6DtWqUIAP7UqnFhkSTeQT1ndINLCYhTIPPTM9sKCbS76ROZ+IfBe1LyEAAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"作为全场比赛的中间大站，库马约Courmayeur 在第82公里，爬升4600米。19小时cut off，此时已经cut 掉了600到700人。第17.5小时我穿过镇中心，只想见到Emily。在补给站第一眼没有看到她甚至委屈起来，人在累的时候可以多么矫情。她冲过来抱住我，熟练地掏出炒饭，给我擦脸，换隐形眼镜，收拾肮脏不堪的鞋子，同时报告Sara和Sunny的进度，她们都很快，已经离开库马约一段时间，Sunny膝盖有点伤但还可以继续。然后说Jeremy 哥哥一直在后面没有停，这比捡到他更令我惊讶。Emily 又看看手机：哥哥让你等着他。我擦擦洗洗，感觉没有多久他就来了。来不及讨论什么，把必要事项做完，还有15分钟，我俩迅速出站。Emily 站在出站线外挥手，我返回亲亲她，see you tonight baby。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img29.webp\",alt:\"图29\",width:\"1080\",height:\"1920\",blurdataurl:\"data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAADQBgCdASoUACQAPs1YokunpaMhsBVdUPAZiUAYIfYAkK5aaVzphKiLVC013IlEF3U0qD469MnVBmp5IY7z75AA/vGId68hqlkZxNOM1P1mjdZcnjo9VbYswkz+G5+QKmlMACb2mIOVfeXx3JXbb15NdPhpcY9xpR6XhHSB8+QlDcDJ9V7INAi2ANpI9Z6RsCZupKU2xwAueKgkTjbOLbBs6D0gBBknJwai5Np8YvOnAH1EGD/6GgAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img30.webp\",alt:\"图30\",width:\"1500\",height:\"1124\",blurdataurl:\"data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAAAQBACdASoUAA8APtFUo0uoJKMhsAgBABoJYwCdABeVOleRhIZUwuiVAAD55JGT/19aWjvq3Zn7kNimhDdgpfbDQI5z2A3ClfOoEiOZ98A8gDS6haQf7jaztVAlllvSOrkqZw+3W0I/If3uh9hNrcwA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"中午的库马约酷热难当，我们用路边泉水把帽子打湿降温，一路上山。Jeremy 说后半夜肠胃竟然慢慢好了，停止呕吐且可以吃东西，就一路追过来，怎能不感叹年轻无敌。\"}),\"\\n\",l(i.p,{children:\"有了Jeremy，路程变得丰富有趣。他在前面各种社交，看谁顺眼就聊会儿天，发现我看表就拍胸脯：相信我滑铁卢新鲜出炉的计算机金融双学位，时间保证给你算得明明白白，绝不会被cut。\"}),\"\\n\",l(i.p,{children:\"第114公里La Fouly 之前两段是很磨人的，加起来2200多米爬升，阳光炫目，完全裸露的之字形向上，那种无限延伸感很容易令人绝望。还好瑞士段乱石少，比较温和。二十多小时之后困意渐袭，我甚至想不起此站是什么样子，我吃了什么。这一段开始我们与可爱美丽的小树妹子同行。\"}),\"\\n\",e(i.p,{children:[\"夕阳渐浓，牛铃声更清脆。重新戴起头灯，跑一段八九公里的长下坡，就此迎来了第二个夜晚。\\n\",l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img31.webp\",alt:\"图31\",width:\"1151\",height:\"691\",blurdataurl:\"data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAACwAwCdASoUAAwAPtFYpkwoJSOiMAgBABoJYwCdABehn1O1HOfbIAD87PvkrJXSKG4U6zFWz2gHkzSu3O/j2GXqAy6a6rBXDqMtHgGwjMMAAA==\",loading:\"lazy\",placeholder:\"blur\"})]}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img32.webp\",alt:\"图32\",width:\"750\",height:\"1126\",blurdataurl:\"data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAADQBACdASoUAB4APs1OokunpCMht/VYAPAZiUATplvgLup0QQNQCp1PbU3JWyoCIAD+u7lpI3M4SILCwfpX7Q1XGJasJ69nBXceAOp+3seZt3LQC1uOAnuHEiJ4VURc6zN28Rq7sGVr1Th65aC7JAAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"穿过一个安静的不知名村庄，我们仨找了一张长椅，定闹钟，僵硬地坐了十分钟，解睏但不多。\"}),\"\\n\",l(i.p,{children:\"两点前到达了128公里补给大站Champex-Lac，Emily 翘首以待。她已经送走了Sara 和Sunny，再服务我们。她给每个人泡了面，放了酸豆角，吃了今天最舒服的一餐。做好各种补给事项，也没有多少机动时间了，拥抱作别。乘官方大巴，Emily 早晨6点才回到镇上。整整24小时没有休息，而且睡一会儿之后又要去终点迎接，crew 实在是非常辛苦的工作。\"}),\"\\n\",l(i.p,{children:\"Champex-Lac 在我们走TMB的时候感觉是个平庸的高山湖，Emily 拍了黄昏时候的照片，却是美多了。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img33.webp\",alt:\"图33\",width:\"1500\",height:\"844\",blurdataurl:\"data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAAAwBACdASoUAAsAPtFWpEuoJKOhsAgBABoJQBOmUFAAAXIGLtJ54fd8M5AA9o9Hm6uOlxNlVePiPYwlU+fgcBAmqU3oCUpthDsdWmG8awEEeVqYHykAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img34.webp\",alt:\"图34\",width:\"1500\",height:\"1088\",blurdataurl:\"data:image/webp;base64,UklGRrAAAABXRUJQVlA4WAoAAAAQAAAAEwAADgAAQUxQSBcAAAABF3D//4iIgDDbaJKTPM09TyCi/7mMPwBWUDggcgAAADAEAJ0BKhQADwA+0VajS6gkoyGwCAEAGglAE6ZQAFgyP+gM3yyqFq0eoADv3OWTdHTQA42WsmAPPZeE67krFM35hqpludKCkv1qqJJrBet1K3+cnfrfvGNiTs3NCTDnqHPHRkCvX7tX6oK2TO8tSdAAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(\"video\",{src:\"https://images.wildrunner.org/posts/2024/utmb/eca739bf49bd49ed9cc400a01fe194c1.mp4\",controls:!0,width:\"600\"}),\"\\n\",l(i.p,{children:\"此去粉红教堂Trient 还有16公里1千爬升。一路那些石头和气根颇为熟悉，好像回到温哥华的山间雨林。凌晨三四点钟，越来越多人撑不住，在路边以各种姿势昏睡。我前面一个高大的年轻人差点晃进山崖下面，该睡还是要睡才安全。\"}),\"\\n\",l(i.p,{children:\"翻过几块巨石，我和Jeremy 坐路边等小树。关掉头灯，一瞬间被笼罩在整个勃朗峰的星空底下，那些温柔的光点那么远那么近，仿佛在轻声细语。然后两分钟就冻醒了。\"}),\"\\n\",l(i.p,{children:\"来到山顶小破站La Giete，外面是满满的牛粪，里面是湿漉漉的石头墙和贯穿的地面轨道，三个人撑不住又坐睡了10分钟。好阴冷。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img35.webp\",alt:\"图35\",width:\"1500\",height:\"1126\",blurdataurl:\"data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAADwAgCdASoUAA8APtFWo0uqpKMhsAgBUBoJZQC90C1yAAD+8jeqUlsebSe9aYAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"每个大站前都是无聊漫长且伤膝盖的下降，Trient 也不例外。粉色的塔尖沐浴在晨光中，这里是146公里，8234米爬升，第二个早晨7点多。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img36.webp\",alt:\"图36\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAAAQBACdASoUAA8APtFUpEuoJKOhsAgBABoJbACdLwABJN5Pf6AWkjIUAADLDfqFf1isMlQN9Ds7Kn44FSS9/3QMqbyVU38JqSSu+Po7ZTnvIKTE+Yr+OU6bQZeq2nK3YxREq33/rs20z1FwAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"翻过Trient 后面的900米大山就能回到法国，我们当初走路线时嘻嘻哈哈，但在历经8000多米的群山之后，状态已经大不相同。此时万分感谢夏天枯燥重复的强爬升训练，极度疲劳中仍可在35度的斜坡上步履不停。\"}),\"\\n\",l(i.p,{children:\"小树妹子在这一段爬升受到挫折，Vallorcine 站退赛。年轻人还有很多机会，她说定来复仇。\"}),\"\\n\",l(i.p,{children:\"顺着瑞法边界轮廓柔和的山脊，来到小镇Vallorcine。围着镇子各种凑里程，让人挺不耐烦。但我没想到，最搞心态的，让我唯一失态的，在后面。\"}),\"\\n\",l(i.p,{children:\"进站抓香蕉西瓜吃，又盛一碗热汤意面，这是我整个官补吃最多的三样。法棍也可，肠胃脆弱状态下芝士和香肠算是危险食物。可爱的法国大姐看我装能量粉手指笨拙，麻利接过来灌满。实话说瑞士人是礼貌，但法国和意大利人热情如火。\"}),\"\\n\",l(i.p,{children:\"还有两站，这时候Jeremy 终于不用迁就我的配速，脚步轻快地向前跑了。\"}),\"\\n\",l(i.p,{children:\"高温预警在第二天体现出了正确性，可惜我没有重视。158公里以来每站1升水足够应付，也没有想过增加负重。阳光愈加猛烈，开始最后900米爬升。La Flegere 是山顶雪场，海拔只有1900，官方为了补足爬升安排了各种绕昏头的路线设置，和恶作剧一般的巨石下坡。\"}),\"\\n\",l(i.p,{children:\"每个人都发现水不够了。我一点点抿着喝。我前面的西班牙小伙子拖着受伤的脚踝，步履蹒跚。不得不超过他，希望他可以撑下去。终于进入了缆车开阔地带，500米斜坡上去就是终点前最后一站La Flegere。\"}),\"\\n\",l(i.p,{children:\"想不到40多个小时了最痛苦的部分在这里。阳光几乎把路面烤化了，每一步都是踩不稳的滚石，我第一次需要大口呼吸，推动双腿向上向前。\"}),\"\\n\",l(i.p,{children:\"我后面的英国大哥突然摔倒，杖丢到石缝边，我捡起来给他。他非常含糊的感谢，很明显已经中暑。\"}),\"\\n\",l(i.p,{children:\"挣扎到白色帐篷，第一件事让义工大爷用泉水管子给我洗个头，冰冰凉凉，又活了。Jeremy 正准备出站，我俩互相抱怨了几乎渴死的惨状，说终点再见。\"}),\"\\n\",l(i.p,{children:\"怎么样都完赛了，我完全放松了。喝水吃东西洗脸洗腿去厕所，呆看义工妹子治疗中暑的人，一直到摇铃赶人：还有两分钟！\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img37.webp\",alt:\"图24\",width:\"1498\",height:\"2142\",blurdataurl:\"data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAAAQBQCdASoUAB0APtFcpk6oJSMiKAqpABoJQBOmUHlDAQXA+KAfhWLp0BApYLwwK0IAAPfUJpI7HYP7AeTTsGXhVOQh6/oRO2s+rC/jJ3PSXxC7RPuOaFFiDdbLEHBlnYIlBiOSN053l7XUCD/3SWiqKAO2ju9mkD2J98i3HYGWPo+H2eCJ2XjMLb87cFjeAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"最后7公里，遛遛跶跶下山。腿是好的，膝盖是好的，脚踝也没有作妖。果然对没有天赋的人来说，训练吃大苦，比赛才能受小罪啊。那回去也得歇够了，留得老腿在，还有马拉松。我已经在心里写总结了。任凭急匆匆的跑者从身边掠过，我战意全无，只想苟到最后。\"}),\"\\n\",l(i.p,{children:\"万没想到遇上两位社牛看热闹青年。还有两公里，他俩路过我又折返，看表，看我：女士您加快脚步，一定要在46小时半完成啊！我说没关系，超时也是完赛，我不在乎。但他俩很在乎。一前一后，开路加鼓励，誓要把我推进霞慕尼。\"}),\"\\n\",l(i.p,{children:\"脸皮厚如我也不好意思了，只能跑起来。霞慕尼越来越近，欢呼声此起彼伏。进镇了，路人开始给我鼓掌大喊bravo！他俩不知道什么时候消失了。\"}),\"\\n\",l(i.p,{children:\"六分速还是轻松的，在已经无比熟悉的小镇主路上接受观众的热情，冲上蓝色地毯。各组的冠亚季军已经列队等候，跟Katie Vincent Hayden Toni 各位依次击掌，跟老板娘拥抱，我冲线了！芯片时间46小时21分钟，可惜没熬到最后一名，可以站台啊。\"}),\"\\n\",l(i.p,{children:\"这想法被大家耻笑了，最后一名是核心溃散歪着身体瘸着腿走回来的，你嗷嗷一阵风跑回来好意思吗？突然见到了终点鼓掌的社牛二人组，赶快抓住拍照感谢，没有他俩，我依然当不了最后一名。\"}),\"\\n\",l(\"video\",{src:\"https://images.wildrunner.org/posts/2024/utmb/809bfd8c508c48cab11f11e807033be4.mp4\",controls:!0,width:\"600\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img38.webp\",alt:\"图38\",width:\"1500\",height:\"1125\",blurdataurl:\"data:image/webp;base64,UklGRoYAAABXRUJQVlA4IHoAAAAQBACdASoUAA8APtFUo0uoJKMhsAgBABoJQBag+ABKsDXse1VpEl3dSAD+22TcJjhY6dixewkj7aPJa6QYrKu6ZkuT40H5VljCysN/m00E1kqCVFrKk6ZPvvnY4zOJ5RwIoWhCoY3c8HnZwV+KBFBNcrOZ7Zwbwi4AAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:'见到Emily 见到Sunny Sara Jeremy，我们\"BC的希望\"五人小队欢乐团聚，圆满完成今年比赛任务。'}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img39.webp\",alt:\"图39\",width:\"1500\",height:\"1128\",blurdataurl:\"data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAAAwBACdASoUAA8APtFUo0uoJKMhsAgBABoJZgCdLwABZ7T7DCVBfvqDy5AA/doHDbzRRxM6xhJAEN/kllKYIPKB6/1mC+A7KGWgxyEWjF2ddJTKUp8UVjt2mrK9Y5TWSP5uuqLc4VOAVKDbUISoPZMniaUgAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img40.webp\",alt:\"图40\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRqwAAABXRUJQVlA4IKAAAABwBQCdASoUABsAPtFUokuoJKMhsBgMAQAaCWYAsR9yQYBQIaO4870N/va49e24J4bQGxMAAOJs8HgP1tPyi5VJNlLpclHwK6m4sFTIadZY0/+Oz1oXdjlcnRcyTLWhXpQ7T1OqLWpViUc5w8b0xL6s7ROyFBG6YV7LRcoF98MkngdIebHfLlWXghRnwT+jXgj2Y5Tv0cykdvxPRYXpRgAA\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img41.webp\",alt:\"图41\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAADQAwCdASoUAA8APtFWo0uoJKMhsAgBABoJZQCsAB0iWKlR0LdrDQAAyjm5lAHh5rIHc/nssaSL9ctAVwIn/Rxoh6+XRf6ojf8InqLfsYy2kq19gAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:\"检查身体，除了大脚趾的泡其他全须全尾无新伤。不能说我出工不出力，吃苦是实实在在的。因为赛前在脑子里把可能的痛苦预演了百遍千遍，当它真的来临，我的想法是：果然如此啊。也曾经闪过退赛的念头，在La Fouly寒冷的垭口。但转念一想：明年再来？不不不，眼下的罪可以受，训练的泪不能再流。\"}),\"\\n\",l(i.p,{children:\"而且以今年训练的强度，身心都已经磨练粗糙如顽石。除了意外受伤和极端天气两个因素，根本没有什么能阻止我们完赛。\"}),\"\\n\",l(i.p,{children:\"大睡一天吃吃喝喝，不比赛训练的日子好幸福啊！\"}),\"\\n\",l(i.p,{children:\"9月3号各奔东西。Emily 回伦敦，我回温哥华，Sunny 和Jeremy 流浪欧洲，分别去往比利时和葡萄牙。Sara 姐暂留霞慕尼歇脚。\"}),\"\\n\",l(i.p,{children:\"至此温哥华野马营（追云骑摩托车浪迹阿拉斯加刚起的名字），23和24两年十人五男五女UTMB组别100%完赛，远胜官方63.6%的完赛率。\"}),\"\\n\",l(i.p,{children:\"参与UTMB组的都不算越野新人，大家跑比赛攒积分屯石头抽签，能站在起跑线上，水平有高低，但经验都丰富。山神垂怜给个好天气，完赛65%，运气不好就60以下。所以这真是一个挺艰难的百迈。今年2700人，1000多因为各种原因遗憾退赛，我相信他们一定会再来。\"}),\"\\n\",l(i.h2,{id:\"致谢\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#致谢\",children:\"致谢\"})}),\"\\n\",l(i.p,{children:\"想感谢很多很多人。\"}),\"\\n\",l(i.p,{children:\"感谢Sunny，训练中无限向下迁就于我，不是我拖后腿，她进40小时没有问题。我俩亲密相处的这些日子，无话不谈无事不倾，经常不用说话一个眼神就明了对方意思。老李老张都要靠边站。\"}),\"\\n\",l(i.p,{children:\"感谢Jeremy 陪姐姐近30个小时，改变了我紧张机械的赛程，路上的欢乐都来自于你。有好几次进入pain cave 状态，又被你的乐观打破了。世界上最好的pacer没有之一，不知道谁还能有这种福气。\"}),\"\\n\",l(i.p,{children:\"感谢强大乐观的Sara 姐。姐姐是在长距离比赛中开了buff 的人类，想到她远远在前面引领我就充满勇气。如果不是缺少UTMB经验，姐姐不会在路上玩耍太多，早早冲线就不止于年龄组第四。等下回的。\"}),\"\\n\",l(i.p,{children:\"感谢Yong 哥和温哥华的小伙伴们。去年11月Yong哥就把TMB路线做好山屋订好，我们只需照葫芦画瓢。从年初安排半年训练计划，检查训练进度。8月份根据训练成果给我俩分别做了比赛进程图，每站节点补给进出站时间详细到分钟。没有Yong 哥，我都不会参加UTMB组，CCC足矣。\"}),\"\\n\",l(i.p,{children:\"去欧洲之前，Yong 哥和叮当特意给我俩开了个赛事流程会议，从下飞机到坐巴士到玩耍饮食到离开，手把手搞定每个环节。感谢两位老师的悉心指导，我俩这运气也是没谁了。\"}),\"\\n\",l(i.p,{children:\"野马营的小伙伴从我们报名之后就各种提供经验，温暖鼓励，赛中不眠不休追踪我们的进度。山野铸就的情谊深厚，如同北岸山脉一般沉默但坚定。\"}),\"\\n\",l(i.p,{children:\"从训练期开始，爬几趟松鸡山我俩就在小小群里骚扰几次，誓不能让她们几个安心瘫着。目前最大的遗憾就是没让她们吃上我俩吃的苦，继续努力。\"}),\"\\n\",l(i.p,{children:\"感谢我的宝贝Emily。你是我人生里最大的中奖彩票，妈妈何德何能可以拥有你。习惯性照顾身边所有人的情绪，不仅仅是做crew还包括你的日常生活。我多希望你自私一点轻松一点。\"}),\"\\n\",l(i.p,{children:\"感谢后方的家人们。从训练期开始日常离开就一整天，加上欧洲20多天，老张承担了独立照顾teenager 的重任，国内有事情需要处理也一直撑到我回家才走。弟弟弟妹帮忙处理各种家中事务，带孩子们全家旅行。\"}),\"\\n\",l(i.p,{children:\"我把全家搞得人仰马翻。但是这样一件大部分人不能理解的事情，一件巨大投入没有回报，影响家庭生活的事情，他们从来没有阻止过我，永远在鼓励我，最多说一句：别太累了，咱以后不玩这么长的了。\"}),\"\\n\",l(i.p,{children:\"写这篇碎碎念，一再回想比赛细节，不能不说有些平淡。因为我是做了万全的准备来打这场仗的，全程把软弱情绪压抑到角落里，左脚右脚交替之外不做它想，甚至不看风景，甚至没有拍几张照片。\"}),\"\\n\",l(i.p,{children:\"而勃朗峰那些令我心生感动的小记忆，大部分发生在前期TMB路线探索中。美好的路程和美好的人们，把车扔村边领我们去家里喝水的法国大爷，指路聊天的瑞士村民，带我俩跑trail 的年轻跑者和他的乖巧可爱哈士奇。\"}),\"\\n\",l(i.p,{children:\"我俩饿了馋了就查看山崖路边，吃红莓黑莓和醋栗，Sunny教我认识新鲜的榛子，我是第一次看到绿壳白果的榛子，比花生香甜。\"}),\"\\n\",l(i.p,{children:'从库马约到Refuge Bertone , 看到骡子驮着上百公斤的行李艰难爬山，前面是空手的\"徒步者\"，这就是所谓的豪华旅行团吧。'}),\"\\n\",l(i.p,{children:\"更多的是白发苍苍的老人们，巨大的背包，速度虽然慢但稳当，你总能在下一站山屋里又看见他们。\"}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img42.webp\",alt:\"图42\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRp4AAABXRUJQVlA4IJIAAABwBQCdASoUABsAPtFepU6oJSMiKAqpABoJaACdMzQ6SA3b2UIlUZir61hRbv15KMNuD3GwAPJ+VhP8jJF9KiNMYhFU7rqM9P+C33lk8dBLYzw73Q4JCWBR/jp/dv0/ZxkPinFkTRMj/qwx5Ym403wV21le9uCpWntQwkLl60qypGvEifihXHL0Fd5FKdvra4AAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img43.webp\",alt:\"图43\",width:\"1500\",height:\"2000\",blurdataurl:\"data:image/webp;base64,UklGRrwAAABXRUJQVlA4ILAAAAAQBgCdASoUABsAPtFWpU2oJCOiMBgIAQAaCWQAnTLjez3/4CB/ztPlqVKOmpLHZNuNeVmyCmalasAA/lvWnetY+R1WbQswxVkUH9tL1d1A19afHz9fYn/UlyVGE3A8llJWRcYHGGe7JEYCYi3uI2in0v53IBDyOntIjhRug5vpmSyztEUSardhrOIS/fbbKrV0MxjLJXJ/xoIZuzpHJiPf3I+2pvcIE0Me0ZraKXkAAA==\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.p,{children:l(i.img,{src:\"https://images.wildrunner.org/posts/2024/utmb/img44.webp\",alt:\"图44\",width:\"1496\",height:\"1122\",blurdataurl:\"data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAAAQBACdASoUAA8APtFUpEuoJKOhsAgBABoJQBOmUGSxgv7Z4I2/ASOKAADw6QIa7wfQ9JfariNyyUZEV5D6BkUbc6baljpHrOKAWtKyo2k8K9S2uaLLztwJQXFBEjG7hMGL9coAAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",l(i.h2,{id:\"后记\",children:l(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#后记\",children:\"后记\"})}),\"\\n\",l(i.p,{children:'这几年我经常想起汪曾祺先生的一段话\"都到岁数了，心里不是没有，只是像一片薄薄的云，飘过来，飘过去，下不成雨。\"'}),\"\\n\",l(i.p,{children:\"大概UTMB于我就是这样一件事：提着一口气，耐心地，小心地，将薄云片片积攒堆叠，在漫长又短暂的46小时里，在我自己的天空里，下成一场固执而沉默的缠绵大雨。\"}),\"\\n\",l(i.p,{children:\"我对这场比赛多么没有信心？看行动就知道。赛前一周偷摸报了一个9月底的Whistler by UTMB，如果铩羽而归，悄悄把这比赛跑了，新赛福利挣3块石头，明年还能抽签。\"}),\"\\n\",l(i.p,{children:\"现在傻眼了，退赛不退钱，跑还是不跑？\"})]})}return{default:function(A={}){const{wrapper:e}=A.components||{};return e?l(e,{...A,children:l(_createMdxContent,{...A})}):_createMdxContent(A)}};",
+    "raw": "# 希望的夏天\n\n## 王青\n\n> 原文链接：[https://www.meipian.cn/56qiwr07](https://www.meipian.cn/56qiwr07)\n\n---\n![图1](img1.jpeg)\n我的第一场百迈越野—UTMB\n\n写不写UTMB百迈赛记，纠结了一周。睡眠不足，比赛的记忆被碎片化了，忘的忘乱的乱，难以拼凑。但考虑到脑力日渐衰退，现在不写的话以后更捡不起来了。回家以后弟妹问我：这是你跑步的第十年吧？从家门口蹓跶200米就气喘如牛跑3分钟要走5分钟，到10公里，到半马到马拉松，完成大满贯，再一步步来到UTMB，原来已经十年这么久了。\n\n\n那就按照时间线录一篇流水账吧，别忘记是怎样度过了2024年的夏天，怎样度过了这十年。\n\n住在温哥华，很难不爬山，也很难不越野。跟着朋友们试水越野的四五年，深知自己在山野的能力更低马拉松几个level，比赛没跑多少，因伤退赛和被cut倒是都经历了。UTMB这个176公里10000米➕的挑战，仿佛一个看得着也摸得着却很不现实的梦，大大超出我的能力。\n\n\n\n2022年生病，23年春天玩赛了名古屋女子马，然后入院手术，直到秋天恢复跑步，近两年没有系统性训练。11月在朋友们的鼓励怂恿之下参加了墨西哥 Puerto Vallarta 50K越野赛，成绩虽然难看，但是跟好友一起玩耍的几天又重燃对跑步的热情，激活了Index分数，拿了新石头。\n![图2](img2.jpeg)\n\n\n24年初开始增加跑量，200，300，400，直到5月中旬山顶冰雪消融加上爬升。我和世界上最好的训练搭子Sunny 开始了grouse mountain 松鸡山上班的日常,以它为中心安排整个训练计划，有时从温哥华海拔最低点高尔夫球场跑到grouse grind 再一路向下跑回温哥华，70公里两千爬升完成当日训练，有时GG五到六趟只练爬升4000到5000米，爬四趟就加上HWY和BP或者BCMC下，或者在太平洋公园小道上硬刷50公里。每周三个大训练日，早5点起床晚7点回家，保证当日有7到12个小时运动时长。\n\n到后来不能说我俩对GG和Mt hwy 的每块石头了如指掌，只能说不管走到哪个位置都能一秒说出此刻精确爬升。\n\n在长长的训练时光里，我俩遇到熊遇到鹿遇到蛇和猫头鹰，山上的野果子吃了一波又一波。忍受无聊也享受惊喜和惊吓。有时候不免讨论:为什么要跑UTMB？马拉松不好吗？吃这么大苦最终目的是什么？讨论没有结果。现实就是各种钱都花了，各种罪都受了，沉没成本太高了。\n\n\n\n![图3](img3.jpeg)\n\n![图4](img4.jpeg)\n\n![图5](img5.jpeg)\n\n![图6](img6.jpeg)\n\n六七八三个集中训练月，我俩月跑量最高500➕接近600，月爬升最高25000米以上。\n\n7月初跟大伙儿拉练了一个魁北克mega trail 110公里，前三分之一顺利，后面陷进无休止的烂泥坑里崴了脚，立刻降速之后在山顶滑雪场被cut off。说不担心是假的，当月为了养脚降跑量到400公里，爬升维持，好在比赛没有逞强。诚实地说我不喜欢这个比赛，但医疗站包脚服务水平很高，我全程偷师，在UTMB赛前自己做了脚踝保护，感觉很有效。\n\n![图7](img7.jpeg)\n\n![图8](img8.jpeg)\n\n8月17号我俩飞到日内瓦，乘车去TMB起点Les Houches 。计划是5天内轻装穿越主要比赛线路，熟悉情况享受自然，让零海拔的心脏适应高原。生活在洛基山脉和北岸山脉之间的我们，每天看到的就是山海相融，一般的风景难以打动。但TMB路线颇为不同，秀丽无匹，让人心生亲近，不像北美的野性难驯。泉水淙淙相伴，山屋总在恰当时候出现，烟火气十足。当然意大利段和部分瑞士段还是有技术难度的。\n\n美中不足就是山屋餐食都是减肥餐，前菜主菜甜品都有，但统统粗粮芝士少量蛋白质脂肪极低，面对平均每日30公里两千多米爬升的消耗，我俩靠一天两瓶啤酒增加热量，晕晕乎乎上山，晕晕乎乎睡觉。最后一天回到镇上来不及买菜，冲进霞慕尼的中餐馆雪园饱餐，旁边的西人食客一直偷偷看两个饿死鬼到底能吃多少。\n\n![图9](img9.jpeg)\n\n![图10](img10.jpeg)\n\n![图11](img11.jpeg)\n\n![图12](img12.jpeg)\n\n![图13](img13.jpeg)\n\n民宿在南针峰脚下，有个小院子，闹中取静非常方便。收拾停当，我俩找了一家温泉酒店，做全套干蒸湿蒸精油按摩。按摩小妹妹太漂亮了，就是手劲儿不大，过份温柔。\n\nJeremy 和Sara 姐终于来了。女儿Emily 暑假结束回到伦敦几个小时就打包来法国找我，她的任务是为我们“BC的希望”小队做后勤。\n\n我们去了南针峰玩耍，其他时候就是领物，逛展览会，偶遇各路大咖，看其他各组的出发与归来。霞慕尼每天都过狂欢节，无与伦比的越野天堂。\n钟，解睏但不多。\n\n![图14](img14.jpeg)\n\n![图15](img15.jpeg)\n\n![图16](img16.jpeg)\n\n![图17](img17.jpeg)\n\n![图18](img18.jpeg)\n\n![图19](img19.jpeg)\n\n![图20](img20.jpeg)\n\n![图21](img21.jpeg)\n\n---\n\n## 比赛日\n\n官方发布了高温预警，一升水强装增加到两升，以及各种防晒配置。傍晚6点，我和sunny 站在人群中听《征服天堂》响起，这是我脑海中预习过几百次的开场。在巨大的欢呼声中起跑，我尽量让自己平静下来。\n\n不受伤且完赛，这是我首百迈的唯一目标，2024夏日交响乐的最后乐章。清空思绪，脑中只保留路线补给时间，所谓why who how这些无用的问题可以暂时走开。\n\n来都来了。\n\n![图22](img22.jpeg)\n\n![图23](img23.jpeg)\n\n从霞慕尼到Les Houches 再到Gervais，入夜的小镇一片欢腾，热情的观众把跑者贴身挤成一条队伍，载歌载舞，欢呼声震耳欲聋。欧洲观众和义工们对越野的爱是深入骨髓的，不管深夜还是凌晨，山头还是乡村，处处都是自己人的感觉非常奇妙。\n\n但这是后话。当时的我尽量不被感染，因为我太功利了，太想完赛了，害怕被情绪左右快乐忘形。回望全程，基本上都是看心率行进，几乎没有一公里肆意奔跑，再缓的下坡也是小步慢颠，不允许自己多耗费无谓体力。\n\n![图24](img24.jpeg)\n\n在排队爬山的状态下，午夜两点多，我来到了CP5 Les Chapieux，进站先被查了强装。此时50公里爬升2911，此时我捡到了Jeremy。\n\n不等我表示惊讶，他直接说姐我可能要退赛，到现在8个小时他吐掉了胃里所有的食物，喝水都吐。这一路上我已经看到了很多在路边呕吐的选手，肠胃敏感是长距离大敌，精英选手也经常折戟于此。他穿上了所有衣物包括羽绒服冲锋衣仍然瑟瑟发抖，决定走到下一个大站退赛。前面是Lac Comal 和Chécrouit，1221米和468米两座大山，然后才到库马约。我俩强颜欢笑拍了一张合照，相约终点再见。\n\n![图25](img25.png)\n\n夜里爬山的好处是远方只能描个大概轮廓，头灯光圈所及即是全部。跟着灯火长蛇，踏踏实实往上走，走到晨曦微露，走到骄阳似火。意大利段极美，几公里的长乱石下坡是极限考验。进库马约前的雪场之字形下降土路仿佛误入沙丘片场，每个人都淹没在土雨中，鼻子嗓子和肺被糊得结结实实，赛后几天都咳出来黑色物质。\n\n![图26](img26.jpeg)\n\n![图27](img27.jpeg)\n\n![图28](img28.jpeg)\n\n作为全场比赛的中间大站，库马约Courmayeur 在第82公里，爬升4600米。19小时cut off，此时已经cut 掉了600到700人。第17.5小时我穿过镇中心，只想见到Emily。在补给站第一眼没有看到她甚至委屈起来，人在累的时候可以多么矫情。她冲过来抱住我，熟练地掏出炒饭，给我擦脸，换隐形眼镜，收拾肮脏不堪的鞋子，同时报告Sara和Sunny的进度，她们都很快，已经离开库马约一段时间，Sunny膝盖有点伤但还可以继续。然后说Jeremy 哥哥一直在后面没有停，这比捡到他更令我惊讶。Emily 又看看手机：哥哥让你等着他。我擦擦洗洗，感觉没有多久他就来了。来不及讨论什么，把必要事项做完，还有15分钟，我俩迅速出站。Emily 站在出站线外挥手，我返回亲亲她，see you tonight baby。\n\n![图29](img29.jpeg)\n\n![图30](img30.jpeg)\n\n\n中午的库马约酷热难当，我们用路边泉水把帽子打湿降温，一路上山。Jeremy 说后半夜肠胃竟然慢慢好了，停止呕吐且可以吃东西，就一路追过来，怎能不感叹年轻无敌。\n\n有了Jeremy，路程变得丰富有趣。他在前面各种社交，看谁顺眼就聊会儿天，发现我看表就拍胸脯：相信我滑铁卢新鲜出炉的计算机金融双学位，时间保证给你算得明明白白，绝不会被cut。\n\n第114公里La Fouly 之前两段是很磨人的，加起来2200多米爬升，阳光炫目，完全裸露的之字形向上，那种无限延伸感很容易令人绝望。还好瑞士段乱石少，比较温和。二十多小时之后困意渐袭，我甚至想不起此站是什么样子，我吃了什么。这一段开始我们与可爱美丽的小树妹子同行。\n\n夕阳渐浓，牛铃声更清脆。重新戴起头灯，跑一段八九公里的长下坡，就此迎来了第二个夜晚。\n![图31](img31.jpeg)\n\n![图32](img32.jpeg)\n\n穿过一个安静的不知名村庄，我们仨找了一张长椅，定闹钟，僵硬地坐了十分钟，解睏但不多。\n\n两点前到达了128公里补给大站Champex-Lac，Emily 翘首以待。她已经送走了Sara 和Sunny，再服务我们。她给每个人泡了面，放了酸豆角，吃了今天最舒服的一餐。做好各种补给事项，也没有多少机动时间了，拥抱作别。乘官方大巴，Emily 早晨6点才回到镇上。整整24小时没有休息，而且睡一会儿之后又要去终点迎接，crew 实在是非常辛苦的工作。\n\nChampex-Lac 在我们走TMB的时候感觉是个平庸的高山湖，Emily 拍了黄昏时候的照片，却是美多了。\n\n![图33](img33.jpeg)\n\n![图34](img34.png)\n\n<video src=\"./eca739bf49bd49ed9cc400a01fe194c1.mp4\" controls width=\"600\" />\n\n此去粉红教堂Trient 还有16公里1千爬升。一路那些石头和气根颇为熟悉，好像回到温哥华的山间雨林。凌晨三四点钟，越来越多人撑不住，在路边以各种姿势昏睡。我前面一个高大的年轻人差点晃进山崖下面，该睡还是要睡才安全。\n\n翻过几块巨石，我和Jeremy 坐路边等小树。关掉头灯，一瞬间被笼罩在整个勃朗峰的星空底下，那些温柔的光点那么远那么近，仿佛在轻声细语。然后两分钟就冻醒了。\n\n\n来到山顶小破站La Giete，外面是满满的牛粪，里面是湿漉漉的石头墙和贯穿的地面轨道，三个人撑不住又坐睡了10分钟。好阴冷。\n\n![图35](img35.jpeg)\n\n每个大站前都是无聊漫长且伤膝盖的下降，Trient 也不例外。粉色的塔尖沐浴在晨光中，这里是146公里，8234米爬升，第二个早晨7点多。\n\n![图36](img36.jpeg)\n\n翻过Trient 后面的900米大山就能回到法国，我们当初走路线时嘻嘻哈哈，但在历经8000多米的群山之后，状态已经大不相同。此时万分感谢夏天枯燥重复的强爬升训练，极度疲劳中仍可在35度的斜坡上步履不停。\n\n小树妹子在这一段爬升受到挫折，Vallorcine 站退赛。年轻人还有很多机会，她说定来复仇。\n\n顺着瑞法边界轮廓柔和的山脊，来到小镇Vallorcine。围着镇子各种凑里程，让人挺不耐烦。但我没想到，最搞心态的，让我唯一失态的，在后面。\n\n进站抓香蕉西瓜吃，又盛一碗热汤意面，这是我整个官补吃最多的三样。法棍也可，肠胃脆弱状态下芝士和香肠算是危险食物。可爱的法国大姐看我装能量粉手指笨拙，麻利接过来灌满。实话说瑞士人是礼貌，但法国和意大利人热情如火。\n\n还有两站，这时候Jeremy 终于不用迁就我的配速，脚步轻快地向前跑了。\n\n高温预警在第二天体现出了正确性，可惜我没有重视。158公里以来每站1升水足够应付，也没有想过增加负重。阳光愈加猛烈，开始最后900米爬升。La Flegere 是山顶雪场，海拔只有1900，官方为了补足爬升安排了各种绕昏头的路线设置，和恶作剧一般的巨石下坡。\n\n每个人都发现水不够了。我一点点抿着喝。我前面的西班牙小伙子拖着受伤的脚踝，步履蹒跚。不得不超过他，希望他可以撑下去。终于进入了缆车开阔地带，500米斜坡上去就是终点前最后一站La Flegere。\n\n想不到40多个小时了最痛苦的部分在这里。阳光几乎把路面烤化了，每一步都是踩不稳的滚石，我第一次需要大口呼吸，推动双腿向上向前。\n\n我后面的英国大哥突然摔倒，杖丢到石缝边，我捡起来给他。他非常含糊的感谢，很明显已经中暑。\n\n挣扎到白色帐篷，第一件事让义工大爷用泉水管子给我洗个头，冰冰凉凉，又活了。Jeremy 正准备出站，我俩互相抱怨了几乎渴死的惨状，说终点再见。\n\n怎么样都完赛了，我完全放松了。喝水吃东西洗脸洗腿去厕所，呆看义工妹子治疗中暑的人，一直到摇铃赶人：还有两分钟！\n\n![图24](img37.jpeg)\n\n最后7公里，遛遛跶跶下山。腿是好的，膝盖是好的，脚踝也没有作妖。果然对没有天赋的人来说，训练吃大苦，比赛才能受小罪啊。那回去也得歇够了，留得老腿在，还有马拉松。我已经在心里写总结了。任凭急匆匆的跑者从身边掠过，我战意全无，只想苟到最后。\n\n\n万没想到遇上两位社牛看热闹青年。还有两公里，他俩路过我又折返，看表，看我：女士您加快脚步，一定要在46小时半完成啊！我说没关系，超时也是完赛，我不在乎。但他俩很在乎。一前一后，开路加鼓励，誓要把我推进霞慕尼。\n\n脸皮厚如我也不好意思了，只能跑起来。霞慕尼越来越近，欢呼声此起彼伏。进镇了，路人开始给我鼓掌大喊bravo！他俩不知道什么时候消失了。\n\n六分速还是轻松的，在已经无比熟悉的小镇主路上接受观众的热情，冲上蓝色地毯。各组的冠亚季军已经列队等候，跟Katie Vincent Hayden Toni 各位依次击掌，跟老板娘拥抱，我冲线了！芯片时间46小时21分钟，可惜没熬到最后一名，可以站台啊。\n\n这想法被大家耻笑了，最后一名是核心溃散歪着身体瘸着腿走回来的，你嗷嗷一阵风跑回来好意思吗？突然见到了终点鼓掌的社牛二人组，赶快抓住拍照感谢，没有他俩，我依然当不了最后一名。\n\n<video src=\"./809bfd8c508c48cab11f11e807033be4.mp4\" controls width=\"600\" />\n\n![图38](img38.jpeg)\n\n见到Emily 见到Sunny Sara Jeremy，我们\"BC的希望\"五人小队欢乐团聚，圆满完成今年比赛任务。\n\n![图39](img39.jpeg)\n\n![图40](img40.jpeg)\n\n![图41](img41.jpeg)\n\n检查身体，除了大脚趾的泡其他全须全尾无新伤。不能说我出工不出力，吃苦是实实在在的。因为赛前在脑子里把可能的痛苦预演了百遍千遍，当它真的来临，我的想法是：果然如此啊。也曾经闪过退赛的念头，在La Fouly寒冷的垭口。但转念一想：明年再来？不不不，眼下的罪可以受，训练的泪不能再流。\n\n而且以今年训练的强度，身心都已经磨练粗糙如顽石。除了意外受伤和极端天气两个因素，根本没有什么能阻止我们完赛。\n\n大睡一天吃吃喝喝，不比赛训练的日子好幸福啊！\n\n9月3号各奔东西。Emily 回伦敦，我回温哥华，Sunny 和Jeremy 流浪欧洲，分别去往比利时和葡萄牙。Sara 姐暂留霞慕尼歇脚。\n\n至此温哥华野马营（追云骑摩托车浪迹阿拉斯加刚起的名字），23和24两年十人五男五女UTMB组别100%完赛，远胜官方63.6%的完赛率。\n\n参与UTMB组的都不算越野新人，大家跑比赛攒积分屯石头抽签，能站在起跑线上，水平有高低，但经验都丰富。山神垂怜给个好天气，完赛65%，运气不好就60以下。所以这真是一个挺艰难的百迈。今年2700人，1000多因为各种原因遗憾退赛，我相信他们一定会再来。\n\n## 致谢\n\n想感谢很多很多人。\n\n感谢Sunny，训练中无限向下迁就于我，不是我拖后腿，她进40小时没有问题。我俩亲密相处的这些日子，无话不谈无事不倾，经常不用说话一个眼神就明了对方意思。老李老张都要靠边站。\n\n感谢Jeremy 陪姐姐近30个小时，改变了我紧张机械的赛程，路上的欢乐都来自于你。有好几次进入pain cave 状态，又被你的乐观打破了。世界上最好的pacer没有之一，不知道谁还能有这种福气。\n\n感谢强大乐观的Sara 姐。姐姐是在长距离比赛中开了buff 的人类，想到她远远在前面引领我就充满勇气。如果不是缺少UTMB经验，姐姐不会在路上玩耍太多，早早冲线就不止于年龄组第四。等下回的。\n\n感谢Yong 哥和温哥华的小伙伴们。去年11月Yong哥就把TMB路线做好山屋订好，我们只需照葫芦画瓢。从年初安排半年训练计划，检查训练进度。8月份根据训练成果给我俩分别做了比赛进程图，每站节点补给进出站时间详细到分钟。没有Yong 哥，我都不会参加UTMB组，CCC足矣。\n\n去欧洲之前，Yong 哥和叮当特意给我俩开了个赛事流程会议，从下飞机到坐巴士到玩耍饮食到离开，手把手搞定每个环节。感谢两位老师的悉心指导，我俩这运气也是没谁了。\n\n野马营的小伙伴从我们报名之后就各种提供经验，温暖鼓励，赛中不眠不休追踪我们的进度。山野铸就的情谊深厚，如同北岸山脉一般沉默但坚定。\n\n从训练期开始，爬几趟松鸡山我俩就在小小群里骚扰几次，誓不能让她们几个安心瘫着。目前最大的遗憾就是没让她们吃上我俩吃的苦，继续努力。\n\n感谢我的宝贝Emily。你是我人生里最大的中奖彩票，妈妈何德何能可以拥有你。习惯性照顾身边所有人的情绪，不仅仅是做crew还包括你的日常生活。我多希望你自私一点轻松一点。\n\n感谢后方的家人们。从训练期开始日常离开就一整天，加上欧洲20多天，老张承担了独立照顾teenager 的重任，国内有事情需要处理也一直撑到我回家才走。弟弟弟妹帮忙处理各种家中事务，带孩子们全家旅行。\n\n我把全家搞得人仰马翻。但是这样一件大部分人不能理解的事情，一件巨大投入没有回报，影响家庭生活的事情，他们从来没有阻止过我，永远在鼓励我，最多说一句：别太累了，咱以后不玩这么长的了。\n\n写这篇碎碎念，一再回想比赛细节，不能不说有些平淡。因为我是做了万全的准备来打这场仗的，全程把软弱情绪压抑到角落里，左脚右脚交替之外不做它想，甚至不看风景，甚至没有拍几张照片。\n\n而勃朗峰那些令我心生感动的小记忆，大部分发生在前期TMB路线探索中。美好的路程和美好的人们，把车扔村边领我们去家里喝水的法国大爷，指路聊天的瑞士村民，带我俩跑trail 的年轻跑者和他的乖巧可爱哈士奇。\n\n我俩饿了馋了就查看山崖路边，吃红莓黑莓和醋栗，Sunny教我认识新鲜的榛子，我是第一次看到绿壳白果的榛子，比花生香甜。\n\n从库马约到Refuge Bertone , 看到骡子驮着上百公斤的行李艰难爬山，前面是空手的\"徒步者\"，这就是所谓的豪华旅行团吧。\n\n更多的是白发苍苍的老人们，巨大的背包，速度虽然慢但稳当，你总能在下一站山屋里又看见他们。\n\n![图42](img42.jpeg)\n\n![图43](img43.jpeg)\n\n![图44](img44.jpeg)\n\n## 后记\n\n这几年我经常想起汪曾祺先生的一段话\"都到岁数了，心里不是没有，只是像一片薄薄的云，飘过来，飘过去，下不成雨。\"\n\n大概UTMB于我就是这样一件事：提着一口气，耐心地，小心地，将薄云片片积攒堆叠，在漫长又短暂的46小时里，在我自己的天空里，下成一场固执而沉默的缠绵大雨。\n\n我对这场比赛多么没有信心？看行动就知道。赛前一周偷摸报了一个9月底的Whistler by UTMB，如果铩羽而归，悄悄把这比赛跑了，新赛福利挣3块石头，明年还能抽签。\n\n现在傻眼了，退赛不退钱，跑还是不跑？",
+    "path": "posts/2024/utmb",
+    "toc": [
+      {
+        "title": "希望的夏天",
+        "url": "#希望的夏天",
+        "items": [
+          {
+            "title": "王青",
+            "url": "#王青",
+            "items": []
+          },
+          {
+            "title": "比赛日",
+            "url": "#比赛日",
+            "items": []
+          },
+          {
+            "title": "致谢",
+            "url": "#致谢",
+            "items": []
+          },
+          {
+            "title": "后记",
+            "url": "#后记",
+            "items": []
+          }
+        ]
+      }
+    ],
+    "date": "2024-08-30T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "cover.webp",
+      "src": "https://images.wildrunner.org/posts/2024/utmb/cover.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/utmb/cover.webp",
+      "featured": false,
+      "width": 1728,
+      "height": 1576,
+      "blurWidth": 20,
+      "blurHeight": 18,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRmQBAABXRUJQVlA4WAoAAAAQAAAAEwAAEQAAQUxQSBgBAAANgGXbdtrmPckyhZnpt8w0/9W/ToHJ4cQog6TyGCJiAuDfdHQ9er19EP8ySs1QeprLAVD9glCpt+ZTR6PQUyRPRIIQZDpmglmhjG4MmQhTYRTDJpjT1OrUxZ4GFgqakAD97N4JamMdXCETQEOABjGuwlmxUba0e7C7aYG48YylapMb1DZ++0GkFJgxLTO+NJv9UmGbnDtCycwgXqFrpCJUtMcjpkg2DTNRrh0UIrVUj0F1oib2+6vUVZNTFVaSMvfz5G6HuRubQtmfBWk+nxcOI0lPSWJG0kgfpjKthbYnw3S16rfJVisVEllZGw7bUHIyDQrlLNIMtuUGx7lKm12XUCUB0bRLtk6RIgC45RxHShIOiBzBFEQgVlA4ICYAAADQAgCdASoUABIAPtFiqk+oJaOiKAgBABoJaQAAPaOgAP7ywgAAAA=="
+    },
+    "description": "記錄了王青首次挑戰並成功完成UTMB百英里越野賽的心路歷程。作者從十年跑步經歷談起，細緻描述了備賽過程中的艱苦訓練、賽前準備、比賽途中身心極限的考驗，以及與隊友、家人和朋友間的深厚情誼。文章展現了越野跑者面對困難時的堅持與成長，並通過細膩的敘述，傳達了挑戰自我、突破極限後的成就感與感悟。最後，作者感謝了陪伴和支持自己的親友，並以溫暖的語調總結了這段難忘的經歷。",
+    "metadata": {
+      "readingTime": 12,
+      "wordCount": 3264.8
+    },
+    "year": "2024",
+    "slugAsParams": "2024/utmb"
+  },
+  {
+    "title": "野馬營的由來",
+    "slug": "posts/2024/why-wildrunner-org",
+    "featured": true,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:n,jsx:e,jsxs:i}=arguments[0];function _createMdxContent(l){const r={a:\"a\",h2:\"h2\",img:\"img\",li:\"li\",p:\"p\",ul:\"ul\",...l.components};return i(n,{children:[e(r.p,{children:\"說起野馬營就必須要提到馬營，因為這個群以前是馬營的越野小群，很長時間就叫超馬群，裡面都是馬營群裡的人。至於馬營的歷史則需要師傅、院長、隊長來說了。一直到了2022年跑墨西哥之前，超馬群才開始有新鮮血液的加入，開始慢慢壯大起來，Sam、Tracy、Laura都是那個時候加入的。\"}),\"\\n\",e(r.h2,{id:\"野馬營的由來\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#野馬營的由來\",children:\"野馬營的由來\"})}),\"\\n\",e(r.p,{children:'今年9月1號，我開始了我的北極之旅。四天開了4000多公里，於9月4號到達北冰洋邊上的Tuk。4號晚上在北冰洋邊上露營，5號開始回程。當我的摩托車奔馳在北極廣袤的苔原上，滿眼的金黃色的大地一直延伸到天邊，整個天地間只有我和我的摩托車。心想不過短短几天，我就來到了如此荒野的地方，腦海裡突然蹦出了 \"WILD\" 這個詞，然後想到了野馬，突然意識到 \"野馬營\" 這個名字非常符合超馬群，而且富有深意。於是五號晚上我到達Eagle Plain的時候，在北極的苔原中，middle of nowhere，把群的名字改為了“野馬營”。'}),\"\\n\",e(r.p,{children:e(r.img,{src:\"https://images.wildrunner.org/posts/2024/why-wildrunner-org/IMG_2813.webp\",alt:\"road\",width:\"4032\",height:\"2268\",blurdataurl:\"data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAABQBACdASoUAAsAPtFUo0uoJKMhsAgBABoJQBOj+DE/wGKjVTaoxVkrXPWAANuetoVkDNb3L4gSv5qEiVsgPrjXTawfsRCTBcWnllYmOJa+/gkc/g6+LojgAAA=\",loading:\"lazy\",placeholder:\"blur\"})}),\"\\n\",e(r.p,{children:'首先，野馬營體現了和馬營的淵源和傳承，只是比馬營更加 \"野\"。而\"野\" 字才是精髓所在：'}),\"\\n\",i(r.ul,{children:[\"\\n\",e(r.li,{children:\"代表我們熱愛的越野跑比賽；\"}),\"\\n\",e(r.li,{children:\"代表我們對戶外和野外的熱愛；\"}),\"\\n\",e(r.li,{children:\"代表這個群的特色和群成員的狂野的個性，大家都很野；\"}),\"\\n\",e(r.li,{children:\"代表我們对待比赛的态度：像野馬一樣一往無前；\"}),\"\\n\",e(r.li,{children:\"這個名字的誕生地本身就是在加拿大最荒野之地。\"}),\"\\n\"]}),\"\\n\",e(r.h2,{id:\"為什麼要一個網站\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#為什麼要一個網站\",children:\"為什麼要一個網站\"})}),\"\\n\",e(r.p,{children:\"以前，大部分的溝通交流都是在微信群裡進行的。基本上每個比賽都會建一個小群，大家在裡面分享信息和照片。微信是一個實時溝通的工具，不適合沉澱信息，也不方便搜索。相比之下，網站更適合沉澱結構化、需要長期保存的信息，也更方便快速搜索。\"}),\"\\n\",e(r.p,{children:\"能在茫茫人海中相遇，相聚在溫哥華，已经是難得的緣分。能跑馬拉松的人已經很少，能跑超馬的人更是少之又少，更別說能跑 UTMB、巨人之旅的人了。截止到 2024 年底，野馬營50個人裡，有10個人完成了UTMB，MT完成了巨人之旅，yong哥完賽了西部100。我常常感到驚訝，我們這樣一群特別的人，能在溫哥華這麼短的時空裡相遇。同時也很感恩遇到野馬營裡的各位朋友，和這樣一群出色的人為伍。西方有一個說法：If you hang around five millionaires, you will be the sixth. If you hang around five broke people, you will be the sixth。\"}),\"\\n\",e(r.p,{children:\"天下沒有不散的筵席，總有一天大家會各奔東西，这也是我建立这个網站的最重要的原因。希望能够把我们在人生旅途中一起經歷的這段特別的時光記錄下來。希望這個網站可以記錄下我們曾經一起跑過的比賽，一起並肩在賽道上的時光。多年以後，我們依然可以回味當年那顆狂野的心！\"})]})}return{default:function(n={}){const{wrapper:i}=n.components||{};return i?e(i,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "說起野馬營就必須要提到馬營，因為這個群以前是馬營的越野小群，很長時間就叫超馬群，裡面都是馬營群裡的人。至於馬營的歷史則需要師傅、院長、隊長來說了。一直到了2022年跑墨西哥之前，超馬群才開始有新鮮血液的加入，開始慢慢壯大起來，Sam、Tracy、Laura都是那個時候加入的。\n\n## 野馬營的由來\n今年9月1號，我開始了我的北極之旅。四天開了4000多公里，於9月4號到達北冰洋邊上的Tuk。4號晚上在北冰洋邊上露營，5號開始回程。當我的摩托車奔馳在北極廣袤的苔原上，滿眼的金黃色的大地一直延伸到天邊，整個天地間只有我和我的摩托車。心想不過短短几天，我就來到了如此荒野的地方，腦海裡突然蹦出了 \"WILD\" 這個詞，然後想到了野馬，突然意識到 \"野馬營\" 這個名字非常符合超馬群，而且富有深意。於是五號晚上我到達Eagle Plain的時候，在北極的苔原中，middle of nowhere，把群的名字改為了“野馬營”。\n\n![road](IMG_2813.jpeg)\n\n首先，野馬營體現了和馬營的淵源和傳承，只是比馬營更加 \"野\"。而\"野\" 字才是精髓所在：\n\n- 代表我們熱愛的越野跑比賽；\n- 代表我們對戶外和野外的熱愛；\n- 代表這個群的特色和群成員的狂野的個性，大家都很野；\n- 代表我們对待比赛的态度：像野馬一樣一往無前；\n- 這個名字的誕生地本身就是在加拿大最荒野之地。\n\n## 為什麼要一個網站\n以前，大部分的溝通交流都是在微信群裡進行的。基本上每個比賽都會建一個小群，大家在裡面分享信息和照片。微信是一個實時溝通的工具，不適合沉澱信息，也不方便搜索。相比之下，網站更適合沉澱結構化、需要長期保存的信息，也更方便快速搜索。\n\n能在茫茫人海中相遇，相聚在溫哥華，已经是難得的緣分。能跑馬拉松的人已經很少，能跑超馬的人更是少之又少，更別說能跑 UTMB、巨人之旅的人了。截止到 2024 年底，野馬營50個人裡，有10個人完成了UTMB，MT完成了巨人之旅，yong哥完賽了西部100。我常常感到驚訝，我們這樣一群特別的人，能在溫哥華這麼短的時空裡相遇。同時也很感恩遇到野馬營裡的各位朋友，和這樣一群出色的人為伍。西方有一個說法：If you hang around five millionaires, you will be the sixth. If you hang around five broke people, you will be the sixth。\n\n天下沒有不散的筵席，總有一天大家會各奔東西，这也是我建立这个網站的最重要的原因。希望能够把我们在人生旅途中一起經歷的這段特別的時光記錄下來。希望這個網站可以記錄下我們曾經一起跑過的比賽，一起並肩在賽道上的時光。多年以後，我們依然可以回味當年那顆狂野的心！",
+    "path": "posts/2024/why-wildrunner-org",
+    "toc": [
+      {
+        "title": "野馬營的由來",
+        "url": "#野馬營的由來",
+        "items": []
+      },
+      {
+        "title": "為什麼要一個網站",
+        "url": "#為什麼要一個網站",
+        "items": []
+      }
+    ],
+    "date": "2024-10-16T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "logo.webp",
+      "src": "https://images.wildrunner.org/posts/2024/why-wildrunner-org/logo.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/why-wildrunner-org/logo.webp",
+      "featured": false,
+      "width": 341,
+      "height": 120,
+      "blurWidth": 20,
+      "blurHeight": 7,
+      "exif": {},
+      "blurDataURL": "data:image/webp;base64,UklGRqAAAABXRUJQVlA4WAoAAAAQAAAAEwAABgAAQUxQSEIAAAABYBMATBtbQdmShAj4wMNue8+Pi+QjSIgIhW3bIIXxHgET/0kLzj8YIe01cAUcl5WuITHE5vNDLO+0F/bGoAP7pgFWUDggOAAAAFADAJ0BKhQABwA+0VSkS6gko6GwCAEAGgljAL84MoreSNwAAP7vHli/gTgeXCkj4JV8568AvgAA"
+    },
+    "description": "紀錄一下野馬營的前世今生，以及為什麼要做一個這樣的網站。",
+    "metadata": {
+      "readingTime": 2,
+      "wordCount": 489.48
+    },
+    "year": "2024",
+    "slugAsParams": "2024/why-wildrunner-org"
+  },
+  {
+    "title": "Whistler by UTMB | 2024",
+    "slug": "posts/2024/whistler-by-utmb",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:n,jsx:e,jsxs:t}=arguments[0];function _createMdxContent(o){const r={h2:\"h2\",p:\"p\",...o.components},{YouTube:c}=r;return c||function(n,e){throw new Error(\"Expected \"+(e?\"component\":\"object\")+\" `\"+n+\"` to be defined: you likely forgot to import, pass, or provide it.\")}(\"YouTube\",!0),t(n,{children:[e(r.p,{children:\"Whistler第一屆by UTMB，之前由於和WAM的瓜葛，遭到很多本地的西人runner的抵制。不過家門口的比賽，而且還可以拿石頭，還是必須要參加！作為一個普通的跑者，不希望太多比賽被政治所左右，我們只想參加自己想參加的比賽而已。\"}),\"\\n\",e(r.p,{children:\"因為是第一屆加上本地人的抵制，所以也比較波折，先是改組別，把100公里組改成了70公里，我們這些原來報了100公里的可以免費跑多一個25公里的比賽，而賽道前後就改了三次。\"}),\"\\n\",e(r.h2,{id:\"\"}),\"\\n\",e(r.p,{children:\"比賽視頻\"}),\"\\n\",e(c,{id:\"viYVpoY-05o\"})]})}return{default:function(n={}){const{wrapper:t}=n.components||{};return t?e(t,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "Whistler第一屆by UTMB，之前由於和WAM的瓜葛，遭到很多本地的西人runner的抵制。不過家門口的比賽，而且還可以拿石頭，還是必須要參加！作為一個普通的跑者，不希望太多比賽被政治所左右，我們只想參加自己想參加的比賽而已。\n\n因為是第一屆加上本地人的抵制，所以也比較波折，先是改組別，把100公里組改成了70公里，我們這些原來報了100公里的可以免費跑多一個25公里的比賽，而賽道前後就改了三次。\n\n## \n\n比賽視頻\n<YouTube id=\"viYVpoY-05o\"/>",
+    "path": "posts/2024/whistler-by-utmb",
+    "toc": [
+      {
+        "title": "",
+        "url": "#",
+        "items": []
+      }
+    ],
+    "date": "2024-09-28T00:00:00.000Z",
+    "published": true,
+    "image": {
+      "filename": "logo_whistler-by-utmb.webp",
+      "src": "https://images.wildrunner.org/posts/2024/whistler-by-utmb/logo_whistler-by-utmb.webp",
+      "slug": "https://images.wildrunner.org/posts/2024/whistler-by-utmb/logo_whistler-by-utmb.webp",
+      "featured": false,
+      "width": 479,
+      "height": 356,
+      "blurWidth": 20,
+      "blurHeight": 15,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRlABAABXRUJQVlA4WAoAAAAQAAAAEwAADgAAQUxQSAUBAAANmS5E9D8Ay7bttM3TExvDDPMfUH+ZGYW25YIHETEBAQHI5ZgXV1rKFNKMRqAhAACgMo1OULNaxFrrzANqBgySXgCEqW/JCyqhCDQItCigxjb20Ld3BlcZJrcyUk1pCd4da2kmAcOO460RXoeZSWooCjgOACC9QVTD+9IBSm4mar0SOhTSiKM3H05kSgIRzSnCzinngQVQJ2hoXMuKFOOVUsutGQaTfKkg7kNPEVAjIVrf5pDUExKHSjpznBc0eqXIsqSF0gIHEmKtNPWh1+t8K4Ga8e4aVwIIfPK+CIRAMA0ikpQnEgUAADmDIgRprOUBlAAl6f2Dd9y7qQanMB0iQSXUAAAAVlA4ICQAAACwAgCdASoUAA8APtFUo0uoJKMhsAgBABoJaQAAeyAA/vLCAAA="
+    },
+    "description": "Whistler第一屆by UTMB，之前由於和WAM的瓜葛，遭到很多本地的西人runner的抵制。不過家門口的比賽，還可以拿石頭，還是必須要參加！",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 91.92
+    },
+    "year": "2024",
+    "slugAsParams": "2024/whistler-by-utmb"
+  },
+  {
+    "title": "富士山100 | Mt. Fuji 100 | 2025",
+    "slug": "posts/2025/fuji-100",
+    "featured": false,
+    "excerpt": "",
+    "seoDescription": "",
+    "author": "追雲逐雪",
+    "columns": [],
+    "categories": [],
+    "tags": [],
+    "body": "const{Fragment:n,jsx:e,jsxs:a}=arguments[0];function _createMdxContent(i){const r={a:\"a\",h1:\"h1\",h2:\"h2\",p:\"p\",...i.components};return a(n,{children:[e(r.h1,{id:\"富士山100--mt-fuji-100\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#富士山100--mt-fuji-100\",children:\"富士山100 | Mt. Fuji 100\"})}),\"\\n\",e(r.p,{children:\"今年野馬營組隊參加Mt. Fuji 100的比賽，有六個人參加：Laura、Jeremy、Sam、Yong、Sunny和我。其中Yong哥是第三次參加，其他人都是第一次參加。Sunny偷懶報名了80K得組別，其他人都報了100M。\"}),\"\\n\",e(r.h2,{id:\"賽前準備\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽前準備\",children:\"賽前準備\"})}),\"\\n\",e(r.h2,{id:\"比賽過程\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#比賽過程\",children:\"比賽過程\"})}),\"\\n\",e(r.h2,{id:\"賽後總結\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽後總結\",children:\"賽後總結\"})}),\"\\n\",e(r.h2,{id:\"賽後感想\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽後感想\",children:\"賽後感想\"})}),\"\\n\",e(r.h2,{id:\"賽後照片\",children:e(r.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#賽後照片\",children:\"賽後照片\"})})]})}return{default:function(n={}){const{wrapper:a}=n.components||{};return a?e(a,{...n,children:e(_createMdxContent,{...n})}):_createMdxContent(n)}};",
+    "raw": "# 富士山100 | Mt. Fuji 100\n\n\n今年野馬營組隊參加Mt. Fuji 100的比賽，有六個人參加：Laura、Jeremy、Sam、Yong、Sunny和我。其中Yong哥是第三次參加，其他人都是第一次參加。Sunny偷懶報名了80K得組別，其他人都報了100M。\n\n## 賽前準備\n\n## 比賽過程\n\n## 賽後總結\n\n## 賽後感想\n\n## 賽後照片",
+    "path": "posts/2025/fuji-100",
+    "toc": [
+      {
+        "title": "富士山100 | Mt. Fuji 100",
+        "url": "#富士山100--mt-fuji-100",
+        "items": [
+          {
+            "title": "賽前準備",
+            "url": "#賽前準備",
+            "items": []
+          },
+          {
+            "title": "比賽過程",
+            "url": "#比賽過程",
+            "items": []
+          },
+          {
+            "title": "賽後總結",
+            "url": "#賽後總結",
+            "items": []
+          },
+          {
+            "title": "賽後感想",
+            "url": "#賽後感想",
+            "items": []
+          },
+          {
+            "title": "賽後照片",
+            "url": "#賽後照片",
+            "items": []
+          }
+        ]
+      }
+    ],
+    "date": "2025-04-25T00:00:00.000Z",
+    "published": false,
+    "image": {
+      "filename": "mtfuji100-logo.webp",
+      "src": "https://images.wildrunner.org/posts/2025/fuji-100/mtfuji100-logo.webp",
+      "slug": "https://images.wildrunner.org/posts/2025/fuji-100/mtfuji100-logo.webp",
+      "featured": false,
+      "width": 1300,
+      "height": 210,
+      "blurWidth": 20,
+      "blurHeight": 3,
+      "exif": {
+        "exif": {}
+      },
+      "blurDataURL": "data:image/webp;base64,UklGRqIAAABXRUJQVlA4WAoAAAAQAAAAEwAAAgAAQUxQSD0AAAAAKU1ybkg7SWROPkBYU1E7Q0poW0tJZ4iFYVJMZ1ZFQllXVj1ETGpcTGiAnZx6aU9pXUxFWVpbPkVOa11NAFZQOCA+AAAAMAMAnQEqFAADAD7RVKNLqCSjIbAIAQAaCUAUtYPSH+7jAAD+tjD5F3I4g1h3UdnoFPq8GLd+Gb99yF2EAAA="
+    },
+    "description": "富士山100是日本最著名的超马赛事之一，每年4月在風景優美的富士山腳下举行，今年野馬營六個人組團參加。",
+    "metadata": {
+      "readingTime": 1,
+      "wordCount": 55.56
+    },
+    "year": "2025",
+    "slugAsParams": "2025/fuji-100"
+  }
+]

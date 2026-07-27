@@ -96,22 +96,24 @@ export default async function GalleryVideoPage({
   const title = videoTitle(video.filename);
 
   return (
-    <div className="prose-article flex flex-col gap-4">
+    <div className="container relative max-w-7xl flex flex-col gap-4 py-6 lg:py-10">
       <Link
         href={`/gallery/${gallery.slug}`}
         className={cn(
           buttonVariants({ variant: "ghost" }),
-          "self-start -ml-2 px-2 not-prose"
+          "self-start -ml-2 px-2"
         )}
       >
         <ChevronLeft className="mr-1 size-4" />
         {gallery.name}
       </Link>
 
-      <h1 className="!mb-0">{title}</h1>
-      <p className="opacity-70 !mt-0 text-sm">{gallery.name}</p>
+      <h1 className="!mb-0 text-4xl font-black leading-[1.12] text-foreground">
+        {title}
+      </h1>
+      <p className="!mt-0 text-sm text-muted-foreground">{gallery.name}</p>
 
-      <div className="not-prose w-full overflow-hidden rounded-lg bg-black">
+      <div className="w-full overflow-hidden rounded-none border border-border bg-black">
         <video
           src={video.src}
           controls

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import NextTopLoader from "nextjs-toploader";
 
-import { Lexend } from "next/font/google";
+import { Archivo, Noto_Sans_TC } from "next/font/google";
 import "@/styles/globals.css";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,16 @@ import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { getSiteBaseURL } from "@/config/site";
 
-const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
+  weight: ["400", "600", "800"],
+});
+
+const notoSansTc = Noto_Sans_TC({
+  subsets: ["latin"],
+  variable: "--font-noto",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteBaseURL()),
@@ -34,11 +43,20 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Avoid FOUC: seed theme from localStorage, else browser light → light, otherwise dark. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='wildrunner-theme';var t=localStorage.getItem(k);if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';localStorage.setItem(k,t);}var r=document.documentElement;if(t==='dark'){r.classList.add('dark');}else{r.classList.remove('dark');}}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+      </head>
       <body
         className={cn(
           "min-h-screen antialiased font-lexend bg-background",
-          lexend.variable,
+          archivo.variable,
+          notoSansTc.variable,
           fontCode.variable
         )}
       >

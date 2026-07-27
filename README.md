@@ -93,7 +93,7 @@ wildrunner.org-next/
 ├── src/content/       # MDX/JSON + 原始图片/视频（Git LFS）
 ├── src/lib/           # veliteUtils（R2/sharp）等
 ├── public/fonts/      # OG 字体（Workers Assets）
-├── .velite/            # Velite 生成物（本地/CI，gitignore）
+├── .velite/            # Velite 生成物（纳入 Git；CI 不重跑 Velite）
 ├── wrangler.jsonc     # Worker 名、routes、R2、Images
 ├── open-next.config.ts
 ├── velite.config.ts
@@ -109,14 +109,15 @@ wildrunner.org-next/
 nvm use 24          # 或任意 Node ≥ 22
 pnpm install
 cp .env.example .env.local   # 填入 R2 与站点 URL
-git lfs pull                 # 拉取 content 媒体（约 1.4GB）
+git lfs pull                 # 拉取 content 媒体（约 11GB，仅本机）
 
-pnpm content                 # 内容/媒体变更后：重建 .velite 并上传 R2
+pnpm content                 # 内容/媒体变更后：重建 .velite 并上传 R2；再 commit .velite/
 pnpm dev                     # http://localhost:3000
 pnpm preview                 # 本地 workerd
-pnpm deploy                  # 部署到 Cloudflare Workers
+pnpm deploy                  # 部署到 Cloudflare Workers（或 push main 走 CI）
 ```
 
+> 发布新媒体：本机 `pnpm content` → `git add .velite src/content` → commit → push `main`。Workers Builds **不会**跑 Velite。
 ### 常用脚本
 
 | 命令 | 作用 |
@@ -164,7 +165,11 @@ Worker 配置见 [`wrangler.jsonc`](./wrangler.jsonc)：
 
 ### CI（Workers Builds）
 
-将 GitHub 仓库接到 Cloudflare Workers Builds。构建命令、密钥清单见 [docs/workers-builds.md](./docs/workers-builds.md)。
+将 GitHub 仓库接到 Cloudflare Workers Builds：**push `main` 自动部署**。
+
+- CI **不跑** Velite、**不拉** Git LFS（媒体约 11GB，在本机 `pnpm content` 后上传 R2）。
+- 仓库内提交 `.velite/`；Build = OpenNext + `patch-assets-headers`，再 deploy。
+- 配置清单见 [docs/workers-builds.md](./docs/workers-builds.md)。
 
 ### DNS
 

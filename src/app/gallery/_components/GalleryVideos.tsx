@@ -29,8 +29,8 @@ export function GalleryVideos({
     <div
       className={
         compact
-          ? "px-content flex gap-3 overflow-x-auto pb-1 not-prose"
-          : "flex flex-col gap-6 not-prose"
+          ? "flex gap-3 overflow-x-auto pb-1"
+          : "flex flex-col gap-6"
       }
     >
       {videos.map((video, index) => {
@@ -42,8 +42,8 @@ export function GalleryVideos({
             key={video.src}
             className={
               compact
-                ? "shrink-0 w-[min(100%,420px)] overflow-hidden rounded-lg bg-black"
-                : "w-full overflow-hidden rounded-lg bg-black"
+                ? "shrink-0 w-[min(100%,420px)] overflow-hidden border border-border bg-black"
+                : "w-full overflow-hidden border border-border bg-black"
             }
           >
             <video
