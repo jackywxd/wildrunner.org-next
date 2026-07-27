@@ -4,15 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:content": "velite --watch",
-    "content": "velite",
+    "dev:content": "node --env-file=.env.local ./node_modules/velite/bin/velite.js --watch",
+    "content": "node --env-file=.env.local ./node_modules/velite/bin/velite.js",
     "build": "next build",
-    "build:content": "velite && next build",
+    "build:content": "node --env-file=.env.local ./node_modules/velite/bin/velite.js && next build",
     "start": "next start",
     "lint": "eslint",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "preview": "opennextjs-cloudflare build && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {

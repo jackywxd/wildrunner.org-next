@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/webp", "image/avif"],
-    deviceSizes: [162, 322, 482, 642, 1026, 1282, 1922, 3842],
+    // Standard Next.js breakpoints so /_next/image width params resolve correctly
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: true,
     remotePatterns: [
@@ -24,8 +25,18 @@ const nextConfig: NextConfig = {
     ],
   },
   headers: async () => [
+    // Broad default first; more specific sources below override Cache-Control
     {
-      source: "/:all*(svg|jpg|jpeg|png|webp)",
+      source: "/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=3600, must-revalidate",
+        },
+      ],
+    },
+    {
+      source: "/fonts/:path*",
       headers: [
         {
           key: "Cache-Control",
@@ -34,11 +45,20 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      source: "/:path*",
+      source: "/:all*(svg|jpg|jpeg|png|webp|woff|woff2|ttf|otf)",
       headers: [
         {
           key: "Cache-Control",
-          value: "public, max-age=3600, must-revalidate",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    },
+    {
+      source: "/og",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=86400, stale-while-revalidate=604800",
         },
       ],
     },

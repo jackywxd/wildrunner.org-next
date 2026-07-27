@@ -235,7 +235,7 @@ const SwiperLightbox: React.FC<{
                   item={image}
                   maxWidth={maxWidth}
                   maxHeight={maxH}
-                  priority={true}
+                  priority={featured ? index < 2 : index < 1}
                   isMobile={isMobile}
                   className="carousel-item"
                 />

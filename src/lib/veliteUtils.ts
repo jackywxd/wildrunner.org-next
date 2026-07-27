@@ -208,7 +208,61 @@ export function mergeTags<T>(...arrays: T[][]): T[] {
 }
 
 // Supported image formats
-const supportedFormats = ["jpg", "jpeg", "png", "avif", "webp", "heic", "svg"];
+const supportedFormats = [
+  "jpg",
+  "jpeg",
+  "png",
+  "avif",
+  "webp",
+  "heic",
+  "dng",
+  "svg",
+];
+
+/** Largest FF D8…FF D9 JPEG payload inside a DNG (preview / JpgFromRaw). */
+function extractLargestEmbeddedJpeg(buf: Buffer): Buffer | null {
+  let bestStart = -1;
+  let bestEnd = -1;
+  for (let i = 0; i < buf.length - 1; i++) {
+    if (buf[i] !== 0xff || buf[i + 1] !== 0xd8) continue;
+    for (let j = i + 2; j < buf.length - 1; j++) {
+      if (buf[j] === 0xff && buf[j + 1] === 0xd9) {
+        const end = j + 2;
+        if (bestStart < 0 || end - i > bestEnd - bestStart) {
+          bestStart = i;
+          bestEnd = end;
+        }
+        break;
+      }
+    }
+  }
+  if (bestStart < 0) return null;
+  return buf.subarray(bestStart, bestEnd);
+}
+
+/**
+ * Prepare DNG for sharp: prefer native decode when full-res; otherwise use
+ * the largest embedded JPEG (common when libvips only sees a tiny TIFF thumb).
+ */
+async function prepareDngBuffer(fileBuffer: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(fileBuffer, { failOn: "none" }).metadata();
+    if (meta.width && meta.width >= 1000) {
+      return fileBuffer;
+    }
+    console.warn(
+      `DNG decode yielded small image (${meta.width ?? 0}×${meta.height ?? 0}); trying embedded JPEG`
+    );
+  } catch (error) {
+    console.warn("DNG sharp metadata failed; trying embedded JPEG:", error);
+  }
+
+  const jpeg = extractLargestEmbeddedJpeg(fileBuffer);
+  if (!jpeg) {
+    throw new Error("Unable to decode DNG: no usable embedded JPEG preview");
+  }
+  return jpeg;
+}
 
 // Function to get all image files in the directory
 const getImageFiles = async (dir: string): Promise<string[]> => {
@@ -313,6 +367,8 @@ export const convertToWebP = async (
     // 如果是HEIC格式，先轉換為JPEG
     if (path.extname(file).toLowerCase() === ".heic") {
       fileBuffer = await convertHeicToJpeg(fileBuffer);
+    } else if (path.extname(file).toLowerCase() === ".dng") {
+      fileBuffer = await prepareDngBuffer(fileBuffer);
     }
   } catch (e) {
     console.error(`讀取文件 ${filePath} 時出錯:`, e);

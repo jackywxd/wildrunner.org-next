@@ -130,6 +130,7 @@ export default function Home() {
                       item={image}
                       maxWidth={250}
                       maxHeight={119}
+                      priority={i < 3}
                     />
                   ))}
                 </Marquee>

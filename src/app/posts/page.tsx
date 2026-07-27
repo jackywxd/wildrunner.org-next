@@ -47,7 +47,7 @@ export default function BlogPage() {
 
       {blogs.length ? (
         <div className="grid gap-10 sm:grid-cols-2">
-          {blogs.map((blog) => (
+          {blogs.map((blog, index) => (
             <article
               key={blog.slug}
               className="group relative flex flex-col space-y-2"
@@ -59,8 +59,10 @@ export default function BlogPage() {
                     alt={blog.title}
                     width={804}
                     height={452}
+                    sizes="(max-width: 640px) 100vw, 400px"
                     className="transition-colors"
-                    loading="lazy"
+                    priority={index < 2}
+                    loading={index < 2 ? undefined : "lazy"}
                     placeholder={
                       "blurDataURL" in blog.image ? "blur" : undefined
                     }

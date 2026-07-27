@@ -46,6 +46,8 @@ next-env.d.ts
 
 # Velite generated content
 .velite
+# Velite may copy linked assets here during local builds; media lives in R2 / src/content
+/public/static
 
 # wrangler files
 .wrangler

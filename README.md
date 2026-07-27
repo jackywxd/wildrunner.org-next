@@ -122,7 +122,7 @@ pnpm deploy                  # 部署到 Cloudflare Workers
 | 命令 | 作用 |
 |------|------|
 | `pnpm dev` | 本地 Next 开发 |
-| `pnpm content` | 仅 Velite（图处理 + R2 上传） |
+| `pnpm content` | Velite（自动加载 `.env.local`，图处理 + R2 上传） |
 | `pnpm build` | `next build`（需已有 `.velite`） |
 | `pnpm build:content` | Velite + Next |
 | `pnpm preview` | OpenNext 构建 + 本地 wrangler 预览 |

@@ -13,7 +13,7 @@ export default function Races({ allRaces }: { allRaces: typeof posts }) {
     <div className="container max-w-4xl py-6 lg:py-10">
       {rs.length ? (
         <div className="grid gap-10 sm:grid-cols-2">
-          {rs.map((race) => (
+          {rs.map((race, index) => (
             <article
               key={race.slug}
               className="group relative flex flex-col space-y-2"
@@ -35,7 +35,9 @@ export default function Races({ allRaces }: { allRaces: typeof posts }) {
                     alt={race.title}
                     width={300}
                     height={200}
-                    loading="lazy"
+                    sizes="(max-width: 1280px) 200px, 300px"
+                    priority={index < 2}
+                    loading={index < 2 ? undefined : "lazy"}
                     className="transition-colors rounded-xl overflow-hidden bg-cover bg-center object-contain"
                     placeholder={
                       "blurDataURL" in race.image ? "blur" : undefined
