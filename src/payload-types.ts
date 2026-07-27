@@ -163,6 +163,11 @@ export interface Media {
    * Cloudflare Stream UID after video ingest (Phase 5+)
    */
   streamId?: string | null;
+  /**
+   * Cloudflare Stream has finished processing this video
+   */
+  streamReady?: boolean | null;
+  blurDataURL?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -230,6 +235,8 @@ export interface Gallery {
   name: string;
   slug: string;
   location?: string | null;
+  featured?: boolean | null;
+  eventDate?: string | null;
   cover?: (number | null) | Media;
   images?:
     | {
@@ -367,6 +374,8 @@ export interface UsersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   streamId?: T;
+  streamReady?: T;
+  blurDataURL?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -414,6 +423,8 @@ export interface GalleriesSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   location?: T;
+  featured?: T;
+  eventDate?: T;
   cover?: T;
   images?:
     | T

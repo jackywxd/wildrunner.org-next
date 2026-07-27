@@ -1,10 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
+import { revalidateGalleries } from './hooks/revalidate'
+
 export const Galleries: CollectionConfig = {
   slug: 'galleries',
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', '_status', 'updatedAt'],
+  },
+  hooks: {
+    afterChange: [revalidateGalleries],
   },
   versions: {
     drafts: true,
@@ -38,6 +43,21 @@ export const Galleries: CollectionConfig = {
     {
       name: 'location',
       type: 'text',
+    },
+    {
+      name: 'featured',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'eventDate',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+      },
     },
     {
       name: 'cover',

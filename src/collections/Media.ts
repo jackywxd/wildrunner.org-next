@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { streamIngestOnUpload } from './hooks/stream-ingest'
+
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
@@ -7,6 +9,9 @@ export const Media: CollectionConfig = {
     create: ({ req: { user } }) => Boolean(user),
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),
+  },
+  hooks: {
+    afterChange: [streamIngestOnUpload],
   },
   fields: [
     {
@@ -23,6 +28,24 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      name: 'streamReady',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        readOnly: true,
+        description: 'Cloudflare Stream has finished processing this video',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'blurDataURL',
+      type: 'textarea',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'width',
       type: 'number',
       admin: { readOnly: true, position: 'sidebar' },
@@ -34,6 +57,7 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
+    mimeTypes: ['image/*', 'video/*'],
     // These are not supported on Workers yet due to lack of sharp
     crop: false,
     focalPoint: false,

@@ -1,10 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
+import { revalidatePosts } from './hooks/revalidate'
+
 export const Posts: CollectionConfig = {
   slug: 'posts',
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'publishedAt', 'updatedAt'],
+  },
+  hooks: {
+    afterChange: [revalidatePosts],
   },
   versions: {
     drafts: true,
@@ -66,6 +71,15 @@ export const Posts: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
         },
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'aiAssist',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/admin/AIAssistField#AIAssistField',
+        },
       },
     },
     {

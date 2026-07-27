@@ -15,14 +15,19 @@ import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
+import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(value) : undefined)
 
-const isCLI = process.argv.some((value) =>
-  realpath(value)?.endsWith(path.join('payload', 'bin.js')),
-)
+const isCLI = process.argv.some((value) => {
+  const resolved = realpath(value)
+  return (
+    resolved?.endsWith(path.join('payload', 'bin.js')) ||
+    resolved?.endsWith(path.join('scripts', 'migrate-velite-to-payload.ts'))
+  )
+})
 const isProduction = process.env.NODE_ENV === 'production'
 
 const createLog =
@@ -59,6 +64,7 @@ export default buildConfig({
   },
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],
+  endpoints: [aiExpandPostEndpoint],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -72,7 +78,7 @@ export default buildConfig({
     prodMigrations: migrations,
   }),
   logger: isProduction ? cloudflareLogger : undefined,
-  storage: [
+  plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
       collections: { media: true },
