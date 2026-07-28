@@ -144,7 +144,9 @@ erDiagram
 
 本地 7/7、staging 7/7；變異測試確認拿掉 admin 檢查後 M2-T2 會失敗。remote D1 已套用 `20260728_043828_add_invite_fields`。除了 API 測試，也在 staging 用真實 UI 走完一遍：填表 → 建立帳號 → 取得兜底連結 → 開啟 Payload 的 Reset Password 頁面。
 
-**Resend 尚未接上**（需要你在 `wildrunner.org` 加 DNS 記錄驗證寄件網域）。目前 `RESEND_API_KEY` 未設定，邀請端點會回傳連結讓管理員自己傳；設定後同一支端點會自動改走寄信，不需要改程式。設定值見 [.env.example](.env.example)。
+**Resend 已接上並實測確認可寄信**（`e71e025`）。過程中發現一個架構陷阱：`RESEND_API_KEY` 一開始只放進 `.env.local`，結果邀請端點完全沒報錯、但信就是沒寄出——因為 `isEmailConfigured()` 是在 request handler **裡面**呼叫的，部署後的 Worker 執行到這行時讀的是 Workers runtime 自己的環境，跟本機建置機器的 `.env.local` 完全無關（這跟 `PAYLOAD_SECRET` 不同，那個是在 `payload.config.ts` 頂層、build 時就求值一次，所以會被烤進 bundle）。改用 `wrangler secret put RESEND_API_KEY --env staging` 立即生效，不需要重新部署。`RESEND_FROM_ADDRESS` / `RESEND_FROM_NAME` / `MEMBER_STORAGE_QUOTA_MB` 這三個非敏感值也搬進 `wrangler.jsonc` 的 `vars`，理由相同。`RESEND_API_KEY` 本身沒有進任何會被提交的檔案。
+
+已對 `xudong.wu@gmail.com` 實際發送邀請信並確認收到（`userId 45`，`invitePending` 待處理）——這封邀請可以直接拿來完成 M7 需要的「邀請自己第二個信箱」驗證步驟。
 
 
 
