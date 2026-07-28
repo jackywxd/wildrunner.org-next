@@ -65,5 +65,66 @@
 			"pattern": "www.wildrunner.org/*",
 			"zone_name": "wildrunner.org"
 		}
-	]
+	],
+	// Staging: isolated Worker, workers.dev only, no custom domain routes.
+	// Reuses the same D1/R2 that production will eventually use, so the
+	// migrated content here is exactly what cuts over later.
+	"env": {
+		"staging": {
+			"name": "wildrunner-org-next-staging",
+			"assets": {
+				"directory": ".open-next/assets",
+				"binding": "ASSETS"
+			},
+			"d1_databases": [
+				{
+					"binding": "D1",
+					"database_name": "wildrunner-org-next",
+					"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+					"remote": true
+				}
+			],
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "wildrunner-org-next-staging"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "R2",
+					"bucket_name": "wildrunner-storage",
+					"remote": true
+				},
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "wildrunner-org-next-opennext-cache",
+					"remote": true
+				}
+			],
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ai": {
+				"binding": "AI",
+				"remote": true
+			},
+			"stream": {
+				"binding": "STREAM",
+				"remote": true
+			},
+			"observability": {
+				"enabled": true,
+				"head_sampling_rate": 1
+			},
+			"workers_dev": true,
+			"preview_urls": true,
+			// Explicit empty routes: wrangler environments inherit top-level
+			// `routes` unless overridden, so without this the staging deploy
+			// tries to claim wildrunner.org/* for this worker too (only a 409
+			// from Cloudflare, because the production Worker already owns
+			// those routes, stopped that from actually happening).
+			"routes": []
+		}
+	}
 }
