@@ -61,21 +61,41 @@ test.describe("P1 media, gallery and global", () => {
     page,
   }) => {
     await ensureAdminUser(request);
-    const hero = `Payload Hero ${Date.now()}`;
-    await expectOkJson(
-      await request.post("/api/globals/site", {
-        data: { heroTitleZh: hero },
-      }),
-    );
 
-    await expect
-      .poll(
-        async () => {
-          await page.goto("/");
-          return page.getByText(hero, { exact: true }).count();
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(1);
+    // The Site global is a singleton shared with real content — this test
+    // runs against the same database the site serves from. Capture the real
+    // value first and put it back in a finally, or the staging (and later
+    // production) homepage is left showing "Payload Hero <timestamp>".
+    // That has happened twice; restoring the data by hand without fixing
+    // the test just let it recur.
+    const before = await expectOkJson(
+      await request.get("/api/globals/site?depth=0"),
+    );
+    const originalHeroZh = before.heroTitleZh;
+
+    const hero = `Payload Hero ${Date.now()}`;
+    try {
+      await expectOkJson(
+        await request.post("/api/globals/site", {
+          data: { heroTitleZh: hero },
+        }),
+      );
+
+      await expect
+        .poll(
+          async () => {
+            // Unique query per poll: pages ship max-age=3600, so re-visiting
+            // the same URL would replay the browser's cached copy.
+            await page.goto(`/?hero-poll=${Date.now()}`);
+            return page.getByText(hero, { exact: true }).count();
+          },
+          { timeout: 15_000 },
+        )
+        .toBe(1);
+    } finally {
+      await request.post("/api/globals/site", {
+        data: { heroTitleZh: originalHeroZh },
+      });
+    }
   });
 });
