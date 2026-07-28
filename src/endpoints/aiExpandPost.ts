@@ -2,10 +2,7 @@ import type { Endpoint } from "payload";
 import { APIError } from "payload";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-import {
-  lexicalParagraph,
-  paragraphsToLexical,
-} from "@/lib/lexical-helpers";
+import { lexicalParagraph, paragraphsToLexical } from "@/lib/lexical-helpers";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 10;
@@ -87,17 +84,23 @@ export const aiExpandPostEndpoint: Endpoint = {
 
     if (process.env.NEXTJS_ENV === "test") {
       expandedText = `${outline}\n\n这是根据大纲生成的中文测试扩写段落，用于验证草稿写入，不会自动发布。`;
-    } else if (process.env.NODE_ENV === "production" || process.env.AI_IN_DEV === "true") {
+    } else if (
+      process.env.NODE_ENV === "production" ||
+      process.env.AI_IN_DEV === "true"
+    ) {
       try {
-        const response = await ai.run("@cf/meta/llama-3.1-8b-instruct", {
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          max_tokens: 1200,
-        });
+        const response = await ai.run(
+          "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+          {
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            max_tokens: 1200,
+          },
+        );
         const text =
           typeof response === "object" && response && "response" in response
             ? String((response as { response?: string }).response ?? "")
@@ -105,8 +108,12 @@ export const aiExpandPostEndpoint: Endpoint = {
         if (text.trim()) {
           expandedText = text.trim();
         }
-      } catch {
+      } catch (error) {
         // Keep original outline on AI failure (P4-T7)
+        console.warn(
+          "Workers AI expand failed, falling back to outline",
+          error,
+        );
       }
     } else {
       expandedText = `${outline}\n\n（本地开发未绑定 Workers AI，返回扩写占位段落。）`;
