@@ -244,7 +244,15 @@ SELECT COALESCE(SUM(filesize), 0) FROM media WHERE owner_id = ?
 
 ---
 
-### M5 — 媒體管線（會員上傳的圖/影片必須在前台顯示）⚠️ 最不確定
+### M5 — 媒體管線 ✅ 已完成（`a7c58b2`）
+
+本地 metadata 檢查 6/6，staging 完整 6/6；變異測試確認拿掉 `setMediaUrl` 後 M5-T1 會失敗。全站 staging 回歸從 5 個既有失敗降到 3 個（`P2-T10/T11` 圖片優化器測試是同一個 bug 的另一面，順帶被修好）。
+
+**過程中踩到一個坑，記錄下來避免重蹈覆轍**：第一次實作用 `r2Storage` 的 `generateFileURL` 選項，結果把全部 437 筆**遷移資料**的圖片弄壞了——因為 `generateFileURL` 對**每一次讀取**都無條件用 `filename` 重算 URL，而遷移資料的真實 R2 key 是帶斜線的路徑（`posts/2023/utmb/cover.webp`），`filename` 欄位卻是攤平過的版本（`posts--2023--utmb--cover.webp`），兩者對不上。改成在 collection 的 `beforeChange`（時機點在 `generateFileData` 算出最終檔名之後、field 級 hook 之前）只對「真的有新檔案且尚無 url」的情況直接寫入絕對 URL，讀取路徑完全不動——這樣新舊資料都正確。這個問題在部署到 staging 跑 e2e 時就被抓到，沒有碰到正式流量。
+
+**檔名衝突（M5-T3 的疑慮）其實不用額外處理**：查了 Payload 核心程式碼確認 `getSafeFileName` 本來就會對任何檔名衝突自動加上 `-1`、`-2` 後綴（對 D1 查重），不需要額外做 per-user 前綴。已用兩個會員上傳同名檔案實測確認不會覆蓋。
+
+**Cloudflare Stream 目前沒有在這個帳號啟用**（用 `wrangler tail` 抓到 `Cloudflare Stream not enabled` 的授權錯誤）——這是帳號/產品啟用層級的問題，不是程式碼能修的。已確認的是優雅降級：Stream ingest 失敗不會讓上傳失敗（`stream-ingest.ts` 的 try/catch 本來就有這個設計）。要驗證影片真正轉碼播放，需要你先在 Cloudflare Dashboard 啟用 Stream。
 
 這階段正面解掉兩個先前掛著的已知問題 —— 會員上傳後看不到東西的話，前面全白做。
 
