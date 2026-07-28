@@ -69,6 +69,21 @@ async function main() {
     if (post.image?.src) realMediaFilenames.add(migrationFilename(post.image.src))
   }
 
+  // Inline images inside post bodies. Easy to miss — they are not in any
+  // `images` array, only in the compiled MDX as resolved <img> src values,
+  // which is exactly how the migration registers them. Omitting them here
+  // classified all 112 as test junk and deleted their media rows, leaving
+  // every upload node in the 8 affected posts pointing at nothing (the
+  // underlying R2 objects survived, since the delete hook targets the
+  // flattened `filename`, not the real slash-separated key).
+  const imgCall = /\w+\.img\s*,\s*\{([^}]*)\}/g
+  for (const post of postsSource as (VelitePost & { body?: string })[]) {
+    for (const match of (post.body ?? '').matchAll(imgCall)) {
+      const src = match[1].match(/src\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1]
+      if (src) realMediaFilenames.add(migrationFilename(src))
+    }
+  }
+
   const report = {
     posts: [] as string[],
     galleries: [] as string[],
