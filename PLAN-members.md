@@ -101,7 +101,15 @@ erDiagram
 
 ---
 
-### M1 — 內容歸屬與隔離
+### M1 — 內容歸屬與隔離 ✅ 已完成（`031ce6a`）
+
+本地 8/8、staging 8/8；變異測試確認 M1-T3/T4/T6 在舊的寬鬆規則下會失敗。remote D1 已套用 `20260728_042531_add_content_owner`，回填後 21 篇文章 / 24 相簿 / 418 media / 全部 authors 皆有 owner，無 NULL。
+
+實作上 owner 防護做了兩層：欄位級 access 在 `beforeValidate` 剝掉偽造的 `owner`，`setOwner` hook 再於 `beforeChange` 蓋上真正的擁有者（已確認 Payload 的執行順序是 beforeValidate 先於 beforeChange，所以兩者不衝突）。
+
+回填放進 migration 而非獨立腳本，這樣每個環境都會自動執行、且與 schema 變更同一個交易單位。
+
+
 
 **改動**
 - `posts` / `galleries` / `media` / `authors` 各加 `owner`（relationship → users，`index: true`，欄位級寫入限 admin）
