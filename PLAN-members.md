@@ -278,7 +278,17 @@ SELECT COALESCE(SUM(filesize), 0) FROM media WHERE owner_id = ?
 
 ---
 
-### M6 — 會員 AI
+### M6 — 會員 AI ✅ 已完成（`a52c83e`）
+
+本地 5/5（含既有 P4 回歸 4/4）；staging 6 過/1 掛/2 跳過。變異測試確認把 IP 加回限流 key 後 M6-T3 會失敗。
+
+**兩個過程中發現、值得記錄的邊界**：
+1. `cf-connecting-ip` 是 Cloudflare 保留 header，客戶端自己設定會被 edge 層直接 403 擋掉（`error code: 1000`），根本進不到 Worker。測試改用 `x-forwarded-for` + User-Agent 驗證同一件事。
+2. **60 秒限流視窗在真實部署上結構性驗不到**：真實 Workers AI 一次呼叫要 ~10 秒，11 次連續呼叫要 ~110 秒，視窗還沒撐到第 11 次就先重置了。`P4-T5` 其實從 M0 階段開始就一直在每次全站回歸的失敗清單裡——只是之前 30 秒的 Playwright 逾時讓它連跑到會暴露這個問題的那一步都到不了。兩個限流視窗測試現在對非本地環境自動跳過，本地用 stub 保留完整驗證。
+
+**發現但沒有修的問題**：`P4-T4/T7`（AI widget 存草稿流程）在本地和 staging 都會失敗，用乾淨的 pre-M6 tree 確認過是既有問題、與這次改動無關。留給之後單獨查。
+
+
 
 現有 `/api/ai/expand-post` 只檢查 `req.user`，會員本來就能用，這階段以驗證為主。
 
