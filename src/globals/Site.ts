@@ -1,5 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
+import { isAdmin } from '../access'
 import { revalidateSiteGlobal } from '../collections/hooks/revalidate'
 
 export const Site: GlobalConfig = {
@@ -9,7 +10,8 @@ export const Site: GlobalConfig = {
   },
   access: {
     read: () => true,
-    update: ({ req: { user } }) => Boolean(user),
+    // Site-wide settings (hero, nav, metadata) are admin-only.
+    update: isAdmin,
   },
   fields: [
     {
