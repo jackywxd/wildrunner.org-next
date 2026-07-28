@@ -29,10 +29,10 @@
     "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts --dry-run",
     "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts --remote",
     "cleanup:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file=.env.local scripts/cleanup-staging-test-data.ts",
-    "build:staging": "cross-env CLOUDFLARE_ENV=staging NEXT_PUBLIC_SITE_URL=https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev R2_PUBLIC_URL=https://pub-f82e5464c241415f9ea3f879e8f46e7f.r2.dev opennextjs-cloudflare build --env staging",
-    "deploy:staging": "pnpm run build:staging && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging",
-    "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/preflight-production.ts",
-    "build:prod": "cross-env NEXT_PUBLIC_SITE_URL=https://wildrunner.org R2_PUBLIC_URL=https://images.wildrunner.org NEXT_PUBLIC_ENV=production S3_ACCESS_KEY_ID= S3_SECRET_ACCESS_KEY= S3_ENDPOINT= S3_BUCKET= opennextjs-cloudflare build",
+    "build:staging": "node scripts/with-env.mjs .env.staging opennextjs-cloudflare build --env staging",
+    "deploy:staging": "pnpm run build:staging && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging",
+    "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.production scripts/preflight-production.ts",
+    "build:prod": "node scripts/with-env.mjs .env.production opennextjs-cloudflare build",
     "deploy:prod": "pnpm run build:prod && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare deploy"
   },
   "dependencies": {

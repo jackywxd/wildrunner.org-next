@@ -84,6 +84,25 @@ if (hits.length > 0) {
   process.exit(1)
 }
 
+// Also report what the bundle was actually built with. A build that picked
+// up the wrong environment file is the failure this whole setup exists to
+// prevent, and it is invisible otherwise — a staging URL in a production
+// bundle produces no error, just an admin whose every write is silently
+// rejected by Payload's CSRF check.
+const envFile = path.join(bundleDir, 'cloudflare', 'next-env.mjs')
+if (fs.existsSync(envFile)) {
+  const text = fs.readFileSync(envFile, 'utf8')
+  const inlined = {}
+  for (const key of ['NEXT_PUBLIC_SITE_URL', 'NEXT_PUBLIC_ENV', 'R2_PUBLIC_URL']) {
+    const found = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"]*)"`))
+    inlined[key] = found ? found[1] : '(absent)'
+  }
+  console.log('assert-no-secrets: bundle built with')
+  for (const [key, value] of Object.entries(inlined)) {
+    console.log(`  ${key.padEnd(22)} ${value}`)
+  }
+}
+
 console.log(
   `assert-no-secrets: OK — ${secrets.length} credential(s) checked, none present in the bundle.`,
 )
