@@ -13,12 +13,15 @@
 	},
 	"d1_databases": [
 		{
-			// `remote: true` is honoured only when the caller also asks for
-			// remote bindings, i.e. NODE_ENV=production — which `next build`
-			// sets. So a production build prerenders from the real database,
-			// while `next dev` and CLI scripts still get the local one.
-			// Without it the build falls back to local SQLite and several
-			// static-generation workers deadlock on it (SQLITE_BUSY).
+			// Needed by `build:prod`: without remote bindings the build falls
+			// back to local SQLite and Next's parallel static-generation
+			// workers deadlock on it (SQLITE_BUSY).
+			//
+			// `next dev` reads this same flag through
+			// initOpenNextCloudflareForDev, which is why that call passes
+			// `remoteBindings: false` — otherwise dev tries to open a remote
+			// session and fails wherever Cloudflare credentials are absent,
+			// e.g. CI.
 			"binding": "D1",
 			"database_name": "wildrunner-org-next",
 			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",

@@ -95,4 +95,10 @@ const nextConfig: NextConfig = {
 
 export default withPayload(nextConfig, { devBundleServerPackages: false });
 
-initOpenNextCloudflareForDev();
+// `remoteBindings: false` explicitly: this reads the same wrangler.jsonc
+// binding flags the production build relies on, and would otherwise open a
+// remote session on every `next dev`. That needs Cloudflare credentials,
+// which CI has none of — the dev server then fails to start and the whole
+// e2e suite dies before its first test. Local development wants the local
+// emulated D1/R2 anyway; only `build:prod` needs the real ones.
+initOpenNextCloudflareForDev({ remoteBindings: false });
