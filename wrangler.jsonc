@@ -53,6 +53,22 @@
 		"enabled": true,
 		"head_sampling_rate": 1
 	},
+	// Non-secret runtime config. Code in this repo reads process.env.X in two
+	// different places with two different lifetimes: a module-top-level read
+	// (e.g. payload.config.ts's `secret: process.env.PAYLOAD_SECRET`) gets
+	// evaluated once during `next build`, so a value in .env.local on the
+	// build machine is baked into the bundle as a literal — but a read
+	// inside a request handler (e.g. isEmailConfigured() in
+	// src/lib/email.ts, called per-request) is evaluated by the deployed
+	// Worker at runtime, where process.env only reflects real Workers
+	// bindings (`vars` here, or `wrangler secret put`) — .env.local is never
+	// seen by a deployed Worker at all. Confirmed the hard way: an invite
+	// silently never sent until RESEND_API_KEY was set as a real secret.
+	"vars": {
+		"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
+		"RESEND_FROM_NAME": "野馬營",
+		"MEMBER_STORAGE_QUOTA_MB": "10240"
+	},
 	"workers_dev": true,
 	"preview_urls": true,
 	// Production: zone routes on wildrunner.org (DNS proxied in Cloudflare).
@@ -116,6 +132,11 @@
 			"observability": {
 				"enabled": true,
 				"head_sampling_rate": 1
+			},
+			"vars": {
+				"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
+				"RESEND_FROM_NAME": "野馬營",
+				"MEMBER_STORAGE_QUOTA_MB": "10240"
 			},
 			"workers_dev": true,
 			"preview_urls": true,
