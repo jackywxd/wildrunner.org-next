@@ -17,6 +17,19 @@ pnpm test:e2e:ui
 
 Set `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` optionally. Defaults live in `e2e/helpers/auth.ts` for local/CI only — never use them in production.
 
+## CSRF and the Origin header
+
+Payload only honours the auth cookie when a request carries `Origin` (matching
+`serverURL`) or `Sec-Fetch-Site`; anything else is treated as a non-browser
+client and authenticates as nobody — a silent 403 on every write, not an auth
+error. Browsers always send one of the two, `APIRequestContext` sends neither,
+so `playwright.config.ts` sets `Origin` explicitly. Request contexts built by
+hand (`request.newContext()`) do **not** inherit it — use the helpers in
+`e2e/helpers/members.ts`.
+
+This means `PLAYWRIGHT_BASE_URL` must match the target's `serverURL`
+(`NEXT_PUBLIC_SITE_URL` at build time), or every authenticated test fails.
+
 ## Suites
 
 | Path | Covers |
