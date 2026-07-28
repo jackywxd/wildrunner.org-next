@@ -1,15 +1,18 @@
 "use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import { AlignLeft, X } from "lucide-react";
-import { siteConfig } from "@/config/site";
-import HeaderNav from "@/components/header-nav";
-import { Button } from "@/components/ui/button";
-import MobileNav from "@/components/mobile-nav";
-import ThemeToggle from "@/components/theme-toggle";
-import SiteLogo from "@/components/site-logo";
 
-export default function SiteHeader() {
+import HeaderNav from "@/components/header-nav";
+import MobileNav from "@/components/mobile-nav";
+import SiteLogo from "@/components/site-logo";
+import ThemeToggle from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { siteConfig } from "@/config/site";
+import type { NavItemData } from "@/lib/nav";
+
+export default function SiteHeader({ navItems }: { navItems: NavItemData[] }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b-2 border-b-border bg-background px-2">
@@ -18,7 +21,7 @@ export default function SiteHeader() {
           <SiteLogo />
         </Link>
         <div className="flex items-center space-x-3 md:space-x-5">
-          <HeaderNav />
+          <HeaderNav items={navItems} />
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -37,7 +40,10 @@ export default function SiteHeader() {
         </div>
       </div>
       {isMobileOpen && (
-        <MobileNav onOpenChange={() => setIsMobileOpen(false)} />
+        <MobileNav
+          items={navItems}
+          onOpenChange={() => setIsMobileOpen(false)}
+        />
       )}
     </header>
   );

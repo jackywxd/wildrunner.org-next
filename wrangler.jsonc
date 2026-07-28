@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
 	"name": "wildrunner-org-next",
-	"compatibility_date": "2026-07-19",
+	"compatibility_date": "2026-07-27",
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"
@@ -11,6 +11,31 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"d1_databases": [
+		{
+			// Needed by `build:prod`: without remote bindings the build falls
+			// back to local SQLite and Next's parallel static-generation
+			// workers deadlock on it (SQLITE_BUSY).
+			//
+			// `next dev` reads this same flag through
+			// initOpenNextCloudflareForDev, which is why that call passes
+			// `remoteBindings: false` — otherwise dev tries to open a remote
+			// session and fails wherever Cloudflare credentials are absent,
+			// e.g. CI.
+			"binding": "D1",
+			"database_name": "wildrunner-org-next",
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+			"remote": true
+		},
+		{
+			// Same database, second binding: OpenNext's tag cache looks for
+			// this exact binding name. Backs revalidatePath/revalidateTag.
+			"binding": "NEXT_TAG_CACHE_D1",
+			"database_name": "wildrunner-org-next",
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+			"remote": true
+		}
+	],
 	"services": [
 		{
 			// Self-reference service binding, the service name must match the worker name
@@ -20,12 +45,15 @@
 		}
 	],
 	"r2_buckets": [
-		// Use R2 incremental cache
-		// See https://opennext.js.org/cloudflare/caching
+		{
+			"binding": "R2",
+			"bucket_name": "wildrunner-storage",
+			"remote": true
+		},
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			// Create before deploy: pnpm wrangler r2 bucket create wildrunner-org-next-opennext-cache
-			"bucket_name": "wildrunner-org-next-opennext-cache"
+			"bucket_name": "wildrunner-org-next-opennext-cache",
+			"remote": true
 		}
 	],
 	"images": {
@@ -33,8 +61,33 @@
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	},
+	"stream": {
+		"binding": "STREAM",
+		"remote": true
+	},
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	// Non-secret runtime config. Code in this repo reads process.env.X in two
+	// different places with two different lifetimes: a module-top-level read
+	// (e.g. payload.config.ts's `secret: process.env.PAYLOAD_SECRET`) gets
+	// evaluated once during `next build`, so a value in .env.local on the
+	// build machine is baked into the bundle as a literal — but a read
+	// inside a request handler (e.g. isEmailConfigured() in
+	// src/lib/email.ts, called per-request) is evaluated by the deployed
+	// Worker at runtime, where process.env only reflects real Workers
+	// bindings (`vars` here, or `wrangler secret put`) — .env.local is never
+	// seen by a deployed Worker at all. Confirmed the hard way: an invite
+	// silently never sent until RESEND_API_KEY was set as a real secret.
+	"vars": {
+		"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
+		"RESEND_FROM_NAME": "野馬營",
+		"MEMBER_STORAGE_QUOTA_MB": "10240"
 	},
 	"workers_dev": true,
 	"preview_urls": true,
@@ -48,5 +101,87 @@
 			"pattern": "www.wildrunner.org/*",
 			"zone_name": "wildrunner.org"
 		}
-	]
+	],
+	// Staging: fully isolated — its own D1, its own upload bucket, its own
+	// ISR cache, workers.dev only, no custom domain routes.
+	//
+	// It used to share production's database, which cost real damage: e2e
+	// runs overwrote the live homepage hero twice, and a cleanup script
+	// deleted 112 media rows that published posts depended on. Seeded from a
+	// production export so content matches at the split; it drifts from here
+	// on, which is the point.
+	"env": {
+		"staging": {
+			"name": "wildrunner-org-next-staging",
+			"assets": {
+				"directory": ".open-next/assets",
+				"binding": "ASSETS"
+			},
+			"d1_databases": [
+				{
+					"binding": "D1",
+					"database_name": "wildrunner-org-next-staging",
+					"database_id": "12ce2f4f-dbd8-447d-b5a2-d934d5e3b2e1",
+					"remote": true
+				},
+				{
+					"binding": "NEXT_TAG_CACHE_D1",
+					"database_name": "wildrunner-org-next-staging",
+					"database_id": "12ce2f4f-dbd8-447d-b5a2-d934d5e3b2e1",
+					"remote": true
+				}
+			],
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "wildrunner-org-next-staging"
+				}
+			],
+			"r2_buckets": [
+				{
+					// New uploads land here, never in the production bucket.
+					// Migrated media is deliberately NOT copied: those rows
+					// store absolute images.wildrunner.org URLs, public and
+					// read-only from staging's side — so 10.5 GB stays
+					// un-duplicated while staging still cannot damage it.
+					"binding": "R2",
+					"bucket_name": "wildrunner-storage-staging",
+					"remote": true
+				},
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "wildrunner-org-next-opennext-cache-staging",
+					"remote": true
+				}
+			],
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ai": {
+				"binding": "AI",
+				"remote": true
+			},
+			"stream": {
+				"binding": "STREAM",
+				"remote": true
+			},
+			"observability": {
+				"enabled": true,
+				"head_sampling_rate": 1
+			},
+			"vars": {
+				"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
+				"RESEND_FROM_NAME": "野馬營",
+				"MEMBER_STORAGE_QUOTA_MB": "10240"
+			},
+			"workers_dev": true,
+			"preview_urls": true,
+			// Explicit empty routes: wrangler environments inherit top-level
+			// `routes` unless overridden, so without this the staging deploy
+			// tries to claim wildrunner.org/* for this worker too (only a 409
+			// from Cloudflare, because the production Worker already owns
+			// those routes, stopped that from actually happening).
+			"routes": []
+		}
+	}
 }

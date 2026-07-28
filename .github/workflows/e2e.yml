@@ -1,0 +1,77 @@
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/payload-cms-migration
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      # No `version:` here on purpose — action-setup@v4 errors out when a
+      # version is given here *and* in package.json's `packageManager`.
+      # package.json is the single source of truth (pnpm@10.12.4).
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Assert Cloudflare bindings
+        run: pnpm assert:bindings
+      - name: Assert Workers Builds LFS policy
+        run: pnpm assert:lfs
+      - name: Apply local D1 migrations
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm payload migrate
+      - name: Migration dry-run counts
+        run: pnpm migrate:velite:dry
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+          NEXTJS_ENV: test
+          GIT_LFS_SKIP_SMUDGE: "1"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm test:e2e
+      - name: OpenNext Cloudflare build
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          NEXT_PUBLIC_ENV: test
+          # This runner has no Cloudflare credentials, so payload.config
+          # falls back to local emulated D1 — which several parallel static
+          # generation workers cannot share. See next.config.ts.
+          NEXT_BUILD_CPUS: "1"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm exec opennextjs-cloudflare build
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

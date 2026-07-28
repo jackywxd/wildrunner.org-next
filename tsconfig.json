@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "#site/content": ["./.velite"]
+      "#site/content": ["./.velite"],
+      "@payload-config": ["./src/payload.config.ts"]
     }
   },
   "include": [

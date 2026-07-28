@@ -52,22 +52,19 @@ flowchart TB
 ### 运行时（Workers）
 
 - **Next.js 15 App Router** 经 [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) 打包为 Worker
-- **Workers Static Assets**：JS/CSS/字体等静态资源
-- **路由**：`wildrunner.org/*`、`www.wildrunner.org/*`（zone routes，见 `wrangler.jsonc`）
-- **图片优化**：`IMAGES` binding（Cloudflare Images）
+- **Payload CMS 3**：编辑后台 `/admin`，内容存 **D1**，媒体原件存 **R2**
+- **图片优化**：`IMAGES` binding + `next/image`
+- **视频**：Cloudflare **Stream**（`STREAM` binding）
+- **AI**：Workers AI（`AI` binding）辅助写作
 - **ISR/增量缓存**：R2 bucket `wildrunner-org-next-opennext-cache`
-- **动态能力**：`/og`（Open Graph 图）；其余页面多为 SSG
-- **分析**：可选 Cloudflare Web Analytics（`NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN`）
 
-### 构建时（Node ≥ 22）
+### 构建时
 
-- **Velite**：MDX → `.velite/*.json`；`src/content` 内本地图/视频经 sharp/HEIC → WebP 后上传 R2
-- **日常 `pnpm build`** 不跑 Velite（使用已有 `.velite`）；内容或媒体变更时执行 `pnpm content`
-- **媒体**：图片/视频与 MDX 同仓管理，经 **Git LFS** 跟踪（见 `.gitattributes`）
+- 生产 `pnpm build` / Workers Builds：**不跑 Velite**
+- 内容迁移：`pnpm migrate:velite`（从已提交的 `.velite` JSON 导入 Payload）
+- 日常发文/建相册：Payload Admin
 
-### 不包含
-
-数据库、鉴权、Server Actions、Cron、Docker、Traefik、PostHog。
+> 分支 `feat/payload-cms-migration` 完成切流前，请以 [`docs/payload-migration.md`](docs/payload-migration.md) 为准。
 
 ---
 
@@ -103,31 +100,33 @@ wildrunner.org-next/
 
 ---
 
-## 本地开发
+## 本地开发（Payload）
 
 ```bash
-nvm use 24          # 或任意 Node ≥ 22
+nvm use 24
 pnpm install
-cp .env.example .env.local   # 填入 R2 与站点 URL
-git lfs pull                 # 拉取 content 媒体（约 11GB，仅本机）
+cp .env.example .env.local   # 必填 PAYLOAD_SECRET
+cp .dev.vars.example .dev.vars
 
-pnpm content                 # 内容/媒体变更后：重建 .velite 并上传 R2；再 commit .velite/
-pnpm dev                     # http://localhost:3000
-pnpm preview                 # 本地 workerd
-pnpm deploy                  # 部署到 Cloudflare Workers（或 push main 走 CI）
+pnpm payload migrate
+pnpm migrate:velite:dry
+pnpm migrate:velite           # 可选：把 `.velite` 导入本地 D1/R2
+pnpm dev                     # http://localhost:3000 与 /admin
+pnpm test:e2e
 ```
 
-> 发布新媒体：本机 `pnpm content` → `git add .velite src/content` → commit → push `main`。Workers Builds **不会**跑 Velite。
+内容日常在 `/admin` 管理。Velite/`pnpm content` 仅作历史迁移工具，详见 [`docs/payload-migration.md`](docs/payload-migration.md)。
+
 ### 常用脚本
 
 | 命令 | 作用 |
 |------|------|
-| `pnpm dev` | 本地 Next 开发 |
-| `pnpm content` | Velite（自动加载 `.env.local`，图处理 + R2 上传） |
-| `pnpm build` | `next build`（需已有 `.velite`） |
-| `pnpm build:content` | Velite + Next |
-| `pnpm preview` | OpenNext 构建 + 本地 wrangler 预览 |
-| `pnpm deploy` | OpenNext 构建并部署到 Cloudflare |
+| `pnpm dev` | Next + Payload Admin |
+| `pnpm payload migrate` | 应用 D1 schema migrations |
+| `pnpm migrate:velite` | 幂等导入 `.velite` → Payload |
+| `pnpm test:e2e` | Playwright 门禁 |
+| `pnpm assert:bindings` | 校验 wrangler D1/R2/AI/IMAGES/STREAM |
+| `pnpm preview` / `pnpm deploy` | OpenNext 预览 / 部署 |
 
 ### 环境变量
 
@@ -135,10 +134,12 @@ pnpm deploy                  # 部署到 Cloudflare Workers（或 push main 走 
 
 | 变量 | 用途 |
 |------|------|
+| `PAYLOAD_SECRET` | Payload CMS（必需） |
 | `NEXT_PUBLIC_SITE_URL` | 站点绝对 URL（OG/元数据） |
 | `NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` | 可选 Web Analytics |
+| `NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE` | 可选 Stream 客户域 |
 | `R2_PUBLIC_URL` | 媒体公开基址 |
-| `S3_*` | R2 S3 API（仅 `pnpm content` 需要） |
+| `S3_*` | 仅遗留 Velite 本机处理 |
 
 ---
 
@@ -151,7 +152,7 @@ nvm use 24
 export NEXT_PUBLIC_SITE_URL=https://wildrunner.org
 export NEXT_PUBLIC_ENV=production
 export R2_PUBLIC_URL=https://images.wildrunner.org
-# 如需重建内容，另设 S3_* 后执行 pnpm content
+pnpm payload migrate
 pnpm deploy
 ```
 
@@ -159,21 +160,15 @@ Worker 配置见 [`wrangler.jsonc`](./wrangler.jsonc)：
 
 - 名称：`wildrunner-org-next`
 - Routes：`wildrunner.org/*`、`www.wildrunner.org/*`
-- R2 cache：`wildrunner-org-next-opennext-cache`
-- Bindings：`ASSETS`、`IMAGES`、`NEXT_INC_CACHE_R2_BUCKET`、`WORKER_SELF_REFERENCE`
-- Observability：已开启
+- Bindings：`D1`、`R2`、`IMAGES`、`STREAM`、`AI`、`ASSETS`、`NEXT_INC_CACHE_R2_BUCKET`
 
 ### CI（Workers Builds）
 
-将 GitHub 仓库接到 Cloudflare Workers Builds：**push `main` 自动部署**。
-
-- CI **不跑** Velite、**不拉** Git LFS（媒体约 11GB，在本机 `pnpm content` 后上传 R2）。
-- 仓库内提交 `.velite/`；Build = OpenNext + `patch-assets-headers`，再 deploy。
-- 配置清单见 [docs/workers-builds.md](./docs/workers-builds.md)。
+push `main` 自动部署。**不跑 Velite、不拉 Git LFS**。Build 含 `pnpm payload migrate` + OpenNext。清单见 [docs/workers-builds.md](./docs/workers-builds.md)。
 
 ### DNS
 
-域名已在 Cloudflare zone `wildrunner.org` 上，流量经 **Workers Routes** 进入本 Worker（橙色云代理）。媒体子域 `images.wildrunner.org` 指向 R2 公开访问。
+域名在 Cloudflare zone `wildrunner.org`，流量经 **Workers Routes** 进入本 Worker。媒体子域 `images.wildrunner.org` 指向 R2。
 
 ---
 
@@ -182,7 +177,18 @@ Worker 配置见 [`wrangler.jsonc`](./wrangler.jsonc)：
 | 路径 | 说明 |
 |------|------|
 | `/` | 首页：口号、最新文章、精选相册 |
-| `/posts`、`/posts/[...slug]` | 文章列表 / MDX 详情 |
+| `/posts`、`/posts/[...slug]` | 文章列表 / Lexical 详情 |
+| `/gallery`、`/gallery/[slug]` | 相册 |
+| `/gallery/[slug]/v/[videoId]` | Stream 视频页 |
+| `/admin` | Payload CMS |
+| `/about`、`/og` | 关于 / OG 图 |
+
+## 文档
+
+- [`docs/payload-migration.md`](docs/payload-migration.md)
+- [`docs/payload-testing.md`](docs/payload-testing.md)
+- [`docs/workers-builds.md`](docs/workers-builds.md)
+
 | `/gallery`、`/gallery/[slug]` | 相册 |
 | `/about` | 关于 |
 | `/og?title=` | 动态 OG 图 |
