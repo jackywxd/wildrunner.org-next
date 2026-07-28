@@ -31,11 +31,19 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(value) : undefined)
 
+// Anything run from a terminal rather than inside the Worker: the Payload
+// CLI, or any of this repo's own scripts. These need bindings via
+// getPlatformProxy, since getCloudflareContext only exists at runtime in a
+// deployed Worker. Matching the whole scripts/ directory rather than
+// listing files one by one — the previous per-file allowlist meant a new
+// script failed with a misleading "call initOpenNextCloudflareForDev" error.
+const scriptsDir = path.resolve(dirname, '..', 'scripts')
 const isCLI = process.argv.some((value) => {
   const resolved = realpath(value)
+  if (!resolved) return false
   return (
-    resolved?.endsWith(path.join('payload', 'bin.js')) ||
-    resolved?.endsWith(path.join('scripts', 'migrate-velite-to-payload.ts'))
+    resolved.endsWith(path.join('payload', 'bin.js')) ||
+    resolved.startsWith(scriptsDir + path.sep)
   )
 })
 const isProduction = process.env.NODE_ENV === 'production'

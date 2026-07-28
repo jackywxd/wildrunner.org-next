@@ -25,9 +25,10 @@
     "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "assert:bindings": "node scripts/assert-bindings.mjs",
     "assert:lfs": "node scripts/assert-no-lfs-in-builds.mjs",
-    "migrate:velite": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts",
-    "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts --dry-run",
-    "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrate-velite-to-payload.ts --remote"
+    "migrate:velite": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts",
+    "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts --dry-run",
+    "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts --remote",
+    "cleanup:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file=.env.local scripts/cleanup-staging-test-data.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
