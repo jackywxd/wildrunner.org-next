@@ -1,10 +1,14 @@
 import type { GlobalConfig } from 'payload'
 
-import { isAdmin } from '../access'
+import { isAdmin, isAdminUser } from '../access'
 import { revalidateSiteGlobal } from '../collections/hooks/revalidate'
 
 export const Site: GlobalConfig = {
   slug: 'site',
+  admin: {
+    // Members can't update it, so don't offer it to them.
+    hidden: ({ user }) => !isAdminUser(user),
+  },
   hooks: {
     afterChange: [revalidateSiteGlobal],
   },

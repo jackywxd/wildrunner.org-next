@@ -105,6 +105,33 @@ test.describe("M0 roles and privilege boundaries", () => {
     expect(response.status()).toBeGreaterThanOrEqual(400);
   });
 
+  test("M0-T9: member admin UI hides admin-only sections", async ({ page }) => {
+    // page.context().request shares the page's cookie jar, so logging in
+    // here authenticates the browser session too.
+    const login = await page.context().request.post("/api/users/login", {
+      data: TEST_MEMBER,
+    });
+    expect(login.ok()).toBeTruthy();
+
+    await page.goto("/admin");
+    await expect(page.getByRole("link", { name: "Posts" }).first()).toBeVisible();
+
+    const hrefs = await page
+      .locator('a[href^="/admin"]')
+      .evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href") ?? ""),
+      );
+
+    expect(hrefs.some((href) => href.startsWith("/admin/collections/users"))).toBe(
+      false,
+    );
+    expect(hrefs.some((href) => href.startsWith("/admin/globals/site"))).toBe(
+      false,
+    );
+    // Their own profile stays reachable.
+    expect(hrefs).toContain("/admin/account");
+  });
+
   test("M0-T8: admin can still edit the Site global", async () => {
     // Write the existing values straight back: this asserts the write path
     // without mutating real content (an earlier e2e run overwrote the live
