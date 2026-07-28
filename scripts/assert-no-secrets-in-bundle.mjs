@@ -26,8 +26,21 @@ if (!fs.existsSync(bundleDir)) {
   process.exit(1)
 }
 
-/** Values that must not appear anywhere in the build output. */
-const FORBIDDEN_KEYS = ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY']
+/**
+ * Values that must not appear anywhere in the build output.
+ *
+ * S3_* are R2 write credentials for the offline Velite pipeline.
+ * PAYLOAD_SECRET and RESEND_API_KEY are supplied as Worker secrets
+ * instead — OpenNext's populateProcessEnv assigns Cloudflare vars/secrets
+ * before falling back to build-time values (`??=`), so the runtime secret
+ * wins and nothing sensitive needs to ship inside the artifact.
+ */
+const FORBIDDEN_KEYS = [
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY',
+  'PAYLOAD_SECRET',
+  'RESEND_API_KEY',
+]
 
 const envLocal = path.join(root, '.env.local')
 const secrets = []
@@ -38,6 +51,8 @@ if (fs.existsSync(envLocal)) {
     const [, key, rawValue] = match
     const value = rawValue.trim().replace(/^["']|["']$/g, '')
     // Short values would match by coincidence all over a JS bundle.
+    // Compares against the REAL values from .env.local, so the harmless
+    // build-time placeholder in .env.<mode> is not flagged.
     if (FORBIDDEN_KEYS.includes(key) && value.length >= 12) {
       secrets.push({ key, value })
     }
@@ -79,7 +94,9 @@ if (hits.length > 0) {
   }
   console.error(
     '\nThese are R2 write credentials and would be readable inside the\n' +
-      'deployed Worker. Build with `pnpm build:prod`, which blanks them.\n',
+      'deployed Worker.\n\n' +
+      'S3_*        -> must be blank in the build env file\n' +
+      'PAYLOAD_*   -> must come from `wrangler secret put`, not the env file\n',
   )
   process.exit(1)
 }
