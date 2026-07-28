@@ -110,6 +110,16 @@ export default buildConfig({
   plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
+      // No `generateFileURL` here on purpose: the cloud-storage plugin's
+      // afterRead hook applies it to *every* read once set, recomputing the
+      // URL from `filename` unconditionally. Migrated media's real R2 key
+      // has slash-separated path segments (e.g. `posts/2023/utmb/cover.webp`)
+      // while its `filename` column is a flattened, sanitized value
+      // (`posts--2023--utmb--cover.webp`) — generateFileURL has no access to
+      // the original stored url to fall back to, so it silently rewrote
+      // every migrated image's url to a 404. New uploads get an absolute
+      // URL written explicitly instead, in Media's own beforeChange hook
+      // (setMediaUrl) — see media-url.ts.
       collections: { media: true },
     }),
   ],

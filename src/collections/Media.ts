@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAuthenticated, isOwner } from '../access'
 import { ownerField } from '../fields/owner'
+import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
 import { setOwner } from './hooks/owner'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
@@ -22,7 +23,7 @@ export const Media: CollectionConfig = {
   },
   hooks: {
     beforeOperation: [enforceStorageQuota],
-    beforeChange: [setOwner],
+    beforeChange: [setOwner, setMediaUrl],
     afterChange: [streamIngestOnUpload],
   },
   fields: [
