@@ -1,18 +1,45 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminUser } from '../access'
+import { inviteEmailHTML, inviteLinkFor } from '../lib/invite'
+import { clearInvitePending } from './hooks/clear-invite-pending'
 import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
 
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
     useAsTitle: 'email',
-    defaultColumns: ['email', 'role', 'updatedAt'],
+    defaultColumns: ['email', 'displayName', 'role', 'invitePending', 'updatedAt'],
     // Members still reach /admin/account for their own profile; this only
     // drops the collection from the sidebar. Access control is the gate.
     hidden: ({ user }) => !isAdminUser(user),
+    components: {
+      beforeListTable: ['@/components/admin/InviteMemberPanel#InviteMemberPanel'],
+    },
   },
-  auth: true,
+  auth: {
+    forgotPassword: {
+      // No `expiration` here on purpose: a value set on the collection wins
+      // over the per-call argument, and the invite endpoint needs to ask for
+      // a 7-day token while ordinary resets stay at the 1-hour default.
+      generateEmailSubject: (args) =>
+        args?.user?.invitePending ? '邀請你成為野馬營作者' : '重設你的野馬營密碼',
+      generateEmailHTML: (args) => {
+        const link = inviteLinkFor(
+          args?.req?.payload.config.serverURL ?? '',
+          args?.token ?? '',
+        )
+        if (args?.user?.invitePending) {
+          return inviteEmailHTML(link)
+        }
+        return `
+          <p>我們收到重設「野馬營」密碼的請求。</p>
+          <p><a href="${link}">${link}</a></p>
+          <p>如果不是你本人操作，忽略這封信即可，密碼不會變更。</p>
+        `
+      },
+    },
+  },
   access: {
     read: isAdminOrSelf,
     create: async ({ req }) => {
@@ -34,8 +61,50 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [ensureFirstUserIsAdmin],
+    afterLogin: [clearInvitePending],
   },
   fields: [
+    {
+      name: 'displayName',
+      type: 'text',
+      admin: {
+        description:
+          'Seeds the author alias shown on the site. The alias itself lives on the author record.',
+      },
+    },
+    {
+      name: 'invitePending',
+      type: 'checkbox',
+      defaultValue: false,
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'Cleared automatically the first time they sign in.',
+      },
+    },
+    {
+      name: 'invitedAt',
+      type: 'date',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      admin: { position: 'sidebar', readOnly: true },
+    },
+    {
+      name: 'invitedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      admin: { position: 'sidebar', readOnly: true },
+    },
     {
       name: 'role',
       type: 'select',

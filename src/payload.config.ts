@@ -23,6 +23,8 @@ import { Galleries } from './collections/Galleries'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
+import { inviteMemberEndpoint } from './endpoints/inviteMember'
+import { isEmailConfigured, resendAdapter } from './lib/email'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -71,7 +73,10 @@ export default buildConfig({
   },
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],
-  endpoints: [aiExpandPostEndpoint],
+  endpoints: [aiExpandPostEndpoint, inviteMemberEndpoint],
+  // Left undefined without a Resend key: Payload then logs mail to the
+  // console, and the invite endpoint hands the admin a link instead.
+  email: isEmailConfigured() ? resendAdapter : undefined,
   // Default feature set (bold/italic/headings/lists/links/upload/etc.) plus
   // table, code block with syntax highlighting, text color, and a fixed
   // toolbar for a more Notion-like editing experience.

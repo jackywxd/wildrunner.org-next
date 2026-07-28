@@ -134,6 +134,16 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   /**
+   * Seeds the author alias shown on the site. The alias itself lives on the author record.
+   */
+  displayName?: string | null;
+  /**
+   * Cleared automatically the first time they sign in.
+   */
+  invitePending?: boolean | null;
+  invitedAt?: string | null;
+  invitedBy?: (number | null) | User;
+  /**
    * Admins manage everything; members only their own content.
    */
   role: 'admin' | 'member';
@@ -370,6 +380,10 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
+  invitePending?: T;
+  invitedAt?: T;
+  invitedBy?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;
