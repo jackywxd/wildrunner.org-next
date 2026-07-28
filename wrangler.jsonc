@@ -89,9 +89,14 @@
 			"zone_name": "wildrunner.org"
 		}
 	],
-	// Staging: isolated Worker, workers.dev only, no custom domain routes.
-	// Reuses the same D1/R2 that production will eventually use, so the
-	// migrated content here is exactly what cuts over later.
+	// Staging: fully isolated — its own D1, its own upload bucket, its own
+	// ISR cache, workers.dev only, no custom domain routes.
+	//
+	// It used to share production's database, which cost real damage: e2e
+	// runs overwrote the live homepage hero twice, and a cleanup script
+	// deleted 112 media rows that published posts depended on. Seeded from a
+	// production export so content matches at the split; it drifts from here
+	// on, which is the point.
 	"env": {
 		"staging": {
 			"name": "wildrunner-org-next-staging",
@@ -102,14 +107,14 @@
 			"d1_databases": [
 				{
 					"binding": "D1",
-					"database_name": "wildrunner-org-next",
-					"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+					"database_name": "wildrunner-org-next-staging",
+					"database_id": "12ce2f4f-dbd8-447d-b5a2-d934d5e3b2e1",
 					"remote": true
 				},
 				{
 					"binding": "NEXT_TAG_CACHE_D1",
-					"database_name": "wildrunner-org-next",
-					"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+					"database_name": "wildrunner-org-next-staging",
+					"database_id": "12ce2f4f-dbd8-447d-b5a2-d934d5e3b2e1",
 					"remote": true
 				}
 			],
@@ -121,13 +126,18 @@
 			],
 			"r2_buckets": [
 				{
+					// New uploads land here, never in the production bucket.
+					// Migrated media is deliberately NOT copied: those rows
+					// store absolute images.wildrunner.org URLs, public and
+					// read-only from staging's side — so 10.5 GB stays
+					// un-duplicated while staging still cannot damage it.
 					"binding": "R2",
-					"bucket_name": "wildrunner-storage",
+					"bucket_name": "wildrunner-storage-staging",
 					"remote": true
 				},
 				{
 					"binding": "NEXT_INC_CACHE_R2_BUCKET",
-					"bucket_name": "wildrunner-org-next-opennext-cache",
+					"bucket_name": "wildrunner-org-next-opennext-cache-staging",
 					"remote": true
 				}
 			],

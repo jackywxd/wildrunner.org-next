@@ -34,6 +34,13 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "pub-3ea1cd399d6642049d046bde97886fe3.r2.dev",
       },
+      {
+        // Staging's own R2 bucket. Staging uploads land here rather than in
+        // the production bucket; migrated media still points at
+        // images.wildrunner.org, which staging only reads.
+        protocol: "https",
+        hostname: "pub-f82e5464c241415f9ea3f879e8f46e7f.r2.dev",
+      },
     ],
   },
   webpack: (webpackConfig) => {
