@@ -206,7 +206,13 @@ erDiagram
 
 ---
 
-### M4 — 10 GB 配額
+### M4 — 10 GB 配額 ✅ 已完成（`74f0785`）
+
+本地 7/7、staging 7/7；變異測試確認拿掉 quota hook 後 M4-T4 會失敗。remote D1 已套用 `20260728_051251_add_storage_quota`，後台用量元件已在 staging 實測渲染正確。
+
+`pasteURL: false` 一次關掉三件事：member 讓 Worker 抓任意 URL 的 SSRF、繞過配額檢查的路徑（伺服器端抓取不會先填 `req.file` 的大小）、以及當初造成 413 個 R2 重複物件的那個機制（遷移腳本走 `payload.db.create` 不受影響）。
+
+
 
 **設計**：不用計數器（會漂移），每次上傳直接對 D1 下一條 indexed 聚合查詢：
 
