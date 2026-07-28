@@ -25,6 +25,13 @@ const veliteDir = path.join(root, ".velite");
 
 const dryRun = process.argv.includes("--dry-run");
 const remote = process.argv.includes("--remote");
+/**
+ * Re-apply content to documents that already exist, instead of skipping
+ * them. Needed whenever the conversion itself changes (e.g. inline images
+ * that previously migrated as literal markdown text) — the plain idempotent
+ * run skips the whole document and would never pick the fix up.
+ */
+const refreshContent = process.argv.includes("--refresh-content");
 const skipVideos = process.argv.includes("--skip-videos");
 
 type VelitePost = {
@@ -37,6 +44,8 @@ type VelitePost = {
   date?: string;
   published?: boolean;
   raw?: string;
+  /** Compiled MDX; carries the resolved absolute URLs `raw` lacks. */
+  body?: string;
   image?: {
     src: string;
     width?: number;
@@ -218,21 +227,130 @@ function normalizeMdx(raw: string): string {
     .replace(/<([A-Z][A-Za-z0-9]*)[^>]*\/>/g, "[Unsupported component: $1]");
 }
 
-function postContentFromRaw(
+let inlineImagesConverted = 0;
+const inlineImagesUnresolved: string[] = [];
+
+type ResolvedInlineImage = {
+  src: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+  blurDataURL?: string;
+};
+
+/**
+ * Pulls already-resolved image URLs out of Velite's *compiled* MDX.
+ *
+ * `post.raw` keeps the author's original relative references
+ * (`![官方相片](1351735193109_.pic.jpg)`), which point at nothing once the
+ * content leaves the repo. Velite's build already did the work of resolving
+ * them — including converting to .webp and generating a blur placeholder —
+ * but only in the compiled `body`, as JSX calls:
+ *
+ *   l(i.img,{src:"https://images.wildrunner.org/posts/2024/…/x.pic.webp",
+ *            alt:"官方相片",width:"1024",height:"1536",blurdataurl:"data:…"})
+ *
+ * Keyed on the filename stem rather than document order: the compiled body
+ * also contains the cover image, so positional matching would shift every
+ * image in a post by one.
+ */
+function resolvedInlineImages(body?: string): Map<string, ResolvedInlineImage> {
+  const map = new Map<string, ResolvedInlineImage>();
+  if (!body) return map;
+
+  // The compiled MDX minifies its component namespace to a single-letter
+  // alias that differs per file (i.img in one post, a.img in another), so
+  // match any identifier rather than a fixed one.
+  const imgCall = /\w+\.img\s*,\s*\{([^}]*)\}/g;
+  const attr = (source: string, name: string) =>
+    source.match(new RegExp(`${name}\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`))?.[1];
+
+  for (const match of body.matchAll(imgCall)) {
+    const props = match[1];
+    const src = attr(props, "src");
+    if (!src) continue;
+
+    const stem = stemFromUrl(src);
+    if (!stem || map.has(stem)) continue;
+
+    const width = Number(attr(props, "width"));
+    const height = Number(attr(props, "height"));
+    map.set(stem, {
+      src,
+      alt: attr(props, "alt"),
+      width: Number.isFinite(width) ? width : undefined,
+      height: Number.isFinite(height) ? height : undefined,
+      blurDataURL: attr(props, "blurdataurl"),
+    });
+  }
+
+  return map;
+}
+
+/** Filename without directory or extension, for matching raw <-> resolved. */
+function stemFromUrl(value: string): string {
+  const withoutQuery = value.split("?")[0] ?? "";
+  const base = decodeURIComponent(withoutQuery.split("/").pop() ?? "");
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(0, dot) : base;
+}
+
+const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+
+async function postContentFromRaw(
+  payload: Awaited<ReturnType<typeof getPayload>>,
   editorConfig: LexicalRichTextAdapter["editorConfig"],
-  raw?: string,
+  post: VelitePost,
 ) {
-  const text = (raw ?? "").trim();
+  const text = (post.raw ?? "").trim();
   if (!text) {
     return convertMarkdownToLexical({
       editorConfig,
       markdown: "（迁移占位正文）",
     });
   }
-  return convertMarkdownToLexical({
-    editorConfig,
-    markdown: normalizeMdx(text),
-  });
+
+  const resolved = resolvedInlineImages(post.body);
+  let markdown = normalizeMdx(text);
+
+  // Rewrite each inline image to Payload's own upload-import placeholder,
+  // `![relationTo:id]()`, which its UploadMarkdownTransformer turns into a
+  // real upload node. Without this the markdown converter has no way to
+  // resolve the reference and leaves the literal `![alt](file.jpg)` text
+  // sitting in the body.
+  const replacements: { from: string; to: string }[] = [];
+  for (const match of markdown.matchAll(MARKDOWN_IMAGE)) {
+    const [full, alt, ref] = match;
+    const info = resolved.get(stemFromUrl(ref));
+    if (!info) {
+      inlineImagesUnresolved.push(`${post.slug}: ${ref}`);
+      continue;
+    }
+
+    const mediaId = await ensureMediaFromUrl(
+      payload,
+      info.src,
+      alt || info.alt || post.title,
+      {
+        width: info.width,
+        height: info.height,
+        blurDataURL: info.blurDataURL,
+      },
+    );
+    if (!mediaId || mediaId <= 0) {
+      inlineImagesUnresolved.push(`${post.slug}: ${info.src}`);
+      continue;
+    }
+
+    replacements.push({ from: full, to: `![media:${mediaId}]()` });
+    inlineImagesConverted += 1;
+  }
+
+  for (const { from, to } of replacements) {
+    markdown = markdown.replace(from, to);
+  }
+
+  return convertMarkdownToLexical({ editorConfig, markdown });
 }
 
 async function main() {
@@ -265,7 +383,17 @@ async function main() {
   }
 
   if (remote) {
-    Object.assign(process.env, { NODE_ENV: "production" });
+    // NODE_ENV alone is not enough. payload.config resolves bindings with
+    // `getPlatformProxy({ environment: process.env.CLOUDFLARE_ENV,
+    // remoteBindings: isProduction })` — without CLOUDFLARE_ENV it silently
+    // picks the *default* environment's local D1, so `--remote` would report
+    // a perfect migration while writing every row to the local database and
+    // leaving the remote one untouched. Default to staging, but respect an
+    // explicit CLOUDFLARE_ENV so this can target production at cutover.
+    Object.assign(process.env, {
+      NODE_ENV: "production",
+      CLOUDFLARE_ENV: process.env.CLOUDFLARE_ENV ?? "staging",
+    });
   }
   const { default: config } = await import("@payload-config");
   const payload = await getPayload({ config });
@@ -297,13 +425,28 @@ async function main() {
   }
 
   let postsCreated = 0;
+  let postsRefreshed = 0;
   for (const post of posts) {
     const existing = await payload.find({
       collection: "posts",
       limit: 1,
       where: { slug: { equals: post.slug } },
     });
-    if (existing.docs[0]) continue;
+    if (existing.docs[0]) {
+      if (!refreshContent || dryRun) continue;
+
+      // Content-only update: leaves ownership, status and publish date
+      // alone, so re-running this can't undo editorial changes made in the
+      // admin or reassign a post away from its owner.
+      await payload.update({
+        collection: "posts",
+        id: existing.docs[0].id,
+        data: { content: await postContentFromRaw(payload, editorConfig, post) },
+        overrideAccess: true,
+      });
+      postsRefreshed += 1;
+      continue;
+    }
 
     const authorEntry = post.author
       ? authors.find((a) => a.name === post.author)
@@ -333,7 +476,7 @@ async function main() {
         publishedAt: post.date,
         author: authorId,
         image: imageId && imageId > 0 ? imageId : undefined,
-        content: postContentFromRaw(editorConfig, post.raw),
+        content: await postContentFromRaw(payload, editorConfig, post),
         _status: post.published ? "published" : "draft",
       },
     });
@@ -341,6 +484,7 @@ async function main() {
   }
 
   let galleriesCreated = 0;
+  let galleriesRefreshed = 0;
   let imageCount = 0;
   let videoCount = 0;
   const streamPending: string[] = [];
@@ -350,8 +494,65 @@ async function main() {
       collection: "galleries",
       limit: 1,
       where: { slug: { equals: gallery.slug } },
+      depth: 0,
     });
-    if (existing.docs[0]) continue;
+    const existingGallery = existing.docs[0];
+
+    // A gallery that already exists but has no videos: the original
+    // migration ran with --skip-videos, so the images are right and only
+    // the video list is missing. Fill just that in rather than skipping the
+    // whole document (which is why the plain re-run added nothing).
+    if (existingGallery) {
+      const alreadyHasVideos = (existingGallery.videos ?? []).length > 0
+      if (skipVideos || dryRun || alreadyHasVideos || !(gallery.videos ?? []).length) {
+        continue;
+      }
+
+      const refreshedVideos: { media: number; videoId?: string }[] = [];
+      for (const video of gallery.videos ?? []) {
+        const mediaId = await ensureMediaFromUrl(
+          payload,
+          video.src,
+          `${gallery.name} ${video.filename}`,
+          { mimeType: video.mimeType ?? "video/mp4" },
+        );
+        if (!mediaId || mediaId <= 0) continue;
+
+        let streamId: string | undefined;
+        try {
+          const streamVideo = await platform.env.STREAM.upload(video.src, {
+            meta: { name: video.filename },
+          });
+          streamId = streamVideo.id;
+          await payload.update({
+            collection: "media",
+            id: mediaId,
+            data: { streamId, streamReady: streamVideo.readyToStream },
+            overrideAccess: true,
+          });
+        } catch (error) {
+          console.warn(`Stream ingest pending: ${video.src}`, error);
+        }
+
+        refreshedVideos.push({
+          media: mediaId,
+          videoId: video.id ?? videoIdFromFilename(video.filename),
+        });
+        videoCount += 1;
+        if (!streamId) streamPending.push(video.src);
+      }
+
+      if (refreshedVideos.length) {
+        await payload.update({
+          collection: "galleries",
+          id: existingGallery.id,
+          data: { videos: refreshedVideos },
+          overrideAccess: true,
+        });
+        galleriesRefreshed += 1;
+      }
+      continue;
+    }
 
     const images: { media: number; featured?: boolean }[] = [];
     for (const image of gallery.images ?? []) {
@@ -437,10 +638,14 @@ async function main() {
     remote,
     source: sourceCounts,
     posts: postsCreated,
+    postsRefreshed,
     galleries: galleriesCreated,
+    galleriesRefreshed,
     images: imageCount,
     videos: videoCount,
     streamPending: streamPending.length,
+    inlineImagesConverted,
+    inlineImagesUnresolved,
     authors: authors.length,
     globals: 1,
     manualReview: posts
