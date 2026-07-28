@@ -17,7 +17,7 @@
 | 決策 | 選擇 |
 |------|------|
 | 邀請信寄送 | **Resend HTTP API**（Workers 不支援 SMTP），未設定或寄送失敗時後台直接顯示邀請連結供管理員手動傳送 |
-| 會員後台可見範圍 | **自己的全部（含草稿）+ 別人已發布的**；只能編輯/刪除自己的 |
+| 會員後台可見範圍 | ~~自己的全部 + 別人已發布的~~ → **只看得到自己的**（`68aab1e`，實際用邀請帳號登入後改的決定） |
 | 會員發布權限 | **可直接發布**，不需審核 |
 
 ## 3. 目標資料模型
@@ -118,8 +118,8 @@ erDiagram
 
   | | 匿名 | member | admin |
   |---|---|---|---|
-  | read (posts/galleries) | 僅 published | 自己的 ∪ published | 全部 |
-  | read (media) | 全部（前台需要） | 全部 | 全部 |
+  | read (posts/galleries) | 僅 published | **只有自己的** | 全部 |
+  | read (media/authors) | 全部（前台需要） | **只有自己的** | 全部 |
   | create | ✗ | ✓ | ✓ |
   | update / delete | ✗ | `owner = 自己` | 全部 |
 
