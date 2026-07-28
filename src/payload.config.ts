@@ -118,6 +118,18 @@ export default buildConfig({
   plugins: [
     r2Storage({
       bucket: cloudflare.env.R2,
+      // Upload straight from the browser to R2 in ~5 MB multipart chunks
+      // instead of streaming the whole file through the Worker.
+      //
+      // Cloudflare caps a Worker's request body (100 MB on the lower
+      // plans), and exceeding it doesn't surface as an error the admin UI
+      // can show — the request is cut off at the edge, so a large video
+      // upload just silently does nothing. Gallery videos here run to
+      // 600 MB+, so this isn't an edge case for this site.
+      //
+      // Access defaults to the collection's own `create` rule, so members
+      // can upload and anonymous visitors still can't.
+      clientUploads: true,
       // No `generateFileURL` here on purpose: the cloud-storage plugin's
       // afterRead hook applies it to *every* read once set, recomputing the
       // URL from `filename` unconditionally. Migrated media's real R2 key
