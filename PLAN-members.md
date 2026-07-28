@@ -68,7 +68,13 @@ erDiagram
 
 ---
 
-### M0 — 角色地基與權限收口 ⚠️ 必須第一個做
+### M0 — 角色地基與權限收口 ✅ 已完成（`b6aed6e`、`8c716c3`）
+
+本地 9/9、staging 9/9 通過；並用「把權限改回舊版寬鬆規則」的變異測試確認 M0-T3/T4/T5/T6 會失敗，證明負面測試有效。remote D1 已套用 `20260728_032809_add_user_roles`。
+
+過程中發現並修掉一個獨立問題：設定 `serverURL` 會啟用 Payload 的 CSRF 檢查，導致不帶 `Origin`／`Sec-Fetch-Site` 的非瀏覽器客戶端（例如 Playwright 的 APIRequestContext）auth cookie 被忽略 —— 所有需要登入的 e2e 都靜默地以匿名身分執行。修正見 `a8b2a12`，瀏覽器不受影響（已對 staging 實測）。
+
+
 
 **為什麼優先**：目前 `Users` 的 access 是 `Boolean(user)` — 任何登入者都能讀取、修改、刪除**任何**使用者，`Site` global 也是。第二個帳號一存在，這就是一個直接的提權漏洞。**在任何會員帳號建立之前必須先補上。**
 
@@ -262,7 +268,8 @@ SELECT COALESCE(SUM(filesize), 0) FROM media WHERE owner_id = ?
 2. **端到端手動走一遍**：邀請你的第二個信箱 → 收信/取連結 → 設密碼 → 登入 → 改別名 → 上傳圖 → 寫文章 → 用 AI → 發布 → 前台看到 → 配額數字正確 → 確認改不了別人的東西
 3. **安全複查（逐條打勾）**：member 不能改 role、不能改別人內容、不能改 Site、不能看別人草稿、不能貼 URL 上傳、不能超配額
 4. `wrangler d1 export --remote` 備份
-5. 合併到 `main` → production 部署 → 建立真實 admin 帳號 → **刪除 `admin@wildrunner.test` 測試帳號**
+5. 合併到 `main` → production 部署 → 建立真實 admin 帳號 → **刪除測試帳號**（`admin@wildrunner.test`、`member@wildrunner.test`、`member2@wildrunner.test` — e2e 直接跑在 staging 共用的 D1 上，會留下這些帳號）
+6. 確認 production 建置的 `NEXT_PUBLIC_SITE_URL` 是 `https://wildrunner.org` —— 它同時決定 Payload 的 CSRF 允許來源，設錯會讓後台所有寫入被靜默拒絕
 
 ## 6. 風險
 
