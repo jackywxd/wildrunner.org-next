@@ -181,7 +181,11 @@ erDiagram
 
 ---
 
-### M3 — 別名（作者身分）
+### M3 — 別名（作者身分） ✅ 已完成（`9067361`）
+
+本地 7/7、staging 7/7；變異測試確認拿掉 `posts.author` 欄位級 access 後 M3-T6 會失敗。remote D1 已套用 `20260728_050120_add_user_author`——已驗證你原本的帳號接上了既有的「追雲逐雪 / jackywxd」而不是新建一筆空的 byline。
+
+
 
 **改動**
 - `Users.hooks.afterChange`（create）：自動建立一筆 `authors`，`name = displayName ?? email 的 @ 前段`，`slug` 自動去重，`owner` = 該使用者，並回填 `users.author`
