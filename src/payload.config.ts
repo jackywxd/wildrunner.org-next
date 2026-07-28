@@ -1,7 +1,14 @@
 import fs from 'fs'
 import path from 'path'
 import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import {
+  lexicalEditor,
+  BlocksFeature,
+  CodeBlock,
+  EXPERIMENTAL_TableFeature,
+  FixedToolbarFeature,
+  TextStateFeature,
+} from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
@@ -65,7 +72,18 @@ export default buildConfig({
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],
   endpoints: [aiExpandPostEndpoint],
-  editor: lexicalEditor(),
+  // Default feature set (bold/italic/headings/lists/links/upload/etc.) plus
+  // table, code block with syntax highlighting, text color, and a fixed
+  // toolbar for a more Notion-like editing experience.
+  editor: lexicalEditor({
+    features: ({ defaultFeatures }) => [
+      ...defaultFeatures,
+      EXPERIMENTAL_TableFeature(),
+      BlocksFeature({ blocks: [CodeBlock()] }),
+      TextStateFeature(),
+      FixedToolbarFeature(),
+    ],
+  }),
   secret: process.env.PAYLOAD_SECRET || '',
   // Without this, Payload's generateFilePathOrURL falls back to
   // `startsWith(serverURL || '')`, and every string starts with '', so it
