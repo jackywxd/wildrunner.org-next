@@ -30,7 +30,8 @@
     "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/migrate-velite-to-payload.ts --remote",
     "cleanup:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file=.env.local scripts/cleanup-staging-test-data.ts",
     "build:staging": "cross-env CLOUDFLARE_ENV=staging NEXT_PUBLIC_SITE_URL=https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev R2_PUBLIC_URL=https://pub-f82e5464c241415f9ea3f879e8f46e7f.r2.dev opennextjs-cloudflare build --env staging",
-    "deploy:staging": "pnpm run build:staging && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging"
+    "deploy:staging": "pnpm run build:staging && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging",
+    "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.local scripts/preflight-production.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
