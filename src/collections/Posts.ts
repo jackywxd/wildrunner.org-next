@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOrPublished } from '../access'
+import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOnly } from '../access'
 import { ownerField } from '../fields/owner'
 import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
@@ -19,7 +19,7 @@ export const Posts: CollectionConfig = {
     drafts: true,
   },
   access: {
-    read: ownedOrPublished,
+    read: ownedOnly,
     create: isAuthenticated,
     update: isOwner,
     delete: isOwner,

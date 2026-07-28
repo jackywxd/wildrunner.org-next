@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAuthenticated, isOwner } from '../access'
+import { isAuthenticated, isOwner, ownedOnlyPublicRead } from '../access'
 import { ownerField } from '../fields/owner'
 import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
@@ -15,8 +15,9 @@ export const Media: CollectionConfig = {
     },
   },
   access: {
-    // Public: every rendered page needs to resolve its images.
-    read: () => true,
+    // Anonymous keeps full read (the public site resolves images through
+    // it); a signed-in member sees only their own library.
+    read: ownedOnlyPublicRead,
     create: isAuthenticated,
     update: isOwner,
     delete: isOwner,

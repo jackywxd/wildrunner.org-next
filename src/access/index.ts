@@ -1,4 +1,4 @@
-import type { Access, FieldAccess } from 'payload'
+import type { Access, FieldAccess, Where } from 'payload'
 
 import type { User } from '@/payload-types'
 
@@ -37,19 +37,37 @@ export const isAdminOrSelf: Access = ({ req: { user } }) => {
 }
 
 /**
- * Read rule for draft-enabled content: the public sees published documents,
- * a member additionally sees everything they own (including their drafts),
- * and other members' drafts stay hidden.
+ * Read rule for draft-enabled content (posts, galleries).
+ *
+ * A member sees only their own work in the admin — not other members'
+ * published content. The public site is unaffected: it queries through the
+ * Local API, which defaults to `overrideAccess: true`, and enforces
+ * visibility with an explicit `where: { _status: 'published' }` instead.
+ * So a member's published post is still public; it just doesn't clutter
+ * (or leak through) anyone else's admin list.
  */
-export const ownedOrPublished: Access = ({ req: { user } }) => {
+export const ownedOnly: Access = ({ req: { user } }) => {
   if (isAdminUser(user)) return true
 
-  const published = { _status: { equals: 'published' } }
-  if (!user) return published
+  // No session: the REST API is the only caller that lands here, and it
+  // should still expose published content.
+  if (!user) return { _status: { equals: 'published' } } as Where
 
-  return {
-    or: [{ owner: { equals: user.id } }, published],
-  }
+  return { owner: { equals: user.id } } as Where
+}
+
+/**
+ * Read rule for collections without a draft status (media, authors).
+ *
+ * Same shape as `ownedOnly` minus the published fallback — anonymous
+ * readers keep full read access because these are the records the public
+ * site resolves images and bylines from.
+ */
+export const ownedOnlyPublicRead: Access = ({ req: { user } }) => {
+  if (isAdminUser(user)) return true
+  if (!user) return true
+
+  return { owner: { equals: user.id } }
 }
 
 /** Write rule: admins anywhere, members only on documents they own. */

@@ -149,16 +149,74 @@ test.describe("M1 content ownership", () => {
     ).toBe(memberUserId);
   });
 
-  test("M1-T6: a member sees own drafts and others' published, not others' drafts", async () => {
+  test("M1-T6: a member's post list contains only their own work", async () => {
     const response = await member.get("/api/posts?limit=300&depth=0");
     expect(response.ok()).toBeTruthy();
-    const slugs = (await response.json()).docs.map(
-      (doc: { slug: string }) => doc.slug,
-    );
+    const docs = (await response.json()).docs as {
+      slug: string;
+      owner: number | { id: number } | null;
+    }[];
+    const slugs = docs.map((doc) => doc.slug);
 
     expect(slugs).toContain(memberDraftSlug);
-    expect(slugs).toContain(adminPublishedSlug);
+    // Neither other people's drafts nor their published posts — the admin
+    // is a workspace for your own work, not a view of the whole site.
     expect(slugs).not.toContain(adminDraftSlug);
+    expect(slugs).not.toContain(adminPublishedSlug);
+
+    // Nothing at all in the list belongs to anyone else.
+    const foreign = docs.filter((doc) => ownerId(doc) !== memberUserId);
+    expect(
+      foreign.map((doc) => doc.slug),
+      "member's list leaked documents owned by others",
+    ).toEqual([]);
+  });
+
+  test("M1-T9: a member's media and gallery lists are equally scoped", async () => {
+    for (const collection of ["media", "galleries"] as const) {
+      const response = await member.get(
+        `/api/${collection}?limit=300&depth=0`,
+      );
+      expect(response.ok()).toBeTruthy();
+      const docs = (await response.json()).docs as {
+        id: number;
+        owner: number | { id: number } | null;
+      }[];
+
+      const foreign = docs.filter((doc) => ownerId(doc) !== memberUserId);
+      expect(
+        foreign.map((doc) => doc.id),
+        `${collection} list leaked documents owned by others`,
+      ).toEqual([]);
+    }
+  });
+
+  test("M1-T10: a member's author list shows only their own byline", async () => {
+    const response = await member.get("/api/authors?limit=300&depth=0");
+    expect(response.ok()).toBeTruthy();
+    const docs = (await response.json()).docs as {
+      id: number;
+      owner: number | { id: number } | null;
+    }[];
+
+    const foreign = docs.filter((doc) => ownerId(doc) !== memberUserId);
+    expect(
+      foreign.map((doc) => doc.id),
+      "author list leaked other members' bylines",
+    ).toEqual([]);
+  });
+
+  test("M1-T11: the public still reads media and authors anonymously", async () => {
+    // The scoping above must not cut off the anonymous path the public site
+    // resolves images and bylines through.
+    for (const collection of ["media", "authors"] as const) {
+      const response = await anon.get(`/api/${collection}?limit=5&depth=0`);
+      expect(response.ok()).toBeTruthy();
+      expect(
+        (await response.json()).totalDocs,
+        `anonymous read of ${collection} returned nothing`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   test("M1-T7: the public sees only published posts", async () => {
