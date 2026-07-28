@@ -33,6 +33,13 @@ const remote = process.argv.includes("--remote");
  */
 const refreshContent = process.argv.includes("--refresh-content");
 const skipVideos = process.argv.includes("--skip-videos");
+/**
+ * Cloudflare Stream ingest is opt-in: it bills per stored minute and the
+ * site plays gallery videos straight from R2. Without this every migration
+ * run fires 22 uploads that fail on quota and log an error each. Pass
+ * --with-stream (after buying capacity) to ingest.
+ */
+const withStream = process.argv.includes("--with-stream");
 
 type VelitePost = {
   title: string;
@@ -520,6 +527,7 @@ async function main() {
 
         let streamId: string | undefined;
         try {
+          if (!withStream) throw new Error("Stream ingest disabled (--with-stream)");
           const streamVideo = await platform.env.STREAM.upload(video.src, {
             meta: { name: video.filename },
           });
@@ -584,6 +592,7 @@ async function main() {
         let streamId: string | undefined;
         let streamReady = false;
         try {
+          if (!withStream) throw new Error("Stream ingest disabled (--with-stream)");
           const streamVideo = await platform.env.STREAM.upload(video.src, {
             meta: { name: video.filename },
           });

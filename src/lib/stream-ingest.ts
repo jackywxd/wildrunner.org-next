@@ -15,6 +15,16 @@ type IngestArgs = {
 export async function ingestVideoToStream(
   args: IngestArgs,
 ): Promise<{ id: string; readyToStream: boolean } | null> {
+  // Off by default: Stream bills per minute of stored video, and videos
+  // play fine straight from R2 (see StreamVideoPlayer). Leaving ingest on
+  // would fire a failing API call — and log an error — on every single
+  // video upload. Set STREAM_INGEST=true to turn it back on after buying
+  // Stream capacity; nothing else needs changing, the player already
+  // prefers Stream whenever a streamId exists.
+  if (process.env.STREAM_INGEST !== "true") {
+    return null;
+  }
+
   if (
     process.env.NODE_ENV !== "production" &&
     process.env.STREAM_INGEST_IN_DEV !== "true"

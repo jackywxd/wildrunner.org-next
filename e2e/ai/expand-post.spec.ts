@@ -112,13 +112,24 @@ test.describe("P4 AI expand post", () => {
       .fill("训练前先制定目标，然后逐步增加爬升。");
     await page.getByRole("button", { name: "AI 完善文章", exact: true }).click();
 
+    // Assert the editor received *expanded* content, not that it echoed the
+    // outline back. The original assertion looked for the input phrase
+    // verbatim, which only held for the old llama-3.1 model that parroted
+    // its input; llama-3.3-70b genuinely rewrites ("在开始越野跑或马拉松训
+    // 练之前，制定明确的目标..."), so that assertion passed or failed
+    // depending on the wording the model happened to pick.
     const editor = page.locator('[contenteditable="true"]').last();
-    await expect(editor).toContainText("训练前先制定目标", { timeout: 30_000 });
+    await expect(editor).not.toContainText("原始草稿段落", { timeout: 30_000 });
+    const expanded = (await editor.innerText()).trim();
+    expect(expanded.length).toBeGreaterThan(100);
+    expect(expanded).toMatch(/[\u3400-\u9fff]/);
 
+    // P4-T7: an error must leave the generated text alone rather than
+    // clearing the editor.
     await page.getByTestId("ai-assist-outline").fill("");
     await page.getByRole("button", { name: "AI 完善文章", exact: true }).click();
     await expect(page.getByTestId("ai-assist-error")).toBeVisible();
-    await expect(editor).toContainText("训练前先制定目标", { timeout: 30_000 });
+    expect((await editor.innerText()).trim()).toBe(expanded);
 
     // Wait for the save request itself to land. Clicking and immediately
     // reading the API is a race the test lost every time: the assertion ran
@@ -141,9 +152,11 @@ test.describe("P4 AI expand post", () => {
     expect(found.ok()).toBeTruthy();
     const body = await found.json();
     expect(body.doc?._status ?? body._status).toBe("draft");
-    expect(JSON.stringify(body.doc?.content ?? body.content)).toContain(
-      "训练前先制定目标",
-    );
+    const savedContent = JSON.stringify(body.doc?.content ?? body.content);
+    expect(savedContent).not.toContain("原始草稿段落");
+    // A prefix of what the editor showed — enough to prove the AI output is
+    // what got persisted, without depending on the model's exact wording.
+    expect(savedContent).toContain(expanded.slice(0, 12));
     expect(TEST_ADMIN.email).toBeTruthy();
   });
 });

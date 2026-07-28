@@ -65,9 +65,16 @@ test.describe("P5 gallery and stream UX", () => {
         .first(),
     ).toBeVisible();
 
+    // Videos play straight from R2 — Cloudflare Stream is a paid
+    // per-minute product and isn't in use, so streamId is null and the
+    // player falls back to a native <video> pointed at the original file.
+    // (This previously asserted the opposite: a "transcoding" placeholder
+    // and no video element.)
     await page.goto(`/gallery/${slug}/v/clip-${suffix}`);
-    await expect(page.getByTestId("stream-processing")).toBeVisible();
-    await expect(page.locator("video")).toHaveCount(0);
+    const player = page.getByTestId("direct-video");
+    await expect(player).toBeVisible();
+    await expect(player).toHaveAttribute("src", /^https?:\/\//);
+    await expect(page.getByTestId("stream-processing")).toHaveCount(0);
   });
 
   test("P5-T5/T6: reject illegal media type and duplicate gallery slug", async ({
