@@ -120,7 +120,20 @@ test.describe("P4 AI expand post", () => {
     await expect(page.getByTestId("ai-assist-error")).toBeVisible();
     await expect(editor).toContainText("训练前先制定目标", { timeout: 30_000 });
 
+    // Wait for the save request itself to land. Clicking and immediately
+    // reading the API is a race the test lost every time: the assertion ran
+    // against the pre-AI content because the PATCH hadn't been issued yet.
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/posts/${id}`) &&
+        response.request().method() === "PATCH",
+    );
     await page.getByRole("button", { name: /save draft|保存草稿/i }).click();
+    const saveResponse = await saved;
+    expect(
+      saveResponse.ok(),
+      `save draft failed: ${saveResponse.status()}`,
+    ).toBeTruthy();
 
     const found = await request.get(
       `/api/posts/${id}?draft=true`,
