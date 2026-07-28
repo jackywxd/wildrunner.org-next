@@ -140,7 +140,13 @@ erDiagram
 
 ---
 
-### M2 — 邀請流程
+### M2 — 邀請流程 ✅ 已完成（`b8bc6aa`）
+
+本地 7/7、staging 7/7；變異測試確認拿掉 admin 檢查後 M2-T2 會失敗。remote D1 已套用 `20260728_043828_add_invite_fields`。除了 API 測試，也在 staging 用真實 UI 走完一遍：填表 → 建立帳號 → 取得兜底連結 → 開啟 Payload 的 Reset Password 頁面。
+
+**Resend 尚未接上**（需要你在 `wildrunner.org` 加 DNS 記錄驗證寄件網域）。目前 `RESEND_API_KEY` 未設定，邀請端點會回傳連結讓管理員自己傳；設定後同一支端點會自動改走寄信，不需要改程式。設定值見 [.env.example](.env.example)。
+
+
 
 **設計**：不自己造 token 機制，直接複用 Payload 內建的 reset-password token（已驗證可取得 token）。
 
