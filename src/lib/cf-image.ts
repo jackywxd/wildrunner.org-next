@@ -1,12 +1,31 @@
 import type { Media } from "@/payload-types";
 
-/** Absolute or site-relative URL suitable for `next/image` `src`. */
+/**
+ * URL suitable for `next/image` `src`.
+ *
+ * Payload prefixes stored media URLs with its `serverURL`, so on a dev or
+ * preview origin the value arrives as e.g.
+ * `http://localhost:3000/api/media/file/x.png`. next/image rejects that —
+ * an absolute URL's hostname has to be listed in `images.remotePatterns`,
+ * and localhost never will be ("Invalid src prop ... hostname is not
+ * configured"). Stripping our own origin back to a relative path keeps
+ * those images working everywhere, and leaves genuinely remote URLs (the
+ * R2 CDN) untouched so they still match remotePatterns.
+ */
 export function mediaImageSrc(media: Media | null | undefined): string {
   if (!media?.url) return "";
-  if (media.url.startsWith("http://") || media.url.startsWith("https://")) {
-    return media.url;
+
+  const url = media.url;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    const ownOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+    if (ownOrigin && url.startsWith(ownOrigin)) {
+      const relative = url.slice(ownOrigin.replace(/\/$/, "").length);
+      return relative.startsWith("/") ? relative : `/${relative}`;
+    }
+    return url;
   }
-  return media.url.startsWith("/") ? media.url : `/${media.url}`;
+
+  return url.startsWith("/") ? url : `/${url}`;
 }
 
 export function mediaDimensions(

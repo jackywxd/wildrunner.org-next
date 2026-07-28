@@ -74,13 +74,29 @@ test.describe("M5 member media pipeline", () => {
     await Promise.all([admin?.dispose(), member?.dispose(), memberTwo?.dispose()]);
   });
 
-  test("M5-T1: a member's upload gets an absolute CDN URL, not a relative API path", async () => {
+  test("M5-T1: a member's upload gets a URL that resolves", async ({ baseURL }) => {
     const buffer = await fixturePng({ r: 10, g: 120, b: 200 });
     const doc = await upload(member, `m5-t1-${stamp}.png`, buffer);
 
     expect(doc.url).toBeTruthy();
-    expect(doc.url).toMatch(/^https?:\/\//);
-    expect(doc.url).not.toContain("/api/media/file/");
+
+    // Reachability is the property that has to hold everywhere. The shape
+    // varies on purpose (see setMediaUrl): a deployed Worker serves the
+    // file from R2's public domain, dev and CI serve it through the app.
+    // Asserting "absolute" unconditionally tested which machine was running
+    // rather than whether uploads work.
+    const fetched = await member.get(doc.url as string);
+    expect(
+      fetched.ok(),
+      `uploaded media is not retrievable at ${doc.url}`,
+    ).toBeTruthy();
+
+    // Only a deployed Worker needs the absolute form — next/image's
+    // optimizer and Stream ingest both fetch it from outside the request.
+    if (baseURL && !baseURL.includes("localhost")) {
+      expect(doc.url).toMatch(/^https?:\/\//);
+      expect(doc.url).not.toContain("/api/media/file/");
+    }
   });
 
   test("M5-T2: that image renders through the Next optimizer on a public gallery page", async ({

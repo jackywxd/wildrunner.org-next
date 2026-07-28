@@ -73,7 +73,10 @@ test.describe("P5 gallery and stream UX", () => {
     await page.goto(`/gallery/${slug}/v/clip-${suffix}`);
     const player = page.getByTestId("direct-video");
     await expect(player).toBeVisible();
-    await expect(player).toHaveAttribute("src", /^https?:\/\//);
+    // Not asserting an absolute URL — see M5-T1. This test is about a
+    // video with no streamId rendering a real player instead of a
+    // permanent "transcoding" placeholder.
+    await expect(player).toHaveAttribute("src", /\S/);
     await expect(page.getByTestId("stream-processing")).toHaveCount(0);
   });
 
