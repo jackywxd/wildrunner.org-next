@@ -39,7 +39,9 @@ test.describe("P2 public content and revalidation", () => {
     await expect
       .poll(
         async () => {
-          await page.goto("/posts");
+          // Unique query per poll: same reason as posts.spec.ts — the
+          // browser would otherwise replay its cached pre-publish copy.
+          await page.goto(`/posts?poll=${Date.now()}`);
           return page.getByText(title).count();
         },
         { timeout: 15_000 },
@@ -49,7 +51,7 @@ test.describe("P2 public content and revalidation", () => {
     await expect
       .poll(
         async () => {
-          await page.goto("/");
+          await page.goto(`/?poll=${Date.now()}`);
           return page.getByText(title).count();
         },
         { timeout: 15_000 },

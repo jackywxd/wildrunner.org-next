@@ -35,7 +35,11 @@ test.describe("P2 public posts from Payload", () => {
       },
     });
 
-    await page.goto(`/posts/${slug}`);
+    // Pages ship `cache-control: public, max-age=3600`, so re-visiting the
+    // exact same URL serves the browser's own cached copy — the pre-publish
+    // 404 — and the revalidation this asserts would be invisible. A unique
+    // query makes it a distinct cache entry; the server ignores it.
+    await page.goto(`/posts/${slug}?after-publish=${Date.now()}`);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
     await expect(page.getByText(bodyText)).toBeVisible();
     await expect(page.locator("body")).not.toContainText('"type":"root"');
