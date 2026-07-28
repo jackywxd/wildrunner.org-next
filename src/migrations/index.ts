@@ -4,6 +4,7 @@ import * as migration_20260727_142704_add_media_stream_gallery_fields from './20
 import * as migration_20260728_032809_add_user_roles from './20260728_032809_add_user_roles';
 import * as migration_20260728_042531_add_content_owner from './20260728_042531_add_content_owner';
 import * as migration_20260728_043828_add_invite_fields from './20260728_043828_add_invite_fields';
+import * as migration_20260728_050120_add_user_author from './20260728_050120_add_user_author';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260728_043828_add_invite_fields.up,
     down: migration_20260728_043828_add_invite_fields.down,
-    name: '20260728_043828_add_invite_fields'
+    name: '20260728_043828_add_invite_fields',
+  },
+  {
+    up: migration_20260728_050120_add_user_author.up,
+    down: migration_20260728_050120_add_user_author.down,
+    name: '20260728_050120_add_user_author'
   },
 ];

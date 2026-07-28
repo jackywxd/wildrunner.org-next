@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAuthenticated, isOwner, ownedOrPublished } from '../access'
+import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOrPublished } from '../access'
 import { ownerField } from '../fields/owner'
 import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
@@ -55,6 +55,18 @@ export const Posts: CollectionConfig = {
       name: 'author',
       type: 'relationship',
       relationTo: 'authors',
+      // Field access strips a forged author, and the fallback then applies:
+      // defaultValue on create, the existing value on update. So a member
+      // always publishes under their own byline and cannot move a post to
+      // someone else's.
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      defaultValue: ({ user }) => {
+        const author = (user as { author?: number | { id: number } } | null)?.author
+        return typeof author === 'object' && author !== null ? author.id : author
+      },
     },
     {
       name: 'featured',

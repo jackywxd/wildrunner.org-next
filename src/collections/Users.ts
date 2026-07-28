@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminUser } from '../access'
 import { inviteEmailHTML, inviteLinkFor } from '../lib/invite'
+import { ensureAuthorIdentity } from './hooks/author-identity'
 import { clearInvitePending } from './hooks/clear-invite-pending'
 import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
 
@@ -61,6 +62,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [ensureFirstUserIsAdmin],
+    afterChange: [ensureAuthorIdentity],
     afterLogin: [clearInvitePending],
   },
   fields: [
@@ -70,6 +72,20 @@ export const Users: CollectionConfig = {
       admin: {
         description:
           'Seeds the author alias shown on the site. The alias itself lives on the author record.',
+      },
+    },
+    {
+      name: 'author',
+      type: 'relationship',
+      relationTo: 'authors',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      admin: {
+        position: 'sidebar',
+        description:
+          'Byline this account publishes under. Created automatically; edit the alias on the author record itself.',
       },
     },
     {

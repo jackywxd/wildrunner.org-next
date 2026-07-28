@@ -138,6 +138,10 @@ export interface User {
    */
   displayName?: string | null;
   /**
+   * Byline this account publishes under. Created automatically; edit the alias on the author record itself.
+   */
+  author?: (number | null) | Author;
+  /**
    * Cleared automatically the first time they sign in.
    */
   invitePending?: boolean | null;
@@ -168,6 +172,23 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors".
+ */
+export interface Author {
+  id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
+  name: string;
+  slug: string;
+  bio?: string | null;
+  avatar?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -195,23 +216,6 @@ export interface Media {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors".
- */
-export interface Author {
-  id: number;
-  /**
-   * Whoever created this. Only admins can reassign it.
-   */
-  owner?: (number | null) | User;
-  name: string;
-  slug: string;
-  bio?: string | null;
-  avatar?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -381,6 +385,7 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
+  author?: T;
   invitePending?: T;
   invitedAt?: T;
   invitedBy?: T;
