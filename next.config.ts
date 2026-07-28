@@ -4,6 +4,16 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
   staticPageGenerationTimeout: 600,
+  experimental: {
+    // Next fans static generation out across one worker per CPU, and each
+    // worker opens its own miniflare instance over the *same* local SQLite
+    // file. That contention makes local D1 fail outright ("D1_ERROR: Failed
+    // to parse body as JSON, got: Error: internal error"). A deploy build
+    // doesn't hit this because it prerenders against remote D1; a build
+    // without Cloudflare credentials (CI) falls back to local and does.
+    // Set NEXT_BUILD_CPUS=1 there to serialize it.
+    cpus: Number(process.env.NEXT_BUILD_CPUS) || undefined,
+  },
   eslint: {
     // Legacy site has many pre-existing lint warnings/errors; keep CI green during migration.
     ignoreDuringBuilds: true,

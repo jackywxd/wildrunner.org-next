@@ -58,6 +58,10 @@ jobs:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
           NEXT_PUBLIC_ENV: test
+          # This runner has no Cloudflare credentials, so payload.config
+          # falls back to local emulated D1 — which several parallel static
+          # generation workers cannot share. See next.config.ts.
+          NEXT_BUILD_CPUS: "1"
         run: |
           if [ -z "$PAYLOAD_SECRET" ]; then
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
