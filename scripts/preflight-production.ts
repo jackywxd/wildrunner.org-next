@@ -16,6 +16,7 @@
  */
 import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 
 const PROD_DB = 'wildrunner-org-next'
 
@@ -140,6 +141,90 @@ add(
       'deployed artifact. Fine locally; must NOT be set in Workers Builds.'
     : 'none',
   false,
+)
+
+// --- env coverage -----------------------------------------------------
+// Cross-checks what the code reads against what production actually
+// provides, so a newly introduced variable shows up here rather than as a
+// silent undefined in production.
+function sourceFiles(dir: string): string[] {
+  const out: string[] = []
+  for (const entry of readdirSync(dir)) {
+    const full = `${dir}/${entry}`
+    if (statSync(full).isDirectory()) out.push(...sourceFiles(full))
+    else if (/\.(ts|tsx)$/.test(entry)) out.push(full)
+  }
+  return out
+}
+
+const referenced = new Set<string>()
+for (const file of sourceFiles('src')) {
+  for (const m of readFileSync(file, 'utf8').matchAll(/process\.env\.([A-Z_][A-Z0-9_]*)/g)) {
+    referenced.add(m[1])
+  }
+}
+
+// Supplied by the platform or the framework, never by us.
+const PROVIDED_BY_RUNTIME = new Set([
+  'NODE_ENV',
+  'NEXTJS_ENV',
+  'CLOUDFLARE_ENV',
+  'AI_IN_DEV',
+  'PAYLOAD_LOG_LEVEL',
+  'STREAM_INGEST_IN_DEV',
+])
+// Offline Velite pipeline only; must NOT reach production (checked above).
+const LOCAL_ONLY = new Set([
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY',
+  'S3_ENDPOINT',
+  'S3_BUCKET',
+])
+// Optional: absence is a supported configuration, not a misconfiguration.
+const OPTIONAL = new Set([
+  'NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE',
+  'NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN',
+  'STREAM_INGEST',
+])
+
+const wranglerVars = new Set(
+  Object.keys(
+    JSON.parse(
+      readFileSync('wrangler.jsonc', 'utf8').replace(/^\s*\/\/.*$/gm, ''),
+    ).vars ?? {},
+  ),
+)
+// Ask the deployed Worker what secrets it actually has, rather than
+// trusting a list in this file to stay in sync.
+let workerSecrets = new Set<string>()
+try {
+  const raw = execFileSync('npx', ['wrangler', 'secret', 'list'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  workerSecrets = new Set(
+    (JSON.parse(raw.slice(raw.indexOf('['))) as { name: string }[]).map((s) => s.name),
+  )
+} catch {
+  // Leave empty: an unreadable secret list should surface as a missing
+  // variable rather than a silent pass.
+}
+
+const missing: string[] = []
+for (const key of [...referenced].sort()) {
+  if (PROVIDED_BY_RUNTIME.has(key) || LOCAL_ONLY.has(key) || OPTIONAL.has(key)) continue
+  const supplied =
+    wranglerVars.has(key) || workerSecrets.has(key) || Boolean(process.env[key])
+  if (!supplied) missing.push(key)
+}
+
+add(
+  'Every required env var is supplied',
+  missing.length === 0,
+  missing.length
+    ? `not provided by wrangler vars, Worker secrets, or the build env: ${missing.join(', ')}`
+    : `${referenced.size} referenced; ${workerSecrets.size} Worker secret(s), ` +
+      `${wranglerVars.size} wrangler var(s)`,
 )
 
 // --- report -----------------------------------------------------------
