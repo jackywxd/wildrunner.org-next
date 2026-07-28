@@ -13,16 +13,24 @@
 	},
 	"d1_databases": [
 		{
+			// `remote: true` is honoured only when the caller also asks for
+			// remote bindings, i.e. NODE_ENV=production — which `next build`
+			// sets. So a production build prerenders from the real database,
+			// while `next dev` and CLI scripts still get the local one.
+			// Without it the build falls back to local SQLite and several
+			// static-generation workers deadlock on it (SQLITE_BUSY).
 			"binding": "D1",
 			"database_name": "wildrunner-org-next",
-			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c"
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+			"remote": true
 		},
 		{
 			// Same database, second binding: OpenNext's tag cache looks for
 			// this exact binding name. Backs revalidatePath/revalidateTag.
 			"binding": "NEXT_TAG_CACHE_D1",
 			"database_name": "wildrunner-org-next",
-			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c"
+			"database_id": "e106e1c4-9e29-4cad-b78f-2d3cc169ec8c",
+			"remote": true
 		}
 	],
 	"services": [
@@ -36,11 +44,13 @@
 	"r2_buckets": [
 		{
 			"binding": "R2",
-			"bucket_name": "wildrunner-storage"
+			"bucket_name": "wildrunner-storage",
+			"remote": true
 		},
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "wildrunner-org-next-opennext-cache"
+			"bucket_name": "wildrunner-org-next-opennext-cache",
+			"remote": true
 		}
 	],
 	"images": {
