@@ -122,6 +122,19 @@ export const Users: CollectionConfig = {
       admin: { position: 'sidebar', readOnly: true },
     },
     {
+      name: 'storageQuotaMb',
+      type: 'number',
+      min: 0,
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
+      admin: {
+        position: 'sidebar',
+        description: `Overrides the default (${process.env.MEMBER_STORAGE_QUOTA_MB ?? '10240'} MB) for this account. Leave blank to use the default.`,
+      },
+    },
+    {
       name: 'role',
       type: 'select',
       required: true,

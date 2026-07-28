@@ -148,6 +148,10 @@ export interface User {
   invitedAt?: string | null;
   invitedBy?: (number | null) | User;
   /**
+   * Overrides the default (10240 MB) for this account. Leave blank to use the default.
+   */
+  storageQuotaMb?: number | null;
+  /**
    * Admins manage everything; members only their own content.
    */
   role: 'admin' | 'member';
@@ -389,6 +393,7 @@ export interface UsersSelect<T extends boolean = true> {
   invitePending?: T;
   invitedAt?: T;
   invitedBy?: T;
+  storageQuotaMb?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;

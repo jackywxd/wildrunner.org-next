@@ -5,6 +5,7 @@ import * as migration_20260728_032809_add_user_roles from './20260728_032809_add
 import * as migration_20260728_042531_add_content_owner from './20260728_042531_add_content_owner';
 import * as migration_20260728_043828_add_invite_fields from './20260728_043828_add_invite_fields';
 import * as migration_20260728_050120_add_user_author from './20260728_050120_add_user_author';
+import * as migration_20260728_051251_add_storage_quota from './20260728_051251_add_storage_quota';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20260728_050120_add_user_author.up,
     down: migration_20260728_050120_add_user_author.down,
-    name: '20260728_050120_add_user_author'
+    name: '20260728_050120_add_user_author',
+  },
+  {
+    up: migration_20260728_051251_add_storage_quota.up,
+    down: migration_20260728_051251_add_storage_quota.down,
+    name: '20260728_051251_add_storage_quota'
   },
 ];

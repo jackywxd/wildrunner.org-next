@@ -2,11 +2,17 @@ import type { CollectionConfig } from 'payload'
 
 import { isAuthenticated, isOwner } from '../access'
 import { ownerField } from '../fields/owner'
+import { enforceStorageQuota } from './hooks/quota'
 import { setOwner } from './hooks/owner'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  admin: {
+    components: {
+      beforeListTable: ['@/components/admin/StorageQuotaField#StorageQuotaField'],
+    },
+  },
   access: {
     // Public: every rendered page needs to resolve its images.
     read: () => true,
@@ -15,6 +21,7 @@ export const Media: CollectionConfig = {
     delete: isOwner,
   },
   hooks: {
+    beforeOperation: [enforceStorageQuota],
     beforeChange: [setOwner],
     afterChange: [streamIngestOnUpload],
   },
@@ -67,5 +74,13 @@ export const Media: CollectionConfig = {
     // These are not supported on Workers yet due to lack of sharp
     crop: false,
     focalPoint: false,
+    // Closes the "paste a URL to upload" path: it lets a member make the
+    // Worker fetch an arbitrary URL (SSRF) and bypasses the quota check
+    // above, since a server-side fetch never populates req.file with a
+    // known size beforehand. It's also the exact mechanism that caused
+    // 413 duplicate R2 objects during the Velite migration (see 9bbfbf5) —
+    // the migration script writes media via payload.db.create with no
+    // `file`, so it never goes through this path and is unaffected.
+    pasteURL: false,
   },
 }
