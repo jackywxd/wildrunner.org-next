@@ -47,10 +47,6 @@ export const aiExpandPostEndpoint: Endpoint = {
       throw new APIError("Unauthorized", 401);
     }
 
-    const ip =
-      req.headers.get("cf-connecting-ip") ??
-      req.headers.get("x-forwarded-for") ??
-      "local";
     let body: ExpandBody;
     try {
       body = (await req.json?.()) as ExpandBody;
@@ -67,7 +63,9 @@ export const aiExpandPostEndpoint: Endpoint = {
     }
 
     const { env } = await getCloudflareContext({ async: true });
-    await checkRateLimit(env.D1, `${req.user.id}:${ip}`);
+    // Keyed on the user alone, not user+IP: every member gets their own AI
+    // budget regardless of network, and switching IP/UA can't reset it.
+    await checkRateLimit(env.D1, String(req.user.id));
     const ai = env.AI;
 
     const prompt = [
