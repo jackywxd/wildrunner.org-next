@@ -146,12 +146,23 @@ export default buildConfig({
 })
 
 // Adapted from https://github.com/opennextjs/opennextjs-cloudflare/blob/d00b3a13e42e65aad76fba41774815726422cc39/packages/cloudflare/src/api/cloudflare-context.ts#L328C36-L328C46
+// A production build reads the real D1 so pages prerender against live
+// content — and because local SQLite deadlocks under Next's parallel
+// static generation (SQLITE_BUSY). That needs Cloudflare credentials,
+// which CI doesn't have: there the build only has to prove the app
+// compiles, and local emulated bindings do that fine. Without this check
+// the build dies with "Could not start remote dev session. No credentials
+// found" while collecting page data.
+const hasCloudflareCredentials = Boolean(
+  process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN || !process.env.CI,
+)
+
 function getCloudflareContextFromWrangler(): Promise<CloudflareContext> {
   return import(/* webpackIgnore: true */ `${'__wrangler'.replaceAll('_', '')}`).then(
     ({ getPlatformProxy }) =>
       getPlatformProxy({
         environment: process.env.CLOUDFLARE_ENV,
-        remoteBindings: isProduction,
+        remoteBindings: isProduction && hasCloudflareCredentials,
       } satisfies GetPlatformProxyOptions),
   )
 }
