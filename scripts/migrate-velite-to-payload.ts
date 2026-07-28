@@ -4,6 +4,7 @@
  * Usage:
  *   pnpm migrate:velite -- --dry-run
  *   pnpm migrate:velite
+ *   pnpm migrate:velite -- --remote --skip-videos
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -24,6 +25,7 @@ const veliteDir = path.join(root, ".velite");
 
 const dryRun = process.argv.includes("--dry-run");
 const remote = process.argv.includes("--remote");
+const skipVideos = process.argv.includes("--skip-videos");
 
 type VelitePost = {
   title: string;
@@ -95,6 +97,38 @@ function migrationFilename(url: string): string {
     .replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+const MIME_TYPES_BY_EXTENSION: Record<string, string> = {
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  avif: "image/avif",
+  mp4: "video/mp4",
+  m4v: "video/x-m4v",
+  mov: "video/quicktime",
+};
+
+function mimeTypeFromUrl(url: string): string {
+  const ext = url.split(".").pop()?.split("?")[0]?.toLowerCase() ?? "";
+  return MIME_TYPES_BY_EXTENSION[ext] ?? "application/octet-stream";
+}
+
+/**
+ * Registers a Media doc that points at an object already sitting in R2 from
+ * the original Velite build. Deliberately does NOT fetch or re-upload the
+ * file — the r2Storage plugin only intercepts uploads that carry a `file`,
+ * so passing plain field data (including `url`) leaves it untouched (see
+ * @payloadcms/plugin-cloud-storage's beforeChange/afterRead url hooks, which
+ * only override `url` when a `generateFileURL` adapter option is set, which
+ * this project's plugin config does not set).
+ *
+ * IMPORTANT: this must go through `payload.db.create` (the raw database
+ * adapter), NOT `payload.create`. Payload's core `generateFileData` treats
+ * any create on an upload-enabled collection that includes a `url` field as
+ * a "paste URL to upload" request and fetches + re-uploads it regardless of
+ * whether `file` was passed — `payload.db.create` skips that document
+ * operation logic entirely and just inserts the row.
+ */
 async function ensureMediaFromUrl(
   payload: Awaited<ReturnType<typeof getPayload>>,
   url: string,
@@ -126,32 +160,17 @@ async function ensureMediaFromUrl(
     return -1;
   }
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    console.warn(`Skip media (fetch ${response.status}): ${url}`);
-    return null;
-  }
-  const data = Buffer.from(await response.arrayBuffer());
-  const mimeType =
-    meta?.mimeType ??
-    response.headers.get("content-type") ??
-    "application/octet-stream";
-
-  const doc = await payload.create({
+  const doc = await payload.db.create({
     collection: "media",
     data: {
       alt,
+      url,
+      filename: name,
+      mimeType: meta?.mimeType ?? mimeTypeFromUrl(url),
       width: meta?.width,
       height: meta?.height,
       blurDataURL: meta?.blurDataURL,
     },
-    file: {
-      data,
-      mimetype: mimeType,
-      name,
-      size: data.length,
-    },
-    context: { skipStreamIngest: true },
   });
 
   mediaUrlCache.set(url, doc.id);
@@ -353,7 +372,7 @@ async function main() {
     }
 
     const videos: { media: number; videoId?: string }[] = [];
-    for (const video of gallery.videos ?? []) {
+    for (const video of skipVideos ? [] : (gallery.videos ?? [])) {
       const mediaId = await ensureMediaFromUrl(
         payload,
         video.src,

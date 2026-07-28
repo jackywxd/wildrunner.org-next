@@ -67,6 +67,11 @@ export default buildConfig({
   endpoints: [aiExpandPostEndpoint],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
+  // Without this, Payload's generateFilePathOrURL falls back to
+  // `startsWith(serverURL || '')`, and every string starts with '', so it
+  // can never detect an externally-hosted media `url` (e.g. our R2 CDN
+  // URLs) as external — it always rewrites to /media/file/<filename>.
+  serverURL: process.env.NEXT_PUBLIC_SITE_URL || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
