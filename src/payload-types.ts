@@ -162,6 +162,10 @@ export interface User {
  */
 export interface Media {
   id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
   alt: string;
   /**
    * Cloudflare Stream UID after video ingest (Phase 5+)
@@ -188,6 +192,10 @@ export interface Media {
  */
 export interface Author {
   id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
   name: string;
   slug: string;
   bio?: string | null;
@@ -201,6 +209,10 @@ export interface Author {
  */
 export interface Post {
   id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
   title: string;
   /**
    * Public path segment, e.g. 2024/utmb → /posts/2024/utmb
@@ -236,6 +248,10 @@ export interface Post {
  */
 export interface Gallery {
   id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
   name: string;
   slug: string;
   location?: string | null;
@@ -377,6 +393,7 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  owner?: T;
   alt?: T;
   streamId?: T;
   streamReady?: T;
@@ -396,6 +413,7 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "authors_select".
  */
 export interface AuthorsSelect<T extends boolean = true> {
+  owner?: T;
   name?: T;
   slug?: T;
   bio?: T;
@@ -408,6 +426,7 @@ export interface AuthorsSelect<T extends boolean = true> {
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
+  owner?: T;
   title?: T;
   slug?: T;
   description?: T;
@@ -425,6 +444,7 @@ export interface PostsSelect<T extends boolean = true> {
  * via the `definition` "galleries_select".
  */
 export interface GalleriesSelect<T extends boolean = true> {
+  owner?: T;
   name?: T;
   slug?: T;
   location?: T;

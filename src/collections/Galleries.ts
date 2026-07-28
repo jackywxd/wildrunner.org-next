@@ -1,5 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAuthenticated, isOwner, ownedOrPublished } from '../access'
+import { ownerField } from '../fields/owner'
+import { setOwner } from './hooks/owner'
 import { revalidateGalleries } from './hooks/revalidate'
 
 export const Galleries: CollectionConfig = {
@@ -9,25 +12,20 @@ export const Galleries: CollectionConfig = {
     defaultColumns: ['name', 'slug', '_status', 'updatedAt'],
   },
   hooks: {
+    beforeChange: [setOwner],
     afterChange: [revalidateGalleries],
   },
   versions: {
     drafts: true,
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (user) return true
-      return {
-        _status: {
-          equals: 'published',
-        },
-      }
-    },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    read: ownedOrPublished,
+    create: isAuthenticated,
+    update: isOwner,
+    delete: isOwner,
   },
   fields: [
+    ownerField,
     {
       name: 'name',
       type: 'text',

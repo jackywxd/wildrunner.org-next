@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAdmin, isAuthenticated, isOwner } from '../access'
+import { ownerField } from '../fields/owner'
+import { setOwner } from './hooks/owner'
+
 export const Authors: CollectionConfig = {
   slug: 'authors',
   admin: {
@@ -7,12 +11,18 @@ export const Authors: CollectionConfig = {
     defaultColumns: ['name', 'slug', 'updatedAt'],
   },
   access: {
+    // Public: author names are rendered as bylines.
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: isAuthenticated,
+    update: isOwner,
+    // Deleting an author would orphan every byline pointing at it.
+    delete: isAdmin,
+  },
+  hooks: {
+    beforeChange: [setOwner],
   },
   fields: [
+    ownerField,
     {
       name: 'name',
       type: 'text',

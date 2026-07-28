@@ -1,19 +1,25 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAuthenticated, isOwner } from '../access'
+import { ownerField } from '../fields/owner'
+import { setOwner } from './hooks/owner'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
+    // Public: every rendered page needs to resolve its images.
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: isAuthenticated,
+    update: isOwner,
+    delete: isOwner,
   },
   hooks: {
+    beforeChange: [setOwner],
     afterChange: [streamIngestOnUpload],
   },
   fields: [
+    ownerField,
     {
       name: 'alt',
       type: 'text',

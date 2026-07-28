@@ -35,3 +35,31 @@ export const isAdminOrSelf: Access = ({ req: { user } }) => {
     },
   }
 }
+
+/**
+ * Read rule for draft-enabled content: the public sees published documents,
+ * a member additionally sees everything they own (including their drafts),
+ * and other members' drafts stay hidden.
+ */
+export const ownedOrPublished: Access = ({ req: { user } }) => {
+  if (isAdminUser(user)) return true
+
+  const published = { _status: { equals: 'published' } }
+  if (!user) return published
+
+  return {
+    or: [{ owner: { equals: user.id } }, published],
+  }
+}
+
+/** Write rule: admins anywhere, members only on documents they own. */
+export const isOwner: Access = ({ req: { user } }) => {
+  if (!user) return false
+  if (isAdminUser(user)) return true
+
+  return {
+    owner: {
+      equals: user.id,
+    },
+  }
+}

@@ -40,6 +40,13 @@ export async function adminContext(
   return context;
 }
 
+/** Logged-out context, for asserting what the public can reach. */
+export function anonContext(
+  baseURL: string | undefined,
+): Promise<APIRequestContext> {
+  return newContext(baseURL);
+}
+
 export async function loginContext(
   baseURL: string | undefined,
   credentials: Credentials,

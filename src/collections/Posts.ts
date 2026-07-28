@@ -1,5 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
+import { isAuthenticated, isOwner, ownedOrPublished } from '../access'
+import { ownerField } from '../fields/owner'
+import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
 
 export const Posts: CollectionConfig = {
@@ -9,25 +12,20 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'slug', '_status', 'publishedAt', 'updatedAt'],
   },
   hooks: {
+    beforeChange: [setOwner],
     afterChange: [revalidatePosts],
   },
   versions: {
     drafts: true,
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (user) return true
-      return {
-        _status: {
-          equals: 'published',
-        },
-      }
-    },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    read: ownedOrPublished,
+    create: isAuthenticated,
+    update: isOwner,
+    delete: isOwner,
   },
   fields: [
+    ownerField,
     {
       name: 'title',
       type: 'text',
