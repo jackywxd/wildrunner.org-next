@@ -132,6 +132,59 @@ test.describe("V3 admin upload panel", () => {
     expect(doc.filesize).toBe(bytes);
   });
 
+  test("V4-T1: a cancelled upload resumes instead of restarting", async ({ page }) => {
+    test.setTimeout(240_000);
+    await signIn(page);
+
+    const name = `v4-resume-${stamp}.mp4`;
+    const bytes = 60 * 1024 * 1024;
+    const path = videoFile(name, bytes);
+
+    await page.getByTestId("large-upload-input").setInputFiles(path);
+    await page.getByTestId("large-upload-start").click();
+
+    // Stop once some parts are in, so resuming has something to skip and
+    // something left to send.
+    const progress = page.getByTestId("large-upload-progress");
+    await expect
+      .poll(
+        async () => Number((await progress.getAttribute("data-percent")) ?? 0),
+        { timeout: 120_000, message: "progress never advanced" },
+      )
+      .toBeGreaterThan(10);
+    await page.getByTestId("large-upload-cancel").click();
+
+    // The offer to resume proves the part list survived, and reloading first
+    // proves it survived outside the component's memory.
+    await expect(page.getByTestId("large-upload-resumable")).toBeVisible();
+    await page.reload();
+    await page.getByTestId("large-upload-input").setInputFiles(path);
+
+    const resumable = page.getByTestId("large-upload-resumable");
+    await expect(resumable).toBeVisible();
+    const alreadyDone = Number(
+      (await resumable.textContent())?.match(/已傳 (\d+)/)?.[1] ?? 0,
+    );
+    expect(alreadyDone).toBeGreaterThan(0);
+
+    await page.getByTestId("large-upload-start").click();
+    const done = page.getByTestId("large-upload-done");
+    await expect(done).toBeVisible({ timeout: 200_000 });
+
+    const id = Number(await done.getAttribute("data-doc-id"));
+    createdMediaIds.push(id);
+
+    // Exact: a resumed upload that re-sent or skipped a part would complete
+    // to a different size, or fail outright at complete().
+    const doc = await (await admin.get(`/api/media/${id}?depth=0`)).json();
+    expect(doc.filesize).toBe(bytes);
+
+    // And the finished upload must not be offered for resuming again.
+    await page.reload();
+    await page.getByTestId("large-upload-input").setInputFiles(path);
+    await expect(page.getByTestId("large-upload-resumable")).toBeHidden();
+  });
+
   test("V3-T3: two members uploading the same filename don't overwrite each other", async ({
     page,
   }) => {

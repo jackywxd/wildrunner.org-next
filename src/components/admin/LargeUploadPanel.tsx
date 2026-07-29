@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   CHUNK_SIZE,
@@ -14,6 +14,9 @@ import {
   startSession,
   uploadParts,
 } from '@/lib/direct-upload'
+import { clearSession, loadSession, saveSession } from '@/lib/upload-store'
+
+import type { UploadSession } from '@/lib/direct-upload'
 
 type Phase = 'idle' | 'uploading' | 'saving' | 'done' | 'error'
 
@@ -37,6 +40,7 @@ export function LargeUploadPanel() {
   const [sent, setSent] = useState(0)
   const [message, setMessage] = useState('')
   const [docId, setDocId] = useState<number | null>(null)
+  const [resumable, setResumable] = useState<UploadSession | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -49,6 +53,7 @@ export function LargeUploadPanel() {
     setMessage('')
     setDocId(null)
     setPhase('idle')
+    setResumable(null)
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -60,7 +65,25 @@ export function LargeUploadPanel() {
     setMessage('')
     setDocId(null)
     setPhase('idle')
+    setResumable(null)
   }
+
+  // An unfinished upload of this exact file can be picked up rather than
+  // restarted. Matching is on name + size + mtime, so a different file with
+  // the same name never resumes into the wrong object.
+  useEffect(() => {
+    let current = true
+    if (!file || file.size <= DIRECT_UPLOAD_THRESHOLD) {
+      setResumable(null)
+      return
+    }
+    loadSession(file).then((session) => {
+      if (current) setResumable(session)
+    })
+    return () => {
+      current = false
+    }
+  }, [file])
 
   async function uploadSmall(chosen: File) {
     const body = new FormData()
@@ -79,21 +102,25 @@ export function LargeUploadPanel() {
     return ((await response.json()) as { doc: { id: number } }).doc
   }
 
-  async function uploadLarge(chosen: File) {
+  async function uploadLarge(chosen: File, resume: UploadSession | null) {
     const controller = new AbortController()
     abortRef.current = controller
 
-    const filename = await reserveFilename(chosen)
-    const session = await startSession(chosen, filename)
+    // Resuming reuses the reserved filename and upload id; only the parts
+    // missing from the stored session are sent again.
+    const session =
+      resume ?? (await startSession(chosen, await reserveFilename(chosen)))
 
     await uploadParts(session, chosen, {
       signal: controller.signal,
-      onProgress: ({ uploadedBytes, totalBytes, partsDone, partTotal }) => {
+      onPart: (current) => saveSession(chosen, current),
+      onProgress: ({ uploadedBytes, partsDone, partTotal }) => {
         setSent(uploadedBytes)
         setPercent(partTotal === 0 ? 100 : Math.round((partsDone / partTotal) * 100))
       },
     })
     await completeSession(session)
+    await clearSession(chosen)
 
     setPhase('saving')
     return createMediaDocument({
@@ -103,20 +130,24 @@ export function LargeUploadPanel() {
     })
   }
 
-  async function upload() {
+  async function upload(resume: UploadSession | null = null) {
     if (!file) return
     setPhase('uploading')
     setMessage('')
     try {
       const doc =
-        file.size > DIRECT_UPLOAD_THRESHOLD ? await uploadLarge(file) : await uploadSmall(file)
+        file.size > DIRECT_UPLOAD_THRESHOLD
+          ? await uploadLarge(file, resume)
+          : await uploadSmall(file)
       setDocId(doc.id)
       setPercent(100)
       setPhase('done')
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') {
-        setMessage('已取消')
+        // The parts already sent stay recorded, so this is a pause.
+        setMessage('已暫停，可繼續上傳')
         setPhase('idle')
+        if (file) setResumable(await loadSession(file))
         return
       }
       setMessage((error as Error)?.message || '上傳失敗')
@@ -207,9 +238,21 @@ export function LargeUploadPanel() {
         </div>
       )}
 
+      {resumable && !busy && (
+        <div data-testid="large-upload-resumable" style={{ fontSize: '0.85rem' }}>
+          這個檔案有未完成的上傳（已傳 {resumable.parts.length} /{' '}
+          {partCount(resumable)} 段），可以接著傳。
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="button" data-testid="large-upload-start" disabled={!file || busy} onClick={upload}>
-          上傳
+        <button
+          type="button"
+          data-testid="large-upload-start"
+          disabled={!file || busy}
+          onClick={() => upload(resumable)}
+        >
+          {resumable ? '繼續上傳' : '上傳'}
         </button>
         {busy && direct && (
           <button type="button" data-testid="large-upload-cancel" onClick={() => abortRef.current?.abort()}>
