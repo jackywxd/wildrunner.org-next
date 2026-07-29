@@ -1,5 +1,8 @@
 # Large media uploads (600 MB+)
 
+**Status: done.** All phases shipped and verified. Production runs version
+`94ad6b5c`; staging `fadc9d79`. End-to-end proof below.
+
 ## Problem
 
 Uploads above **50 MB** reach R2 intact but fail when Payload creates the
@@ -231,3 +234,48 @@ independent of everything below.
   the same commit as the flag.
 - The admin component is custom UI code coupled to Payload's UI APIs and will
   need attention on upgrades.
+
+
+## Outcome
+
+Verified against **deployed staging** with a real 610.7 MB h.264 `.m4v`
+(`ffmpeg`-generated, 135 s, 1920x1080):
+
+- 123 parts uploaded in 174 s
+- document created: `filesize` 640332312 exactly matching the local file,
+  `mimeType` `video/x-m4v`, `alt` defaulted from the filename, `owner` the
+  uploading member
+- the stored object verified byte-for-byte against the local file at seven
+  offsets including part boundaries (0, 5 MB−512, 5 MB, 10 MB−512, 305 MB,
+  610 MB, EOF−1 KB) — all identical, `content-length` and `content-type`
+  correct
+- deleting the document removed the R2 object: the staging bucket went back
+  to zero objects
+
+Production (`94ad6b5c`): `/`, `/admin` and `/api/posts` all 200; 15 posts,
+546 media, 10704 MB accounted; `direct-upload-init` 401, multipart endpoint
+403 and metadata create 403 for anonymous callers.
+
+Local suite: 90 passed. The single failure, M1-T8, fails identically on
+unmodified code — owner-less rows from the one-off Velite import, local only.
+
+**Not verified by me:** an upload through the production admin UI. The
+`.test` fixture accounts were removed from production and I do not have the
+admin password, so the last mile there is yours to run.
+
+### Changed from the plan
+
+- **V5 lifecycle rule** — no change needed. Both buckets already carry R2's
+  default rule aborting incomplete multipart uploads after 7 days; checked
+  rather than assumed.
+- **V6 scope** — all 546 documents lacked `filesize`, not just the 22 videos.
+- **Ownership** — the 22 legacy videos are owner-less, not admin-owned.
+  Assigning the 133 owner-less documents to admin is still open and
+  independent.
+- **Added mid-flight** — `/api/members/direct-upload-init`, to reserve a
+  filename before any bytes move. Without it two members uploading
+  `video.mp4` would complete multipart uploads on the same key and the
+  second would silently overwrite the first.
+- **Found on the deployed site** — `beforeOperation` runs ahead of `create`
+  access control, so anonymous callers were reaching R2 and the database and
+  getting a 400 that distinguished existing keys from missing ones. Now 403.
