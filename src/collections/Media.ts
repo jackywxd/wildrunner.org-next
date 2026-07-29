@@ -6,12 +6,16 @@ import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
 import { setOwner } from './hooks/owner'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
+import { verifyDirectUpload } from './hooks/verify-direct-upload'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     components: {
-      beforeListTable: ['@/components/admin/StorageQuotaField#StorageQuotaField'],
+      beforeListTable: [
+        '@/components/admin/StorageQuotaField#StorageQuotaField',
+        '@/components/admin/LargeUploadPanel#LargeUploadPanel',
+      ],
     },
   },
   access: {
@@ -23,7 +27,9 @@ export const Media: CollectionConfig = {
     delete: isOwner,
   },
   hooks: {
-    beforeOperation: [enforceStorageQuota],
+    // verifyDirectUpload first: it resolves the real filesize from R2, which
+    // the quota check then has to bill against.
+    beforeOperation: [verifyDirectUpload, enforceStorageQuota],
     beforeChange: [setOwner, setMediaUrl],
     afterChange: [streamIngestOnUpload],
   },
@@ -72,6 +78,19 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
+    // Files over ~32 MB never reach the Worker: the browser uploads them
+    // straight to R2 and then creates the document from metadata alone.
+    // Payload only requires a file on create so that its own upload pipeline
+    // has something to work on, and that pipeline is exactly what cannot run
+    // here — @payloadcms/storage-r2 refuses to hand a >50 MB object back to
+    // the server (to avoid exhausting Worker memory), while Payload core
+    // reads that empty response into `req.file.data` anyway and then rejects
+    // the zero-byte buffer as `text/plain`.
+    //
+    // `verifyDirectUpload` is what makes this safe — see its comment. It is
+    // not optional: with this flag and without that hook, any authenticated
+    // member could create documents pointing at nothing.
+    filesRequiredOnCreate: false,
     mimeTypes: ['image/*', 'video/*'],
     // These are not supported on Workers yet due to lack of sharp
     crop: false,

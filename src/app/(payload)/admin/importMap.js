@@ -1,5 +1,6 @@
 import { InviteMemberPanel as InviteMemberPanel_dd2c2e3be9264ad6026a3730d12a29f2 } from '@/components/admin/InviteMemberPanel'
 import { StorageQuotaField as StorageQuotaField_5d8d4971f596e8a01a5bf2aaf83b704f } from '@/components/admin/StorageQuotaField'
+import { LargeUploadPanel as LargeUploadPanel_89d617daf4af6148841b5bbc44a7d16a } from '@/components/admin/LargeUploadPanel'
 import { AIAssistField as AIAssistField_b940ef08d18a39776e15813dec3ede1e } from '@/components/admin/AIAssistField'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -37,6 +38,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 export const importMap = {
   "@/components/admin/InviteMemberPanel#InviteMemberPanel": InviteMemberPanel_dd2c2e3be9264ad6026a3730d12a29f2,
   "@/components/admin/StorageQuotaField#StorageQuotaField": StorageQuotaField_5d8d4971f596e8a01a5bf2aaf83b704f,
+  "@/components/admin/LargeUploadPanel#LargeUploadPanel": LargeUploadPanel_89d617daf4af6148841b5bbc44a7d16a,
   "@/components/admin/AIAssistField#AIAssistField": AIAssistField_b940ef08d18a39776e15813dec3ede1e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
