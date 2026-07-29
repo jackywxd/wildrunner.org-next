@@ -1,7 +1,8 @@
 # Large media uploads (600 MB+)
 
-**Status: done.** All phases shipped and verified. Production runs version
-`94ad6b5c`; staging `fadc9d79`. End-to-end proof below.
+**Status: done.** All phases shipped and verified, including a real upload
+through the production admin UI. Production runs version `94ad6b5c`; staging
+`fadc9d79`. End-to-end proof below.
 
 ## Problem
 
@@ -259,9 +260,21 @@ Production (`94ad6b5c`): `/`, `/admin` and `/api/posts` all 200; 15 posts,
 Local suite: 90 passed. The single failure, M1-T8, fails identically on
 unmodified code — owner-less rows from the one-off Velite import, local only.
 
-**Not verified by me:** an upload through the production admin UI. The
-`.test` fixture accounts were removed from production and I do not have the
-admin password, so the last mile there is yours to run.
+### Production, through the admin UI
+
+Confirmed by Jacky on 2026-07-29, and cross-checked against production:
+
+- media document **671**, `Whistler-summer-2026 1.m4v`
+- `filesize` **515876275** — byte-identical to the R2 object's own `size`
+- `contentType` `video/mp4`, recorded on the object at
+  `createMultipartUpload` from what the browser declared and read back by
+  `verifyDirectUpload`
+- `url` `https://images.wildrunner.org/Whistler-summer-2026%201.m4v`
+- owner stamped as the uploading admin
+
+492 MiB through the panel with no server-side read-back — the case that
+returned `File type text/plain (from extension m4v) is not allowed.` before
+this branch.
 
 ### Changed from the plan
 
