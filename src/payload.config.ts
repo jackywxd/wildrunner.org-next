@@ -106,6 +106,20 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    components: {
+      graphics: {
+        // Logo is the login screen, Icon is the nav. Both inline their SVG
+        // rather than pointing at /static/brand/ because the login logo has
+        // to inherit the panel's text colour — the admin theme is
+        // user-switchable and the wordmark's ink would vanish on dark.
+        Logo: '@/components/admin/BrandLogo#BrandLogo',
+        Icon: '@/components/admin/BrandIcon#BrandIcon',
+      },
+    },
+    meta: {
+      titleSuffix: ' — 野馬營',
+      icons: [{ url: '/static/brand/mark-purple.svg', type: 'image/svg+xml' }],
+    },
   },
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],

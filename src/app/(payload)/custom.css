@@ -1,0 +1,16 @@
+/*
+ * Admin panel overrides. Imported by src/app/(payload)/layout.tsx.
+ *
+ * Payload sizes the login logo off its own graphic; ours is a wide lockup
+ * (560x120) so it needs an explicit ceiling or it fills the column.
+ */
+.wr-brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 20rem;
+  margin: 0 auto;
+}
+
+.wr-brand-logo svg {
+  display: block;
+}
