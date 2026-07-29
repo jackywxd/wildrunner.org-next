@@ -225,6 +225,41 @@ test.describe("V0 large media uploads", () => {
     expect(doc.alt).toBe(`v0-defaults-${stamp}`);
   });
 
+  test("V2-T1: the quota is enforced against R2's size, not the client's claim", async () => {
+    const me = await (await member.get("/api/users/me")).json();
+    const fileName = `v2-quota-${stamp}.mp4`;
+    const bytes = LARGE_MB * 1024 * 1024;
+
+    await uploadToR2(member, fileName, videoBytes(bytes), "video/mp4");
+
+    // ~1 MB allowance against a 60 MB object. Understating the size in the
+    // request must not get past it: enforceStorageQuota reads `data.filesize`
+    // only after verifyDirectUpload has replaced it with head().size.
+    await admin.patch(`/api/users/${me.user.id}`, {
+      data: { storageQuotaMb: 1 },
+    });
+
+    try {
+      const create = await member.post("/api/media", {
+        data: { filename: fileName, mimeType: "video/mp4", filesize: 1 },
+      });
+      expect(create.status()).toBe(413);
+      expect(await create.text()).toContain("60.0 MB");
+    } finally {
+      await admin.patch(`/api/users/${me.user.id}`, {
+        data: { storageQuotaMb: null },
+      });
+    }
+  });
+
+  test("V2-T2: a quota rejection leaves no document behind", async () => {
+    const list = await member.get(
+      `/api/media?where[filename][equals]=v2-quota-${stamp}.mp4&depth=0`,
+    );
+    expect(list.ok()).toBeTruthy();
+    expect((await list.json()).totalDocs).toBe(0);
+  });
+
   test("V0-T6: small uploads keep the built-in path", async () => {
     const buffer = videoBytes(SMALL_MB * 1024 * 1024);
     const response = await member.post("/api/media", {
