@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from 'react'
 
+import { useDict } from './i18n'
+
 type Usage = { usedBytes: number; quotaBytes: number }
 
 const toGb = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2)
+
+const dict = {
+  en: { used: 'Used', loadError: 'Could not load usage' },
+  'zh-TW': { used: '已使用', loadError: '無法載入使用量' },
+}
 
 /**
  * Self-service usage readout, shown above the Media list.
@@ -14,6 +21,7 @@ const toGb = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2)
  * Media just needs any React component.
  */
 export function StorageQuotaField() {
+  const t = useDict(dict)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [error, setError] = useState('')
 
@@ -24,8 +32,8 @@ export function StorageQuotaField() {
         return response.json() as Promise<Usage>
       })
       .then(setUsage)
-      .catch(() => setError('無法載入使用量'))
-  }, [])
+      .catch(() => setError(t.loadError))
+  }, [t.loadError])
 
   if (error) return null
   if (!usage) return null
@@ -42,7 +50,7 @@ export function StorageQuotaField() {
       }}
     >
       <p style={{ margin: 0 }}>
-        已使用 <strong data-testid="storage-usage-value">{toGb(usage.usedBytes)}</strong> GB
+        {t.used} <strong data-testid="storage-usage-value">{toGb(usage.usedBytes)}</strong> GB
         {' / '}
         {toGb(usage.quotaBytes)} GB
       </p>

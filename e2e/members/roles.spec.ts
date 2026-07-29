@@ -114,7 +114,13 @@ test.describe("M0 roles and privilege boundaries", () => {
     expect(login.ok()).toBeTruthy();
 
     await page.goto("/admin");
-    await expect(page.getByRole("link", { name: "Posts" }).first()).toBeVisible();
+    // Href, not the link text: Posts now renders as "文章" once
+    // payload.config.ts's i18n makes zh-TW the account default, and a
+    // language-sensitive locator here would just be testing which
+    // language happened to be selected.
+    await expect(
+      page.locator('a[href^="/admin/collections/posts"]').first(),
+    ).toBeVisible();
 
     const hrefs = await page
       .locator('a[href^="/admin"]')

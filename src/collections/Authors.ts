@@ -6,6 +6,10 @@ import { setOwner } from './hooks/owner'
 
 export const Authors: CollectionConfig = {
   slug: 'authors',
+  labels: {
+    singular: { en: 'Author', 'zh-TW': '作者' },
+    plural: { en: 'Authors', 'zh-TW': '作者' },
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'updatedAt'],
@@ -27,11 +31,13 @@ export const Authors: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+      label: { en: 'Name', 'zh-TW': '名稱' },
       required: true,
     },
     {
       name: 'slug',
       type: 'text',
+      label: { en: 'Slug', 'zh-TW': '網址代稱' },
       required: true,
       unique: true,
       index: true,
@@ -39,11 +45,13 @@ export const Authors: CollectionConfig = {
     {
       name: 'bio',
       type: 'textarea',
+      label: { en: 'Bio', 'zh-TW': '簡介' },
     },
     {
       name: 'avatar',
       type: 'upload',
       relationTo: 'media',
+      label: { en: 'Avatar', 'zh-TW': '頭像' },
     },
   ],
 }

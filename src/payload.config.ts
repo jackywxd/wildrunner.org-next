@@ -14,6 +14,8 @@ import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
 import { r2Storage } from '@payloadcms/storage-r2'
+import { en } from '@payloadcms/translations/languages/en'
+import { zhTw } from '@payloadcms/translations/languages/zhTw'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
@@ -120,6 +122,16 @@ export default buildConfig({
       titleSuffix: ' — 野馬營',
       icons: [{ url: '/static/brand/mark-purple.svg', type: 'image/svg+xml' }],
     },
+  },
+  // Traditional Chinese first: every member and the admin are Chinese
+  // speakers, and it matches the language the site's own copy and email
+  // templates are already in (see src/lib/invite.ts, Users.ts's
+  // generateEmailSubject). English stays available per-account from
+  // /admin/account — Payload persists the choice on the user, so switching
+  // once is permanent, not a per-request negotiation.
+  i18n: {
+    supportedLanguages: { en, 'zh-TW': zhTw },
+    fallbackLanguage: 'zh-TW',
   },
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],
