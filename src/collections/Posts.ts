@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOnly } from '../access'
 import { ownerField } from '../fields/owner'
+import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
 
@@ -16,6 +17,7 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'slug', '_status', 'publishedAt', 'updatedAt'],
   },
   hooks: {
+    beforeValidate: [guardPostContent],
     beforeChange: [setOwner],
     afterChange: [revalidatePosts],
   },
