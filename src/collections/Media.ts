@@ -12,7 +12,10 @@ export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     components: {
-      beforeListTable: ['@/components/admin/StorageQuotaField#StorageQuotaField'],
+      beforeListTable: [
+        '@/components/admin/StorageQuotaField#StorageQuotaField',
+        '@/components/admin/LargeUploadPanel#LargeUploadPanel',
+      ],
     },
   },
   access: {

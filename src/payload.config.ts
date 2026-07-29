@@ -25,6 +25,7 @@ import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
+import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { isEmailConfigured, resendAdapter } from './lib/email'
 
 const filename = fileURLToPath(import.meta.url)
@@ -108,7 +109,12 @@ export default buildConfig({
   },
   collections: [Users, Media, Authors, Posts, Galleries],
   globals: [Site],
-  endpoints: [aiExpandPostEndpoint, inviteMemberEndpoint, storageUsageEndpoint],
+  endpoints: [
+    aiExpandPostEndpoint,
+    inviteMemberEndpoint,
+    storageUsageEndpoint,
+    directUploadInitEndpoint,
+  ],
   // Left undefined without a Resend key: Payload then logs mail to the
   // console, and the invite endpoint hands the admin a link instead.
   email: isEmailConfigured() ? resendAdapter : undefined,
