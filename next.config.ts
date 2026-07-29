@@ -73,6 +73,21 @@ const nextConfig: NextConfig = {
         },
       ],
     },
+    // Payload's REST responses are per-user: /api/media is own-only, and
+    // /api/members/storage-usage is one member's own figure. Under the
+    // broad rule above they were served `public, max-age=3600`, so a shared
+    // cache could hand one member another's library. Deliberately placed
+    // BEFORE the static-extension rule below, which still needs to win for
+    // /api/media/file/<name>.<ext> — those bytes are public content.
+    {
+      source: "/api/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "private, no-store, max-age=0, must-revalidate",
+        },
+      ],
+    },
     {
       source: "/fonts/:path*",
       headers: [

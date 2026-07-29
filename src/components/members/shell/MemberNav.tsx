@@ -16,7 +16,7 @@ export function MemberNav({ user }: { user: User }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-1 border-r border-border p-4 fhd:w-56">
+    <nav className="flex flex-col gap-1 border-b border-border p-4 lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r">
       <div className="mb-4 flex items-center gap-2 px-2">
         <div className="h-8 w-8 bg-primary" aria-hidden />
         <span className="font-heading text-sm font-semibold">會員中心</span>
