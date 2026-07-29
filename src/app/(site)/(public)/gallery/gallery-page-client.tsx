@@ -5,7 +5,7 @@ import type { SiteGallery, SitePhoto } from "@/lib/content-types";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import { Icon } from "@iconify-icon/react";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
-import { GalleryVideos } from "@/app/(site)/gallery/_components/GalleryVideos";
+import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 
 type GalleryPageClientProps = {
   galleries: SiteGallery[];

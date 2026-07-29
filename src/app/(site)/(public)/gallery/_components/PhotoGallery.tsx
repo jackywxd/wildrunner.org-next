@@ -13,8 +13,8 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 import React from "react";
 import PhotoAlbum from "react-photo-album";
 import type { SiteGallery } from "@/lib/content-types";
-import { NextJsImage } from "@/app/(site)/gallery/_components/NextJsImage";
-import { GalleryVideos } from "@/app/(site)/gallery/_components/GalleryVideos";
+import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
+import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 
 interface Photo {
   src: string;

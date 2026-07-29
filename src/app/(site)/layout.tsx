@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import NextTopLoader from "nextjs-toploader";
 
 import { Archivo, Noto_Sans_TC } from "next/font/google";
 import "@/styles/globals.css";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import App from "@/components/app";
 import Providers from "./providers";
-import PageTransitionEffect from "@/components/transition/PageTransitionEffect";
-import { TailwindIndicator } from "@/components/tailwind-indicator";
-import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { getSiteBaseURL } from "@/config/site";
 
 const archivo = Archivo({
@@ -60,14 +55,7 @@ export default function SiteLayout({
           fontCode.variable
         )}
       >
-        <Providers>
-          <App>
-            <NextTopLoader showSpinner={false} />
-            <PageTransitionEffect>{children}</PageTransitionEffect>
-            <TailwindIndicator />
-            <CloudflareWebAnalytics />
-          </App>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
