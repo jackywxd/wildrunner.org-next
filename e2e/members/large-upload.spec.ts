@@ -260,6 +260,25 @@ test.describe("V0 large media uploads", () => {
     expect((await list.json()).totalDocs).toBe(0);
   });
 
+  test("V2-T3: an anonymous caller is refused by access control, not by the verifier", async ({
+    baseURL,
+  }) => {
+    const anon = await (await import("../helpers/members")).anonContext(baseURL);
+    try {
+      const create = await anon.post("/api/media", {
+        data: { filename: "anything.mp4", mimeType: "video/mp4" },
+      });
+      // 403, not 400: verifyDirectUpload runs in beforeOperation, ahead of
+      // the collection's create access. Letting it answer first would do R2
+      // and database work for a caller who is about to be refused, and would
+      // distinguish an existing object from a missing one by the error text.
+      expect(create.status()).toBe(403);
+      expect(await create.text()).not.toContain("No uploaded file found");
+    } finally {
+      await anon.dispose();
+    }
+  });
+
   test("V0-T6: small uploads keep the built-in path", async () => {
     const buffer = videoBytes(SMALL_MB * 1024 * 1024);
     const response = await member.post("/api/media", {

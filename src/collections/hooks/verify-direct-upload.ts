@@ -34,6 +34,13 @@ export const verifyDirectUpload: CollectionBeforeOperationHook = async ({
   // which validates it the usual way.
   if (req.file) return args
 
+  // beforeOperation runs ahead of the collection's `create` access control,
+  // so without this an anonymous caller reaches the R2 head and the media
+  // query below — work done on their behalf before they have been refused,
+  // and a way to tell an existing object from a missing one by the error
+  // text. Returning here lets `isAuthenticated` produce its 403.
+  if (!req.user) return args
+
   const data = args.data as Record<string, unknown> | undefined
   if (!data) return args
 
