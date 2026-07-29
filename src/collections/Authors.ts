@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAdmin, isAuthenticated, isOwner, ownedOnlyPublicRead } from '../access'
 import { ownerField } from '../fields/owner'
+import { revalidateAuthorPosts } from './hooks/revalidate'
 import { setOwner } from './hooks/owner'
 
 export const Authors: CollectionConfig = {
@@ -25,6 +26,7 @@ export const Authors: CollectionConfig = {
   },
   hooks: {
     beforeChange: [setOwner],
+    afterChange: [revalidateAuthorPosts],
   },
   fields: [
     ownerField,

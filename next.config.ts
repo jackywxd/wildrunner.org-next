@@ -100,6 +100,17 @@ const nextConfig: NextConfig = {
         },
       ],
     },
+    // Overrides the broad "/:path*" default above (later entries win) so
+    // drafts and other members-only data are never cached at the edge.
+    {
+      source: "/members/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "private, no-store, max-age=0, must-revalidate",
+        },
+      ],
+    },
   ],
 };
 
