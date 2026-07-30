@@ -79,8 +79,62 @@ gh secret set CLOUDFLARE_ACCOUNT_ID
 ```
 
 單獨執行時 gh 會給互動式提示（輸入不回顯），也不會留在 shell history 裡。
-`CLOUDFLARE_API_TOKEN` 需要 Workers Scripts\:Edit、D1\:Edit、R2\:Edit；
-`account_id` 沒有寫在 `wrangler.jsonc` 裡，所以 CI 真的需要這一個。
+
+### 怎麼產生 `CLOUDFLARE_API_TOKEN`
+
+Dashboard → 右上頭像 → **My Profile** → **API Tokens** → **Create Token**
+→ 最下面的 **Create Custom Token**（不要用 Global API Key，那把鑰匙能動你
+帳號裡的所有東西，而且無法只給部分權限）。
+
+直接網址：<https://dash.cloudflare.com/profile/api-tokens>
+
+**Permissions**（依這個 repo 實際部署的東西列的）：
+
+| 範圍 | 項目 | 權限 | 為什麼 |
+|---|---|---|---|
+| Account | Workers Scripts | Edit | 部署 Worker 本體與 assets |
+| Account | Workers R2 Storage | Edit | `wildrunner-storage*`、OpenNext ISR cache bucket |
+| Account | D1 | Edit | `preflight:prod` 讀 migration 狀態；`cleanup:staging` 會寫 |
+| Account | Account Settings | Read | wrangler 解析帳號資訊（建議留著） |
+| **Zone** | **Workers Routes** | **Edit** | **prod 專用**，見下方 |
+
+**Account Resources**：`Include → <你的帳號>`
+**Zone Resources**：`Include → Specific zone → wildrunner.org`
+
+> ⚠️ 最容易漏掉的是 **Zone → Workers Routes → Edit**。production 的
+> `wrangler.jsonc` 用 zone routes（`wildrunner.org/*`、`www.wildrunner.org/*`），
+> 少了這個權限，staging 部署會成功、production 部署卻失敗，錯誤訊息還不會直接
+> 說是路由權限問題。staging 只用 `workers.dev`，所以不需要 zone 權限。
+
+`AI` 和 `IMAGES` 是 runtime binding，部署時不需要額外 token 權限。
+
+**TTL**：可以設到期日，但記得到期要換，否則某天部署會無預警失敗。
+
+### 存進 GitHub 之前先驗證
+
+別把沒驗過的 token 直接存進去。用 `read -s` 讀入（不回顯、不進 history）：
+
+```bash
+read -rs CF_TOKEN && curl -s -H "Authorization: Bearer $CF_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log(j.success?'✅ '+j.result.status:'❌ '+JSON.stringify(j.errors))})"
+```
+
+再實際試一次部署（這才是真正的驗證——`verify` 只證明 token 有效，不證明權限
+夠）：
+
+```bash
+CLOUDFLARE_API_TOKEN=$CF_TOKEN CLOUDFLARE_ACCOUNT_ID=$(wrangler whoami 2>/dev/null | grep -oE '[0-9a-f]{32}' | head -1) pnpm deploy:staging
+```
+
+驗過再 `gh secret set`，最後 `unset CF_TOKEN`。
+
+### `CLOUDFLARE_ACCOUNT_ID`
+
+```bash
+wrangler whoami
+```
+
+輸出裡的 Account ID（32 位十六進位）。`wrangler.jsonc` 沒有寫死
+`account_id`，所以 CI 真的需要這一個 secret。
 
 檢查：`gh secret list`（應看到 4 個）。
 
