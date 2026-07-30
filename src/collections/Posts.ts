@@ -5,6 +5,7 @@ import { ownerField } from '../fields/owner'
 import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
+import { uniquePostSlug } from './hooks/unique-slug'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -17,7 +18,7 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'slug', '_status', 'publishedAt', 'updatedAt'],
   },
   hooks: {
-    beforeValidate: [guardPostContent],
+    beforeValidate: [guardPostContent, uniquePostSlug],
     beforeChange: [setOwner],
     afterChange: [revalidatePosts],
   },

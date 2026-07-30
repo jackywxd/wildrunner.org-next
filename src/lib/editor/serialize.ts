@@ -17,6 +17,7 @@ export type JsonNode = {
 export type PayloadContent = { root: JsonNode }
 
 const UNKNOWN_TYPE = 'unknown-passthrough'
+const PENDING_UPLOAD_TYPE = 'member-pending-upload'
 
 /**
  * Prepare stored Payload content for a Lexical editor built from
@@ -60,6 +61,14 @@ export function toPayloadContent(exported: PayloadContent): PayloadContent {
 }
 
 function walkUp(node: JsonNode): JsonNode {
+  // An upload still in flight has no media id, so there is nothing valid to
+  // write. Throwing here — rather than dropping the node or writing a
+  // placeholder — means a save cannot silently lose an image the author can
+  // still see on screen. The editor also disables saving while any pending
+  // node exists; this is the structural backstop behind that.
+  if (node.type === PENDING_UPLOAD_TYPE) {
+    throw new Error('Cannot save while an upload is still in progress')
+  }
   if (node.type === UNKNOWN_TYPE) {
     // Not recursed into further: `payload` is the original subtree exactly
     // as it was captured, already in its final, wanted form.

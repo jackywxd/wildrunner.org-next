@@ -1,5 +1,6 @@
 import { DecoratorBlockNode } from '@payloadcms/richtext-lexical/lexical/react/LexicalDecoratorBlockNode'
 
+import { UploadPreview } from '@/components/members/editor/UploadPreview'
 import { newObjectIdHex } from '../object-id'
 
 import type {
@@ -20,11 +21,10 @@ import type { SerializedDecoratorBlockNode } from '@payloadcms/richtext-lexical/
  * has to be the literal string `'media'`, and `value` a plain id, never a
  * populated object.
  *
- * Deliberately headless like Payload's own server node: `decorate()` returns
- * null. Payload has a *separate* client node for the browser editor with a
- * real React decorate(); ours will get one in the member editor UI (Phase
- * F). This file only has to be correct for import/export, which is all the
- * Phase B fidelity harness exercises.
+ * `decorate()` renders UploadPreview, which resolves the id to a picture
+ * over the API. The node itself still stores only the id, so the
+ * serialization contract the Phase B harness pins down is unchanged —
+ * `decorate()` is never called on the headless editor that harness builds.
  */
 export type UploadData = {
   fields?: Record<string, unknown>
@@ -100,7 +100,7 @@ export class MemberUploadNode extends DecoratorBlockNode {
   }
 
   decorate() {
-    return null
+    return <UploadPreview value={this.getData().value} />
   }
 
   isInline(): false {

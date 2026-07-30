@@ -4,6 +4,7 @@ import { ListItemNode, ListNode } from '@payloadcms/richtext-lexical/lexical/lis
 import { MemberHorizontalRuleNode } from './horizontal-rule-node'
 import { MemberLinkNode } from './link-node'
 import { MemberUploadNode } from './upload-node'
+import { PendingUploadNode } from './pending-upload-node'
 import { UnknownNode } from './unknown-node'
 
 import type { Klass, LexicalNode } from '@payloadcms/richtext-lexical/lexical'
@@ -31,6 +32,9 @@ export const EDITOR_NODES: Array<Klass<LexicalNode>> = [
   MemberLinkNode,
   MemberUploadNode,
   MemberHorizontalRuleNode,
+  // Registered so the editor can create one mid-upload. It never appears in
+  // stored content: `toPayloadContent` throws on sight of it.
+  PendingUploadNode,
   UnknownNode,
 ]
 
@@ -59,4 +63,10 @@ export {
   $isMemberUploadNode,
   type UploadData,
 } from './upload-node'
+export {
+  PendingUploadNode,
+  $createPendingUploadNode,
+  $isPendingUploadNode,
+  type PendingUploadData,
+} from './pending-upload-node'
 export { UnknownNode, $createUnknownNode, $isUnknownNode } from './unknown-node'
