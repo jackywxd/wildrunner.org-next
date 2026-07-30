@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { TEST_ADMIN } from "../helpers/auth";
+import { adminContext } from "../helpers/members";
 
 /**
  * A2 — admin panel i18n (zh-TW default, English available per-account).
@@ -12,6 +13,14 @@ import { TEST_ADMIN } from "../helpers/auth";
  * were Traditional; AIAssistField was Simplified).
  */
 test.describe("A2 admin i18n", () => {
+  // Same reason as branding.spec.ts: these sort near the front of the suite,
+  // so on a fresh database there is no account to sign in as yet and /admin
+  // serves the create-first-user screen instead.
+  test.beforeAll(async ({ baseURL }) => {
+    const admin = await adminContext(baseURL);
+    await admin.dispose();
+  });
+
   async function signInAdmin(page: import("@playwright/test").Page) {
     const login = await page.context().request.post("/api/users/login", {
       data: TEST_ADMIN,

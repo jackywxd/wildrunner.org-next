@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { adminContext } from "../helpers/members";
+
 /**
  * A1 — Payload login screen branding.
  *
@@ -10,6 +12,18 @@ import { test, expect } from "@playwright/test";
  * bypasses the form entirely.
  */
 test.describe("A1 admin login branding", () => {
+  // On an empty database Payload serves the create-first-user screen at
+  // /admin/login instead of the login form, and that screen renders no
+  // `graphics.Logo`. These specs sort first in the suite, so on a fresh CI
+  // database they ran before anything else had created an account and every
+  // assertion here failed against a page that was never the login form.
+  // `baseURL`, not `request`: the built-in request fixture is test-scoped and
+  // Playwright refuses it in beforeAll. adminContext() makes its own.
+  test.beforeAll(async ({ baseURL }) => {
+    const admin = await adminContext(baseURL);
+    await admin.dispose();
+  });
+
   test("A1-T1: the brand lockup renders from /static/brand/", async ({ page }) => {
     await page.goto("/admin/login");
 
