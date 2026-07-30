@@ -7,11 +7,29 @@ import "dotenv/config";
  */
 export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
+/**
+ * Only spin up `pnpm dev` when the target *is* this machine. Pointed at
+ * staging (or any deployed origin) a local server is dead weight: it would
+ * still be built and waited on for up to 180s, and it needs a PAYLOAD_SECRET
+ * and local D1 that a deploy-verification job has no reason to provide.
+ */
+const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
+  BASE_URL,
+);
+
+/**
+ * Uploads push tens of megabytes to R2 through a Worker. Against a remote
+ * origin that routinely passes 30s — measured on staging: V0-T5 42s,
+ * V2-T1 52s, V3-T3 1.6m — so the per-test budget has to be bigger there.
+ */
+const TIMEOUT = isLocalTarget ? 30_000 : 300_000;
+
 export default defineConfig({
   testDir: "./e2e",
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
+  timeout: TIMEOUT,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,
@@ -30,10 +48,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "cross-env NEXTJS_ENV=test pnpm dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  webServer: isLocalTarget
+    ? {
+        command: "cross-env NEXTJS_ENV=test pnpm dev",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 180_000,
+      }
+    : undefined,
 });

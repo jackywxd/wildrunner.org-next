@@ -1,0 +1,171 @@
+name: Deploy
+
+# Trunk-based promotion. `main` is the only long-lived branch:
+#
+#   PR  -> e2e.yml gates on typecheck + the local suite + an OpenNext build
+#   merge to main -> this workflow deploys STAGING, then re-runs the suite
+#                    against the deployed origin
+#   manual approval -> the SAME commit goes to PRODUCTION
+#
+# The gate deliberately sits before the merge (e2e.yml, `on: pull_request`)
+# rather than after it, and there is no second integration branch: the tree
+# verified on staging is byte-for-byte the tree promoted to production, which
+# a `staging` -> `main` merge could not guarantee.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two promotions interleave — they share one staging environment
+# and one production Worker. Queue instead of cancelling: a half-finished
+# deploy is worse than a slow one.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  STAGING_URL: https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev
+
+jobs:
+  staging:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # `.env.staging` is gitignored (it holds PAYLOAD_SECRET and the Resend
+      # key), and scripts/with-env.mjs requires the file to exist — it treats
+      # that file as authoritative so a staging build can never inherit a
+      # production or .env.local value. Stored as one secret containing the
+      # whole file so CI and a laptop cannot drift key by key.
+      - name: Materialise .env.staging
+        env:
+          STAGING_DOTENV: ${{ secrets.STAGING_DOTENV }}
+        run: |
+          if [ -z "$STAGING_DOTENV" ]; then
+            echo "::error::secrets.STAGING_DOTENV is not set — see docs/workers-builds.md"
+            exit 1
+          fi
+          printf '%s' "$STAGING_DOTENV" > .env.staging
+
+      - name: Deploy to staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm deploy:staging
+
+  verify-staging:
+    name: E2E against staging
+    needs: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # PLAYWRIGHT_BASE_URL must match the deployed NEXT_PUBLIC_SITE_URL
+      # exactly: Payload derives its CSRF allowlist from `serverURL`, so a
+      # mismatched origin makes every authenticated test fail with nothing
+      # useful in the output. Pointing at a non-localhost origin also turns
+      # off the local dev server and widens the per-test timeout — see
+      # playwright.config.ts.
+      - name: Run Playwright against staging
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
+          CI: "true"
+        run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-staging
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      # The suite creates posts, galleries, media and accounts on the shared
+      # staging database. Always clean up, including after a failure, or the
+      # residue accumulates in the database production cuts over to.
+      - name: Clean up staging test data
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_DOTENV: ${{ secrets.STAGING_DOTENV }}
+        run: |
+          printf '%s' "$STAGING_DOTENV" > .env.staging
+          pnpm cleanup:staging
+
+  production:
+    name: Deploy production
+    needs: verify-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # THE GATE. Configure `production` as a GitHub Environment with required
+    # reviewers: this job then waits for an explicit human approval before it
+    # runs, and records who granted it. That approval — on a commit already
+    # proven against staging — is the release request.
+    environment:
+      name: production
+      url: https://wildrunner.org
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Materialise .env.production
+        env:
+          PRODUCTION_DOTENV: ${{ secrets.PRODUCTION_DOTENV }}
+        run: |
+          if [ -z "$PRODUCTION_DOTENV" ]; then
+            echo "::error::secrets.PRODUCTION_DOTENV is not set — see docs/workers-builds.md"
+            exit 1
+          fi
+          printf '%s' "$PRODUCTION_DOTENV" > .env.production
+
+      # Schema changes must already be applied: the migrate step inside a
+      # Workers Builds container writes to a throwaway local D1, so this
+      # checks for pending migrations instead of assuming.
+      - name: Preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm preflight:prod
+
+      - name: Deploy to production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm deploy:prod
+
+      - name: Smoke-check production
+        run: |
+          for path in / /posts /gallery /about; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://wildrunner.org$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
+          done
