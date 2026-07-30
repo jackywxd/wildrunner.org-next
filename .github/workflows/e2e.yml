@@ -1,11 +1,17 @@
 name: E2E
 
+# Pull requests only. This is the gate `main`'s branch protection enforces
+# (required check: `playwright`), so by the time a commit reaches main it has
+# already passed here.
+#
+# Deliberately no `push: main`: it re-ran this same suite, against the same
+# tree, immediately after every merge — in parallel with deploy.yml, which
+# runs it again against the *deployed* staging environment. Two runs that look
+# like gates when only the PR one is, plus ~13 minutes per merge. The
+# post-merge check that matters is deploy.yml's `verify-staging`, because it
+# exercises a real deployment rather than a local dev server.
 on:
   pull_request:
-  push:
-    branches:
-      - main
-      - feat/payload-cms-migration
 
 jobs:
   playwright:
