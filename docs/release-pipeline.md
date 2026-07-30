@@ -33,32 +33,48 @@ trunk-based 把 staging 當成「即將上線的東西」的排練場，prod 則
 已驗證的 commit** 往前推一步。要的批准關卡由 GitHub Environment 提供，是真正
 可稽核的閘門，而不是事後補開的 PR。
 
-## 需要設定的東西（我沒有權限，要你在後台做）
+## GitHub 上已經設定好的部分
 
-### 1. GitHub Environment：投產閘門
+以下都已透過 API 設好，可用 `gh api` 覆核：
 
-Settings → Environments → New environment → 命名 **`production`**
-→ 勾 **Required reviewers**，加上你自己。
+| 項目 | 值 | 為什麼 |
+|---|---|---|
+| Environment `production` | required reviewer = `jackywxd`；`prevent_self_review = false` | 投產閘門。單人維護時若禁止自我審核，就永遠沒人能批准 |
+| Environment 分支政策 | 只允許 `main` | 別的分支無法藉 `workflow_dispatch` 直接推上 prod |
+| `main` required check | `playwright` | 這是 check run 的實際名稱（job 名，不是 workflow 名 `E2E`） |
+| `main` strict | `true` | 分支需與 main 同步才可合併；偶爾要按一下 Update branch |
+| `main` required approvals | **0** | 單一 contributor，設 1 會直接卡死自己。之後有第二個人再調高 |
+| `enforce_admins` | `false` | 保留緊急情況下 admin 繞道的能力 |
+| force push / branch 刪除 | 皆禁止 | |
 
-沒有這一步，`production` job 會直接跑，閘門形同不存在。
+```bash
+gh api repos/jackywxd/wildrunner.org-next/branches/main/protection
+gh api repos/jackywxd/wildrunner.org-next/environments
+```
 
-### 2. GitHub Secrets
+## 只有你能做的：4 個 secrets
 
-Settings → Secrets and variables → Actions：
+我不經手憑證值，所以這步請你自己跑。指令從本機檔案直接讀，值不會經過任何
+中間人：
 
-| Secret | 內容 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | 具 Workers Scripts\:Edit、D1\:Edit、R2\:Edit 的 token |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
-| `STAGING_DOTENV` | **整個 `.env.staging` 檔案內容** |
-| `PRODUCTION_DOTENV` | **整個 `.env.production` 檔案內容** |
+```bash
+gh secret set STAGING_DOTENV    < .env.staging
+gh secret set PRODUCTION_DOTENV < .env.production
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ACCOUNT_ID
+```
 
-整檔存成一個 secret 而不是逐一拆成多個 key，是因為 `scripts/with-env.mjs`
-把該檔案視為那個環境的唯一權威來源（它會覆蓋 `process.env`，避免 staging
-build 繼承到 `.env.local` 的 `S3_*` 寫入憑證）。拆開存會讓 CI 和筆電慢慢
-飄移。
+後兩個會互動式提示輸入。`CLOUDFLARE_API_TOKEN` 需要
+Workers Scripts\:Edit、D1\:Edit、R2\:Edit 權限。
 
-### 3. Cloudflare Workers Builds
+檢查：`gh secret list`（應看到 4 個）。
+
+整個 env 檔存成**一個** secret 而不是拆成多個 key，是因為
+`scripts/with-env.mjs` 把該檔案視為那個環境的唯一權威來源（它會覆蓋
+`process.env`，避免 staging build 繼承到 `.env.local` 的 `S3_*` 寫入憑證）。
+拆開存會讓 CI 和筆電慢慢飄移。
+
+### 還需要在 Cloudflare 後台做
 
 目前 `wildrunner-org-next`（prod worker）綁 `main` **自動部署上線**——
 這正是現在缺少 staging 排練的原因。
@@ -70,11 +86,6 @@ build 繼承到 `.env.local` 的 `S3_*` 寫入憑證）。拆開存會讓 CI 和
 > 若你想保留 Workers Builds：把它接到 **staging** worker、production branch
 > 設 `main`，然後在 `deploy.yml` 拿掉 `staging` job、只留 verify + 投產。
 > 缺點是 Actions 無法得知 Workers Builds 何時部署完，verify 會賽跑。
-
-### 4. Branch protection（建議）
-
-Settings → Branches → `main`：要求 PR、要求 `E2E` check 通過、
-禁止直接 push。
 
 ## staging 與 prod 的資料一致性
 
