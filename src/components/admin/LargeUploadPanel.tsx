@@ -16,9 +16,46 @@ import {
 } from '@/lib/direct-upload'
 import { clearSession, loadSession, saveSession } from '@/lib/upload-store'
 
+import { useDict } from './i18n'
+
 import type { UploadSession } from '@/lib/direct-upload'
 
 type Phase = 'idle' | 'uploading' | 'saving' | 'done' | 'error'
+
+const dict = {
+  en: {
+    heading: 'Upload media',
+    name: 'Name',
+    partsSuffix: (n: number) => ` · ${n} parts straight to R2`,
+    creatingDoc: 'Creating document…',
+    resumable: (done: number, total: number) =>
+      `An upload of this file is unfinished (${done} / ${total} parts sent) — it can be resumed.`,
+    resume: 'Resume upload',
+    start: 'Upload',
+    cancel: 'Cancel',
+    uploadAnother: 'Upload another',
+    done: 'Done',
+    open: 'Open',
+    paused: 'Paused — upload can be resumed',
+    uploadFailed: 'Upload failed',
+  },
+  'zh-TW': {
+    heading: '上傳媒體',
+    name: '名稱',
+    partsSuffix: (n: number) => ` · 分 ${n} 段直接傳送到 R2`,
+    creatingDoc: '建立文件…',
+    resumable: (done: number, total: number) =>
+      `這個檔案有未完成的上傳（已傳 ${done} / ${total} 段），可以接著傳。`,
+    resume: '繼續上傳',
+    start: '上傳',
+    cancel: '取消',
+    uploadAnother: '再傳一個',
+    done: '完成',
+    open: '開啟',
+    paused: '已暫停，可繼續上傳',
+    uploadFailed: '上傳失敗',
+  },
+}
 
 /**
  * Upload panel for files Payload's own uploader cannot take.
@@ -33,6 +70,7 @@ type Phase = 'idle' | 'uploading' | 'saving' | 'done' | 'error'
  * metadata reaches the server.
  */
 export function LargeUploadPanel() {
+  const t = useDict(dict)
   const [file, setFile] = useState<File | null>(null)
   const [alt, setAlt] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -145,12 +183,12 @@ export function LargeUploadPanel() {
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') {
         // The parts already sent stay recorded, so this is a pause.
-        setMessage('已暫停，可繼續上傳')
+        setMessage(t.paused)
         setPhase('idle')
         if (file) setResumable(await loadSession(file))
         return
       }
-      setMessage((error as Error)?.message || '上傳失敗')
+      setMessage((error as Error)?.message || t.uploadFailed)
       setPhase('error')
     } finally {
       abortRef.current = null
@@ -172,7 +210,7 @@ export function LargeUploadPanel() {
         gap: 'calc(var(--base) / 2)',
       }}
     >
-      <strong>上傳媒體</strong>
+      <strong>{t.heading}</strong>
 
       <input
         ref={inputRef}
@@ -187,19 +225,22 @@ export function LargeUploadPanel() {
         <>
           <div style={{ fontSize: '0.85rem', color: 'var(--theme-elevation-600)' }}>
             {file.name} · {formatBytes(file.size)}
-            {direct && ` · 分 ${partCount({
-              key: '',
-              uploadId: '',
-              filename: file.name,
-              mimeType: file.type,
-              size: file.size,
-              chunkSize: CHUNK_SIZE,
-              parts: [],
-            })} 段直接傳送到 R2`}
+            {direct &&
+              t.partsSuffix(
+                partCount({
+                  key: '',
+                  uploadId: '',
+                  filename: file.name,
+                  mimeType: file.type,
+                  size: file.size,
+                  chunkSize: CHUNK_SIZE,
+                  parts: [],
+                }),
+              )}
           </div>
 
           <label style={{ display: 'grid', gap: '4px' }}>
-            <span style={{ fontSize: '0.85rem' }}>名稱</span>
+            <span style={{ fontSize: '0.85rem' }}>{t.name}</span>
             <input
               data-testid="large-upload-alt"
               type="text"
@@ -232,7 +273,7 @@ export function LargeUploadPanel() {
           </div>
           <small>
             {phase === 'saving'
-              ? '建立文件…'
+              ? t.creatingDoc
               : `${percent}% · ${formatBytes(sent)} / ${file ? formatBytes(file.size) : ''}`}
           </small>
         </div>
@@ -240,8 +281,7 @@ export function LargeUploadPanel() {
 
       {resumable && !busy && (
         <div data-testid="large-upload-resumable" style={{ fontSize: '0.85rem' }}>
-          這個檔案有未完成的上傳（已傳 {resumable.parts.length} /{' '}
-          {partCount(resumable)} 段），可以接著傳。
+          {t.resumable(resumable.parts.length, partCount(resumable))}
         </div>
       )}
 
@@ -252,23 +292,23 @@ export function LargeUploadPanel() {
           disabled={!file || busy}
           onClick={() => upload(resumable)}
         >
-          {resumable ? '繼續上傳' : '上傳'}
+          {resumable ? t.resume : t.start}
         </button>
         {busy && direct && (
           <button type="button" data-testid="large-upload-cancel" onClick={() => abortRef.current?.abort()}>
-            取消
+            {t.cancel}
           </button>
         )}
         {(phase === 'done' || phase === 'error') && (
           <button type="button" onClick={reset}>
-            再傳一個
+            {t.uploadAnother}
           </button>
         )}
       </div>
 
       {phase === 'done' && docId !== null && (
         <div data-testid="large-upload-done" data-doc-id={docId} style={{ color: 'var(--theme-success-500)' }}>
-          完成 · <a href={`/admin/collections/media/${docId}`}>開啟</a>
+          {t.done} · <a href={`/admin/collections/media/${docId}`}>{t.open}</a>
         </div>
       )}
 

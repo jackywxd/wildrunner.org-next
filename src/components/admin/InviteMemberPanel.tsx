@@ -3,6 +3,8 @@
 import { Button } from '@payloadcms/ui'
 import { useState } from 'react'
 
+import { useDict } from './i18n'
+
 type InviteResult = {
   email?: string
   sent?: boolean
@@ -12,7 +14,45 @@ type InviteResult = {
   errors?: { message: string }[]
 }
 
+const dict = {
+  en: {
+    heading: 'Invite a member',
+    email: 'Email',
+    displayName: 'Display name (optional)',
+    displayNamePlaceholder: 'Author alias',
+    emailRequired: 'Enter an email address first.',
+    inviteFailed: 'Invite failed',
+    sending: 'Sending…',
+    sendInvite: 'Send invite',
+    sentTo: (email: string) => `Invite sent to ${email}. The link is valid for 7 days.`,
+    accountCreated: 'Account created.',
+    sendFailed: (reason: string) => `Sending the email failed (${reason}),`,
+    noEmailConfigured: 'No email service is configured,',
+    shareLink: 'share the link below instead — valid for 7 days:',
+    copied: 'Copied',
+    copyLink: 'Copy link',
+  },
+  'zh-TW': {
+    heading: '邀請會員',
+    email: '郵箱',
+    displayName: '顯示名稱（選填）',
+    displayNamePlaceholder: '作者別名',
+    emailRequired: '請先輸入郵箱。',
+    inviteFailed: '邀請失敗',
+    sending: '邀請中…',
+    sendInvite: '送出邀請',
+    sentTo: (email: string) => `已寄出邀請信到 ${email}。連結 7 天內有效。`,
+    accountCreated: '帳號已建立。',
+    sendFailed: (reason: string) => `寄信失敗（${reason}），`,
+    noEmailConfigured: '目前未設定寄信服務，',
+    shareLink: '請把下面的連結傳給對方，7 天內有效：',
+    copied: '已複製',
+    copyLink: '複製連結',
+  },
+}
+
 export function InviteMemberPanel() {
+  const t = useDict(dict)
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [result, setResult] = useState<InviteResult | null>(null)
@@ -22,7 +62,7 @@ export function InviteMemberPanel() {
 
   const invite = async () => {
     if (!email.trim()) {
-      setError('請先輸入郵箱。')
+      setError(t.emailRequired)
       return
     }
 
@@ -41,14 +81,14 @@ export function InviteMemberPanel() {
       const body = (await response.json()) as InviteResult
 
       if (!response.ok) {
-        throw new Error(body.errors?.[0]?.message || '邀請失敗')
+        throw new Error(body.errors?.[0]?.message || t.inviteFailed)
       }
 
       setResult(body)
       setEmail('')
       setDisplayName('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '邀請失敗')
+      setError(cause instanceof Error ? cause.message : t.inviteFailed)
     } finally {
       setIsLoading(false)
     }
@@ -69,10 +109,10 @@ export function InviteMemberPanel() {
         marginBottom: 'var(--base)',
       }}
     >
-      <h4 style={{ marginTop: 0 }}>邀請會員</h4>
+      <h4 style={{ marginTop: 0 }}>{t.heading}</h4>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'block' }}>
-          <span style={{ display: 'block', marginBottom: 4 }}>郵箱</span>
+          <span style={{ display: 'block', marginBottom: 4 }}>{t.email}</span>
           <input
             data-testid="invite-email"
             type="email"
@@ -82,13 +122,13 @@ export function InviteMemberPanel() {
           />
         </label>
         <label style={{ display: 'block' }}>
-          <span style={{ display: 'block', marginBottom: 4 }}>顯示名稱（選填）</span>
+          <span style={{ display: 'block', marginBottom: 4 }}>{t.displayName}</span>
           <input
             data-testid="invite-display-name"
             type="text"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="作者別名"
+            placeholder={t.displayNamePlaceholder}
           />
         </label>
         <Button
@@ -97,7 +137,7 @@ export function InviteMemberPanel() {
           onClick={invite}
           type="button"
         >
-          {isLoading ? '邀請中…' : '送出邀請'}
+          {isLoading ? t.sending : t.sendInvite}
         </Button>
       </div>
 
@@ -110,15 +150,13 @@ export function InviteMemberPanel() {
       {result ? (
         <div data-testid="invite-result" style={{ marginTop: 12 }}>
           {result.sent ? (
-            <p>已寄出邀請信到 {result.email}。連結 7 天內有效。</p>
+            <p>{t.sentTo(result.email ?? '')}</p>
           ) : (
             <>
               <p>
-                帳號已建立。
-                {result.emailError
-                  ? `寄信失敗（${result.emailError}），`
-                  : '目前未設定寄信服務，'}
-                請把下面的連結傳給對方，7 天內有效：
+                {t.accountCreated}
+                {result.emailError ? t.sendFailed(result.emailError) : t.noEmailConfigured}
+                {t.shareLink}
               </p>
               <code
                 data-testid="invite-link"
@@ -127,7 +165,7 @@ export function InviteMemberPanel() {
                 {result.inviteLink}
               </code>
               <Button buttonStyle="secondary" onClick={copyLink} type="button">
-                {copied ? '已複製' : '複製連結'}
+                {copied ? t.copied : t.copyLink}
               </Button>
             </>
           )}

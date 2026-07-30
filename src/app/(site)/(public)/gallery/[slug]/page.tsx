@@ -1,7 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import PhotoGallery from "@/app/(site)/gallery/_components/PhotoGallery";
+import PhotoGallery from "@/app/(site)/(public)/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
 import { resolveGalleryOgImage } from "@/lib/galleryOg";
 import {

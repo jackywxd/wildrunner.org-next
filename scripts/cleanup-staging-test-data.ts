@@ -47,15 +47,65 @@ function migrationFilename(url: string): string {
     .replace(/[^a-zA-Z0-9._-]/g, '-')
 }
 
+/**
+ * What production actually publishes today.
+ *
+ * The Velite source below is a snapshot frozen at the migration, so anything
+ * production has gained since then looks like test junk to it — and staging
+ * is kept in step with prod by `pnpm sync:staging`, so that content is
+ * genuinely present here. Without this, cleanup deleted exactly what the
+ * sync had just copied.
+ *
+ * Read-only, and additive: prod slugs *widen* the keep-list, never narrow
+ * it. If prod is unreachable the Velite snapshot still applies on its own,
+ * so a network failure can only make this more conservative, never less.
+ */
+async function prodDocs<T>(
+  collection: 'galleries' | 'media' | 'posts',
+): Promise<T[]> {
+  const base = process.env.PROD_BASE_URL ?? 'https://wildrunner.org'
+  try {
+    const response = await fetch(`${base}/api/${collection}?limit=2000&depth=0`)
+    if (!response.ok) throw new Error(`${response.status}`)
+    return ((await response.json()) as { docs: T[] }).docs
+  } catch (error) {
+    console.warn(
+      `cleanup: could not read prod ${collection} ` +
+        `(${(error as Error).message}); falling back to the Velite snapshot only. ` +
+        `Content added to prod after the migration may be reported as test data — ` +
+        `re-check before deleting.`,
+    )
+    return []
+  }
+}
+
+const slugsOf = (docs: { slug?: string }[]) =>
+  docs.map((d) => d.slug).filter((s): s is string => Boolean(s))
+
 async function main() {
   const payload = await getPayload({ config })
 
-  const realPostSlugs = new Set((postsSource as VelitePost[]).map((p) => p.slug))
-  const realGallerySlugs = new Set(
-    (galleriesSource as VeliteGallery[]).map((g) => g.slug),
-  )
+  const [prodPosts, prodGalleries, prodMedia] = await Promise.all([
+    prodDocs<{ slug?: string }>('posts'),
+    prodDocs<{ slug?: string }>('galleries'),
+    prodDocs<{ filename?: string }>('media'),
+  ])
 
-  const realMediaFilenames = new Set<string>()
+  const realPostSlugs = new Set([
+    ...(postsSource as VelitePost[]).map((p) => p.slug),
+    ...slugsOf(prodPosts),
+  ])
+  const realGallerySlugs = new Set([
+    ...(galleriesSource as VeliteGallery[]).map((g) => g.slug),
+    ...slugsOf(prodGalleries),
+  ])
+
+  // Filenames as production stores them, for media that reached prod after
+  // the migration (member uploads, new galleries) and was then copied here
+  // by `pnpm sync:staging`.
+  const realMediaFilenames = new Set<string>(
+    prodMedia.map((m) => m.filename).filter((f): f is string => Boolean(f)),
+  )
   for (const gallery of galleriesSource as VeliteGallery[]) {
     for (const image of gallery.images ?? []) {
       realMediaFilenames.add(migrationFilename(image.src))

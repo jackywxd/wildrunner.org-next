@@ -12,6 +12,7 @@
     "build:content": "node --env-file-if-exists=.env.local ./node_modules/velite/bin/velite.js && next build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "generate:types": "pnpm run generate:types:cloudflare && pnpm run generate:types:payload",
     "generate:types:cloudflare": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
@@ -33,6 +34,7 @@
     "media:orphans": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/find-orphan-media.ts",
     "media:orphans:prod": "cross-env NODE_OPTIONS=--no-deprecation NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/find-orphan-media.ts",
     "cleanup:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/cleanup-staging-test-data.ts",
+    "sync:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/sync-prod-content-to-staging.ts",
     "build:staging": "node scripts/with-env.mjs .env.staging opennextjs-cloudflare build --env staging",
     "deploy:staging": "pnpm run build:staging && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging",
     "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.production scripts/preflight-production.ts",
@@ -98,7 +100,8 @@
     "usehooks-ts": "^3.1.1",
     "yet-another-react-lightbox": "^3.29.1",
     "zod": "^3.25.76",
-    "zod-i18n-map": "^2.27.0"
+    "zod-i18n-map": "^2.27.0",
+    "@payloadcms/translations": "3.82.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

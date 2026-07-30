@@ -6,6 +6,12 @@
 
 **Workers & Pages → 连接 Git → `jackywxd/wildrunner.org-next`**
 
+> ⚠️ **发布流程已改为 trunk-based + 投产闸门**，见
+> [release-pipeline.md](./release-pipeline.md)。本文件下方「Production branch
+> `main` → 自动部署上线」描述的是**旧行为**：`main` 现在应先部署 staging、
+> 跑完 e2e、人工批准后才上 prod（`.github/workflows/deploy.yml`）。
+> 要套用新流程，需关掉 prod worker 的 Workers Builds 自动部署。
+
 ## 架构说明（重要）
 
 **Workers Builds 不跑 Velite，也不启用 Git LFS。**

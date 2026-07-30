@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import type { Media, Post } from "@/payload-types";
+import { mediaImageSrc } from "@/lib/cf-image";
 import {
   RichText,
   type JSXConvertersFunction,
@@ -28,9 +29,19 @@ const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
     const width = value.width ?? 1200;
     const height = value.height ?? 800;
 
+    // Through mediaImageSrc, not value.url: media uploaded outside
+    // production keeps Payload's own absolute
+    // `<serverURL>/api/media/file/<name>` URL, and next/image rejects an
+    // absolute URL whose host isn't in images.remotePatterns — "localhost"
+    // never will be. Migrated media (images.wildrunner.org) is unaffected,
+    // which is why this only began failing once posts could carry images
+    // uploaded from the member editor.
+    const src = mediaImageSrc(value);
+    if (!src) return null;
+
     return (
       <Image
-        src={value.url}
+        src={src}
         alt={alt}
         width={width}
         height={height}

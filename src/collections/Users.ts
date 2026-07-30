@@ -8,6 +8,10 @@ import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: {
+    singular: { en: 'User', 'zh-TW': '使用者' },
+    plural: { en: 'Users', 'zh-TW': '使用者' },
+  },
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'displayName', 'role', 'invitePending', 'updatedAt'],
@@ -69,6 +73,7 @@ export const Users: CollectionConfig = {
     {
       name: 'displayName',
       type: 'text',
+      label: { en: 'Display Name', 'zh-TW': '顯示名稱' },
       admin: {
         description:
           'Seeds the author alias shown on the site. The alias itself lives on the author record.',
@@ -78,6 +83,7 @@ export const Users: CollectionConfig = {
       name: 'author',
       type: 'relationship',
       relationTo: 'authors',
+      label: { en: 'Author', 'zh-TW': '作者' },
       access: {
         create: isAdminFieldLevel,
         update: isAdminFieldLevel,
@@ -91,6 +97,7 @@ export const Users: CollectionConfig = {
     {
       name: 'invitePending',
       type: 'checkbox',
+      label: { en: 'Invite Pending', 'zh-TW': '邀請待確認' },
       defaultValue: false,
       access: {
         create: isAdminFieldLevel,
@@ -105,6 +112,7 @@ export const Users: CollectionConfig = {
     {
       name: 'invitedAt',
       type: 'date',
+      label: { en: 'Invited At', 'zh-TW': '邀請時間' },
       access: {
         create: isAdminFieldLevel,
         update: isAdminFieldLevel,
@@ -115,6 +123,7 @@ export const Users: CollectionConfig = {
       name: 'invitedBy',
       type: 'relationship',
       relationTo: 'users',
+      label: { en: 'Invited By', 'zh-TW': '邀請人' },
       access: {
         create: isAdminFieldLevel,
         update: isAdminFieldLevel,
@@ -124,6 +133,7 @@ export const Users: CollectionConfig = {
     {
       name: 'storageQuotaMb',
       type: 'number',
+      label: { en: 'Storage Quota (MB)', 'zh-TW': '儲存空間配額（MB）' },
       min: 0,
       access: {
         create: isAdminFieldLevel,
@@ -137,11 +147,12 @@ export const Users: CollectionConfig = {
     {
       name: 'role',
       type: 'select',
+      label: { en: 'Role', 'zh-TW': '角色' },
       required: true,
       defaultValue: 'member',
       options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Member', value: 'member' },
+        { label: { en: 'Admin', 'zh-TW': '管理員' }, value: 'admin' },
+        { label: { en: 'Member', 'zh-TW': '會員' }, value: 'member' },
       ],
       saveToJWT: true,
       access: {

@@ -145,7 +145,10 @@ test.describe("P4 AI expand post", () => {
         response.url().includes(`/api/posts/${id}`) &&
         response.request().method() === "PATCH",
     );
-    await page.getByRole("button", { name: /save draft|保存草稿/i }).click();
+    // The admin's default account language became Traditional Chinese
+    // (zh-TW) once payload.config.ts enabled it — @payloadcms/translations
+    // renders this button as 儲存草稿, not the Simplified 保存草稿.
+    await page.getByRole("button", { name: /save draft|儲存草稿/i }).click();
     const saveResponse = await saved;
     expect(
       saveResponse.ok(),

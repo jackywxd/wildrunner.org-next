@@ -25,6 +25,11 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # Before Playwright, not after: the browser suite cannot catch a bad
+      # node subclass or a wrong serialized shape, and `next build` — the
+      # de-facto typecheck until now — only runs at the very end.
+      - name: Typecheck
+        run: pnpm typecheck
       - name: Assert Cloudflare bindings
         run: pnpm assert:bindings
       - name: Assert Workers Builds LFS policy

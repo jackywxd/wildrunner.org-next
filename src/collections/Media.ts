@@ -10,6 +10,10 @@ import { verifyDirectUpload } from './hooks/verify-direct-upload'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: {
+    singular: { en: 'Media', 'zh-TW': '媒體' },
+    plural: { en: 'Media', 'zh-TW': '媒體' },
+  },
   admin: {
     components: {
       beforeListTable: [
@@ -38,11 +42,13 @@ export const Media: CollectionConfig = {
     {
       name: 'alt',
       type: 'text',
+      label: { en: 'Alt Text', 'zh-TW': '替代文字' },
       required: true,
     },
     {
       name: 'streamId',
       type: 'text',
+      label: { en: 'Stream ID', 'zh-TW': 'Stream ID' },
       admin: {
         description: 'Cloudflare Stream UID after video ingest (Phase 5+)',
         position: 'sidebar',
@@ -51,6 +57,7 @@ export const Media: CollectionConfig = {
     {
       name: 'streamReady',
       type: 'checkbox',
+      label: { en: 'Stream Ready', 'zh-TW': 'Stream 已就緒' },
       defaultValue: false,
       admin: {
         readOnly: true,
@@ -61,6 +68,7 @@ export const Media: CollectionConfig = {
     {
       name: 'blurDataURL',
       type: 'textarea',
+      label: { en: 'Blur Data URL', 'zh-TW': '模糊預覽資料' },
       admin: {
         readOnly: true,
         position: 'sidebar',
@@ -69,11 +77,13 @@ export const Media: CollectionConfig = {
     {
       name: 'width',
       type: 'number',
+      label: { en: 'Width', 'zh-TW': '寬度' },
       admin: { readOnly: true, position: 'sidebar' },
     },
     {
       name: 'height',
       type: 'number',
+      label: { en: 'Height', 'zh-TW': '高度' },
       admin: { readOnly: true, position: 'sidebar' },
     },
   ],
