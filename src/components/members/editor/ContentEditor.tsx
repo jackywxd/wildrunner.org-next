@@ -26,6 +26,8 @@ import { PasteImagePlugin } from "./PasteImagePlugin";
 export type ContentEditorHandle = {
   /** Current document in Payload's stored shape. Throws if an upload is pending. */
   read: () => PayloadContent;
+  /** Replace the whole document, e.g. with an AI-generated draft. */
+  replace: (content: PayloadContent) => void;
 };
 
 /**
@@ -57,6 +59,17 @@ export function ContentEditor({
       // toPayloadContent throws if a pending upload is still in the tree.
       return toPayloadContent(
         editor.getEditorState().toJSON() as unknown as PayloadContent,
+      );
+    },
+    replace: (content) => {
+      const editor = editorRef.current;
+      if (!editor) throw new Error("Editor is not ready");
+      // In Payload's admin the equivalent needs a dispatchFields UPDATE with
+      // both value and initialValue, because its Lexical field only remounts
+      // the editor when initialValue changes (see AIAssistField). Owning the
+      // editor directly makes it a plain state swap.
+      editor.setEditorState(
+        editor.parseEditorState(JSON.stringify(fromPayloadContent(content))),
       );
     },
   };

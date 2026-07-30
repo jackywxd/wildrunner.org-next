@@ -7,6 +7,7 @@ import {
   ContentEditor,
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
+import { AIAssistPanel } from "@/components/members/editor/AIAssistPanel";
 import { savePost, unpublishPost } from "@/lib/members/posts";
 import type { PayloadContent } from "@/lib/editor/serialize";
 
@@ -176,6 +177,15 @@ export function PostEditor({
           {status === "published" ? "更新已發布內容" : "發布"}
         </Button>
       </div>
+
+      <AIAssistPanel
+        title={title}
+        description={description}
+        onContent={(content) => {
+          editorRef.current?.replace(content);
+          setDirty(true);
+        }}
+      />
 
       <ContentEditor
         initialContent={initial.content}

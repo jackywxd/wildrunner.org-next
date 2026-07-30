@@ -117,6 +117,7 @@ export default buildConfig({
         Logo: '@/components/admin/BrandLogo#BrandLogo',
         Icon: '@/components/admin/BrandIcon#BrandIcon',
       },
+      beforeNavLinks: ['@/components/admin/MemberAreaLink#MemberAreaLink'],
     },
     meta: {
       titleSuffix: ' — 野馬營',
