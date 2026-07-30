@@ -188,6 +188,12 @@ test.describe("V3 admin upload panel", () => {
   test("V3-T3: two members uploading the same filename don't overwrite each other", async ({
     page,
   }) => {
+    // 85 MB across two sequential uploads. The inner assertion already allows
+    // 150s each, but without a test-level budget the whole test still died at
+    // Playwright's 30s default — so that 150s was never reachable. Passed
+    // anyway on hardware fast enough to finish both inside 30s, and failed on
+    // CI runners. Matches V3-T1 (180s) and V4-T1 (240s), which do set one.
+    test.setTimeout(240_000);
     await signIn(page);
 
     const name = `v3-collision-${stamp}.mp4`;
