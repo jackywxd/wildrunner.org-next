@@ -54,20 +54,39 @@ gh api repos/jackywxd/wildrunner.org-next/environments
 
 ## 只有你能做的：4 個 secrets
 
-我不經手憑證值，所以這步請你自己跑。指令從本機檔案直接讀，值不會經過任何
-中間人：
+我不經手憑證值，所以這步請你自己跑。
+
+前兩個從檔案讀，值不經過任何中間人：
 
 ```bash
-gh secret set STAGING_DOTENV    < .env.staging
+gh secret set STAGING_DOTENV < .env.staging
+```
+
+```bash
 gh secret set PRODUCTION_DOTENV < .env.production
+```
+
+後兩個**必須一次跑一行**。`gh secret set` 在沒有 `--body` 時會讀 stdin；
+四行一起貼進終端機的話，第三行會把第四行當成自己的祕密值吃掉，結果只設好
+三個、其中一個內容是垃圾，而且不會報錯：
+
+```bash
 gh secret set CLOUDFLARE_API_TOKEN
+```
+
+```bash
 gh secret set CLOUDFLARE_ACCOUNT_ID
 ```
 
-後兩個會互動式提示輸入。`CLOUDFLARE_API_TOKEN` 需要
-Workers Scripts\:Edit、D1\:Edit、R2\:Edit 權限。
+單獨執行時 gh 會給互動式提示（輸入不回顯），也不會留在 shell history 裡。
+`CLOUDFLARE_API_TOKEN` 需要 Workers Scripts\:Edit、D1\:Edit、R2\:Edit；
+`account_id` 沒有寫在 `wrangler.jsonc` 裡，所以 CI 真的需要這一個。
 
 檢查：`gh secret list`（應看到 4 個）。
+
+> `.env.staging` / `.env.production` 裡的 `RESEND_API_KEY`、`S3_*` 目前都是
+> **空值**——`S3_*` 是故意留空來中和 `.env.local`（見 `with-env.mjs`）。所以
+> 這兩個 blob 裡真正的祕密是 `PAYLOAD_SECRET`。
 
 整個 env 檔存成**一個** secret 而不是拆成多個 key，是因為
 `scripts/with-env.mjs` 把該檔案視為那個環境的唯一權威來源（它會覆蓋
@@ -87,6 +106,24 @@ Workers Scripts\:Edit、D1\:Edit、R2\:Edit 權限。
 > 設 `main`，然後在 `deploy.yml` 拿掉 `staging` job、只留 verify + 投產。
 > 缺點是 Actions 無法得知 Workers Builds 何時部署完，verify 會賽跑。
 
+## 待處理：staging 和 prod 共用同一個 PAYLOAD_SECRET
+
+兩個 env 檔的 `PAYLOAD_SECRET` 是**同一個值**（sha256 前 12 碼相同）。
+
+實測目前**無法**用 staging 的 token 冒充 prod：拿 staging 簽出來的 admin JWT
+打 `https://wildrunner.org/api/users/me`，prod 回 `user: null`——因為 Payload
+會拿 token 裡的 `sid` 去比對該使用者的 `users_sessions`，而兩邊資料庫的 session
+不同。
+
+但這仍該修，理由是它只差一步就會變成可利用：
+
+- `PAYLOAD_SECRET` 同時是簽章金鑰**和**欄位加密金鑰，兩個環境共用等於單點失效
+- staging 的 admin 密碼是 `e2e/helpers/auth.ts` 裡的常數，且 staging 是公開可達的
+- 一旦 session 驗證行為改變（或某處關掉），token 立刻可跨環境攜帶
+
+建議：給 staging 換一個獨立的 `PAYLOAD_SECRET`，然後重設 `STAGING_DOTENV`。
+換掉會讓 staging 現有的登入 session 全部失效（重新登入即可），不影響內容。
+
 ## staging 與 prod 的資料一致性
 
 ```bash
@@ -95,9 +132,14 @@ pnpm sync:staging             # 把 prod 已發布內容補進 staging
 ```
 
 單向：prod 是來源，staging 永不回寫。**不同步 `users`** —— prod 的帳號是真人
-的 email 和密碼 hash，而 staging 帶著可用的 `RESEND_API_KEY`
-（`noreply@wildrunner.org`），一次邀請或重設密碼就會寄到真實會員信箱。
-內容的 owner 會改指到 staging 的帳號（`--owner=`）。
+的 email 和 bcrypt hash，沒有理由複製到一個 admin 密碼寫在
+`e2e/helpers/` 裡的環境。內容的 owner 會改指到 staging 的帳號（`--owner=`）。
+
+> 關於寄信：staging 的 `RESEND_API_KEY` 目前是**空的**，所以
+> `isEmailConfigured()` 為 false、Payload 只把信寫進 log，今天在 staging 觸發
+> 邀請或重設密碼**不會真的寄出**。但那只差一個設定——真實 email 若躺在這個
+> 資料庫裡、哪天把 key 填上就會開始寄給真人。把 `users` 排除在外，是讓這件事
+> 「不可能」而不只是「不太可能」。
 
 R2 物件也不複製：遷移過的媒體存的是 `images.wildrunner.org` 絕對網址，
 staging 直接讀，所以 515MB 的影片只需要複製那一列資料。

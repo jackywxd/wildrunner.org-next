@@ -7,10 +7,17 @@
  *
  * What it does NOT touch:
  *
- * - `users`. Production rows carry real emails and password hashes, and
- *   staging has a live RESEND_API_KEY sending from noreply@wildrunner.org —
- *   an invite or reset triggered on staging would email real members. Owner
- *   references are remapped to a staging account instead (--owner).
+ * - `users`. Production rows carry real emails and bcrypt hashes, and there
+ *   is no reason to duplicate either into an environment whose admin
+ *   password is a constant in e2e/helpers/. Owner references are remapped to
+ *   a staging account instead (--owner).
+ *
+ *   Note on email: staging's RESEND_API_KEY is currently *empty*, so
+ *   `isEmailConfigured()` is false and Payload only logs mail — an invite or
+ *   reset there sends nothing today. That is a config away from changing,
+ *   though, and filling the key in while real addresses sat in this database
+ *   would start mailing real members. Keeping `users` out means that stays
+ *   impossible rather than merely unlikely.
  * - Drafts. Prod is read over its public REST API, which only exposes
  *   published documents. Unpublished work is nobody else's business.
  * - R2 objects. Migrated media rows hold absolute `images.wildrunner.org`
