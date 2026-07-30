@@ -77,11 +77,23 @@ test.describe("R public rider directory", () => {
 
   test("R-T2: a card opens that member's page", async ({ page }) => {
     await page.goto("/riders");
-    await page
-      .locator(`[data-testid="rider-card"][data-rider-slug="${riderOne.slug}"]`)
-      .click();
 
-    await expect(page).toHaveURL(new RegExp(`/riders/${riderOne.slug}$`));
+    const card = page.locator(
+      `[data-testid="rider-card"][data-rider-slug="${riderOne.slug}"]`,
+    );
+
+    // Assert the destination before following it, the way G-T1/G-T2 split
+    // this: a card pointing at the wrong member then fails here and says so,
+    // rather than surfacing as a navigation timeout.
+    await expect(card).toHaveAttribute("href", `/riders/${riderOne.slug}`);
+    await card.click();
+
+    // `waitForURL` rather than `toHaveURL`, whose 5s expect timeout is too
+    // tight here: this is the first test to reach /riders/[slug], and
+    // `next dev` compiles a route on demand the first time it is requested.
+    // On a loaded CI runner that cold compile alone can outlast 5s — observed
+    // as an R-T2 flake that passed on retry.
+    await page.waitForURL(`**/riders/${riderOne.slug}`, { timeout: 30_000 });
     await expect(page.getByTestId("rider-name")).toHaveText(riderOne.name);
   });
 
