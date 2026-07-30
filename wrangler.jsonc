@@ -87,7 +87,15 @@
 	"vars": {
 		"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
 		"RESEND_FROM_NAME": "野馬營",
-		"MEMBER_STORAGE_QUOTA_MB": "10240"
+		"MEMBER_STORAGE_QUOTA_MB": "10240",
+		// Read at *runtime* by publicMediaUrl() (src/lib/media-url.ts) via
+		// setMediaUrl, so it has to be a binding. It was only ever reaching
+		// the Worker by being inlined from .env.production at build time,
+		// which held for production and did not for staging: uploads there
+		// fell back to Payload's own <serverURL>/api/media/file/<name>, which
+		// next/image cannot optimise and Stream cannot ingest. Not a secret —
+		// both hostnames are already in next.config.ts's remotePatterns.
+		"R2_PUBLIC_URL": "https://images.wildrunner.org"
 	},
 	"workers_dev": true,
 	"preview_urls": true,
@@ -172,7 +180,10 @@
 			"vars": {
 				"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
 				"RESEND_FROM_NAME": "野馬營",
-				"MEMBER_STORAGE_QUOTA_MB": "10240"
+				"MEMBER_STORAGE_QUOTA_MB": "10240",
+				// Staging's own bucket, never production's — see the
+				// production entry above for why this must be a binding.
+				"R2_PUBLIC_URL": "https://pub-f82e5464c241415f9ea3f879e8f46e7f.r2.dev"
 			},
 			"workers_dev": true,
 			"preview_urls": true,

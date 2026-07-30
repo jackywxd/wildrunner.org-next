@@ -112,7 +112,10 @@ jobs:
           STAGING_DOTENV: ${{ secrets.STAGING_DOTENV }}
         run: |
           printf '%s' "$STAGING_DOTENV" > .env.staging
-          pnpm cleanup:staging
+          # Through with-env, not bare: `pnpm cleanup:staging` only loads
+          # .env.local, which exists on a laptop and never in CI — so Payload
+          # started without PAYLOAD_SECRET and died with "missing secret key".
+          node scripts/with-env.mjs .env.staging pnpm cleanup:staging
 
   production:
     name: Deploy production
