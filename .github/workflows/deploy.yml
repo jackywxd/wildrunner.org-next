@@ -84,13 +84,38 @@ jobs:
       # are already applied (`preflight:prod`) and fails if they are not,
       # because applying schema changes to production should be a decision,
       # not a deploy side effect.
+      #
+      # Retried because remote bindings mean this opens a *remote dev
+      # session* against api.cloudflare.com before it can run any SQL, and
+      # that handshake is a network call with a 10s connect timeout. The
+      # first deploy after this step was added died on exactly that —
+      # "Error while creating remote dev session: ConnectTimeoutError" —
+      # and an unchanged re-run passed. A connect blip should not fail a
+      # deploy. `payload migrate` is idempotent (it applies only what the
+      # ledger says is pending), so re-running it is always safe.
       - name: Apply staging migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ENV: staging
           NODE_ENV: production
-        run: node scripts/with-env.mjs .env.staging pnpm payload migrate
+        # `if`, not `[ … ] && sleep`: this block runs under `bash -e`, where
+        # a bare test that evaluates false on the last attempt would exit the
+        # script before the error below could be printed.
+        run: |
+          for attempt in 1 2 3; do
+            if node scripts/with-env.mjs .env.staging pnpm payload migrate; then
+              exit 0
+            fi
+            echo "::warning::migrate attempt $attempt failed"
+            if [ "$attempt" -lt 3 ]; then
+              # Long enough to outlast a Cloudflare API blip, short enough
+              # that three attempts stay well inside the job timeout.
+              sleep 20
+            fi
+          done
+          echo "::error::staging migrations failed after 3 attempts"
+          exit 1
 
       - name: Deploy to staging
         env:
