@@ -147,14 +147,16 @@ test.describe("R public rider directory", () => {
   test("R-T5: an unknown rider slug renders not-found, not an empty profile", async ({
     page,
   }) => {
-    await page.goto(`/riders/not-a-rider-${Date.now()}`);
+    const response = await page.goto(`/riders/not-a-rider-${Date.now()}`);
 
-    // Asserting content rather than status on purpose: `notFound()` here is
-    // reached after streaming has begun, so the response is already committed
-    // as 200. That is true of `/posts/<unknown>` and `/gallery/<unknown>` in
-    // production as well — a pre-existing soft-404, not something this route
-    // introduced. What matters for this feature is that no profile shell
-    // renders for a slug that does not exist.
+    // This used to assert content only, because `notFound()` answered 200 and
+    // the status could not be trusted. The cause was not streaming:
+    // `I18nProvider` gated its children behind a `useState`/`useEffect` flag,
+    // so the server rendered an empty body and the page component never ran
+    // server-side to throw at all (fixed in 62040dc). The status is the part
+    // that matters for crawlers — the body was always right.
+    expect(response?.status()).toBe(404);
+
     await expect(page.getByTestId("rider-profile")).toHaveCount(0);
     await expect(page.getByTestId("rider-name")).toHaveCount(0);
   });
