@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/members/profile", label: "個人資料" },
   { href: "/members/media", label: "媒體庫" },
   { href: "/members/posts", label: "文章" },
+  { href: "/members/races", label: "比賽紀錄" },
 ];
 
 export function MemberNav({ user }: { user: User }) {
