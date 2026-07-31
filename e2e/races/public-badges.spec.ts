@@ -148,8 +148,9 @@ test.describe("D badges on public rider pages", () => {
   });
 
   test("D-T5: records are grouped to the right rider", async ({ page }) => {
-    // The join runs through `authors.owner`, so getting it wrong would show
-    // one member's races on another's page — the failure this pins.
+    // Records are keyed by account, so a broken join shows one member's
+    // races on another's page — the failure this pins. D-T8 covers the
+    // sharper version: two bylines belonging to the same account.
     await addRecord(memberTwo, "utmb-canyons", "100k", 2018);
 
     const stamp = Date.now();
