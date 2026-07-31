@@ -379,14 +379,21 @@ function mapPayloadAuthor(
 }
 
 /**
- * Race records are owned by a *user*, while riders are keyed by author — so
- * joining them needs `authors.owner`, which `RIDER_SELECT` deliberately
- * leaves out to keep the `users` document off the public page.
+ * Race records are owned by a *user*, while riders are keyed by author, so
+ * the two have to be joined on something.
  *
- * Rather than widen that select (at depth 1 `owner` would populate into a
- * full account, which is exactly the leak R-T6 guards), the owner ids come
- * from their own `depth: 0` query where the relationship stays a bare
- * number. Two queries, no `users` document anywhere near the render.
+ * That something is `users.author` — the byline an account claims as its
+ * identity — and NOT `authors.owner`, which was the first attempt and was
+ * wrong. `setOwner` stamps the creating user onto every author, so an author
+ * an admin types into /admin is owned by that admin just as much as their
+ * own is. One user therefore owns many authors, and joining on `owner`
+ * attached the admin's races to every byline they had ever created. Observed
+ * exactly that way: an author added in /admin turned up wearing the admin's
+ * two badges.
+ *
+ * `users.author` is one-to-one by construction (`ensureAuthorIdentity` sets
+ * it once, on account creation) and answers the right question — which
+ * author is this account, rather than which authors did it make.
  */
 const RACE_RECORD_SELECT = {
   distanceId: true,
@@ -417,24 +424,26 @@ function sortRaceRecords(records: SiteRaceRecord[]): SiteRaceRecord[] {
 }
 
 /**
- * Every rider's race records, keyed by rider slug, in a fixed number of
+ * Every rider's race records, keyed by author id, in a fixed number of
  * queries.
  *
  * The per-rider alternative would be one query per author — 180 of them on
- * the current directory — which is why D-T7 pins the query count rather than
- * just the output.
+ * the current directory.
+ *
+ * Reading `users` here is safe despite D-T6: `select: { author: true }`
+ * returns ids and nothing else, and only numbers ever leave this function.
+ * The account document itself never reaches a component.
  */
-async function raceRecordsByRiderSlug(): Promise<Map<string, SiteRaceRecord[]>> {
+async function raceRecordsByAuthorId(): Promise<Map<number, SiteRaceRecord[]>> {
   const payload = await getPayloadClient();
 
-  const [owners, records] = await Promise.all([
+  const [accounts, records] = await Promise.all([
     payload.find({
-      collection: "authors",
+      collection: "users",
       depth: 0,
       limit: 0,
       pagination: false,
-      where: { owner: { exists: true } },
-      select: { owner: true, slug: true },
+      select: { author: true },
     }),
     payload.find({
       collection: "race-records",
@@ -445,31 +454,31 @@ async function raceRecordsByRiderSlug(): Promise<Map<string, SiteRaceRecord[]>> 
     }),
   ]);
 
-  const slugByOwner = new Map<number, string>();
-  for (const author of owners.docs) {
-    const owner = author.owner;
+  const authorByUser = new Map<number, number>();
+  for (const account of accounts.docs) {
+    const author = account.author;
     // depth 0, so this is a bare id. Anything else means the select was
-    // widened and a user document is now in flight.
-    if (typeof owner === "number") slugByOwner.set(owner, author.slug as string);
+    // widened and a document is now in flight that has no business here.
+    if (typeof author === "number") authorByUser.set(account.id, author);
   }
 
-  const bySlug = new Map<string, SiteRaceRecord[]>();
+  const byAuthor = new Map<number, SiteRaceRecord[]>();
   for (const record of records.docs) {
     const owner = record.owner;
     const ownerId = typeof owner === "number" ? owner : undefined;
     if (ownerId === undefined) continue;
 
-    const slug = slugByOwner.get(ownerId);
-    // A record whose owner has no author record belongs to nobody's page.
-    if (!slug) continue;
+    const authorId = authorByUser.get(ownerId);
+    // An owner with no author of its own belongs to nobody's page.
+    if (authorId === undefined) continue;
 
-    const list = bySlug.get(slug) ?? [];
+    const list = byAuthor.get(authorId) ?? [];
     list.push(mapRaceRecord(record as Parameters<typeof mapRaceRecord>[0]));
-    bySlug.set(slug, list);
+    byAuthor.set(authorId, list);
   }
 
-  for (const list of bySlug.values()) sortRaceRecords(list);
-  return bySlug;
+  for (const list of byAuthor.values()) sortRaceRecords(list);
+  return byAuthor;
 }
 
 /**
@@ -492,11 +501,11 @@ export async function getRiders(): Promise<SiteRider[]> {
       select: RIDER_SELECT,
     }),
     publishedPostCountsByAuthor(),
-    raceRecordsByRiderSlug(),
+    raceRecordsByAuthorId(),
   ]);
 
   return result.docs.map((doc) =>
-    mapPayloadAuthor(doc, counts.get(doc.id) ?? 0, races.get(doc.slug) ?? []),
+    mapPayloadAuthor(doc, counts.get(doc.id) ?? 0, races.get(doc.id) ?? []),
   );
 }
 
@@ -522,10 +531,12 @@ export async function getRiderBySlug(
   // `depth: 1` populates the cover image and the byline and stops there.
   // Depth 2 would walk on to `author.owner` and pull the full user record in
   // behind it — see RIDER_SELECT.
-  // One rider, so the owner lookup narrows to this author instead of the
-  // whole directory — but for the same reason as `raceRecordsByRiderSlug`,
-  // it is a separate depth-0 query rather than a wider select.
-  const [posts, owned] = await Promise.all([
+  // "Which account claims this byline as its identity?" — not "who created
+  // this author", which is what `authors.owner` answers and which attributes
+  // an admin's races to every byline they ever added. See
+  // `raceRecordsByAuthorId`. An author nobody claims (one typed into /admin)
+  // matches no account here and correctly gets no badges.
+  const [posts, claimedBy] = await Promise.all([
     payload.find({
       collection: "posts",
       depth: 1,
@@ -537,16 +548,16 @@ export async function getRiderBySlug(
       select: POST_CARD_SELECT,
     }),
     payload.find({
-      collection: "authors",
+      collection: "users",
       depth: 0,
       limit: 1,
       pagination: false,
-      where: { id: { equals: doc.id } },
-      select: { owner: true },
+      where: { author: { equals: doc.id } },
+      select: { author: true },
     }),
   ]);
 
-  const ownerId = owned.docs[0]?.owner;
+  const ownerId = claimedBy.docs[0]?.id;
   const races =
     typeof ownerId === "number"
       ? await payload

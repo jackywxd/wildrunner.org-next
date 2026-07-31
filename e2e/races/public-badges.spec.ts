@@ -160,6 +160,48 @@ test.describe("D badges on public rider pages", () => {
     await expect(page.locator('[data-event-id="utmb-canyons"]')).toHaveCount(0);
   });
 
+  test("D-T8: an author created in /admin wears nobody's badges", async ({
+    page,
+  }) => {
+    // The join must ask "which account claims this byline as its identity"
+    // (`users.author`), not "who created this author" (`authors.owner`).
+    // `setOwner` stamps the creating user onto every author, so an author an
+    // admin types into /admin is owned by that admin exactly like their own
+    // is — and the first version of this join therefore hung the admin's
+    // races on every byline they had ever added.
+    const stamp = Date.now();
+    const slug = `d-t8-byline-${stamp}`;
+
+    const author = await expectOkJson<{ doc: { id: number } }>(
+      await admin.post("/api/authors", {
+        data: { name: `D-T8 byline ${stamp}`, slug },
+      }),
+    );
+
+    // The admin needs a race of their own, or this passes for the wrong
+    // reason — nothing to leak means nothing leaks.
+    const adminRecord = await expectOkJson<{ doc: { id: number } }>(
+      await admin.post("/api/race-records", {
+        data: { distanceId: "ccc", eventId: "utmb-mont-blanc", year: 2016 },
+      }),
+    );
+
+    try {
+      await page.goto(`/riders/${slug}?t=${stamp}`);
+      await expect(page.getByTestId("rider-badge-wall")).toHaveCount(0);
+      await expect(page.locator("[data-event-id]")).toHaveCount(0);
+
+      await page.goto(`/riders?t=${stamp}`);
+      const card = page.locator(
+        `[data-testid="rider-card"][data-rider-slug="${slug}"]`,
+      );
+      await expect(card.locator("[data-event-id]")).toHaveCount(0);
+    } finally {
+      await admin.delete(`/api/race-records/${adminRecord.doc.id}`);
+      await admin.delete(`/api/authors/${author.doc.id}`);
+    }
+  });
+
   test("D-T6: no account PII rides in with the badges", async ({ page }) => {
     // `race-records.owner` is a `users` relationship, so a depth or select
     // slip would pull whole accounts onto a public page — the same leak R-T6
