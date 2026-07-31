@@ -440,7 +440,13 @@ test.describe("E editor blocks", () => {
     await page.keyboard.type("BBB");
     await page.keyboard.press("Enter");
     await page.keyboard.type("CCC");
-    expect(await blockOrder(page)).toBe("AAA | BBB | CCC");
+    // Polled, not a bare await: every one of these order reads is a
+    // snapshot of a document Lexical may still be reconciling, and a
+    // precondition that fails on the first frame reports as a broken
+    // feature rather than as "not settled yet".
+    await expect.poll(() => blockOrder(page), { timeout: 10_000 }).toBe(
+      "AAA | BBB | CCC",
+    );
 
     const first = content.locator("p").first();
     await first.hover();
@@ -501,7 +507,14 @@ test.describe("E editor blocks", () => {
     // somewhere to keep typing. Stated in full so the assertion after the
     // drag is comparing against something known rather than a shape that
     // happens to satisfy a loose predicate.
-    expect(await blockOrder(page)).toBe("AAA | BBB | [IMG] | P");
+    //
+    // Polled: the placeholder is replaced by the settled node in a separate
+    // Lexical update, so a bare read can land between the two and see an
+    // order that is real but momentary. That is what made this fail twice
+    // and pass on the second retry in CI.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 10_000 })
+      .toBe("AAA | BBB | [IMG] | P");
 
     const result = await page.evaluate(() => {
       const img = document.querySelector(
