@@ -40,6 +40,30 @@ export default function SiteLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          esbuild's `keepNames` shim, defined before anything can need it.
+
+          next-themes builds its anti-FOUC script by serialising a function —
+          `(${script.toString()})(...)`. The published package contains no
+          `__name`, but the Cloudflare Worker bundler re-bundles it with
+          esbuild's `keepNames`, which rewrites that function body to call
+          `__name(fn, "fn")`. The helper only ever exists in the bundle's own
+          scope, never in the browser, so the inlined copy threw
+          "__name is not defined" on every page and next-themes never got to
+          apply the theme class.
+
+          It stayed hidden while I18nProvider blocked SSR: ThemeProvider sits
+          inside it, so the script was never in the delivered HTML. Restoring
+          server rendering (62040dc) put it there and the error surfaced.
+
+          Mirrors esbuild's own helper — set `.name`, return the target — so
+          the serialised code behaves exactly as it does inside the bundle.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__name||(window.__name=function(t,v){try{Object.defineProperty(t,"name",{value:v,configurable:true})}catch(e){}return t});`,
+          }}
+        />
         {/* Avoid FOUC: seed theme from localStorage, else browser light → light, otherwise dark. */}
         <script
           dangerouslySetInnerHTML={{
