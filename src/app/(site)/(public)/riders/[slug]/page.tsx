@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
+import { RiderBadgeWall } from "@/components/riders/RiderBadges";
 import { siteConfig } from "@/config/site";
 import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
@@ -73,6 +74,12 @@ export default async function RiderPage({ params }: Params) {
           </p>
         </div>
       </div>
+
+      {rider.races.length > 0 && (
+        <div className="mt-8">
+          <RiderBadgeWall records={rider.races} />
+        </div>
+      )}
 
       <hr className="my-8 h-0 border-t-2 border-border" />
 

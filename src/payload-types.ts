@@ -72,6 +72,7 @@ export interface Config {
     authors: Author;
     posts: Post;
     galleries: Gallery;
+    'race-records': RaceRecord;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -84,6 +85,7 @@ export interface Config {
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     galleries: GalleriesSelect<false> | GalleriesSelect<true>;
+    'race-records': RaceRecordsSelect<false> | RaceRecordsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -299,6 +301,22 @@ export interface Gallery {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-records".
+ */
+export interface RaceRecord {
+  id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
+  eventId: string;
+  distanceId: string;
+  year: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -340,6 +358,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'galleries';
         value: number | Gallery;
+      } | null)
+    | ({
+        relationTo: 'race-records';
+        value: number | RaceRecord;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -492,6 +514,18 @@ export interface GalleriesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-records_select".
+ */
+export interface RaceRecordsSelect<T extends boolean = true> {
+  owner?: T;
+  eventId?: T;
+  distanceId?: T;
+  year?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

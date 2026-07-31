@@ -22,6 +22,7 @@ import { Media } from './collections/Media'
 import { Authors } from './collections/Authors'
 import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
+import { RaceRecords } from './collections/RaceRecords'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
@@ -134,7 +135,7 @@ export default buildConfig({
     supportedLanguages: { en, 'zh-TW': zhTw },
     fallbackLanguage: 'zh-TW',
   },
-  collections: [Users, Media, Authors, Posts, Galleries],
+  collections: [Users, Media, Authors, Posts, Galleries, RaceRecords],
   globals: [Site],
   endpoints: [
     aiExpandPostEndpoint,

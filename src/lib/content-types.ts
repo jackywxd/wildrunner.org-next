@@ -66,12 +66,20 @@ export type SitePost = {
  * while `users` carries email, role and invite state. Nothing here is
  * derived from a `users` document.
  */
+export type SiteRaceRecord = {
+  distanceId: string;
+  eventId: string;
+  id: number;
+  year: number;
+};
+
 export type SiteRider = {
   slug: string;
   name: string;
   bio?: string;
   avatar?: SiteImage;
   postCount: number;
+  races: SiteRaceRecord[];
 };
 
 export type SiteGlobals = {

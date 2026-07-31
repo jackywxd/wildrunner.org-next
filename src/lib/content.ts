@@ -14,6 +14,7 @@ import type {
   SiteGlobals,
   SitePhoto,
   SitePost,
+  SiteRaceRecord,
   SiteRider,
   SiteVideo,
 } from "@/lib/content-types";
@@ -361,7 +362,11 @@ const RIDER_SELECT = {
 /** Exactly what RIDER_SELECT returns — notably no `owner`. */
 type RiderDoc = Pick<Author, "avatar" | "bio" | "id" | "name" | "slug">;
 
-function mapPayloadAuthor(doc: RiderDoc, postCount: number): SiteRider {
+function mapPayloadAuthor(
+  doc: RiderDoc,
+  postCount: number,
+  races: SiteRaceRecord[] = [],
+): SiteRider {
   const avatarMedia = isMedia(doc.avatar) ? doc.avatar : undefined;
   return {
     slug: doc.slug,
@@ -369,7 +374,102 @@ function mapPayloadAuthor(doc: RiderDoc, postCount: number): SiteRider {
     bio: doc.bio ?? undefined,
     avatar: avatarMedia ? mapMediaToSiteImage(avatarMedia) : undefined,
     postCount,
+    races,
   };
+}
+
+/**
+ * Race records are owned by a *user*, while riders are keyed by author — so
+ * joining them needs `authors.owner`, which `RIDER_SELECT` deliberately
+ * leaves out to keep the `users` document off the public page.
+ *
+ * Rather than widen that select (at depth 1 `owner` would populate into a
+ * full account, which is exactly the leak R-T6 guards), the owner ids come
+ * from their own `depth: 0` query where the relationship stays a bare
+ * number. Two queries, no `users` document anywhere near the render.
+ */
+const RACE_RECORD_SELECT = {
+  distanceId: true,
+  eventId: true,
+  owner: true,
+  year: true,
+} as const;
+
+function mapRaceRecord(doc: {
+  distanceId: string;
+  eventId: string;
+  id: number;
+  year: number;
+}): SiteRaceRecord {
+  return {
+    distanceId: doc.distanceId,
+    eventId: doc.eventId,
+    id: doc.id,
+    year: doc.year,
+  };
+}
+
+/** Newest first, then by event, so badge order is stable across renders. */
+function sortRaceRecords(records: SiteRaceRecord[]): SiteRaceRecord[] {
+  return records.sort(
+    (a, b) => b.year - a.year || a.eventId.localeCompare(b.eventId),
+  );
+}
+
+/**
+ * Every rider's race records, keyed by rider slug, in a fixed number of
+ * queries.
+ *
+ * The per-rider alternative would be one query per author — 180 of them on
+ * the current directory — which is why D-T7 pins the query count rather than
+ * just the output.
+ */
+async function raceRecordsByRiderSlug(): Promise<Map<string, SiteRaceRecord[]>> {
+  const payload = await getPayloadClient();
+
+  const [owners, records] = await Promise.all([
+    payload.find({
+      collection: "authors",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      where: { owner: { exists: true } },
+      select: { owner: true, slug: true },
+    }),
+    payload.find({
+      collection: "race-records",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      select: RACE_RECORD_SELECT,
+    }),
+  ]);
+
+  const slugByOwner = new Map<number, string>();
+  for (const author of owners.docs) {
+    const owner = author.owner;
+    // depth 0, so this is a bare id. Anything else means the select was
+    // widened and a user document is now in flight.
+    if (typeof owner === "number") slugByOwner.set(owner, author.slug as string);
+  }
+
+  const bySlug = new Map<string, SiteRaceRecord[]>();
+  for (const record of records.docs) {
+    const owner = record.owner;
+    const ownerId = typeof owner === "number" ? owner : undefined;
+    if (ownerId === undefined) continue;
+
+    const slug = slugByOwner.get(ownerId);
+    // A record whose owner has no author record belongs to nobody's page.
+    if (!slug) continue;
+
+    const list = bySlug.get(slug) ?? [];
+    list.push(mapRaceRecord(record as Parameters<typeof mapRaceRecord>[0]));
+    bySlug.set(slug, list);
+  }
+
+  for (const list of bySlug.values()) sortRaceRecords(list);
+  return bySlug;
 }
 
 /**
@@ -382,7 +482,7 @@ function mapPayloadAuthor(doc: RiderDoc, postCount: number): SiteRider {
  */
 export async function getRiders(): Promise<SiteRider[]> {
   const payload = await getPayloadClient();
-  const [result, counts] = await Promise.all([
+  const [result, counts, races] = await Promise.all([
     payload.find({
       collection: "authors",
       depth: 1,
@@ -392,9 +492,12 @@ export async function getRiders(): Promise<SiteRider[]> {
       select: RIDER_SELECT,
     }),
     publishedPostCountsByAuthor(),
+    raceRecordsByRiderSlug(),
   ]);
 
-  return result.docs.map((doc) => mapPayloadAuthor(doc, counts.get(doc.id) ?? 0));
+  return result.docs.map((doc) =>
+    mapPayloadAuthor(doc, counts.get(doc.id) ?? 0, races.get(doc.slug) ?? []),
+  );
 }
 
 export async function getRiderBySlug(
@@ -419,20 +522,54 @@ export async function getRiderBySlug(
   // `depth: 1` populates the cover image and the byline and stops there.
   // Depth 2 would walk on to `author.owner` and pull the full user record in
   // behind it — see RIDER_SELECT.
-  const posts = await payload.find({
-    collection: "posts",
-    depth: 1,
-    limit: 500,
-    sort: "-publishedAt",
-    where: {
-      and: [{ author: { equals: doc.id } }, { _status: { equals: "published" } }],
-    },
-    select: POST_CARD_SELECT,
-  });
+  // One rider, so the owner lookup narrows to this author instead of the
+  // whole directory — but for the same reason as `raceRecordsByRiderSlug`,
+  // it is a separate depth-0 query rather than a wider select.
+  const [posts, owned] = await Promise.all([
+    payload.find({
+      collection: "posts",
+      depth: 1,
+      limit: 500,
+      sort: "-publishedAt",
+      where: {
+        and: [{ author: { equals: doc.id } }, { _status: { equals: "published" } }],
+      },
+      select: POST_CARD_SELECT,
+    }),
+    payload.find({
+      collection: "authors",
+      depth: 0,
+      limit: 1,
+      pagination: false,
+      where: { id: { equals: doc.id } },
+      select: { owner: true },
+    }),
+  ]);
+
+  const ownerId = owned.docs[0]?.owner;
+  const races =
+    typeof ownerId === "number"
+      ? await payload
+          .find({
+            collection: "race-records",
+            depth: 0,
+            limit: 0,
+            pagination: false,
+            where: { owner: { equals: ownerId } },
+            select: RACE_RECORD_SELECT,
+          })
+          .then((result) =>
+            sortRaceRecords(
+              result.docs.map((record) =>
+                mapRaceRecord(record as Parameters<typeof mapRaceRecord>[0]),
+              ),
+            ),
+          )
+      : [];
 
   return {
     posts: posts.docs.map(mapPayloadPost),
-    rider: mapPayloadAuthor(doc, posts.totalDocs),
+    rider: mapPayloadAuthor(doc, posts.totalDocs, races),
   };
 }
 
