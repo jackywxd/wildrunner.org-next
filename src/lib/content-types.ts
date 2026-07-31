@@ -58,6 +58,21 @@ export type SitePost = {
   content: import("@/payload-types").Post["content"];
 };
 
+/**
+ * A member as the public site sees them.
+ *
+ * Sourced from `authors`, never `users`: the byline is the public identity,
+ * while `users` carries email, role and invite state. Nothing here is
+ * derived from a `users` document.
+ */
+export type SiteRider = {
+  slug: string;
+  name: string;
+  bio?: string;
+  avatar?: SiteImage;
+  postCount: number;
+};
+
 export type SiteGlobals = {
   heroTitleEn: string;
   heroTitleZh: string;
