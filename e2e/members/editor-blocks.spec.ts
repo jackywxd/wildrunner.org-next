@@ -65,6 +65,35 @@ function dropImage(): boolean {
   return accepted;
 }
 
+/** Drops a PNG onto the last paragraph, so it lands at the end. */
+function dropImageAtEnd() {
+  const b64 =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const dt = new DataTransfer();
+  dt.items.add(new File([bytes], "at-end.png", { type: "image/png" }));
+
+  const paragraphs = document.querySelectorAll(
+    '[data-testid="editor-content"] p',
+  );
+  const last = paragraphs[paragraphs.length - 1] as HTMLElement;
+  const box = last.getBoundingClientRect();
+  const init = {
+    bubbles: true,
+    cancelable: true,
+    // Past the right edge of the text, not at the left: the drop point
+    // resolves to a caret, and one landing mid-word splits the paragraph
+    // around the image instead of putting it after.
+    clientX: Math.round(box.right - 5),
+    clientY: Math.round(box.top + box.height / 2),
+    dataTransfer: dt,
+  };
+  last.dispatchEvent(new DragEvent("dragover", init));
+  last.dispatchEvent(new DragEvent("drop", init));
+}
+
 async function signIn(
   page: Page,
   credentials: { email: string; password: string },
@@ -323,23 +352,278 @@ test.describe("E editor blocks", () => {
     await expect(content.locator("ul")).toHaveCount(0);
   });
 
-  test("E-T8: a drag handle is offered for a block", async ({ page }) => {
+  test("E-T10: the toolbar prevents mousedown for buttons but not the select", async ({
+    page,
+  }) => {
+    // The bug this pins was invisible to E-T7, and that is the point of
+    // having it separately. E-T7 drives the dropdown with `selectOption`,
+    // which sets the value directly — so it passed while the control was
+    // completely dead to a real user: the container's blanket
+    // `onMouseDown={preventDefault}` swept up the <select> along with the
+    // buttons, and preventing mousedown on a native select stops the
+    // browser opening its dropdown at all.
+    //
+    // Asserted on `defaultPrevented` rather than on "did a popup appear",
+    // because the native dropdown is browser chrome that a page cannot
+    // observe. This is the mechanism, one layer below the symptom.
     const post = await seedPost();
     await signIn(page, TEST_MEMBER);
     await openEditor(page, post.id);
 
-    const paragraph = page
-      .locator('[data-testid="editor-content"] p')
-      .first();
-    await paragraph.hover();
+    const prevented = await page.evaluate(() => {
+      const fire = (selector: string) => {
+        const element = document.querySelector(selector) as HTMLElement;
+        const event = new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+        });
+        element.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+      return {
+        button: fire('[data-testid="editor-toolbar-bold"]'),
+        select: fire('[data-testid="editor-block-type"]'),
+      };
+    });
 
+    expect(prevented.select, "the block-type dropdown must open").toBe(false);
+    // The other half: buttons still must not steal focus, or pressing one
+    // collapses the selection it was about to format.
+    expect(prevented.button, "buttons must keep the selection alive").toBe(
+      true,
+    );
+
+    // And the dropdown still applies after a real click has moved focus
+    // off the editor — the reason the blanket prevent was there at all.
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    const blockType = page.getByTestId("editor-block-type");
+    await blockType.click();
+    await blockType.selectOption("h1");
+    await expect(content.locator("h1")).toHaveCount(1);
+  });
+
+  /**
+   * Block order as a single string, images shown as [IMG].
+   *
+   * Keyed on the upload wrapper rather than on an `<img>`: the preview
+   * resolves the media id over the API and renders a "媒體 #123" fallback
+   * until that returns, so an `img` probe reports the image as a text
+   * block whenever the fetch is slow — which made this fail against
+   * working code in a full-suite run but not in isolation. Reading the
+   * wrapper also keeps the delete button's own label out of the text.
+   */
+  async function blockOrder(page: Page) {
+    return page.evaluate(() =>
+      Array.from(
+        document.querySelector('[data-testid="editor-content"]')!.children,
+      )
+        .map((el) =>
+          el.matches('[data-testid="editor-upload"]') ||
+          el.querySelector('[data-testid="editor-upload"]')
+            ? "[IMG]"
+            : (el.textContent || "").trim() || el.tagName,
+        )
+        .join(" | "),
+    );
+  }
+
+  test("E-T8: the drag handle reorders blocks", async ({ page }) => {
+    const post = await seedPost({ content: emptyContent() });
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("BBB");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("CCC");
+    // Polled, not a bare await: every one of these order reads is a
+    // snapshot of a document Lexical may still be reconciling, and a
+    // precondition that fails on the first frame reports as a broken
+    // feature rather than as "not settled yet".
+    await expect.poll(() => blockOrder(page), { timeout: 10_000 }).toBe(
+      "AAA | BBB | CCC",
+    );
+
+    const first = content.locator("p").first();
+    await first.hover();
     const handle = page.getByTestId("editor-drag-handle");
     await expect(handle).toBeAttached();
-    // Positioned against the hovered block rather than parked at the origin
-    // — the plugin failing to find an anchor leaves it at 0,0.
-    const box = await handle.boundingBox();
-    expect(box, "the handle must have a laid-out position").toBeTruthy();
-    expect(box!.y).toBeGreaterThan(0);
+    const handleBox = await handle.boundingBox();
+    const lastBox = await content.locator("p").nth(2).boundingBox();
+    expect(handleBox, "the handle must have a laid-out position").toBeTruthy();
+
+    // A real mouse drag, not a synthetic DragEvent: the handle's whole job
+    // is to respond to one.
+    await page.mouse.move(
+      handleBox!.x + handleBox!.width / 2,
+      handleBox!.y + handleBox!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(lastBox!.x + 20, lastBox!.y + lastBox!.height - 2, {
+      steps: 20,
+    });
+    await page.mouse.up();
+
+    // Asserted as a full ordering rather than "AAA is not first". An
+    // earlier version of this check asked whether a block had ended up
+    // where it already was, and passed without the drag doing anything.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 5_000 })
+      .toBe("BBB | CCC | AAA");
+  });
+
+  test("E-T11: dragging an image itself moves it", async ({ page }) => {
+    // The handle can move any block, images included — but grabbing the
+    // picture is what people try first, and an <img> is natively
+    // draggable, so that gesture used to start a browser image drag that
+    // went nowhere at all.
+    const post = await seedPost({ content: emptyContent() });
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("BBB");
+
+    // Land the image at the end, so "moved" has a distinct answer.
+    await page.evaluate(dropImageAtEnd);
+    // Waited on the *settled* node, not on `img` or on the uploading flag:
+    // the pending placeholder renders an <img> too (an object URL), and
+    // the flag clears in a `finally` that can run before the replacement
+    // has flushed. Dragging a PendingUploadNode is not the thing under
+    // test — it has no media id yet and is deliberately not movable.
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("editor-upload-pending")).toHaveCount(0);
+    // The exact starting order, trailing empty paragraph included —
+    // `$insertNodeToNearestRoot` leaves one after the image so there is
+    // somewhere to keep typing. Stated in full so the assertion after the
+    // drag is comparing against something known rather than a shape that
+    // happens to satisfy a loose predicate.
+    //
+    // Polled: the placeholder is replaced by the settled node in a separate
+    // Lexical update, so a bare read can land between the two and see an
+    // order that is real but momentary. That is what made this fail twice
+    // and pass on the second retry in CI.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 10_000 })
+      .toBe("AAA | BBB | [IMG] | P");
+
+    // The <img> only exists once the preview's media fetch resolves — until
+    // then the node renders a "媒體 #123" fallback. The drag has to start on
+    // the picture, because that is the element the browser makes draggable,
+    // so this waits for it rather than reaching for whatever is there. In
+    // CI it was not there yet and the drag threw on a null element.
+    await expect(content.locator("img")).toHaveCount(1, { timeout: 15_000 });
+
+    const result = await page.evaluate(() => {
+      const img = document.querySelector(
+        '[data-testid="editor-content"] img',
+      ) as HTMLElement;
+      const firstParagraph = document.querySelector(
+        '[data-testid="editor-content"] p',
+      ) as HTMLElement;
+      const from = img.getBoundingClientRect();
+      const to = firstParagraph.getBoundingClientRect();
+      // One DataTransfer shared across the three events, as a real browser
+      // drag does — the whole point is that dragstart writes the key that
+      // drop reads back.
+      const transfer = new DataTransfer();
+
+      img.dispatchEvent(
+        new DragEvent("dragstart", {
+          bubbles: true,
+          cancelable: true,
+          clientX: Math.round(from.left + 5),
+          clientY: Math.round(from.top + 5),
+          dataTransfer: transfer,
+        }),
+      );
+      const claimed = Array.from(transfer.types);
+
+      const init = {
+        bubbles: true,
+        cancelable: true,
+        clientX: Math.round(to.left + 10),
+        clientY: Math.round(to.top + to.height - 1),
+        dataTransfer: transfer,
+      };
+      const over = new DragEvent("dragover", init);
+      firstParagraph.dispatchEvent(over);
+      firstParagraph.dispatchEvent(new DragEvent("drop", init));
+      return { claimed, overPrevented: over.defaultPrevented };
+    });
+
+    // The drag has to be claimed on dragstart, or the browser's own image
+    // drag wins and the drop never carries anything we can act on.
+    expect(result.claimed).toContain("application/x-wildrunner-move-upload");
+    expect(result.overPrevented).toBe(true);
+
+    // Moved up to sit directly after AAA. The move path uses `insertAfter`
+    // rather than `$insertNodeToNearestRoot`, so dropping onto a line of
+    // text relocates the block instead of splitting the paragraph.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 5_000 })
+      .toBe("AAA | [IMG] | BBB | P");
+  });
+
+  test("E-T12: an image can be deleted, by button and by keyboard", async ({
+    page,
+  }) => {
+    // A DecoratorNode sits outside ordinary caret editing — the caret
+    // cannot be placed on it — so before node selection existed there was
+    // no gesture at all that removed an image. Clicking it and pressing
+    // Backspace deleted the empty paragraph *after* the image while the
+    // image stayed; Backspace and Delete from either neighbour did
+    // nothing. Both routes are pinned because they fail independently:
+    // the button is a plain click, the keyboard path needs a real
+    // NodeSelection.
+    const post = await seedPost({ content: emptyContent() });
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+
+    await page.evaluate(dropImageAtEnd);
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+
+    // Route 1: the hover button.
+    const image = page.getByTestId("editor-upload");
+    await image.hover();
+    const removeButton = page.getByTestId("editor-upload-remove");
+    await expect(removeButton).toBeVisible();
+    await removeButton.click();
+    await expect(page.getByTestId("editor-upload")).toHaveCount(0);
+    await expect(content).toContainText("AAA");
+
+    // Route 2: select it and press Backspace.
+    await content.click();
+    await page.evaluate(dropImageAtEnd);
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+
+    await page.getByTestId("editor-upload").click();
+    await expect(page.getByTestId("editor-upload")).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+    await page.keyboard.press("Backspace");
+    await expect(page.getByTestId("editor-upload")).toHaveCount(0);
+    // The text either side must survive — an over-eager handler that
+    // removed the selection rather than the node would take this too.
+    await expect(content).toContainText("AAA");
   });
 
   test("E-T9: an admin-authored table renders on the public post", async ({
