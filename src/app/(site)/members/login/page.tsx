@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import SiteLogo from "@/components/site-logo";
 
 /**
  * A cross-site navigation (e.g. a link from an email client) reaches this
@@ -69,8 +70,12 @@ export default function MemberLoginPage() {
 
   return (
     <div className="mx-auto flex min-h-[100vh] max-w-sm flex-col justify-center px-4">
-      <div className="mb-8 flex items-center gap-2">
-        <div className="h-8 w-8 bg-primary" aria-hidden />
+      {/* The same lockup /admin/login shows, via the site's own logo
+          component rather than the admin one: SiteLogo already picks the
+          right artwork per theme, and this page lives under (site) where
+          next-themes is in play. */}
+      <div className="mb-8 flex flex-col items-start gap-3">
+        <SiteLogo />
         <span className="font-heading text-lg font-semibold">會員登入</span>
       </div>
       <form
