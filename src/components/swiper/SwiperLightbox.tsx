@@ -235,7 +235,13 @@ const SwiperLightbox: React.FC<{
                   item={image}
                   maxWidth={maxWidth}
                   maxHeight={maxH}
-                  priority={featured ? index < 2 : index < 1}
+                  // Only the featured strip is above the fold. This component
+                  // is otherwise rendered once per gallery section on the
+                  // index — 147 of them today — so `index < 1` was marking
+                  // 147 below-the-fold images `priority`, i.e. eager and
+                  // unthrottled. Prioritising everything prioritises nothing;
+                  // it just blocked `load` behind every section's first image.
+                  priority={featured && index < 2}
                   isMobile={isMobile}
                   className="carousel-item"
                 />

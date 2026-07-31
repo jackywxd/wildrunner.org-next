@@ -33,7 +33,12 @@ const PageTransitionEffect: React.FC<{
   const key = `page-${usePathname()}`;
 
   return (
-    <AnimatePresence mode="popLayout">
+    // `initial={false}` skips the enter animation for the *first* render only.
+    // Without it the server renders this div at the "hidden" variant
+    // (opacity: 0) and the page stays invisible until framer-motion animates
+    // it in on the client — so anyone (or any crawler) reading the delivered
+    // HTML sees a blank page. Route changes after mount still animate.
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={key}
         initial="hidden"
