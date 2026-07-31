@@ -1,5 +1,6 @@
 import type {
   CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   GlobalAfterChangeHook,
 } from "payload";
 
@@ -47,6 +48,67 @@ const authorSlug = async (
     // A missing author must not fail the write that triggered this.
     return null;
   }
+};
+
+/**
+ * Resolve a race record's `owner` (a *user* id) to that member's public
+ * rider slug.
+ *
+ * Deliberately not `authorSlug`: that takes an author id, and a race record
+ * points at the account, not the byline. The two are one-to-one via
+ * `ensureAuthorIdentity`, but the lookup direction is the other way round —
+ * find the author whose `owner` is this user.
+ */
+const riderSlugForOwner = async (
+  owner: unknown,
+  req: Parameters<CollectionAfterChangeHook>[0]["req"],
+): Promise<string | null> => {
+  const id = authorId(owner);
+  if (id === null) return null;
+
+  try {
+    const result = await req.payload.find({
+      collection: "authors",
+      depth: 0,
+      limit: 1,
+      pagination: false,
+      where: { owner: { equals: id } },
+      overrideAccess: true,
+      req,
+    });
+    return (result.docs[0]?.slug as string) ?? null;
+  } catch {
+    // A missing author must not fail the write that triggered this.
+    return null;
+  }
+};
+
+/**
+ * A race record only ever shows on rider pages, so those are the only paths
+ * that need busting — `revalidateForRider` already covers `/riders` itself,
+ * where the member's card carries the same badges.
+ */
+export const revalidateRaceRecord = {
+  afterChange: (async ({ doc, previousDoc, req }) => {
+    const slugs = new Set(
+      (
+        await Promise.all([
+          riderSlugForOwner(doc.owner, req),
+          // An admin reassigning a record has to clear the old profile too,
+          // or the badge lingers on a member who no longer claims it.
+          previousDoc?.owner && authorId(previousDoc.owner) !== authorId(doc.owner)
+            ? riderSlugForOwner(previousDoc.owner, req)
+            : Promise.resolve(null),
+        ])
+      ).filter((slug): slug is string => Boolean(slug)),
+    );
+
+    for (const slug of slugs) revalidateForRider(slug);
+  }) as CollectionAfterChangeHook,
+
+  afterDelete: (async ({ doc, req }) => {
+    revalidateForRider(await riderSlugForOwner(doc.owner, req));
+  }) as CollectionAfterDeleteHook,
 };
 
 export const revalidatePosts: CollectionAfterChangeHook = async (args) => {
