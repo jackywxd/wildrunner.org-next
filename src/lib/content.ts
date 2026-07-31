@@ -1,5 +1,6 @@
 import type {
   Author,
+  AuthorsSelect,
   GalleriesSelect,
   Gallery,
   Media,
@@ -13,6 +14,7 @@ import type {
   SiteGlobals,
   SitePhoto,
   SitePost,
+  SiteRider,
   SiteVideo,
 } from "@/lib/content-types";
 import { postSlugParams } from "@/lib/content-paths";
@@ -20,30 +22,35 @@ import { getPayloadClient } from "@/lib/payload";
 import { videoIdFromFilename } from "@/lib/videoId";
 
 /**
- * Fields the public post cards actually render.
+ * Fetch only the fields the public pages render.
  *
- * `owner` is deliberately absent, and that omission is the point: it is a
- * relationship to `users`, so at any depth >= 1 Payload populates the whole
- * account record — email, role, invitePending/invitedAt/invitedBy,
- * storageQuotaMb, and the live `sessions` array with session ids and expiry —
- * for every post fetched. Nothing on the public site reads it, but anything
- * that serialises the raw document (Next's dev-mode server-IO instrumentation
- * writes `find()` results straight into the RSC flight stream) puts it in the
- * page HTML. Not fetching it is the only version of this that can't regress.
+ * `owner` is deliberately absent from every select here, and that omission is
+ * the point: `posts.owner`, `galleries.owner`, `media.owner` and
+ * `authors.owner` are all relationships to `users`, so at any depth >= 1
+ * Payload populates the whole account record — email, role,
+ * invitePending/invitedAt/invitedBy, storageQuotaMb and the live `sessions`
+ * array with session ids and expiry — behind every card on the page. Nothing
+ * on the public site reads it, but Next's dev-mode server-IO instrumentation
+ * writes raw `find()` results into the RSC stream, so that document lands in
+ * the page HTML. Production builds omit that instrumentation (verified
+ * against wildrunner.org: no `BasePayload`, no `email`, no `sessions` in the
+ * markup), so this was never live — but not fetching PII is the durable fix
+ * rather than trusting a build flag. `e2e/public/posts.spec.ts` P2-T12 and
+ * `e2e/public/riders.spec.ts` R-T6 assert the page HTML stays clean.
  *
- * `content` is absent for the same reason in a lower key: the list pages never
- * render a post body, so shipping 500 Lexical trees to build a card grid is
- * pure waste. The detail query adds it back via POST_DETAIL_SELECT.
+ * `content` is absent for a plainer reason: no card grid renders a post body,
+ * so fetching up to 500 Lexical trees to build one is pure waste. Only the
+ * post detail query asks for it, via POST_DETAIL_SELECT.
  */
 const POST_CARD_SELECT = {
-  title: true,
-  slug: true,
-  description: true,
-  image: true,
   author: true,
-  featured: true,
-  publishedAt: true,
   createdAt: true,
+  description: true,
+  featured: true,
+  image: true,
+  publishedAt: true,
+  slug: true,
+  title: true,
   _status: true,
 } as const satisfies PostsSelect<true>;
 
@@ -52,48 +59,50 @@ const POST_DETAIL_SELECT = {
   content: true,
 } as const satisfies PostsSelect<true>;
 
-/** Same reasoning as POST_CARD_SELECT: everything but `owner`. */
 const GALLERY_SELECT = {
+  cover: true,
+  createdAt: true,
+  eventDate: true,
+  featured: true,
+  images: true,
+  location: true,
   name: true,
   slug: true,
-  location: true,
-  featured: true,
-  eventDate: true,
-  cover: true,
-  images: true,
   videos: true,
-  createdAt: true,
 } as const satisfies GalleriesSelect<true>;
 
 /**
- * The shape `mapPayloadPost` needs. A full `Post` still satisfies it
- * structurally, so callers holding an unselected document are unaffected.
+ * The fields `mapPayloadPost` reads. Narrower than `Post` so a `select`ed
+ * query still typechecks; a full `Post` satisfies it structurally, so
+ * existing callers are unaffected. `content` is optional because only
+ * POST_DETAIL_SELECT returns it.
  */
-export type PostCardDoc = Pick<
+type PostCardDoc = Pick<
   Post,
-  | "id"
-  | "title"
-  | "slug"
-  | "description"
-  | "image"
   | "author"
-  | "featured"
-  | "publishedAt"
   | "createdAt"
+  | "description"
+  | "featured"
+  | "id"
+  | "image"
+  | "publishedAt"
+  | "slug"
+  | "title"
   | "_status"
 > & { content?: Post["content"] };
 
-export type GalleryDoc = Pick<
+/** Exactly what GALLERY_SELECT returns — notably no `owner`. */
+type GalleryDoc = Pick<
   Gallery,
+  | "cover"
+  | "createdAt"
+  | "eventDate"
+  | "featured"
+  | "images"
+  | "location"
   | "name"
   | "slug"
-  | "location"
-  | "featured"
-  | "eventDate"
-  | "cover"
-  | "images"
   | "videos"
-  | "createdAt"
 >;
 
 function isMedia(value: unknown): value is Media {
@@ -310,6 +319,126 @@ export async function getPostBySlugParam(
 export async function getPublishedPostSlugs(): Promise<string[]> {
   const posts = await getPublishedPosts();
   return posts.map((p) => p.slugAsParams);
+}
+
+/**
+ * Published post counts per author, in one query instead of one per rider.
+ *
+ * `depth: 0` leaves `author` as the raw id, which is exactly what we key on.
+ * Posts whose byline was never set (the Velite-era imports) have no author
+ * and are simply absent from the map — they belong to nobody's page.
+ */
+async function publishedPostCountsByAuthor(): Promise<Map<number, number>> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "posts",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    where: { _status: { equals: "published" } },
+  });
+
+  const counts = new Map<number, number>();
+  for (const post of result.docs) {
+    const authorId = typeof post.author === "number" ? post.author : undefined;
+    if (authorId === undefined) continue;
+    counts.set(authorId, (counts.get(authorId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * Fetch only the fields the public directory renders. Same reasoning as
+ * POST_CARD_SELECT — `authors.owner` is the `users` relationship here.
+ */
+const RIDER_SELECT = {
+  avatar: true,
+  bio: true,
+  name: true,
+  slug: true,
+} as const satisfies AuthorsSelect<true>;
+
+/** Exactly what RIDER_SELECT returns — notably no `owner`. */
+type RiderDoc = Pick<Author, "avatar" | "bio" | "id" | "name" | "slug">;
+
+function mapPayloadAuthor(doc: RiderDoc, postCount: number): SiteRider {
+  const avatarMedia = isMedia(doc.avatar) ? doc.avatar : undefined;
+  return {
+    slug: doc.slug,
+    name: doc.name,
+    bio: doc.bio ?? undefined,
+    avatar: avatarMedia ? mapMediaToSiteImage(avatarMedia) : undefined,
+    postCount,
+  };
+}
+
+/**
+ * Every member, for the public directory.
+ *
+ * Restricted to authors that have an `owner`, which is what separates a
+ * member from a legacy byline: `ensureAuthorIdentity` gives every account an
+ * author record on create, and `setOwner` stamps the owner — so an author
+ * without one was imported, not registered, and has no member behind it.
+ */
+export async function getRiders(): Promise<SiteRider[]> {
+  const payload = await getPayloadClient();
+  const [result, counts] = await Promise.all([
+    payload.find({
+      collection: "authors",
+      depth: 1,
+      limit: 500,
+      sort: "name",
+      where: { owner: { exists: true } },
+      select: RIDER_SELECT,
+    }),
+    publishedPostCountsByAuthor(),
+  ]);
+
+  return result.docs.map((doc) => mapPayloadAuthor(doc, counts.get(doc.id) ?? 0));
+}
+
+export async function getRiderBySlug(
+  slug: string,
+): Promise<{ posts: SitePost[]; rider: SiteRider } | null> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "authors",
+    depth: 1,
+    limit: 1,
+    where: { and: [{ slug: { equals: slug } }, { owner: { exists: true } }] },
+    select: RIDER_SELECT,
+  });
+
+  const doc = result.docs[0];
+  if (!doc) return null;
+
+  // Bylined posts only. Matching on `owner` instead would pull in the
+  // ownerless imports and attribute them to whoever happens to own them in
+  // the database, which is not what the public site credits them to.
+  //
+  // `depth: 1` populates the cover image and the byline and stops there.
+  // Depth 2 would walk on to `author.owner` and pull the full user record in
+  // behind it — see RIDER_SELECT.
+  const posts = await payload.find({
+    collection: "posts",
+    depth: 1,
+    limit: 500,
+    sort: "-publishedAt",
+    where: {
+      and: [{ author: { equals: doc.id } }, { _status: { equals: "published" } }],
+    },
+    select: POST_CARD_SELECT,
+  });
+
+  return {
+    posts: posts.docs.map(mapPayloadPost),
+    rider: mapPayloadAuthor(doc, posts.totalDocs),
+  };
+}
+
+export async function getRiderSlugs(): Promise<string[]> {
+  const riders = await getRiders();
+  return riders.map((r) => r.slug);
 }
 
 export async function getPublishedGalleries(): Promise<SiteGallery[]> {

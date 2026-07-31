@@ -1,7 +1,15 @@
 import { revalidatePaths } from "@/lib/utils/cache";
 import { postPublicPath } from "@/lib/content-paths";
 
-const STATIC_PATHS = ["/", "/posts", "/gallery", "/about"];
+const STATIC_PATHS = ["/", "/posts", "/gallery", "/about", "/riders"];
+
+export function revalidateForRider(slug: string | null | undefined): void {
+  const paths = [...STATIC_PATHS];
+  if (slug) {
+    paths.push(`/riders/${slug}`);
+  }
+  revalidatePaths(paths);
+}
 
 export function revalidatePublicSite(extraPaths?: string[]): void {
   revalidatePaths([...STATIC_PATHS, ...(extraPaths ?? [])]);

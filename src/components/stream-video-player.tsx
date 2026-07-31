@@ -37,6 +37,7 @@ export function StreamVideoPlayer({
         title={video.filename}
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
         allowFullScreen
+        loading={compact ? "lazy" : undefined}
         className={className ?? sizing}
       />
     );
@@ -49,7 +50,15 @@ export function StreamVideoPlayer({
         src={video.src}
         controls
         playsInline
-        preload="metadata"
+        // The compact strip is the gallery *index*, which renders every video
+        // of every gallery — 108 of them today. `preload="metadata"` there
+        // makes the browser open a request per video and holds the window
+        // `load` event open indefinitely. It went unnoticed while the site
+        // client-rendered everything (the strip mounted after `load` had
+        // already fired); once the tree server-renders, it stalls the page.
+        // The detail view shows one video and still preloads metadata so the
+        // duration and first frame are there before play.
+        preload={compact ? "none" : "metadata"}
         className={className ?? sizing}
       >
         <a href={video.src}>{video.filename}</a>
