@@ -290,11 +290,24 @@ test.describe("F member posts and editor", () => {
     await page.waitForSelector('[data-testid="editor-content"]');
 
     const typed = `打字內容-${stamp}`;
-    await page.getByTestId("editor-content").click();
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    // `waitForSelector` above only proves the node is in the DOM; Lexical
+    // wires its listeners after mount, and a click landing before that
+    // focuses nothing, so the keystrokes go to the document and the save
+    // writes the untouched fixture. That failed in CI as "content did not
+    // save" — a real-looking bug in the wrong place.
+    await expect(content).toBeFocused();
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type(typed);
+    // Confirmed on screen before saving, so a lost keystroke fails here
+    // rather than as a mismatch against the stored document.
+    await expect(content).toContainText(typed);
+
     await page.getByTestId("post-save-draft").click();
-    await expect(page.getByTestId("post-message")).toBeVisible();
+    // The success message specifically: `post-message` also renders save
+    // *errors*, so merely being visible proved nothing.
+    await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿");
 
     const doc = await (
       await member.get(`/api/posts/${post.id}?draft=true&depth=0`)

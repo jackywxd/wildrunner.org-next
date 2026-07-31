@@ -516,6 +516,13 @@ test.describe("E editor blocks", () => {
       .poll(() => blockOrder(page), { timeout: 10_000 })
       .toBe("AAA | BBB | [IMG] | P");
 
+    // The <img> only exists once the preview's media fetch resolves — until
+    // then the node renders a "媒體 #123" fallback. The drag has to start on
+    // the picture, because that is the element the browser makes draggable,
+    // so this waits for it rather than reaching for whatever is there. In
+    // CI it was not there yet and the drag threw on a null element.
+    await expect(content.locator("img")).toHaveCount(1, { timeout: 15_000 });
+
     const result = await page.evaluate(() => {
       const img = document.querySelector(
         '[data-testid="editor-content"] img',
