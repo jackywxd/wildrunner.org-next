@@ -1,8 +1,10 @@
 import type {
   Author,
+  GalleriesSelect,
   Gallery,
   Media,
   Post,
+  PostsSelect,
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
@@ -16,6 +18,83 @@ import type {
 import { postSlugParams } from "@/lib/content-paths";
 import { getPayloadClient } from "@/lib/payload";
 import { videoIdFromFilename } from "@/lib/videoId";
+
+/**
+ * Fields the public post cards actually render.
+ *
+ * `owner` is deliberately absent, and that omission is the point: it is a
+ * relationship to `users`, so at any depth >= 1 Payload populates the whole
+ * account record — email, role, invitePending/invitedAt/invitedBy,
+ * storageQuotaMb, and the live `sessions` array with session ids and expiry —
+ * for every post fetched. Nothing on the public site reads it, but anything
+ * that serialises the raw document (Next's dev-mode server-IO instrumentation
+ * writes `find()` results straight into the RSC flight stream) puts it in the
+ * page HTML. Not fetching it is the only version of this that can't regress.
+ *
+ * `content` is absent for the same reason in a lower key: the list pages never
+ * render a post body, so shipping 500 Lexical trees to build a card grid is
+ * pure waste. The detail query adds it back via POST_DETAIL_SELECT.
+ */
+const POST_CARD_SELECT = {
+  title: true,
+  slug: true,
+  description: true,
+  image: true,
+  author: true,
+  featured: true,
+  publishedAt: true,
+  createdAt: true,
+  _status: true,
+} as const satisfies PostsSelect<true>;
+
+const POST_DETAIL_SELECT = {
+  ...POST_CARD_SELECT,
+  content: true,
+} as const satisfies PostsSelect<true>;
+
+/** Same reasoning as POST_CARD_SELECT: everything but `owner`. */
+const GALLERY_SELECT = {
+  name: true,
+  slug: true,
+  location: true,
+  featured: true,
+  eventDate: true,
+  cover: true,
+  images: true,
+  videos: true,
+  createdAt: true,
+} as const satisfies GalleriesSelect<true>;
+
+/**
+ * The shape `mapPayloadPost` needs. A full `Post` still satisfies it
+ * structurally, so callers holding an unselected document are unaffected.
+ */
+export type PostCardDoc = Pick<
+  Post,
+  | "id"
+  | "title"
+  | "slug"
+  | "description"
+  | "image"
+  | "author"
+  | "featured"
+  | "publishedAt"
+  | "createdAt"
+  | "_status"
+> & { content?: Post["content"] };
+
+export type GalleryDoc = Pick<
+  Gallery,
+  | "name"
+  | "slug"
+  | "location"
+  | "featured"
+  | "eventDate"
+  | "cover"
+  | "images"
+  | "videos"
+  | "createdAt"
+>;
 
 function isMedia(value: unknown): value is Media {
   return Boolean(value && typeof value === "object" && "url" in value);
@@ -77,7 +156,7 @@ function mapGalleryVideo(
   };
 }
 
-export function mapPayloadGallery(doc: Gallery): SiteGallery {
+export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
   const images: SitePhoto[] = [];
   const featuredStems: string[] = [];
 
@@ -116,7 +195,7 @@ export function mapPayloadGallery(doc: Gallery): SiteGallery {
   };
 }
 
-export function mapPayloadPost(doc: Post): SitePost {
+export function mapPayloadPost(doc: PostCardDoc): SitePost {
   const author = isAuthor(doc.author) ? doc.author : undefined;
   const imageMedia = isMedia(doc.image) ? doc.image : undefined;
   const params = postSlugParams(doc.slug);
@@ -182,7 +261,11 @@ export async function getPublishedPosts(): Promise<SitePost[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "posts",
-    depth: 2,
+    // depth 1 populates `author` and `image`; their own `owner` fields stay
+    // as bare ids because the depth budget is spent. depth 2 walked into
+    // `authors.owner` and pulled back a full user account.
+    depth: 1,
+    select: POST_CARD_SELECT,
     limit: 500,
     sort: "-publishedAt",
     where: {
@@ -207,7 +290,8 @@ export async function getPostBySlugParam(
   for (const slug of attempts) {
     const result = await payload.find({
       collection: "posts",
-      depth: 2,
+      depth: 1,
+      select: POST_DETAIL_SELECT,
       limit: 1,
       where: {
         and: [
@@ -232,7 +316,10 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "galleries",
-    depth: 2,
+    // depth 1 populates cover/images[].media/videos[].media; each Media's own
+    // `owner` stays a bare id. At depth 2 every one of them expanded to a user.
+    depth: 1,
+    select: GALLERY_SELECT,
     limit: 200,
     sort: "-createdAt",
     where: {
@@ -250,7 +337,8 @@ export async function getGalleryBySlug(
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "galleries",
-    depth: 2,
+    depth: 1,
+    select: GALLERY_SELECT,
     limit: 1,
     where: {
       and: [{ slug: { equals: slug } }, { _status: { equals: "published" } }],
