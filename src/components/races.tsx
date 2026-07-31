@@ -12,7 +12,11 @@ export default function Races({ allRaces }: { allRaces: SitePost[] }) {
       new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
   );
   return (
-    <div className="max-w-4xl py-6 lg:py-10">
+    // `mx-auto`: the homepage container is max-w-6xl and this block is
+    // max-w-4xl, so without auto margins the grid hugged the left edge and
+    // left ~2xl of dead space beside it — visibly out of line with the
+    // gallery section below, which fills the container.
+    <div className="mx-auto max-w-4xl py-6 lg:py-10">
       {rs.length ? (
         <div className="grid gap-10 sm:grid-cols-2">
           {rs.map((race, index) => (

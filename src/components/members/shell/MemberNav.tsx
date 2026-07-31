@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -18,10 +19,21 @@ export function MemberNav({ user }: { user: User }) {
 
   return (
     <nav className="flex flex-col gap-1 border-b border-border p-4 lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r">
-      <div className="mb-4 flex items-center gap-2 px-2">
-        <div className="h-8 w-8 bg-primary" aria-hidden />
+      {/* The mark on its own, not the full lockup: this column is 224px and
+          the wordmark would either wrap or force the nav wider. Same role
+          BrandIcon plays in the admin sidebar, and mark-purple.svg carries
+          its own colours so it needs no theme handling. */}
+      <Link href="/" className="mb-4 flex items-center gap-2 px-2">
+        <Image
+          alt=""
+          className="size-8"
+          height={32}
+          priority
+          src="/static/brand/mark-purple.svg"
+          width={32}
+        />
         <span className="font-heading text-sm font-semibold">會員中心</span>
-      </div>
+      </Link>
       {ITEMS.map((item) => {
         const active =
           item.href === "/members"
