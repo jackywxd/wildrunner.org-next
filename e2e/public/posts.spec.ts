@@ -53,6 +53,40 @@ test.describe("P2 public posts from Payload", () => {
   });
 });
 
+test.describe("P2 missing content answers a real 404", () => {
+  // Guards the soft-404 regression: these routes used to answer 200 with the
+  // not-found page in the body, so crawlers indexed them as real pages. The
+  // cause was `I18nProvider` gating children behind a `useState`/`useEffect`
+  // flag — effects don't run during SSR, so the server rendered an empty body
+  // and `notFound()` never threw before Next committed the status. Asserting
+  // on the status (not the body) is the whole point: the body was always right.
+  for (const path of [
+    "/posts/definitely-not-a-post",
+    "/gallery/definitely-not-a-gallery",
+  ]) {
+    test(`P2-T10: ${path} responds 404`, async ({ page }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+    });
+  }
+
+  test("P2-T11: pages are server-rendered, not blank until hydration", async ({
+    request,
+  }) => {
+    // The same gate meant every route shipped an empty <body>. Fetching over
+    // `request` (no JS) is what makes this meaningful — a browser would run
+    // the client render and hide the regression.
+    const response = await request.get("/");
+    expect(response.ok()).toBeTruthy();
+    const html = await response.text();
+    const body = /<body[^>]*>([\s\S]*?)<\/body>/.exec(html)?.[1] ?? "";
+    const markup = body
+      .replace(/<script[\s\S]*?<\/script>/g, "")
+      .replace(/<template[\s\S]*?<\/template>/g, "");
+    expect(markup).toContain("Latest Posts");
+  });
+});
+
 test.describe("P2 home and about", () => {
   test("P2-T4/T6: home and about render", async ({ page }) => {
     const home = await page.goto("/");
