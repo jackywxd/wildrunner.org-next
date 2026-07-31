@@ -323,6 +323,57 @@ test.describe("E editor blocks", () => {
     await expect(content.locator("ul")).toHaveCount(0);
   });
 
+  test("E-T10: the toolbar prevents mousedown for buttons but not the select", async ({
+    page,
+  }) => {
+    // The bug this pins was invisible to E-T7, and that is the point of
+    // having it separately. E-T7 drives the dropdown with `selectOption`,
+    // which sets the value directly — so it passed while the control was
+    // completely dead to a real user: the container's blanket
+    // `onMouseDown={preventDefault}` swept up the <select> along with the
+    // buttons, and preventing mousedown on a native select stops the
+    // browser opening its dropdown at all.
+    //
+    // Asserted on `defaultPrevented` rather than on "did a popup appear",
+    // because the native dropdown is browser chrome that a page cannot
+    // observe. This is the mechanism, one layer below the symptom.
+    const post = await seedPost();
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const prevented = await page.evaluate(() => {
+      const fire = (selector: string) => {
+        const element = document.querySelector(selector) as HTMLElement;
+        const event = new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+        });
+        element.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+      return {
+        button: fire('[data-testid="editor-toolbar-bold"]'),
+        select: fire('[data-testid="editor-block-type"]'),
+      };
+    });
+
+    expect(prevented.select, "the block-type dropdown must open").toBe(false);
+    // The other half: buttons still must not steal focus, or pressing one
+    // collapses the selection it was about to format.
+    expect(prevented.button, "buttons must keep the selection alive").toBe(
+      true,
+    );
+
+    // And the dropdown still applies after a real click has moved focus
+    // off the editor — the reason the blanket prevent was there at all.
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    const blockType = page.getByTestId("editor-block-type");
+    await blockType.click();
+    await blockType.selectOption("h1");
+    await expect(content.locator("h1")).toHaveCount(1);
+  });
+
   test("E-T8: a drag handle is offered for a block", async ({ page }) => {
     const post = await seedPost();
     await signIn(page, TEST_MEMBER);

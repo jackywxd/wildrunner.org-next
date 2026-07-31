@@ -138,9 +138,19 @@ export function FixedToolbarPlugin() {
     <div
       data-testid="editor-fixed-toolbar"
       className="flex flex-wrap items-center gap-1 border border-border bg-background px-1 py-1"
-      // Same reason as the other toolbars: a button that takes focus
-      // collapses the selection it was about to act on.
-      onMouseDown={(event) => event.preventDefault()}
+      onMouseDown={(event) => {
+        // Buttons: prevent, so pressing one doesn't take focus and collapse
+        // the selection it was about to act on — the same trick the other
+        // two toolbars use.
+        //
+        // The <select> is the exception, and it is not a cosmetic one:
+        // preventing mousedown on a native select stops the browser opening
+        // its dropdown at all, so the control looked completely dead. A
+        // blanket preventDefault on the container swept it up along with
+        // the buttons.
+        if ((event.target as HTMLElement).closest("select")) return;
+        event.preventDefault();
+      }}
     >
       <select
         data-testid="editor-block-type"
