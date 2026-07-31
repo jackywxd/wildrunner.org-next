@@ -25,6 +25,22 @@ export const editorTheme: EditorThemeClasses = {
     },
   },
   link: "text-primary underline underline-offset-4",
+  // Lexical drives cell selection and the column resizer from these classes,
+  // so they are not purely cosmetic. `table-fixed` is required: without it
+  // the browser ignores the per-column widths TableNode writes into each
+  // <col>, and dragging a column border appears to do nothing.
+  table: "my-4 table-fixed border-collapse w-full",
+  tableScrollableWrapper: "my-4 overflow-x-auto",
+  tableRow: "border-b border-border",
+  tableCell:
+    "border border-border px-3 py-2 align-top text-sm relative min-w-[4rem]",
+  tableCellHeader: "bg-secondary font-semibold",
+  // Lexical toggles these on the DOM node during a cell drag-select. The
+  // highlight has to sit above the cell's own background, hence the ::after
+  // rule in globals.css that these hook into.
+  tableCellSelected: "editor-table-cell-selected",
+  tableSelected: "outline outline-2 outline-primary",
+  tableCellResizer: "editor-table-cell-resizer",
   text: {
     bold: "font-semibold",
     italic: "italic",

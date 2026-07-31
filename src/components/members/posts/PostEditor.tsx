@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +38,17 @@ export function PostEditor({
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // Nothing here autosaves, so an accidental tab close loses real work.
+  // Only registered while there is something to lose: an always-on handler
+  // makes browsers treat the page as unload-blocking and disables the
+  // back/forward cache for every visit.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   async function write(publish: boolean) {
     setBusy(true);
     setMessage("");
@@ -64,9 +75,18 @@ export function PostEditor({
       setFieldErrors(result.fieldErrors);
       return;
     }
-    if (publish) setStatus("published");
     setDirty(false);
-    setMessage(publish ? "已發布" : "已儲存草稿");
+
+    // Publishing is the act that finishes a post, so it returns to the list
+    // the way every mainstream editor does. Saving a draft is the opposite —
+    // a checkpoint mid-sentence — so it stays put and only reports back.
+    if (publish) {
+      setStatus("published");
+      setMessage("已發布");
+      router.push("/members/posts");
+      return;
+    }
+    setMessage("已儲存草稿");
     router.refresh();
   }
 
