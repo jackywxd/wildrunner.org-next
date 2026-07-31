@@ -7,6 +7,7 @@ import { ContentEditable } from "@payloadcms/richtext-lexical/lexical/react/Lexi
 import { HistoryPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalListPlugin";
 import { TabIndentationPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalTabIndentationPlugin";
+import { TablePlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalTablePlugin";
 import { OnChangePlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@payloadcms/richtext-lexical/lexical/react/LexicalErrorBoundary";
 import { EditorRefPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalEditorRefPlugin";
@@ -21,7 +22,8 @@ import {
 import { editorTheme } from "./theme";
 import { SlashMenuPlugin } from "./SlashMenuPlugin";
 import { SelectionToolbarPlugin } from "./SelectionToolbarPlugin";
-import { PasteImagePlugin } from "./PasteImagePlugin";
+import { ImageInsertPlugin } from "./ImageInsertPlugin";
+import { TableToolbarPlugin } from "./TableToolbarPlugin";
 
 export type ContentEditorHandle = {
   /** Current document in Payload's stored shape. Throws if an upload is pending. */
@@ -88,6 +90,10 @@ export function ContentEditor({
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
+      {/* Above the relative box, not inside it: this one is docked, and a
+          child of the positioned wrapper would sit under the floating
+          selection toolbar's coordinate space. */}
+      <TableToolbarPlugin />
       {/* relative: the selection toolbar positions itself against this box */}
       <div className="relative">
         <RichTextPlugin
@@ -108,9 +114,18 @@ export function ContentEditor({
         <HistoryPlugin />
         <ListPlugin />
         <TabIndentationPlugin />
+        {/* hasHorizontalScroll wraps the table in a scroll container rather
+            than letting a wide table push the whole editor sideways. Cell
+            merge and background colour stay on so a table an admin built in
+            /admin with either still edits correctly here. */}
+        <TablePlugin
+          hasCellBackgroundColor
+          hasCellMerge
+          hasHorizontalScroll
+        />
         <SlashMenuPlugin />
         <SelectionToolbarPlugin />
-        <PasteImagePlugin onPendingChange={onPendingChange} />
+        <ImageInsertPlugin onPendingChange={onPendingChange} />
         <OnChangePlugin ignoreSelectionChange onChange={handleChange} />
         <EditorRefPlugin editorRef={editorRef} />
       </div>

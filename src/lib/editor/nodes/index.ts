@@ -1,5 +1,12 @@
 import { HeadingNode, QuoteNode } from '@payloadcms/richtext-lexical/lexical/rich-text'
 import { ListItemNode, ListNode } from '@payloadcms/richtext-lexical/lexical/list'
+// The one Lexical package imported directly rather than through
+// @payloadcms/richtext-lexical's proxy: it has no `./lexical/table` export
+// (only `./lexical/react/LexicalTablePlugin`). Safe because both resolve to
+// the same 0.41.0 instance — scripts/assert-lexical-single-copy.mjs keeps
+// that true, and Payload's own EXPERIMENTAL_TableFeature registers these
+// very classes server-side, so the serialized shape matches exactly.
+import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 
 import { MemberHorizontalRuleNode } from './horizontal-rule-node'
 import { MemberLinkNode } from './link-node'
@@ -16,9 +23,13 @@ import type { Klass, LexicalNode } from '@payloadcms/richtext-lexical/lexical'
  * `createEditor()` registers those unconditionally, and they already
  * serialize identically to Payload's corpus because both editors use the
  * same stock classes for them (only `heading`/`quote`/`list`/`listitem`/
- * `link`/`upload`/`horizontalrule` are Payload-feature-specific, and
- * `link`/`upload`/`horizontalrule` are Payload's own classes, not
- * @lexical/*'s stock ones — see each file's comment for why).
+ * `table`/`tablerow`/`tablecell`/`link`/`upload`/`horizontalrule` are
+ * Payload-feature-specific, and of those only `link`/`upload`/
+ * `horizontalrule` are Payload's own classes rather than @lexical/*'s stock
+ * ones — see each file's comment for why. `table` is stock on both sides:
+ * Payload's EXPERIMENTAL_TableFeature registers @lexical/table's classes
+ * unchanged, so a table typed in /admin and one typed here serialize
+ * identically).
  *
  * `RECOGNIZED_TYPES` is this array's type strings, used by
  * `serialize.ts:fromPayloadContent` to decide what needs to be swapped for
@@ -29,6 +40,9 @@ export const EDITOR_NODES: Array<Klass<LexicalNode>> = [
   QuoteNode,
   ListNode,
   ListItemNode,
+  TableNode,
+  TableRowNode,
+  TableCellNode,
   MemberLinkNode,
   MemberUploadNode,
   MemberHorizontalRuleNode,

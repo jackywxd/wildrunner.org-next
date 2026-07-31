@@ -40,6 +40,11 @@ jobs:
         run: pnpm assert:bindings
       - name: Assert Workers Builds LFS policy
         run: pnpm assert:lfs
+      # The member editor imports @lexical/table directly (no proxy export
+      # exists for it). A second copy would only surface as a runtime throw
+      # the moment someone inserts a table, so check the version specs here.
+      - name: Assert a single @lexical/table copy
+        run: pnpm assert:lexical
       - name: Apply local D1 migrations
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}

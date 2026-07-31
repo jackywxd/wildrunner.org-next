@@ -97,3 +97,29 @@ h5,
 h6 {
   font-family: var(--font-heading);
 }
+
+/* Lexical table editing (member editor).
+   Only the parts Tailwind classes cannot express: pseudo-elements for the
+   drag-select highlight, and the absolutely-positioned column resize handle
+   Lexical renders outside the normal flow. Colours come from the design
+   tokens so both themes work. */
+.editor-table-cell-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, hsl(var(--primary)) 18%, transparent);
+}
+
+.editor-table-cell-resizer {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.editor-table-cell-resizer:hover {
+  background: hsl(var(--primary));
+}

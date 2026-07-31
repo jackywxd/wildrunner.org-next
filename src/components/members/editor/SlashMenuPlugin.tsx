@@ -24,6 +24,7 @@ import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
 } from "@payloadcms/richtext-lexical/lexical/list";
+import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { $createMemberHorizontalRuleNode } from "@/lib/editor/nodes";
 import { $insertNodeToNearestRoot } from "@payloadcms/richtext-lexical/lexical/utils";
 
@@ -86,6 +87,17 @@ export function SlashMenuPlugin() {
       new BlockOption("分隔線", "—", () =>
         editor.update(() => {
           $insertNodeToNearestRoot($createMemberHorizontalRuleNode());
+        }),
+      ),
+      // 3x3 with a header row, matching what every mainstream editor drops in
+      // by default. Rows and columns are adjustable afterwards through
+      // TableToolbarPlugin, so this is a starting point rather than a choice
+      // the member is stuck with.
+      new BlockOption("表格", "⊞", () =>
+        editor.dispatchCommand(INSERT_TABLE_COMMAND, {
+          columns: "3",
+          includeHeaders: { columns: false, rows: true },
+          rows: "3",
         }),
       ),
     ];

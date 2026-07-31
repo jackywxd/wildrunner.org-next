@@ -18,6 +18,35 @@ import {
  */
 const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
   ...defaultConverters,
+  /**
+   * Table cells, with the design system's border instead of the default
+   * converter's hard-coded `border: 1px solid #ccc`.
+   *
+   * That literal is the same grey in both themes: against the dark
+   * background it is a near-invisible line, so a table read as a floating
+   * grid of text with no structure. Everything else about the default is
+   * kept — the `th`/`td` choice from `headerState`, the colSpan/rowSpan
+   * handling, and the author's own cell background colour when they set one.
+   */
+  tablecell: ({ node, nodesToJSX }) => {
+    const cell = node as unknown as {
+      backgroundColor?: string | null;
+      colSpan?: number;
+      headerState?: number;
+      rowSpan?: number;
+    };
+    const Tag = (cell.headerState ?? 0) > 0 ? "th" : "td";
+    return (
+      <Tag
+        className="border border-border px-3 py-2 align-top"
+        colSpan={cell.colSpan && cell.colSpan > 1 ? cell.colSpan : undefined}
+        rowSpan={cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined}
+        style={{ backgroundColor: cell.backgroundColor || undefined }}
+      >
+        {nodesToJSX({ nodes: node.children })}
+      </Tag>
+    );
+  },
   upload: ({ node }) => {
     const value = node.value as Media | number | null | undefined;
     if (!value || typeof value !== "object" || !value.url) return null;

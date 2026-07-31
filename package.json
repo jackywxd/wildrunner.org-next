@@ -26,6 +26,7 @@
     "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "assert:bindings": "node scripts/assert-bindings.mjs",
     "assert:lfs": "node scripts/assert-no-lfs-in-builds.mjs",
+    "assert:lexical": "node scripts/assert-lexical-single-copy.mjs",
     "migrate:velite": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts",
     "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts --dry-run",
     "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts --remote",
@@ -44,10 +45,12 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
     "@iconify-icon/react": "^2.3.0",
+    "@lexical/table": "0.41.0",
     "@payloadcms/db-d1-sqlite": "3.82.1",
     "@payloadcms/next": "3.82.1",
     "@payloadcms/richtext-lexical": "3.82.1",
     "@payloadcms/storage-r2": "3.82.1",
+    "@payloadcms/translations": "3.82.1",
     "@payloadcms/ui": "3.82.1",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
@@ -100,8 +103,7 @@
     "usehooks-ts": "^3.1.1",
     "yet-another-react-lightbox": "^3.29.1",
     "zod": "^3.25.76",
-    "zod-i18n-map": "^2.27.0",
-    "@payloadcms/translations": "3.82.1"
+    "zod-i18n-map": "^2.27.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
