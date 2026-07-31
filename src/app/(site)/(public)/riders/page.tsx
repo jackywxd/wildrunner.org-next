@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import PageHeader from "@/components/page-header";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
+import { RiderBadgeRow } from "@/components/riders/RiderBadges";
 import { siteConfig } from "@/config/site";
 import { getRiders } from "@/lib/content";
 
@@ -67,6 +68,7 @@ export default async function RidersPage() {
                 >
                   {rider.postCount} 篇文章
                 </p>
+                <RiderBadgeRow records={rider.races} />
               </div>
             </Link>
           ))}
