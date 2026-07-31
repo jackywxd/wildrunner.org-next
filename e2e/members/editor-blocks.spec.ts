@@ -65,6 +65,35 @@ function dropImage(): boolean {
   return accepted;
 }
 
+/** Drops a PNG onto the last paragraph, so it lands at the end. */
+function dropImageAtEnd() {
+  const b64 =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const dt = new DataTransfer();
+  dt.items.add(new File([bytes], "at-end.png", { type: "image/png" }));
+
+  const paragraphs = document.querySelectorAll(
+    '[data-testid="editor-content"] p',
+  );
+  const last = paragraphs[paragraphs.length - 1] as HTMLElement;
+  const box = last.getBoundingClientRect();
+  const init = {
+    bubbles: true,
+    cancelable: true,
+    // Past the right edge of the text, not at the left: the drop point
+    // resolves to a caret, and one landing mid-word splits the paragraph
+    // around the image instead of putting it after.
+    clientX: Math.round(box.right - 5),
+    clientY: Math.round(box.top + box.height / 2),
+    dataTransfer: dt,
+  };
+  last.dispatchEvent(new DragEvent("dragover", init));
+  last.dispatchEvent(new DragEvent("drop", init));
+}
+
 async function signIn(
   page: Page,
   credentials: { email: string; password: string },
@@ -374,23 +403,145 @@ test.describe("E editor blocks", () => {
     await expect(content.locator("h1")).toHaveCount(1);
   });
 
-  test("E-T8: a drag handle is offered for a block", async ({ page }) => {
-    const post = await seedPost();
+  /** Block order as a single string, images shown as [IMG]. */
+  async function blockOrder(page: Page) {
+    return page.evaluate(() =>
+      Array.from(
+        document.querySelector('[data-testid="editor-content"]')!.children,
+      )
+        .map((el) =>
+          el.querySelector("img")
+            ? "[IMG]"
+            : (el.textContent || "").trim() || el.tagName,
+        )
+        .join(" | "),
+    );
+  }
+
+  test("E-T8: the drag handle reorders blocks", async ({ page }) => {
+    const post = await seedPost({ content: emptyContent() });
     await signIn(page, TEST_MEMBER);
     await openEditor(page, post.id);
 
-    const paragraph = page
-      .locator('[data-testid="editor-content"] p')
-      .first();
-    await paragraph.hover();
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("BBB");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("CCC");
+    expect(await blockOrder(page)).toBe("AAA | BBB | CCC");
 
+    const first = content.locator("p").first();
+    await first.hover();
     const handle = page.getByTestId("editor-drag-handle");
     await expect(handle).toBeAttached();
-    // Positioned against the hovered block rather than parked at the origin
-    // — the plugin failing to find an anchor leaves it at 0,0.
-    const box = await handle.boundingBox();
-    expect(box, "the handle must have a laid-out position").toBeTruthy();
-    expect(box!.y).toBeGreaterThan(0);
+    const handleBox = await handle.boundingBox();
+    const lastBox = await content.locator("p").nth(2).boundingBox();
+    expect(handleBox, "the handle must have a laid-out position").toBeTruthy();
+
+    // A real mouse drag, not a synthetic DragEvent: the handle's whole job
+    // is to respond to one.
+    await page.mouse.move(
+      handleBox!.x + handleBox!.width / 2,
+      handleBox!.y + handleBox!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(lastBox!.x + 20, lastBox!.y + lastBox!.height - 2, {
+      steps: 20,
+    });
+    await page.mouse.up();
+
+    // Asserted as a full ordering rather than "AAA is not first". An
+    // earlier version of this check asked whether a block had ended up
+    // where it already was, and passed without the drag doing anything.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 5_000 })
+      .toBe("BBB | CCC | AAA");
+  });
+
+  test("E-T11: dragging an image itself moves it", async ({ page }) => {
+    // The handle can move any block, images included — but grabbing the
+    // picture is what people try first, and an <img> is natively
+    // draggable, so that gesture used to start a browser image drag that
+    // went nowhere at all.
+    const post = await seedPost({ content: emptyContent() });
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("BBB");
+
+    // Land the image at the end, so "moved" has a distinct answer.
+    await page.evaluate(dropImageAtEnd);
+    // Waited on the *settled* node, not on `img` or on the uploading flag:
+    // the pending placeholder renders an <img> too (an object URL), and
+    // the flag clears in a `finally` that can run before the replacement
+    // has flushed. Dragging a PendingUploadNode is not the thing under
+    // test — it has no media id yet and is deliberately not movable.
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("editor-upload-pending")).toHaveCount(0);
+    // The exact starting order, trailing empty paragraph included —
+    // `$insertNodeToNearestRoot` leaves one after the image so there is
+    // somewhere to keep typing. Stated in full so the assertion after the
+    // drag is comparing against something known rather than a shape that
+    // happens to satisfy a loose predicate.
+    expect(await blockOrder(page)).toBe("AAA | BBB | [IMG] | P");
+
+    const result = await page.evaluate(() => {
+      const img = document.querySelector(
+        '[data-testid="editor-content"] img',
+      ) as HTMLElement;
+      const firstParagraph = document.querySelector(
+        '[data-testid="editor-content"] p',
+      ) as HTMLElement;
+      const from = img.getBoundingClientRect();
+      const to = firstParagraph.getBoundingClientRect();
+      // One DataTransfer shared across the three events, as a real browser
+      // drag does — the whole point is that dragstart writes the key that
+      // drop reads back.
+      const transfer = new DataTransfer();
+
+      img.dispatchEvent(
+        new DragEvent("dragstart", {
+          bubbles: true,
+          cancelable: true,
+          clientX: Math.round(from.left + 5),
+          clientY: Math.round(from.top + 5),
+          dataTransfer: transfer,
+        }),
+      );
+      const claimed = Array.from(transfer.types);
+
+      const init = {
+        bubbles: true,
+        cancelable: true,
+        clientX: Math.round(to.left + 10),
+        clientY: Math.round(to.top + to.height - 1),
+        dataTransfer: transfer,
+      };
+      const over = new DragEvent("dragover", init);
+      firstParagraph.dispatchEvent(over);
+      firstParagraph.dispatchEvent(new DragEvent("drop", init));
+      return { claimed, overPrevented: over.defaultPrevented };
+    });
+
+    // The drag has to be claimed on dragstart, or the browser's own image
+    // drag wins and the drop never carries anything we can act on.
+    expect(result.claimed).toContain("application/x-wildrunner-move-upload");
+    expect(result.overPrevented).toBe(true);
+
+    // Moved up to sit directly after AAA. The move path uses `insertAfter`
+    // rather than `$insertNodeToNearestRoot`, so dropping onto a line of
+    // text relocates the block instead of splitting the paragraph.
+    await expect
+      .poll(() => blockOrder(page), { timeout: 5_000 })
+      .toBe("AAA | [IMG] | BBB | P");
   });
 
   test("E-T9: an admin-authored table renders on the public post", async ({

@@ -11,19 +11,26 @@ import {
   $setSelection,
   COMMAND_PRIORITY_LOW,
   DRAGOVER_COMMAND,
+  DRAGSTART_COMMAND,
   DROP_COMMAND,
   PASTE_COMMAND,
   createCommand,
 } from "@payloadcms/richtext-lexical/lexical";
 import type { LexicalCommand } from "@payloadcms/richtext-lexical/lexical";
 import {
+  $getNearestNodeFromDOMNode,
+  $getNodeByKey,
+} from "@payloadcms/richtext-lexical/lexical";
+import {
   $dfsIterator,
+  $findMatchingParent,
   $insertNodeToNearestRoot,
   mergeRegister,
 } from "@payloadcms/richtext-lexical/lexical/utils";
 import {
   $createMemberUploadNode,
   $createPendingUploadNode,
+  $isMemberUploadNode,
   $isPendingUploadNode,
 } from "@/lib/editor/nodes";
 import { newObjectIdHex } from "@/lib/editor/object-id";
@@ -219,6 +226,39 @@ export function ImageInsertPlugin({
         (item) => item.kind === "file" && item.type.startsWith("image/"),
       );
 
+    /**
+     * Moving an image that is already in the document, by dragging the
+     * image itself.
+     *
+     * The drag handle in the gutter can already move any block, images
+     * included — but grabbing the picture is what people actually try
+     * first, and an <img> is natively draggable, so that gesture used to
+     * start a *browser* image drag that went nowhere. Rather than kill the
+     * native drag with `draggable={false}` and leave the instinct
+     * unrewarded, the drag is taken over here.
+     *
+     * A private format string, so nothing outside this file can be mistaken
+     * for it: a picture dragged in from another page also arrives as a drop
+     * with `text/uri-list`, and that one is deliberately NOT handled (see
+     * the note above about re-hosting remote images).
+     */
+    const MOVE_FORMAT = "application/x-wildrunner-move-upload";
+
+    /** The upload node a DOM node sits inside, if any. */
+    const $uploadNodeFrom = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return null;
+      const nearest = $getNearestNodeFromDOMNode(target);
+      if (!nearest) return null;
+      if ($isMemberUploadNode(nearest)) return nearest;
+      const parent = $findMatchingParent(nearest, (node) =>
+        $isMemberUploadNode(node),
+      );
+      return $isMemberUploadNode(parent) ? parent : null;
+    };
+
+    const draggingUpload = (transfer: DataTransfer | null) =>
+      Array.from(transfer?.types ?? []).includes(MOVE_FORMAT);
+
     return mergeRegister(
       editor.registerCommand(
         PASTE_COMMAND,
@@ -248,10 +288,36 @@ export function ImageInsertPlugin({
         COMMAND_PRIORITY_LOW,
       ),
       editor.registerCommand(
+        DRAGSTART_COMMAND,
+        (event) => {
+          if (!(event instanceof DragEvent)) return false;
+          const transfer = event.dataTransfer;
+          if (!transfer) return false;
+          const upload = $uploadNodeFrom(event.target);
+          if (!upload) return false;
+
+          // The browser's own image drag would otherwise win and carry a
+          // URL to nowhere. Claiming it here turns the instinctive gesture
+          // into a block move.
+          transfer.setData(MOVE_FORMAT, upload.getKey());
+          transfer.effectAllowed = "move";
+          if (event.target instanceof HTMLElement) {
+            transfer.setDragImage(event.target, 0, 0);
+          }
+          return true;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+      editor.registerCommand(
         DRAGOVER_COMMAND,
         (event) => {
           if (!(event instanceof DragEvent)) return false;
-          if (!draggingImages(event.dataTransfer)) return false;
+          if (
+            !draggingImages(event.dataTransfer) &&
+            !draggingUpload(event.dataTransfer)
+          ) {
+            return false;
+          }
           // Required, and easy to miss: without preventDefault on *dragover*
           // the browser refuses the drop and instead navigates the tab to
           // the dropped file, discarding whatever was being edited.
@@ -264,14 +330,38 @@ export function ImageInsertPlugin({
         DROP_COMMAND,
         (event) => {
           if (!(event instanceof DragEvent)) return false;
+          const { clientX, clientY } = event;
+
+          // An image being moved within the document.
+          const movingKey = event.dataTransfer?.getData(MOVE_FORMAT);
+          if (movingKey) {
+            event.preventDefault();
+            editor.update(() => {
+              const upload = $getNodeByKey(movingKey);
+              if (!$isMemberUploadNode(upload)) return;
+              // Caret first, then move: placing it after the node was
+              // removed would resolve against a document that no longer
+              // matches the coordinates the pointer was over.
+              if (!caretAtPoint(clientX, clientY)()) return;
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+              const target = selection.focus
+                .getNode()
+                .getTopLevelElement();
+              if (!target || target.is(upload)) return;
+              upload.remove();
+              target.insertAfter(upload);
+            });
+            return true;
+          }
+
           const images = imagesFrom(event.dataTransfer);
-          // Returning false for an internal block drag is what lets
-          // DraggableBlockPlugin move an existing image: that drag carries
-          // no files, so it falls through to Lexical's own handling.
+          // Returning false for a block-handle drag is what lets
+          // DraggableBlockPlugin do its job: that drag carries neither
+          // files nor our own format, so it falls through untouched.
           if (images.length === 0) return false;
 
           event.preventDefault();
-          const { clientX, clientY } = event;
           for (const file of images) {
             insertImage(file, caretAtPoint(clientX, clientY));
           }
