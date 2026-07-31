@@ -55,7 +55,8 @@ export type SitePost = {
   author?: string;
   authorSlug?: string;
   image?: SiteImage;
-  content: import("@/payload-types").Post["content"];
+  /** Only the detail query selects the body; card queries leave it undefined. */
+  content?: import("@/payload-types").Post["content"];
 };
 
 /**

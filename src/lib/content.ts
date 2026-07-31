@@ -1,8 +1,11 @@
 import type {
   Author,
+  AuthorsSelect,
+  GalleriesSelect,
   Gallery,
   Media,
   Post,
+  PostsSelect,
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
@@ -17,6 +20,90 @@ import type {
 import { postSlugParams } from "@/lib/content-paths";
 import { getPayloadClient } from "@/lib/payload";
 import { videoIdFromFilename } from "@/lib/videoId";
+
+/**
+ * Fetch only the fields the public pages render.
+ *
+ * `owner` is deliberately absent from every select here, and that omission is
+ * the point: `posts.owner`, `galleries.owner`, `media.owner` and
+ * `authors.owner` are all relationships to `users`, so at any depth >= 1
+ * Payload populates the whole account record — email, role,
+ * invitePending/invitedAt/invitedBy, storageQuotaMb and the live `sessions`
+ * array with session ids and expiry — behind every card on the page. Nothing
+ * on the public site reads it, but Next's dev-mode server-IO instrumentation
+ * writes raw `find()` results into the RSC stream, so that document lands in
+ * the page HTML. Production builds omit that instrumentation (verified
+ * against wildrunner.org: no `BasePayload`, no `email`, no `sessions` in the
+ * markup), so this was never live — but not fetching PII is the durable fix
+ * rather than trusting a build flag. `e2e/public/posts.spec.ts` P2-T12 and
+ * `e2e/public/riders.spec.ts` R-T6 assert the page HTML stays clean.
+ *
+ * `content` is absent for a plainer reason: no card grid renders a post body,
+ * so fetching up to 500 Lexical trees to build one is pure waste. Only the
+ * post detail query asks for it, via POST_DETAIL_SELECT.
+ */
+const POST_CARD_SELECT = {
+  author: true,
+  createdAt: true,
+  description: true,
+  featured: true,
+  image: true,
+  publishedAt: true,
+  slug: true,
+  title: true,
+  _status: true,
+} as const satisfies PostsSelect<true>;
+
+const POST_DETAIL_SELECT = {
+  ...POST_CARD_SELECT,
+  content: true,
+} as const satisfies PostsSelect<true>;
+
+const GALLERY_SELECT = {
+  cover: true,
+  createdAt: true,
+  eventDate: true,
+  featured: true,
+  images: true,
+  location: true,
+  name: true,
+  slug: true,
+  videos: true,
+} as const satisfies GalleriesSelect<true>;
+
+/**
+ * The fields `mapPayloadPost` reads. Narrower than `Post` so a `select`ed
+ * query still typechecks; a full `Post` satisfies it structurally, so
+ * existing callers are unaffected. `content` is optional because only
+ * POST_DETAIL_SELECT returns it.
+ */
+type PostCardDoc = Pick<
+  Post,
+  | "author"
+  | "createdAt"
+  | "description"
+  | "featured"
+  | "id"
+  | "image"
+  | "publishedAt"
+  | "slug"
+  | "title"
+  | "_status"
+> & { content?: Post["content"] };
+
+/** Exactly what GALLERY_SELECT returns — notably no `owner`. */
+type GalleryDoc = Pick<
+  Gallery,
+  | "cover"
+  | "createdAt"
+  | "eventDate"
+  | "featured"
+  | "images"
+  | "location"
+  | "name"
+  | "slug"
+  | "videos"
+>;
 
 function isMedia(value: unknown): value is Media {
   return Boolean(value && typeof value === "object" && "url" in value);
@@ -78,7 +165,7 @@ function mapGalleryVideo(
   };
 }
 
-export function mapPayloadGallery(doc: Gallery): SiteGallery {
+export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
   const images: SitePhoto[] = [];
   const featuredStems: string[] = [];
 
@@ -116,26 +203,6 @@ export function mapPayloadGallery(doc: Gallery): SiteGallery {
     videos,
   };
 }
-
-/**
- * The fields `mapPayloadPost` actually reads. Narrower than `Post` so a
- * `select`ed query — one that deliberately omits `owner` — still typechecks;
- * a full `Post` satisfies it structurally, so existing callers are unaffected.
- */
-type PostCardDoc = Pick<
-  Post,
-  | "_status"
-  | "author"
-  | "content"
-  | "createdAt"
-  | "description"
-  | "featured"
-  | "id"
-  | "image"
-  | "publishedAt"
-  | "slug"
-  | "title"
->;
 
 export function mapPayloadPost(doc: PostCardDoc): SitePost {
   const author = isAuthor(doc.author) ? doc.author : undefined;
@@ -203,7 +270,11 @@ export async function getPublishedPosts(): Promise<SitePost[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "posts",
-    depth: 2,
+    // depth 1 populates `author` and `image`; their own `owner` fields stay
+    // as bare ids because the depth budget is spent. depth 2 walked into
+    // `authors.owner` and pulled back a full user account.
+    depth: 1,
+    select: POST_CARD_SELECT,
     limit: 500,
     sort: "-publishedAt",
     where: {
@@ -228,7 +299,8 @@ export async function getPostBySlugParam(
   for (const slug of attempts) {
     const result = await payload.find({
       collection: "posts",
-      depth: 2,
+      depth: 1,
+      select: POST_DETAIL_SELECT,
       limit: 1,
       where: {
         and: [
@@ -276,41 +348,15 @@ async function publishedPostCountsByAuthor(): Promise<Map<number, number>> {
 }
 
 /**
- * Fetch only the fields the public directory renders.
- *
- * Without this, `depth: 1` populates `authors.owner` into the full `users`
- * document — email, role, invite state and session ids — and Next's
- * dev-mode server-IO instrumentation writes raw `find()` results into the
- * RSC stream, so that document lands in the page HTML. Production builds
- * omit that instrumentation (verified against wildrunner.org: no
- * `BasePayload`, no `email`, no `sessions` in the markup), so this was never
- * live, but not fetching PII is the durable fix rather than trusting a build
- * flag. `e2e/public/riders.spec.ts` R-T6 asserts the page HTML stays clean.
+ * Fetch only the fields the public directory renders. Same reasoning as
+ * POST_CARD_SELECT — `authors.owner` is the `users` relationship here.
  */
 const RIDER_SELECT = {
   avatar: true,
   bio: true,
   name: true,
   slug: true,
-} as const;
-
-/**
- * Same reasoning as RIDER_SELECT: `posts.owner` is a `users` relationship, so
- * any depth >= 1 populates the full account behind every card. Everything
- * `mapPayloadPost` reads is listed here and nothing else is.
- */
-const POST_CARD_SELECT = {
-  author: true,
-  content: true,
-  createdAt: true,
-  description: true,
-  featured: true,
-  image: true,
-  publishedAt: true,
-  slug: true,
-  title: true,
-  _status: true,
-} as const;
+} as const satisfies AuthorsSelect<true>;
 
 /** Exactly what RIDER_SELECT returns — notably no `owner`. */
 type RiderDoc = Pick<Author, "avatar" | "bio" | "id" | "name" | "slug">;
@@ -399,7 +445,10 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "galleries",
-    depth: 2,
+    // depth 1 populates cover/images[].media/videos[].media; each Media's own
+    // `owner` stays a bare id. At depth 2 every one of them expanded to a user.
+    depth: 1,
+    select: GALLERY_SELECT,
     limit: 200,
     sort: "-createdAt",
     where: {
@@ -417,7 +466,8 @@ export async function getGalleryBySlug(
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "galleries",
-    depth: 2,
+    depth: 1,
+    select: GALLERY_SELECT,
     limit: 1,
     where: {
       and: [{ slug: { equals: slug } }, { _status: { equals: "published" } }],
