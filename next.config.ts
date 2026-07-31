@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
     // doesn't hit this because it prerenders against remote D1; a build
     // without Cloudflare credentials (CI) falls back to local and does.
     // Set NEXT_BUILD_CPUS=1 there to serialize it.
+    //
+    // Remote D1 only removes the *file* contention, not the fan-out. Every
+    // one of those workers still boots Payload and still runs
+    // `prodMigrations`, so a build with a pending migration has them racing
+    // to apply it against the same real database — which is how the first
+    // `add_race_records` staging deploy failed. Migrations are therefore
+    // applied in their own step before the build (.github/workflows/
+    // deploy.yml), not left to whichever worker gets there first.
     cpus: Number(process.env.NEXT_BUILD_CPUS) || undefined,
   },
   eslint: {

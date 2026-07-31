@@ -57,6 +57,41 @@ jobs:
           fi
           printf '%s' "$STAGING_DOTENV" > .env.staging
 
+      # Apply schema changes ONCE, before the build — never as a side effect
+      # of it.
+      #
+      # `next build` fans static generation out across one worker per CPU,
+      # and every worker boots Payload, which runs `prodMigrations` on init.
+      # Staging's D1 bindings are `remote: true`, so each of those workers
+      # opens the *real* staging database and races the others to apply the
+      # same migration. The first `add_race_records` deploy failed exactly
+      # this way: two workers logged "Migrating: ..." and the loser died on
+      # CREATE TABLE. (Payload wraps a migration in a transaction, so the
+      # loser rolled back cleanly and nothing was corrupted — but the build
+      # still failed.)
+      #
+      # It had never bitten before only because every earlier migration was
+      # already applied to staging by the time a build ran, so the in-build
+      # migrate found nothing pending and never raced.
+      #
+      # NODE_ENV=production is what makes payload.config request remote
+      # bindings (see getCloudflareContextFromWrangler); without it this
+      # would migrate the runner's throwaway local D1 and report success.
+      # CLOUDFLARE_ENV picks staging's database rather than production's.
+      # `.env.staging` sets neither, so both survive with-env.
+      #
+      # Production deliberately does NOT do this: its job asserts migrations
+      # are already applied (`preflight:prod`) and fails if they are not,
+      # because applying schema changes to production should be a decision,
+      # not a deploy side effect.
+      - name: Apply staging migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ENV: staging
+          NODE_ENV: production
+        run: node scripts/with-env.mjs .env.staging pnpm payload migrate
+
       - name: Deploy to staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
