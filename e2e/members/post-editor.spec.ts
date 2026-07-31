@@ -157,7 +157,13 @@ test.describe("F member posts and editor", () => {
     await page.waitForSelector('[data-testid="editor-content"]');
 
     await page.getByTestId("post-publish").click();
-    await expect(page.getByTestId("post-status")).toHaveAttribute(
+    // Asserted on the list row, not on the editor's own status badge:
+    // publishing now returns to the post list, so the badge unmounts. It
+    // used to be readable here only because the assertion sometimes won a
+    // race against the redirect — a race this test lost as soon as
+    // anything else on the page changed timing.
+    await page.waitForURL("**/members/posts", { timeout: 30_000 });
+    await expect(page.getByTestId(`post-row-${post.id}`)).toHaveAttribute(
       "data-status",
       "published",
     );
@@ -402,9 +408,11 @@ test.describe("F member posts and editor", () => {
     expect(publicHtml).toContain("published body");
     expect(publicHtml).not.toContain("draft-only body");
 
-    // And publishing makes it visible.
+    // And publishing makes it visible. Waited on the redirect rather than
+    // the editor's status badge, which unmounts — see F1-T2.
     await page.getByTestId("post-publish").click();
-    await expect(page.getByTestId("post-status")).toHaveAttribute(
+    await page.waitForURL("**/members/posts", { timeout: 30_000 });
+    await expect(page.getByTestId(`post-row-${post.id}`)).toHaveAttribute(
       "data-status",
       "published",
     );
@@ -488,7 +496,10 @@ test.describe("F member posts and editor", () => {
     createdMediaIds.push(mediaId);
 
     await page.getByTestId("post-publish").click();
-    await expect(page.getByTestId("post-status")).toHaveAttribute(
+    // Same reason as F1-T2: publishing leaves the editor, so the status
+    // badge is gone by the time it could be read.
+    await page.waitForURL("**/members/posts", { timeout: 30_000 });
+    await expect(page.getByTestId(`post-row-${post.id}`)).toHaveAttribute(
       "data-status",
       "published",
     );

@@ -403,14 +403,24 @@ test.describe("E editor blocks", () => {
     await expect(content.locator("h1")).toHaveCount(1);
   });
 
-  /** Block order as a single string, images shown as [IMG]. */
+  /**
+   * Block order as a single string, images shown as [IMG].
+   *
+   * Keyed on the upload wrapper rather than on an `<img>`: the preview
+   * resolves the media id over the API and renders a "媒體 #123" fallback
+   * until that returns, so an `img` probe reports the image as a text
+   * block whenever the fetch is slow — which made this fail against
+   * working code in a full-suite run but not in isolation. Reading the
+   * wrapper also keeps the delete button's own label out of the text.
+   */
   async function blockOrder(page: Page) {
     return page.evaluate(() =>
       Array.from(
         document.querySelector('[data-testid="editor-content"]')!.children,
       )
         .map((el) =>
-          el.querySelector("img")
+          el.matches('[data-testid="editor-upload"]') ||
+          el.querySelector('[data-testid="editor-upload"]')
             ? "[IMG]"
             : (el.textContent || "").trim() || el.tagName,
         )
@@ -542,6 +552,58 @@ test.describe("E editor blocks", () => {
     await expect
       .poll(() => blockOrder(page), { timeout: 5_000 })
       .toBe("AAA | [IMG] | BBB | P");
+  });
+
+  test("E-T12: an image can be deleted, by button and by keyboard", async ({
+    page,
+  }) => {
+    // A DecoratorNode sits outside ordinary caret editing — the caret
+    // cannot be placed on it — so before node selection existed there was
+    // no gesture at all that removed an image. Clicking it and pressing
+    // Backspace deleted the empty paragraph *after* the image while the
+    // image stayed; Backspace and Delete from either neighbour did
+    // nothing. Both routes are pinned because they fail independently:
+    // the button is a plain click, the keyboard path needs a real
+    // NodeSelection.
+    const post = await seedPost({ content: emptyContent() });
+    await signIn(page, TEST_MEMBER);
+    await openEditor(page, post.id);
+
+    const content = page.getByTestId("editor-content");
+    await content.click();
+    await page.keyboard.type("AAA");
+
+    await page.evaluate(dropImageAtEnd);
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+
+    // Route 1: the hover button.
+    const image = page.getByTestId("editor-upload");
+    await image.hover();
+    const removeButton = page.getByTestId("editor-upload-remove");
+    await expect(removeButton).toBeVisible();
+    await removeButton.click();
+    await expect(page.getByTestId("editor-upload")).toHaveCount(0);
+    await expect(content).toContainText("AAA");
+
+    // Route 2: select it and press Backspace.
+    await content.click();
+    await page.evaluate(dropImageAtEnd);
+    await expect(page.getByTestId("editor-upload")).toHaveCount(1, {
+      timeout: 30_000,
+    });
+
+    await page.getByTestId("editor-upload").click();
+    await expect(page.getByTestId("editor-upload")).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+    await page.keyboard.press("Backspace");
+    await expect(page.getByTestId("editor-upload")).toHaveCount(0);
+    // The text either side must survive — an over-eager handler that
+    // removed the selection rather than the node would take this too.
+    await expect(content).toContainText("AAA");
   });
 
   test("E-T9: an admin-authored table renders on the public post", async ({
