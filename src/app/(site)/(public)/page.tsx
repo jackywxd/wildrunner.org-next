@@ -185,6 +185,16 @@ export default async function Home() {
             >
               看照片
             </Link>
+            <Link
+              href="/riders"
+              data-testid="home-riders-link"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "px-6 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground",
+              )}
+            >
+              認識成員
+            </Link>
           </div>
         </div>
       </section>
