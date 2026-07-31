@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { LexicalComposer } from "@payloadcms/richtext-lexical/lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@payloadcms/richtext-lexical/lexical/react/LexicalContentEditable";
@@ -8,6 +8,7 @@ import { HistoryPlugin } from "@payloadcms/richtext-lexical/lexical/react/Lexica
 import { ListPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalListPlugin";
 import { TabIndentationPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalTabIndentationPlugin";
 import { TablePlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalTablePlugin";
+import { MarkdownShortcutPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalMarkdownShortcutPlugin";
 import { OnChangePlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@payloadcms/richtext-lexical/lexical/react/LexicalErrorBoundary";
 import { EditorRefPlugin } from "@payloadcms/richtext-lexical/lexical/react/LexicalEditorRefPlugin";
@@ -24,6 +25,9 @@ import { SlashMenuPlugin } from "./SlashMenuPlugin";
 import { SelectionToolbarPlugin } from "./SelectionToolbarPlugin";
 import { ImageInsertPlugin } from "./ImageInsertPlugin";
 import { TableToolbarPlugin } from "./TableToolbarPlugin";
+import { DraggableBlockPlugin } from "./DraggableBlockPlugin";
+import { FixedToolbarPlugin } from "./FixedToolbarPlugin";
+import { MEMBER_MARKDOWN_TRANSFORMERS } from "@/lib/editor/markdown-transformers";
 
 export type ContentEditorHandle = {
   /** Current document in Payload's stored shape. Throws if an upload is pending. */
@@ -88,14 +92,23 @@ export function ContentEditor({
 
   const handleChange = useCallback(() => onChange(), [onChange]);
 
+  // State, not a ref: DraggableBlockPlugin measures against this element and
+  // has to re-render once it exists. A ref would still be null on the render
+  // that mounts the plugin, so the handle would never appear.
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
+
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      {/* Above the relative box, not inside it: this one is docked, and a
+      {/* Above the relative box, not inside it: these are docked, and a
           child of the positioned wrapper would sit under the floating
           selection toolbar's coordinate space. */}
+      <FixedToolbarPlugin />
       <TableToolbarPlugin />
-      {/* relative: the selection toolbar positions itself against this box */}
-      <div className="relative">
+      {/* relative: the selection toolbar and the drag handle both position
+          themselves against this box. pl-6 is the gutter the handle lives
+          in — without it the handle sits on top of the first character of
+          every block it is offered for. */}
+      <div className="relative pl-6" ref={setAnchor}>
         <RichTextPlugin
           contentEditable={
             <ContentEditable
@@ -105,7 +118,7 @@ export function ContentEditor({
             />
           }
           placeholder={
-            <div className="pointer-events-none absolute left-0 top-0 text-foreground/30">
+            <div className="pointer-events-none absolute left-6 top-0 text-foreground/30">
               開始書寫，或輸入「/」插入區塊…
             </div>
           }
@@ -123,9 +136,16 @@ export function ContentEditor({
           hasCellMerge
           hasHorizontalScroll
         />
+        {/* A hand-picked transformer subset, not the stock TRANSFORMERS —
+            see markdown-transformers.ts for which four are excluded and
+            why. Passing the stock list throws at registration, because a
+            transformer declares the node classes it needs and four of them
+            are not in EDITOR_NODES. */}
+        <MarkdownShortcutPlugin transformers={MEMBER_MARKDOWN_TRANSFORMERS} />
         <SlashMenuPlugin />
         <SelectionToolbarPlugin />
         <ImageInsertPlugin onPendingChange={onPendingChange} />
+        <DraggableBlockPlugin anchorElem={anchor} />
         <OnChangePlugin ignoreSelectionChange onChange={handleChange} />
         <EditorRefPlugin editorRef={editorRef} />
       </div>

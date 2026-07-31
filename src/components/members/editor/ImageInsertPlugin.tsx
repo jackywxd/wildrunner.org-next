@@ -13,7 +13,9 @@ import {
   DRAGOVER_COMMAND,
   DROP_COMMAND,
   PASTE_COMMAND,
+  createCommand,
 } from "@payloadcms/richtext-lexical/lexical";
+import type { LexicalCommand } from "@payloadcms/richtext-lexical/lexical";
 import {
   $dfsIterator,
   $insertNodeToNearestRoot,
@@ -60,6 +62,17 @@ import { uploadImageFile } from "@/lib/members/upload-image";
  * wrapper over the same src/lib/direct-upload.ts the media library and the
  * admin panel already use.
  */
+/**
+ * Insert files chosen some other way — today, the toolbar's file picker.
+ *
+ * A command rather than an exported function so the in-flight upload count
+ * stays where it is. Anything that can reach the editor can add an image;
+ * nothing else needs to know how uploading works.
+ */
+export const INSERT_IMAGE_FILES_COMMAND: LexicalCommand<File[]> = createCommand(
+  "INSERT_IMAGE_FILES_COMMAND",
+);
+
 export function ImageInsertPlugin({
   onPendingChange,
 }: {
@@ -219,6 +232,16 @@ export function ImageInsertPlugin({
           if (images.length === 0) return false;
 
           event.preventDefault();
+          for (const file of images) insertImage(file, keepExistingCaret);
+          return true;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+      editor.registerCommand(
+        INSERT_IMAGE_FILES_COMMAND,
+        (files) => {
+          const images = files.filter((file) => file.type.startsWith("image/"));
+          if (images.length === 0) return false;
           for (const file of images) insertImage(file, keepExistingCaret);
           return true;
         },

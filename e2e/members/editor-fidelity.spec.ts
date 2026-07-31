@@ -114,10 +114,14 @@ test.describe("editor fidelity", () => {
   });
 
   test("B-T2: an unregistered node type round-trips byte-for-byte via UnknownNode", async () => {
-    // Not asserted against real content: nothing in the corpus uses `table`
-    // or `block` today (EXPERIMENTAL_TableFeature / BlocksFeature are
-    // enabled in payload.config.ts, so an admin could add either at any
-    // time), so this is a synthetic fixture standing in for that day.
+    // This fixture used to carry a `table` alongside the `block`. It no
+    // longer can: the member editor registers @lexical/table's classes, so
+    // `table` is a *recognized* type now and would never reach UnknownNode
+    // — the test would have passed while asserting nothing. `block` still
+    // stands in for the real case (BlocksFeature is enabled in
+    // payload.config.ts, so an admin could add one at any time, and
+    // nothing in the corpus has yet). Tables are covered by B-T4 instead,
+    // which asserts the stronger property now available to them.
     const fixture: PayloadContent = {
       root: {
         type: "root",
@@ -127,49 +131,91 @@ test.describe("editor fidelity", () => {
         indent: 0,
         children: [
           {
-            type: "table",
-            version: 1,
-            colWidths: [100, 200],
-            children: [
-              {
-                type: "tablerow",
-                version: 1,
-                children: [
-                  {
-                    type: "tablecell",
-                    version: 1,
-                    headerState: 1,
-                    colSpan: 1,
-                    rowSpan: 1,
-                    children: [
-                      {
-                        type: "paragraph",
-                        version: 1,
-                        direction: null,
-                        format: "",
-                        indent: 0,
-                        children: [
-                          {
-                            type: "text",
-                            version: 1,
-                            detail: 0,
-                            format: 0,
-                            mode: "normal",
-                            style: "",
-                            text: "cell one",
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
             type: "block",
             version: 2,
             fields: { blockType: "code", code: "const x = 1", language: "ts" },
+          },
+        ],
+      },
+    };
+
+    const result = roundTripPayloadContent(fixture);
+    expect(result).toEqual(fixture);
+  });
+
+  test("B-T4: a table round-trips through the real table classes", async () => {
+    // The property that replaced UnknownNode's byte-for-byte guarantee for
+    // tables. Weaker in principle — the content now passes through
+    // importJSON/exportJSON rather than being carried verbatim — so it is
+    // asserted rather than assumed. The fixture is Payload's own shape,
+    // which is what an /admin-authored table actually looks like on disk.
+    //
+    // Key *order* does change (exportJSON rebuilds the object); `toEqual`
+    // is order-insensitive, and nothing downstream reads the stored JSON
+    // positionally, so that difference is not one worth pinning.
+    const cell = (text: string, headerState: number) => ({
+      type: "tablecell",
+      version: 1,
+      backgroundColor: null,
+      colSpan: 1,
+      direction: "ltr",
+      format: "",
+      headerState,
+      indent: 0,
+      rowSpan: 1,
+      children: [
+        {
+          type: "paragraph",
+          version: 1,
+          direction: "ltr",
+          format: "",
+          indent: 0,
+          textFormat: 0,
+          textStyle: "",
+          children: [
+            {
+              type: "text",
+              version: 1,
+              detail: 0,
+              format: 0,
+              mode: "normal",
+              style: "",
+              text,
+            },
+          ],
+        },
+      ],
+    });
+
+    const row = (cells: ReturnType<typeof cell>[]) => ({
+      type: "tablerow",
+      version: 1,
+      direction: "ltr",
+      format: "",
+      indent: 0,
+      height: null,
+      children: cells,
+    });
+
+    const fixture: PayloadContent = {
+      root: {
+        type: "root",
+        version: 1,
+        direction: "ltr",
+        format: "",
+        indent: 0,
+        children: [
+          {
+            type: "table",
+            version: 1,
+            colWidths: [200, 200],
+            direction: "ltr",
+            format: "",
+            indent: 0,
+            children: [
+              row([cell("賽事", 1), cell("年份", 1)]),
+              row([cell("CCC", 0), cell("2024", 0)]),
+            ],
           },
         ],
       },

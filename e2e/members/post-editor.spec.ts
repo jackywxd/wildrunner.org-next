@@ -43,7 +43,15 @@ async function signIn(
   const login = await page.context().request.post("/api/users/login", {
     data: credentials,
   });
-  expect(login.ok()).toBeTruthy();
+  // Status and body in the message: a bare `expect(ok).toBeTruthy()` reports
+  // only "Received: false", which says nothing about whether the login was
+  // rejected, rate-limited, or never reached the server — and this call sits
+  // at the top of most tests in this file, so it is the first thing to fail
+  // when something upstream is wrong.
+  expect(
+    login.ok(),
+    `login for ${credentials.email}: ${login.status()} ${await login.text()}`,
+  ).toBeTruthy();
 }
 
 /**
@@ -292,9 +300,16 @@ test.describe("F member posts and editor", () => {
   test("F2-T2: a post containing an unregistered node saves back unchanged", async ({
     page,
   }) => {
-    // A `table` is something an admin can create in /admin today
-    // (EXPERIMENTAL_TableFeature is enabled) and this editor has no class
-    // for. Opening and saving must not touch it — UnknownNode's whole job.
+    // A `block` is something an admin can create in /admin today
+    // (BlocksFeature with CodeBlock is enabled in payload.config.ts) and
+    // this editor has no class for. Opening and saving must not touch it —
+    // UnknownNode's whole job.
+    //
+    // This used to be a `table`, which no longer tests anything: the member
+    // editor registers @lexical/table's classes now, so a table never
+    // reaches UnknownNode. It round-trips through the real classes instead,
+    // which is a different (and weaker) guarantee — asserted separately by
+    // B-T4 in editor-fidelity.spec.ts, and end-to-end by E-T1.
     const content = {
       root: {
         type: "root",
@@ -329,44 +344,16 @@ test.describe("F member posts and editor", () => {
             ],
           },
           {
-            type: "table",
-            version: 1,
-            colWidths: [100, 200],
-            children: [
-              {
-                type: "tablerow",
-                version: 1,
-                children: [
-                  {
-                    type: "tablecell",
-                    version: 1,
-                    headerState: 1,
-                    colSpan: 1,
-                    rowSpan: 1,
-                    children: [
-                      {
-                        type: "paragraph",
-                        version: 1,
-                        direction: null,
-                        format: "",
-                        indent: 0,
-                        children: [
-                          {
-                            type: "text",
-                            version: 1,
-                            detail: 0,
-                            format: 0,
-                            mode: "normal",
-                            style: "",
-                            text: "cell one",
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
+            type: "block",
+            version: 2,
+            format: "",
+            fields: {
+              id: "6863f0f0f0f0f0f0f0f0f0f0",
+              blockName: "",
+              blockType: "code",
+              code: "const x = 1",
+              language: "ts",
+            },
           },
         ],
       },
@@ -384,7 +371,7 @@ test.describe("F member posts and editor", () => {
     const doc = await (
       await member.get(`/api/posts/${post.id}?draft=true&depth=0`)
     ).json();
-    // The table specifically: this is the node the editor has no class for,
+    // The block specifically: this is the node the editor has no class for,
     // so it is the one UnknownNode has to hand back untouched.
     expect(doc.content.root.children[1]).toEqual(content.root.children[1]);
     expect(doc.content).toEqual(content);
