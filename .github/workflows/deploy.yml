@@ -66,9 +66,16 @@ jobs:
       # opens the *real* staging database and races the others to apply the
       # same migration. The first `add_race_records` deploy failed exactly
       # this way: two workers logged "Migrating: ..." and the loser died on
-      # CREATE TABLE. (Payload wraps a migration in a transaction, so the
-      # loser rolled back cleanly and nothing was corrupted — but the build
-      # still failed.)
+      # CREATE TABLE.
+      #
+      # A losing worker does NOT necessarily leave the database untouched.
+      # Staging happened to come out clean that time, and an earlier version
+      # of this comment claimed a transaction was the reason — it is not.
+      # The same migration later left production half-applied (table and two
+      # indexes created; the remaining indexes, the rels column and the
+      # ledger row missing), which had to be repaired by hand. D1 gives no
+      # multi-statement rollback here, so losing this race can cost a manual
+      # schema fix rather than just a re-run.
       #
       # It had never bitten before only because every earlier migration was
       # already applied to staging by the time a build ran, so the in-build
