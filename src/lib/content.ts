@@ -6,6 +6,8 @@ import type {
   Media,
   Post,
   PostsSelect,
+  RaceSchedule,
+  RaceScheduleSelect,
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
@@ -15,11 +17,13 @@ import type {
   SitePhoto,
   SitePost,
   SiteRaceRecord,
+  SiteRaceScheduleEntry,
   SiteRider,
   SiteVideo,
 } from "@/lib/content-types";
 import { postSlugParams } from "@/lib/content-paths";
 import { getPayloadClient } from "@/lib/payload";
+import { scheduleWindow } from "@/lib/races/calendar";
 import { videoIdFromFilename } from "@/lib/videoId";
 
 /**
@@ -414,6 +418,117 @@ function mapRaceRecord(doc: {
     id: doc.id,
     year: doc.year,
   };
+}
+
+/**
+ * `race-schedule` has no `owner` field, so there is no PII to omit — the
+ * select is here anyway to keep the convention uniform. If a relationship
+ * to `users` is ever added to this collection, the default would otherwise
+ * be to leak it, and that default is exactly what the note at the top of
+ * this file exists to prevent.
+ *
+ * `sourceUrl` and `verifiedAt` are omitted on purpose: maintenance
+ * metadata, of no use to any visitor-facing component.
+ */
+const RACE_SCHEDULE_SELECT = {
+  country: true,
+  distanceSummary: true,
+  endDate: true,
+  eventId: true,
+  location: true,
+  name: true,
+  nameZh: true,
+  notes: true,
+  registrationClosesAt: true,
+  registrationOpensAt: true,
+  registrationStatusOverride: true,
+  registrationType: true,
+  registrationUrl: true,
+  series: true,
+  startDate: true,
+  url: true,
+} as const satisfies RaceScheduleSelect<true>;
+
+/** Payload gives back `null` for an empty field; the site type wants `undefined`. */
+const orUndefined = <T>(value: T | null | undefined): T | undefined =>
+  value ?? undefined;
+
+/**
+ * THE TIMEZONE SEAM. Payload stores a `date` field as a full ISO UTC string
+ * (`2026-08-28T00:00:00.000Z`). Everything downstream — the calendar grid,
+ * the registration-window comparison, the month headings — works on
+ * `"YYYY-MM-DD"` calendar strings, so the conversion happens exactly here
+ * and a `Date` is never constructed from these values again.
+ *
+ * The alternative, passing the ISO string through and letting components
+ * call `new Date(...)`, renders in the visitor's local timezone: a race on
+ * 8/28 UTC lands in the 8/27 cell for anyone west of Greenwich. Two
+ * visitors would see the same race on different days. The day-only picker
+ * on the field keeps the stored value at midnight so this truncation is
+ * lossless.
+ */
+function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
+  const day = (value: string | null | undefined): string | undefined =>
+    value ? value.slice(0, 10) : undefined;
+
+  return {
+    country: orUndefined(doc.country),
+    distanceSummary: orUndefined(doc.distanceSummary),
+    endDate: day(doc.endDate),
+    eventId: orUndefined(doc.eventId),
+    id: doc.id,
+    location: orUndefined(doc.location),
+    name: doc.name,
+    nameZh: orUndefined(doc.nameZh),
+    notes: orUndefined(doc.notes),
+    registrationClosesAt: day(doc.registrationClosesAt),
+    registrationOpensAt: day(doc.registrationOpensAt),
+    registrationStatusOverride: orUndefined(doc.registrationStatusOverride),
+    registrationType: doc.registrationType ?? "first-come",
+    registrationUrl: orUndefined(doc.registrationUrl),
+    series: doc.series,
+    // `startDate` is required, so this branch always produces a value.
+    startDate: day(doc.startDate) ?? "",
+    url: orUndefined(doc.url),
+  };
+}
+
+/**
+ * The races `/races` and the homepage teaser show: everything starting from
+ * today up to `months` ahead.
+ *
+ * Filtered on `startDate` rather than on an overlap with `endDate`, so a
+ * three-day event that began yesterday drops off today. "Upcoming" is what
+ * the page promises, and the overlap version needs an `or` clause to buy a
+ * behaviour nobody asked for.
+ *
+ * The bounds are ISO `Z` strings, which order lexicographically in exactly
+ * date order — that is why a text column indexes and compares correctly
+ * here without any casting.
+ */
+export async function getUpcomingRaces(opts?: {
+  now?: Date;
+  months?: number;
+}): Promise<SiteRaceScheduleEntry[]> {
+  const { from, to } = scheduleWindow(opts?.now ?? new Date(), opts?.months);
+  const payload = await getPayloadClient();
+
+  const result = await payload.find({
+    collection: "race-schedule",
+    depth: 0,
+    select: RACE_SCHEDULE_SELECT,
+    limit: 0,
+    pagination: false,
+    sort: "startDate",
+    where: {
+      and: [
+        { startDate: { greater_than_equal: `${from}T00:00:00.000Z` } },
+        { startDate: { less_than: `${to}T00:00:00.000Z` } },
+      ],
+    },
+  });
+
+  return result.docs.map((doc) => mapRaceScheduleEntry(doc as RaceSchedule));
 }
 
 /** Newest first, then by event, so badge order is stable across renders. */

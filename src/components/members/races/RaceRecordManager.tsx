@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RaceBadge } from "@/lib/races/badge";
 import {
+  RACE_SERIES,
   RACE_SERIES_LABELS,
   findRaceEvent,
   raceEventsBySeries,
@@ -18,8 +19,6 @@ export type MemberRaceRecord = {
   id: number;
   year: number;
 };
-
-const SERIES: RaceSeries[] = ["utmb", "wtm"];
 
 const selectClass =
   "block w-full border border-input bg-background px-3 py-2 text-sm";
@@ -131,7 +130,7 @@ export function RaceRecordManager({
               onChange={(e) => chooseSeries(e.target.value as RaceSeries)}
               value={series}
             >
-              {SERIES.map((value) => (
+              {RACE_SERIES.map((value) => (
                 <option key={value} value={value}>
                   {RACE_SERIES_LABELS[value]}
                 </option>

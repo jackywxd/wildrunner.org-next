@@ -6,11 +6,13 @@ import { test, expect } from "@playwright/test";
 import { badgeToken } from "@/lib/races/design-tokens";
 import {
   RACE_EVENTS,
+  RACE_SERIES,
   findRaceDistance,
   findRaceEvent,
   raceEventsBySeries,
   raceYearOptions,
 } from "@/lib/races/catalogue";
+import type { RaceSeries } from "@/lib/races/catalogue";
 
 /**
  * Phase A — the race catalogue and the badge contract.
@@ -68,12 +70,31 @@ test.describe("A race catalogue and badge contract", () => {
       expect(event.country, `${event.id} country`).toMatch(/^[A-Z]{3}$/);
     }
 
-    // A mistake in a series tag would quietly empty one of the two pickers.
-    const utmb = raceEventsBySeries("utmb").length;
-    const wtm = raceEventsBySeries("wtm").length;
-    expect(utmb).toBeGreaterThan(0);
-    expect(wtm).toBeGreaterThan(0);
-    expect(utmb + wtm).toBe(RACE_EVENTS.length);
+    // A mistake in a series tag would quietly empty one of the pickers.
+    // Summed over RACE_SERIES rather than over a list written out here, so
+    // adding a fourth series does not silently stop being covered.
+    let tagged = 0;
+    for (const series of RACE_SERIES) {
+      const count = raceEventsBySeries(series).length;
+      expect(count, `series "${series}" is empty`).toBeGreaterThan(0);
+      tagged += count;
+    }
+    expect(tagged).toBe(RACE_EVENTS.length);
+
+    // The id prefix is not decoration: it is what keeps a race that changes
+    // series from being renamed in place, which would orphan every member
+    // record pointing at it. Pinning it here makes that convention fail
+    // loudly rather than drift.
+    const SERIES_PREFIX: Record<RaceSeries, string> = {
+      utmb: "utmb-",
+      wtm: "wtm-",
+      others: "other-",
+    };
+    for (const event of RACE_EVENTS) {
+      expect(event.id, `${event.id} does not match its series prefix`).toMatch(
+        new RegExp(`^${SERIES_PREFIX[event.series]}`),
+      );
+    }
   });
 
   test("A-T2: every event resolves to a complete badge token", () => {

@@ -140,6 +140,8 @@ async function main() {
     media: [] as string[],
     users: [] as string[],
     authors: [] as string[],
+    raceSchedule: [] as string[],
+    raceRecords: [] as string[],
   }
 
   const posts = await payload.find({
@@ -223,6 +225,49 @@ async function main() {
     }
   }
 
+  /**
+   * Schedule rows the e2e suite created.
+   *
+   * Unlike posts and galleries there is no migrated "real" set to diff
+   * against, so the marker is the name prefix every spec uses. It matters
+   * more here than for the other collections: race-schedule read access is
+   * public and undated rows render on staging's own /races page, so a
+   * leftover test row is visible to anyone who visits.
+   *
+   * The suite also deletes its own rows in afterAll; this covers the runs
+   * that failed hard before getting there.
+   */
+  const scheduleRows = await payload.find({
+    collection: 'race-schedule',
+    limit: 0,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  for (const row of scheduleRows.docs) {
+    if (typeof row.name === 'string' && row.name.startsWith('E2E ')) {
+      report.raceSchedule.push(`${row.id}:${row.name}`)
+    }
+  }
+
+  // Records belonging to the throwaway accounts above. Pre-existing gap:
+  // race-records was never in this script, so every e2e run left rows
+  // behind pointing at users this script then deleted.
+  const raceRecords = await payload.find({
+    collection: 'race-records',
+    limit: 0,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  for (const record of raceRecords.docs) {
+    const ownerId =
+      typeof record.owner === 'object' && record.owner ? record.owner.id : record.owner
+    if (typeof ownerId === 'number' && testUserIds.includes(ownerId)) {
+      report.raceRecords.push(`${record.id}:${record.eventId}`)
+    }
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -233,6 +278,8 @@ async function main() {
           media: report.media.length,
           users: report.users.length,
           authors: report.authors.length,
+          raceSchedule: report.raceSchedule.length,
+          raceRecords: report.raceRecords.length,
         },
         keeping: {
           posts: posts.totalDocs - report.posts.length,
@@ -244,6 +291,7 @@ async function main() {
           galleries: report.galleries.slice(0, 5),
           media: report.media.slice(0, 5),
           users: report.users.slice(0, 5),
+          raceSchedule: report.raceSchedule.slice(0, 5),
         },
       },
       null,
@@ -253,6 +301,23 @@ async function main() {
 
   if (dryRun) {
     process.exit(0)
+  }
+
+  // Race data first: schedule rows stand alone, and records must go before
+  // the accounts that own them.
+  for (const entry of report.raceSchedule) {
+    await payload.delete({
+      collection: 'race-schedule',
+      id: Number(entry.split(':')[0]),
+      overrideAccess: true,
+    })
+  }
+  for (const entry of report.raceRecords) {
+    await payload.delete({
+      collection: 'race-records',
+      id: Number(entry.split(':')[0]),
+      overrideAccess: true,
+    })
   }
 
   // Order matters: galleries and posts reference media, users own authors.

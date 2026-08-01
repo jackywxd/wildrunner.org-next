@@ -7,6 +7,7 @@ import * as migration_20260728_043828_add_invite_fields from './20260728_043828_
 import * as migration_20260728_050120_add_user_author from './20260728_050120_add_user_author';
 import * as migration_20260728_051251_add_storage_quota from './20260728_051251_add_storage_quota';
 import * as migration_20260731_094323_add_race_records from './20260731_094323_add_race_records';
+import * as migration_20260801_030616_add_race_schedule from './20260801_030616_add_race_schedule';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20260731_094323_add_race_records.up,
     down: migration_20260731_094323_add_race_records.down,
-    name: '20260731_094323_add_race_records'
+    name: '20260731_094323_add_race_records',
+  },
+  {
+    up: migration_20260801_030616_add_race_schedule.up,
+    down: migration_20260801_030616_add_race_schedule.down,
+    name: '20260801_030616_add_race_schedule'
   },
 ];

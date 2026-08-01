@@ -73,6 +73,7 @@ export interface Config {
     posts: Post;
     galleries: Gallery;
     'race-records': RaceRecord;
+    'race-schedule': RaceSchedule;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +87,7 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     galleries: GalleriesSelect<false> | GalleriesSelect<true>;
     'race-records': RaceRecordsSelect<false> | RaceRecordsSelect<true>;
+    'race-schedule': RaceScheduleSelect<false> | RaceScheduleSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -316,6 +318,68 @@ export interface RaceRecord {
   createdAt: string;
 }
 /**
+ * Upcoming races shown on /races. Dates and registration windows change often — leave a field empty rather than guessing, and update "Verified on" whenever you check a row against the official site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-schedule".
+ */
+export interface RaceSchedule {
+  id: number;
+  /**
+   * Stored even when linked to a catalogue event — renaming a catalogue entry must not rewrite a published schedule.
+   */
+  name: string;
+  nameZh?: string | null;
+  series: 'utmb' | 'wtm' | 'others';
+  startDate: string;
+  /**
+   * Multi-day events only. Leave empty for a single day.
+   */
+  endDate?: string | null;
+  /**
+   * Optional. An id from the race catalogue (e.g. utmb-mont-blanc). Only controls whether a badge is shown next to this race.
+   */
+  eventId?: string | null;
+  /**
+   * ISO 3166-1 alpha-3, e.g. FRA.
+   */
+  country?: string | null;
+  location?: string | null;
+  /**
+   * Free text, e.g. "20K / 50K / 100K / 100M". Deliberately not the catalogue distance enum, so a race outside the catalogue can still be scheduled.
+   */
+  distanceSummary?: string | null;
+  url?: string | null;
+  /**
+   * Leave empty if not announced. Never guess — a wrong date makes people miss entry.
+   */
+  registrationOpensAt?: string | null;
+  registrationClosesAt?: string | null;
+  /**
+   * Separate from the official site — many races register through a third-party platform. Falls back to the official site when empty.
+   */
+  registrationUrl?: string | null;
+  /**
+   * Hardrock, Western States and UTMB Mont-Blanc are lotteries — saying only "open" would mislead.
+   */
+  registrationType?: ('first-come' | 'lottery' | 'qualifier' | 'invitational') | null;
+  /**
+   * Only for what dates cannot express. Setting this overrides the date-derived status, so clear it once the race has run — the daily maintenance job clears stale ones.
+   */
+  registrationStatusOverride?: ('full' | 'waitlist' | 'cancelled' | 'tba') | null;
+  /**
+   * Where this row was copied from. For re-checking later, not shown to visitors.
+   */
+  sourceUrl?: string | null;
+  /**
+   * Set to today whenever you check this row against the official site.
+   */
+  verifiedAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -362,6 +426,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'race-records';
         value: number | RaceRecord;
+      } | null)
+    | ({
+        relationTo: 'race-schedule';
+        value: number | RaceSchedule;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -524,6 +592,32 @@ export interface RaceRecordsSelect<T extends boolean = true> {
   eventId?: T;
   distanceId?: T;
   year?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-schedule_select".
+ */
+export interface RaceScheduleSelect<T extends boolean = true> {
+  name?: T;
+  nameZh?: T;
+  series?: T;
+  startDate?: T;
+  endDate?: T;
+  eventId?: T;
+  country?: T;
+  location?: T;
+  distanceSummary?: T;
+  url?: T;
+  registrationOpensAt?: T;
+  registrationClosesAt?: T;
+  registrationUrl?: T;
+  registrationType?: T;
+  registrationStatusOverride?: T;
+  sourceUrl?: T;
+  verifiedAt?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

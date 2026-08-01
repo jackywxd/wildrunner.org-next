@@ -234,7 +234,7 @@ jobs:
 
       - name: Smoke-check production
         run: |
-          for path in / /posts /gallery /about; do
+          for path in / /posts /gallery /about /races; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "https://wildrunner.org$path")
             echo "$path -> $code"
             [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }

@@ -2,13 +2,16 @@ import Link from "next/link";
 
 import Marquee from "@/components/magicui/Marquee";
 import PhotoCard from "@/components/PhotoCard";
+import { RaceEntryRow } from "@/components/race-schedule/RaceEntryRow";
 import { siteConfig } from "@/config/site";
 import type { SitePhoto } from "@/lib/content-types";
 import {
   getPublishedGalleries,
   getPublishedPosts,
   getSiteGlobals,
+  getUpcomingRaces,
 } from "@/lib/content";
+import { isRegistrationOpen } from "@/lib/races/registration";
 import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,12 +51,28 @@ export async function generateMetadata() {
   };
 }
 
+const HOME_RACE_COUNT = 4;
+
 export default async function Home() {
-  const [globals, galleries, posts] = await Promise.all([
+  // One clock for the whole render, so a race cannot be evaluated against
+  // two different days within the same page.
+  const now = new Date();
+
+  const [globals, galleries, posts, upcomingRaces] = await Promise.all([
     getSiteGlobals(),
     getPublishedGalleries(),
     getPublishedPosts(),
+    getUpcomingRaces({ now }),
   ]);
+
+  // Open entries first, then the nearest races to fill the row. The
+  // homepage question is "what can I still sign up for", and a strict date
+  // sort answers "what happens soonest" — which is often a race that closed
+  // months ago.
+  const featuredRaces = [
+    ...upcomingRaces.filter((race) => isRegistrationOpen(race, now)),
+    ...upcomingRaces.filter((race) => !isRegistrationOpen(race, now)),
+  ].slice(0, HOME_RACE_COUNT);
 
   const imageCount = galleries.reduce((acc, gallery) => {
     return acc + gallery.images.length;
@@ -120,6 +139,32 @@ export default async function Home() {
             />
           </section>
         </>
+      )}
+
+      {featuredRaces.length > 0 && (
+        <section className="mt-10 border-t-2 border-border pt-8">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-xl font-bold sm:text-2xl">近期賽事</h2>
+              <p className="text-sm text-muted-foreground">
+                未來一年的越野賽事與報名時間
+              </p>
+            </div>
+            <Link
+              href="/races"
+              data-testid="home-races-link"
+              className={cn(buttonVariants({ variant: "ghost" }), "px-6")}
+            >
+              查看全部
+            </Link>
+          </div>
+
+          <ul className="mt-6 space-y-3">
+            {featuredRaces.map((race) => (
+              <RaceEntryRow entry={race} key={race.id} now={now} />
+            ))}
+          </ul>
+        </section>
       )}
 
       {featuredImages?.length > 0 && (

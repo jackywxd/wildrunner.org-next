@@ -1,0 +1,58 @@
+name: Race schedule maintenance
+
+# Daily upkeep for the race schedule. See the long comment in
+# src/endpoints/raceScheduleMaintenance.ts for what it does and — more
+# importantly — what it does NOT do: registration status is derived per
+# request, so the schedule is correct with or without this job. This clears
+# stale manual overrides, busts the cache, and reports rows whose data has
+# gone unverified.
+#
+# 16:05 UTC = 00:05 Taipei, just after the local day rolls over, so a race
+# that opened for entry "today" is already showing as open when people wake
+# up. Scheduled workflows can run late under GitHub load; nothing here is
+# time-critical enough to care.
+#
+# Not a Cloudflare Cron Trigger: that needs a `scheduled` handler exported
+# from the Worker, and OpenNext generates the Worker entrypoint. Wrapping it
+# for one daily job is not a trade worth making — revisit if a second
+# scheduled job appears.
+on:
+  schedule:
+    - cron: "5 16 * * *"
+  workflow_dispatch:
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run maintenance
+        env:
+          RACE_MAINTENANCE_SECRET: ${{ secrets.RACE_MAINTENANCE_SECRET }}
+        run: |
+          if [ -z "$RACE_MAINTENANCE_SECRET" ]; then
+            echo "::error::secrets.RACE_MAINTENANCE_SECRET is not set — the endpoint will reject this call"
+            exit 1
+          fi
+
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -X POST 'https://wildrunner.org/api/races/maintenance' \
+            -H "X-Maintenance-Secret: $RACE_MAINTENANCE_SECRET")
+
+          echo "HTTP $code"
+          cat "$body"
+
+          if [ "$code" != "200" ]; then
+            echo "::error::maintenance endpoint returned $code"
+            exit 1
+          fi
+
+          # The report is the point of the run, so put it where a human will
+          # see it without opening the log.
+          {
+            echo '## Race schedule maintenance'
+            echo '```json'
+            cat "$body"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
