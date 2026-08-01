@@ -94,7 +94,12 @@ export default async function RacesPage({
       <div className="mt-8">
         {entries.length === 0 ? (
           <p className="text-sm text-muted-foreground" data-testid="race-schedule-empty">
-            還沒有公布的賽事日程。
+            {/* A filter that matches nothing is a different situation from an
+                empty schedule, and telling somebody the schedule is empty
+                while they are looking at an active filter is just wrong. */}
+            {all.length === 0
+              ? "還沒有公布的賽事日程。"
+              : "這個條件下沒有賽事，試試其他系列或看全部。"}
           </p>
         ) : filters.view === "calendar" ? (
           <RaceCalendar entries={entries} now={now} />
