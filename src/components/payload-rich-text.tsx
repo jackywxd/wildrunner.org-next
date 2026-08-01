@@ -1,11 +1,86 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 import type { Media, Post } from "@/payload-types";
 import { mediaImageSrc } from "@/lib/cf-image";
+import { youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
 import {
   RichText,
   type JSXConvertersFunction,
 } from "@payloadcms/richtext-lexical/react";
+
+type JsonNode = {
+  type: string;
+  children?: JsonNode[];
+  [key: string]: unknown;
+};
+
+/**
+ * Hand back to the converter we are overriding.
+ *
+ * A JSXConverter entry is allowed to be a plain node as well as a function,
+ * so it cannot simply be called — and the three overrides below only want
+ * to intercept YouTube links, not to reimplement paragraphs and anchors.
+ */
+function orDefault<Args>(
+  converter: ((args: Args) => ReactNode) | ReactNode | undefined,
+  args: Args,
+): ReactNode {
+  return typeof converter === "function"
+    ? (converter as (a: Args) => ReactNode)(args)
+    : ((converter as ReactNode) ?? null);
+}
+
+/**
+ * A YouTube link, shown as the video.
+ *
+ * `youtube-nocookie.com` and a rebuilt URL — see src/lib/youtube.ts for why
+ * the author's own string never reaches the iframe. `loading="lazy"` keeps
+ * a post with several videos from opening several player connections before
+ * the reader has scrolled to any of them.
+ */
+function YouTubeEmbed({ videoId }: { videoId: string }) {
+  return (
+    <div
+      data-testid="youtube-embed"
+      data-video-id={videoId}
+      className="my-6 aspect-video w-full"
+    >
+      <iframe
+        src={youTubeEmbedUrl(videoId)}
+        title="YouTube 影片"
+        loading="lazy"
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        className="h-full w-full border-0"
+      />
+    </div>
+  );
+}
+
+/**
+ * The single YouTube URL a paragraph consists of, or null.
+ *
+ * This is the case that actually matters for members: the editor has no
+ * autolink, so a pasted URL stays plain text rather than becoming a `link`
+ * node. Deliberately strict — the paragraph must be nothing but the URL, so
+ * a sentence that happens to mention a video keeps its sentence.
+ */
+function soleYouTubeUrl(node: JsonNode): string | null {
+  const children = node.children ?? [];
+  // A non-text child contributes a space, so a paragraph holding the URL
+  // *and* an image or a line break fails the whitespace test below rather
+  // than having its other content silently dropped.
+  const text = children
+    .map((child) => (child.type === "text" ? String(child.text ?? "") : " "))
+    .join("")
+    .trim();
+  // Any whitespace left after trimming means the paragraph holds something
+  // besides the URL - a sentence mentioning a video keeps its sentence.
+  if (!text || /\s/.test(text)) return null;
+  return youTubeVideoId(text);
+}
 
 /**
  * Renders inline images through next/image instead of the default
@@ -18,6 +93,37 @@ import {
  */
 const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
   ...defaultConverters,
+
+  /**
+   * A paragraph that is nothing but a YouTube URL becomes the video.
+   *
+   * Anything else falls straight through to the default converter rather
+   * than being reimplemented here — the default has a `<p><br></p>` case
+   * for empty paragraphs that is easy to forget and annoying to rediscover.
+   */
+  paragraph: (args) => {
+    const videoId = soleYouTubeUrl(args.node as unknown as JsonNode);
+    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    return orDefault(defaultConverters.paragraph, args);
+  },
+
+  /**
+   * And a real `link` node pointing at one, which is what a post written in
+   * /admin has (its editor autolinks a pasted URL).
+   */
+  link: (args) => {
+    const url = (args.node as { fields?: { url?: string } }).fields?.url;
+    const videoId = url ? youTubeVideoId(url) : null;
+    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    return orDefault(defaultConverters.link, args);
+  },
+  autolink: (args) => {
+    const url = (args.node as { fields?: { url?: string } }).fields?.url;
+    const videoId = url ? youTubeVideoId(url) : null;
+    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    return orDefault(defaultConverters.autolink, args);
+  },
+
   /**
    * Table cells, with the design system's border instead of the default
    * converter's hard-coded `border: 1px solid #ccc`.
