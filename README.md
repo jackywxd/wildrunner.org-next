@@ -143,7 +143,7 @@ pnpm test:e2e
 | `NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` | 可选 Web Analytics |
 | `NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE` | 可选 Stream 客户域 |
 | `R2_PUBLIC_URL` | 媒体公开基址 |
-| `RACE_MAINTENANCE_SECRET` | 赛事日程每日维护端点的鉴权；**须用 `wrangler secret put`**，不可打进 bundle |
+| `RACE_MAINTENANCE_SECRET` | 可选。赛事日程每日维护端点的鉴权；**须用 `wrangler secret put`**，不可打进 bundle。不设则仅该端点拒绝，站点本身不受影响 |
 | `S3_*` | 仅遗留 Velite 本机处理 |
 
 ---

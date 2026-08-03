@@ -202,6 +202,14 @@ wrangler secret put RACE_MAINTENANCE_SECRET
 `scripts/assert-no-secrets-in-bundle.mjs` fails the deploy if it reaches the
 bundle. The same value goes in GitHub Secrets for the workflow.
 
+**The secret is optional as far as the site is concerned.** `/races`, the
+admin and the registration status a visitor sees all work without it —
+that status is derived per request, not written by any job. Without the
+secret only this endpoint refuses, with an explicit "not configured" 500,
+and `race-schedule-maintenance.yml` fails its run with an `::error::`. It is
+therefore in `preflight-production.ts`'s `OPTIONAL` set: a missing cron
+secret should not block shipping the feature.
+
 > Not a Cloudflare Cron Trigger: that needs a `scheduled` handler exported
 > from the Worker, and OpenNext generates the entrypoint. Wrapping it for one
 > daily call is not worth touching the deploy pipeline for. Revisit if a

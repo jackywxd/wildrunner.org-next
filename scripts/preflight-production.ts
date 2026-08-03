@@ -184,6 +184,18 @@ const LOCAL_ONLY = new Set([
 const OPTIONAL = new Set([
   'NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE',
   'NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN',
+  // Authorises the daily race-schedule maintenance call. The site does not
+  // need it: /races, the admin and the registration status a visitor sees
+  // all work without it, because that status is derived per request rather
+  // than written by any job. Only POST /api/races/maintenance refuses, with
+  // an explicit "not configured" 500.
+  //
+  // So this must not block a deploy — requiring it would mean the feature
+  // cannot ship until the cron secret is also in place, which is backwards.
+  // A missing secret is still loud, just somewhere better suited to saying
+  // so: race-schedule-maintenance.yml fails the run with an ::error:: when
+  // the secret is absent.
+  'RACE_MAINTENANCE_SECRET',
   'STREAM_INGEST',
 ])
 
