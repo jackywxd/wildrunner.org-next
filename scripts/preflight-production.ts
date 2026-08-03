@@ -192,9 +192,9 @@ const OPTIONAL = new Set([
   //
   // So this must not block a deploy — requiring it would mean the feature
   // cannot ship until the cron secret is also in place, which is backwards.
-  // A missing secret is still loud, just somewhere better suited to saying
-  // so: race-schedule-maintenance.yml fails the run with an ::error:: when
-  // the secret is absent.
+  // race-schedule-maintenance.yml skips itself with a ::warning:: when the
+  // secret is absent, which is where "not set up yet" belongs: visible, but
+  // not a daily red run for an opt-in job.
   'RACE_MAINTENANCE_SECRET',
   'STREAM_INGEST',
 ])

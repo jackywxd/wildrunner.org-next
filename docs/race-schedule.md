@@ -206,9 +206,14 @@ bundle. The same value goes in GitHub Secrets for the workflow.
 admin and the registration status a visitor sees all work without it —
 that status is derived per request, not written by any job. Without the
 secret only this endpoint refuses, with an explicit "not configured" 500,
-and `race-schedule-maintenance.yml` fails its run with an `::error::`. It is
-therefore in `preflight-production.ts`'s `OPTIONAL` set: a missing cron
-secret should not block shipping the feature.
+and the workflow **skips itself with a `::warning::`** rather than failing.
+
+Both of those follow from the same rule: an opt-in background job must not
+turn into a permanent red state for anyone who has not opted in. A workflow
+that fails every day until somebody sets a secret is worse than no signal,
+because it teaches people to ignore the workflow. Hence also its place in
+`preflight-production.ts`'s `OPTIONAL` set — a missing cron secret should
+not block shipping the feature either.
 
 > Not a Cloudflare Cron Trigger: that needs a `scheduled` handler exported
 > from the Worker, and OpenNext generates the entrypoint. Wrapping it for one
