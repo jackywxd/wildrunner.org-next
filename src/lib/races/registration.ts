@@ -124,6 +124,28 @@ export function registrationLabel(state: RegistrationState): {
   }
 }
 
+/**
+ * An outbound link, or nothing.
+ *
+ * The collection validates these on write, but rows already stored are
+ * never re-validated unless edited — the same gap `RaceRecords.eventId`
+ * documents. A bare domain like `hardrock100.com` in an href is *relative*:
+ * it resolves against our own origin and lands on a 404 of our own site,
+ * silently. Dropping the link is better than offering a broken one.
+ */
+export function externalHref(...candidates: (string | undefined)[]): string | undefined {
+  for (const value of candidates) {
+    if (!value) continue;
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") return value;
+    } catch {
+      // Not absolute — fall through to the next candidate.
+    }
+  }
+  return undefined;
+}
+
 /** "2026-08-28" -> "8月28日". */
 function formatShort(date: string): string {
   const [, month, day] = date.split("-");
