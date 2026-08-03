@@ -1,5 +1,6 @@
 /**
- * The race catalogue: UTMB World Series and World Trail Majors.
+ * The race catalogue: UTMB World Series, World Trail Majors, and the
+ * independent races that belong to neither.
  *
  * Reference data, not user content — so it lives in code rather than a
  * collection. It is version-controlled, deploys atomically with the badge
@@ -10,9 +11,15 @@
  * owns — see the file-ownership split in the plan. Keeping them apart is
  * what lets the artwork land later without touching anything here.
  *
- * Sources, both read 2026-07-30:
+ * DATES ARE NOT HERE. A race's identity is stable; the day it runs is not.
+ * Dated editions — with registration windows, and editable by an admin —
+ * live in the `race-schedule` collection, which points back at these ids
+ * through an optional `eventId`. See src/collections/RaceSchedule.ts.
+ *
+ * Sources, the first two read 2026-07-30, the third 2026-08-01:
  *   - UTMB World Series 2026 calendar (theultrarunner.com, from utmb.world)
  *   - World Trail Majors 2026 calendar (worldtrailmajors.com)
+ *   - Independent races: each event's own site (see the section below)
  *
  * KNOWN INCOMPLETE: UTMB's own announcement puts the 2026 season at 64
  * events; 55 are listed below. The missing entries are new additions the
@@ -21,7 +28,16 @@
  * races.
  */
 
-export type RaceSeries = "utmb" | "wtm";
+export type RaceSeries = "utmb" | "wtm" | "others";
+
+/**
+ * The series, in display order.
+ *
+ * Exported so nothing else has to keep its own copy — `RaceRecordManager`
+ * used to hold a hand-written `["utmb", "wtm"]`, which meant adding a series
+ * here left it invisible in the member picker. One list, one place.
+ */
+export const RACE_SERIES: readonly RaceSeries[] = ["utmb", "wtm", "others"];
 
 /**
  * UTMB standardises every event into four categories — this is the official
@@ -103,6 +119,26 @@ function wtm(id: string, name: string, country: string): RaceEvent {
   return { country, distances: WTM_SERIES, id, name, series: "wtm" };
 }
 
+/**
+ * Note what this factory does NOT have: a default distance list.
+ *
+ * `utmb()` can default to UTMB_STANDARD because UTMB standardises its
+ * categories across the series. Independent races share nothing — Barkley
+ * has loops, Badwater has one road-adjacent 135, Sierre-Zinal is 31K. There
+ * is no defensible default, so every caller states the line-up.
+ */
+function other(
+  id: string,
+  name: string,
+  country: string,
+  distances: RaceDistance[],
+): RaceEvent {
+  return { country, distances, id, name, series: "others" };
+}
+
+/** Reused below where an independent race runs a single flagship distance. */
+const M135: RaceDistance = { id: "135m", label: "135M" };
+
 export const RACE_EVENTS: RaceEvent[] = [
   // --- UTMB World Series: Europe -------------------------------------
   utmb("utmb-arc-of-attrition", "Arc of Attrition", "GBR"),
@@ -181,6 +217,88 @@ export const RACE_EVENTS: RaceEvent[] = [
   wtm("wtm-vietnam-mountain", "Vietnam Mountain Marathon", "VNM"),
   wtm("wtm-grampians", "Grampians Peaks Trail", "AUS"),
   wtm("wtm-cape-town", "RMB Ultra-Trail Cape Town", "ZAF"),
+
+  // --- Other independent races ----------------------------------------
+  //
+  // What belongs here: a race that is not part of UTMB World Series or
+  // World Trail Majors. Nothing else. Series membership moves between
+  // seasons, so when a race joins one of the two series it gets a new entry
+  // under that series' prefix rather than being renamed — an id is written
+  // into `race_records.event_id` and must never change (see RaceEvent.id).
+  //
+  // That rule is why Western States stays as `utmb-western-states` above
+  // even though runners think of it as an independent classic: it really is
+  // a UTMB World Series event, and renaming it would orphan every member
+  // record that already claims it, degrading their badge to the neutral
+  // placeholder and making the record un-editable.
+  //
+  // Sierre-Zinal, Zegama and Trofeo Kima are short mountain races rather
+  // than ultras, and belong to the Golden Trail World Series. They are in
+  // anyway: members run them, and this file has always been a list of races
+  // rather than a list of series memberships — the same reasoning the
+  // EARLIEST_RACE_YEAR comment records.
+  //
+  // Distances are stated per race because independent events share no
+  // standard line-up. Where a line-up could not be confirmed from the
+  // event's own site, the race was left out entirely rather than guessed —
+  // a wrong distance shows up on a member's profile as a claim they never
+  // made. Asia is thin here for exactly that reason; additions welcome.
+  //
+  // Sources, all read 2026-08-01: each event's official site.
+
+  // North America
+  other("other-hardrock", "Hardrock 100", "USA", [M100]),
+  other("other-leadville", "Leadville Trail 100", "USA", [M100]),
+  other("other-badwater", "Badwater 135", "USA", [M135]),
+  other("other-wasatch", "Wasatch Front 100", "USA", [M100]),
+  other("other-angeles-crest", "Angeles Crest 100", "USA", [M100]),
+  other("other-vermont", "Vermont 100", "USA", [M100, K100]),
+  other("other-barkley", "Barkley Marathons", "USA", [
+    { id: "fun-run", label: "Fun Run" },
+    { id: "full", label: "Full" },
+  ]),
+  other("other-cocodona", "Cocodona 250", "USA", [
+    { id: "250m", label: "250M" },
+  ]),
+  other("other-moab-240", "Moab 240", "USA", [{ id: "240m", label: "240M" }]),
+  other("other-bigfoot-200", "Bigfoot 200", "USA", [
+    { id: "200m", label: "200M" },
+  ]),
+
+  // Europe
+  other("other-tor-des-geants", "Tor des Géants", "ITA", [
+    { id: "330k", label: "330K" },
+    { id: "450k", label: "450K" },
+  ]),
+  other("other-templiers", "Grand Trail des Templiers", "FRA", [
+    { id: "76k", label: "76K" },
+  ]),
+  other("other-transvulcania", "Transvulcania", "ESP", [
+    { id: "73k", label: "73K" },
+  ]),
+  other("other-sierre-zinal", "Sierre-Zinal", "CHE", [
+    { id: "31k", label: "31K" },
+  ]),
+  other("other-zegama", "Zegama-Aizkorri", "ESP", [{ id: "42k", label: "42K" }]),
+  other("other-trofeo-kima", "Trofeo Kima", "ITA", [
+    { id: "50k", label: "50K" },
+  ]),
+
+  // Asia
+  other("other-translantau", "Translantau", "HKG", [K20, K50, K100]),
+  other("other-hk4tuc", "Hong Kong Four Trails Ultra Challenge", "HKG", [
+    { id: "298k", label: "298K" },
+  ]),
+
+  // Africa and the Indian Ocean
+  other("other-diagonale-des-fous", "Grand Raid de la Réunion", "REU", [
+    { id: "diagonale", label: "Diagonale" },
+    { id: "bourbon", label: "Bourbon" },
+    { id: "mascareignes", label: "Mascareignes" },
+  ]),
+  other("other-marathon-des-sables", "Marathon des Sables", "MAR", [
+    { id: "250k", label: "250K" },
+  ]),
 ];
 
 const BY_ID = new Map(RACE_EVENTS.map((event) => [event.id, event]));
@@ -205,6 +323,14 @@ export function raceEventsBySeries(series: RaceSeries): RaceEvent[] {
 export const RACE_SERIES_LABELS: Record<RaceSeries, string> = {
   utmb: "UTMB World Series",
   wtm: "World Trail Majors",
+  others: "Independent Races",
+};
+
+/** The same three, for the Chinese-language UI. */
+export const RACE_SERIES_LABELS_ZH: Record<RaceSeries, string> = {
+  utmb: "UTMB 世界系列賽",
+  wtm: "World Trail Majors",
+  others: "其他獨立賽事",
 };
 
 /**

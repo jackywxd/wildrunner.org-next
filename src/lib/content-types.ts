@@ -73,6 +73,40 @@ export type SiteRaceRecord = {
   year: number;
 };
 
+/**
+ * A dated race edition as the public schedule sees it.
+ *
+ * DATES ARE STRINGS, "YYYY-MM-DD", not `Date`. Payload stores a full ISO
+ * UTC timestamp; `mapRaceScheduleEntry` truncates it once and nothing
+ * downstream parses it back. A `Date` would be rendered in the visitor's
+ * local timezone, which puts a race stored as 2026-08-28T00:00:00.000Z on
+ * 8/27 in the Americas and 8/28 in Taipei — the same row in two different
+ * calendar cells for two people.
+ *
+ * `sourceUrl` and `verifiedAt` are deliberately absent: they are
+ * maintenance metadata for the admin panel and the daily audit job, and no
+ * visitor-facing component has any use for them.
+ */
+export type SiteRaceScheduleEntry = {
+  id: number;
+  name: string;
+  nameZh?: string;
+  series: "utmb" | "wtm" | "others";
+  startDate: string;
+  endDate?: string;
+  eventId?: string;
+  country?: string;
+  location?: string;
+  distanceSummary?: string;
+  url?: string;
+  registrationOpensAt?: string;
+  registrationClosesAt?: string;
+  registrationUrl?: string;
+  registrationType: "first-come" | "lottery" | "qualifier" | "invitational";
+  registrationStatusOverride?: "full" | "waitlist" | "cancelled" | "tba";
+  notes?: string;
+};
+
 export type SiteRider = {
   slug: string;
   name: string;

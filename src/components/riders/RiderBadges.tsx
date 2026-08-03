@@ -1,10 +1,10 @@
 import type { SiteRaceRecord } from "@/lib/content-types";
 import { RaceBadge } from "@/lib/races/badge";
 import {
+  RACE_SERIES,
   RACE_SERIES_LABELS,
   findRaceEvent,
 } from "@/lib/races/catalogue";
-import type { RaceSeries } from "@/lib/races/catalogue";
 
 /**
  * One badge per event, showing the most recent year.
@@ -64,13 +64,14 @@ export function RiderBadgeRow({
   );
 }
 
-const SERIES_ORDER: RaceSeries[] = ["utmb", "wtm"];
-
 /** Full history for a profile page, grouped by series. */
 export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
   if (records.length === 0) return null;
 
-  const groups = SERIES_ORDER.map((series) => ({
+  // Grouped in RACE_SERIES order rather than a local copy of it, so a new
+  // series shows up here without a second edit — the empty groups are
+  // filtered out below, so listing all of them costs nothing.
+  const groups = RACE_SERIES.map((series) => ({
     records: records.filter(
       (record) => findRaceEvent(record.eventId)?.series === series,
     ),

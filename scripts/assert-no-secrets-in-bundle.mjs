@@ -40,6 +40,9 @@ const FORBIDDEN_KEYS = [
   'S3_SECRET_ACCESS_KEY',
   'PAYLOAD_SECRET',
   'RESEND_API_KEY',
+  // Authorises the daily race-schedule maintenance call. Supplied as a
+  // Worker secret like RESEND_API_KEY, so it has no business in the bundle.
+  'RACE_MAINTENANCE_SECRET',
 ]
 
 const envLocal = path.join(root, '.env.local')

@@ -7,6 +7,7 @@ import type {
 import {
   revalidateForGallery,
   revalidateForPost,
+  revalidateForRaceSchedule,
   revalidateForRider,
   revalidatePublicSite,
 } from "@/lib/revalidate-public";
@@ -108,6 +109,21 @@ export const revalidateRaceRecord = {
 
   afterDelete: (async ({ doc, req }) => {
     revalidateForRider(await riderSlugForOwner(doc.owner, req));
+  }) as CollectionAfterDeleteHook,
+};
+
+/**
+ * Far simpler than `revalidateRaceRecord`: a schedule row has no owner and
+ * no per-rider page, so there is nothing to resolve — the same two paths
+ * are busted whatever changed.
+ */
+export const revalidateRaceSchedule = {
+  afterChange: (() => {
+    revalidateForRaceSchedule();
+  }) as CollectionAfterChangeHook,
+
+  afterDelete: (() => {
+    revalidateForRaceSchedule();
   }) as CollectionAfterDeleteHook,
 };
 

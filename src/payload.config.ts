@@ -23,12 +23,14 @@ import { Authors } from './collections/Authors'
 import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
 import { RaceRecords } from './collections/RaceRecords'
+import { RaceSchedule } from './collections/RaceSchedule'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
+import { raceScheduleMaintenanceEndpoint } from './endpoints/raceScheduleMaintenance'
 import { isEmailConfigured, resendAdapter } from './lib/email'
 
 const filename = fileURLToPath(import.meta.url)
@@ -135,13 +137,14 @@ export default buildConfig({
     supportedLanguages: { en, 'zh-TW': zhTw },
     fallbackLanguage: 'zh-TW',
   },
-  collections: [Users, Media, Authors, Posts, Galleries, RaceRecords],
+  collections: [Users, Media, Authors, Posts, Galleries, RaceRecords, RaceSchedule],
   globals: [Site],
   endpoints: [
     aiExpandPostEndpoint,
     inviteMemberEndpoint,
     storageUsageEndpoint,
     directUploadInitEndpoint,
+    raceScheduleMaintenanceEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the
   // console, and the invite endpoint hands the admin a link instead.
