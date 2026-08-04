@@ -309,6 +309,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Sinister 7 Ultra",
     series: "others",
+    eventId: "other-sinister-7",
     startDate: "2026-07-11",
     endDate: "2026-07-12",
     country: "CAN",
@@ -321,6 +322,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Canadian Death Race",
     series: "others",
+    eventId: "other-canadian-death-race",
     startDate: "2026-08-01",
     endDate: "2026-08-02",
     country: "CAN",
@@ -337,6 +339,7 @@ const ROWS: SeedRow[] = [
     name: "Ultra Trail Whistler by UTMB",
     nameZh: "威士拿 UTMB",
     series: "utmb",
+    eventId: "utmb-whistler",
     startDate: "2026-08-21",
     endDate: "2026-08-23",
     country: "CAN",

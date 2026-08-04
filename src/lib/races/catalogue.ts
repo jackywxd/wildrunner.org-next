@@ -23,9 +23,13 @@
  *
  * KNOWN INCOMPLETE: UTMB's own announcement puts the 2026 season at 64
  * events; 55 are listed below. The missing entries are new additions the
- * published calendar had not yet broken out. Adding one is a two-line change
- * here plus a token in design-tokens.ts — nothing else in the app enumerates
- * races.
+ * published calendar had not yet broken out.
+ *
+ * Adding one is a single entry here and nothing else. This used to say "plus
+ * a token in design-tokens.ts", which was never true of the code as written:
+ * `badgeToken()` derives the hue from `hash(event.id)` and the abbreviation
+ * from the name, and every badge shares one placeholder motif until the
+ * artwork lands. Nothing else in the app enumerates races.
  */
 
 export type RaceSeries = "utmb" | "wtm" | "others";
@@ -185,6 +189,14 @@ export const RACE_EVENTS: RaceEvent[] = [
   utmb("utmb-western-states", "Western States 100", "USA", [M100]),
   utmb("utmb-speedgoat", "Speedgoat Mountain Races", "USA"),
   utmb("utmb-borealys", "Boréalys Mont-Tremblant", "CAN"),
+  // No 100M: Whistler's longest is the 100K. Taking UTMB_STANDARD here
+  // would have offered members a distance the race does not run.
+  utmb("utmb-whistler", "Ultra Trail Whistler by UTMB", "CAN", [
+    { id: "10k", label: "10K" },
+    { id: "25k", label: "25K" },
+    K50,
+    K100,
+  ]),
   utmb("utmb-grindstone", "Grindstone Trail Running Festival", "USA"),
   utmb("utmb-kodiak", "Kodiak Ultra Marathons", "USA"),
   utmb("utmb-pacific-trails", "Pacific Trails Ultra", "USA"),
@@ -298,6 +310,22 @@ export const RACE_EVENTS: RaceEvent[] = [
   ]),
   other("other-marathon-des-sables", "Marathon des Sables", "MAR", [
     { id: "250k", label: "250K" },
+  ]),
+  // Both Alberta races are run by Sinister Sports and both offer a relay.
+  // The relay is listed as a distance because that is how an entrant
+  // describes what they did — "I did the Death Race relay" — and a record
+  // that could only say 118K would be wrong for most of the field.
+  other("other-sinister-7", "Sinister 7 Ultra", "CAN", [
+    { id: "half", label: "Half" },
+    K50,
+    { id: "50m", label: "50M" },
+    M100,
+    { id: "relay", label: "Relay" },
+  ]),
+  other("other-canadian-death-race", "Canadian Death Race", "CAN", [
+    { id: "42k", label: "42K" },
+    { id: "118k", label: "118K" },
+    { id: "relay", label: "Relay" },
   ]),
 ];
 
