@@ -36,7 +36,13 @@ import { RACE_SERIES, findRaceEvent } from "../src/lib/races/catalogue";
 const dryRun = process.argv.includes("--dry-run");
 const remote = process.argv.includes("--remote");
 
-/** The day every row below was read off its source. */
+/**
+ * The day the original rows below were read off their sources. A row added
+ * later carries its own `verifiedAt` instead — bumping this constant would
+ * claim every row was re-checked on that day, and the maintenance job's
+ * "nobody has verified this in 90 days" report is only worth anything if
+ * that date is true.
+ */
 const VERIFIED_AT = "2026-08-01";
 
 type SeedRow = {
@@ -54,9 +60,17 @@ type SeedRow = {
   registrationClosesAt?: string;
   registrationUrl?: string;
   registrationType?: "first-come" | "lottery" | "qualifier" | "invitational";
+  /**
+   * Only for what dates cannot express — a sold-out or cancelled edition.
+   * Checked before the dates, so it wins over the derived status; the daily
+   * maintenance job clears it once the race has run.
+   */
+  registrationStatusOverride?: "full" | "waitlist" | "cancelled" | "tba";
   notes?: string;
   /** Where this row was read from. Required — see the file header. */
   sourceUrl: string;
+  /** The day this row was read off its source, when that is not VERIFIED_AT. */
+  verifiedAt?: string;
 };
 
 /**
@@ -234,6 +248,44 @@ const ROWS: SeedRow[] = [
     notes: "抽籤結果 2026-12-05 公布；需完成指定資格賽。",
     sourceUrl: "https://hardrock100.com/hardrock-lottery.php",
   },
+  {
+    name: "Ticino Wildlands 500",
+    series: "others",
+    startDate: "2026-08-08",
+    endDate: "2026-08-18",
+    country: "CHE",
+    location: "Ticino",
+    // The 500 is confirmed at 500K / 40,000m D+ / 250h. The 250 and 50 are
+    // published as category names only — their distances are not stated
+    // anywhere I could read, and the site's /en/ pages 404 to automated
+    // fetches, so the numbers are not claimed here.
+    distanceSummary: "Ticino 500 / Ticino 250 / Ticino 50",
+    url: "https://www.ticino500.ch/",
+    registrationUrl: "https://join.endu.net/entry?edition=102363",
+    notes: "主賽事 500K，累積爬升 40,000 公尺，關門 250 小時。",
+    sourceUrl: "https://www.ticino500.ch/",
+    verifiedAt: "2026-08-04",
+  },
+  {
+    name: "Squamish 50",
+    series: "others",
+    startDate: "2026-08-15",
+    endDate: "2026-08-16",
+    country: "CAN",
+    location: "Squamish, British Columbia",
+    distanceSummary: "50M / 50K / 50-50 / 23K",
+    url: "https://squamish50.com/",
+    registrationUrl:
+      "https://raceroster.com/events/2026/111341/nesters-market-squamish-50",
+    // Every distance hit its cap (23K at 600, 50K at 625, 50M at 350, 50/50
+    // at 200) and the organiser states there is no waitlist and no
+    // transfers. "full" rather than a closing date because no closing date
+    // was published — it sold out, which is not the same thing.
+    registrationStatusOverride: "full",
+    notes: "2026 各分項皆已額滿，官方明言不設候補、不接受轉讓。",
+    sourceUrl: "https://squamish50.com/registration/",
+    verifiedAt: "2026-08-04",
+  },
 ];
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
@@ -250,6 +302,9 @@ const rowSchema = z
     notes: z.string().optional(),
     registrationClosesAt: isoDate.optional(),
     registrationOpensAt: isoDate.optional(),
+    registrationStatusOverride: z
+      .enum(["full", "waitlist", "cancelled", "tba"])
+      .optional(),
     registrationType: z
       .enum(["first-come", "lottery", "qualifier", "invitational"])
       .optional(),
@@ -258,6 +313,7 @@ const rowSchema = z
     sourceUrl: z.string().url(),
     startDate: isoDate,
     url: z.string().url().optional(),
+    verifiedAt: isoDate.optional(),
   })
   // The same invariants the collection validators enforce, checked here so
   // a bad row is reported with its name rather than surfacing as a Payload
@@ -407,13 +463,14 @@ async function main(): Promise<void> {
         notes: row.notes,
         registrationClosesAt: at(row.registrationClosesAt),
         registrationOpensAt: at(row.registrationOpensAt),
+        registrationStatusOverride: row.registrationStatusOverride,
         registrationType: row.registrationType ?? "first-come",
         registrationUrl: row.registrationUrl,
         series: row.series,
         sourceUrl: row.sourceUrl,
         startDate: at(row.startDate)!,
         url: row.url,
-        verifiedAt: at(VERIFIED_AT),
+        verifiedAt: at(row.verifiedAt ?? VERIFIED_AT),
       },
     });
 
