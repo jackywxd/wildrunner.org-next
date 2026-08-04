@@ -22,14 +22,15 @@ import { BASE_URL } from "../../playwright.config";
  * reason or, worse, pass identically with the config change reverted. A test
  * that cannot tell the fixed state from the broken one is not a test.
  *
- * So: run the suite against staging to exercise this file.
+ * So: run the suite against a deployed origin to exercise this file.
  *
  *   PLAYWRIGHT_BASE_URL=https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev \
  *     pnpm test:e2e e2e/public/cache-headers.spec.ts
  *
- * CI targets localhost and will skip the whole describe. That is a real gap
- * and worth knowing about rather than papering over: nothing automated
- * catches a Cache-Control regression on the deployed site today.
+ * The PR gate (e2e.yml) targets localhost and skips this describe. The
+ * deploy pipeline does not: deploy.yml's `verify-staging` job runs the whole
+ * suite with PLAYWRIGHT_BASE_URL set to the staging URL, and the production
+ * job depends on it. So these do gate a release — just not a pull request.
  */
 
 const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(

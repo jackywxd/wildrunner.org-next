@@ -5,9 +5,12 @@ import {
   entriesByDate,
   monthGrid,
   monthsInWindow,
+  parseMonthAnchor,
   scheduleWindow,
+  shiftAnchor,
   toDateString,
 } from "@/lib/races/calendar";
+import { raceState } from "@/lib/races/race-state";
 
 /**
  * Phase C — calendar maths.
@@ -26,8 +29,13 @@ import {
 const at = (iso: string) => new Date(iso);
 
 test.describe("C calendar window", () => {
-  test("C-T1: the window starts today and runs twelve months", () => {
-    const { from, to } = scheduleWindow(at("2026-08-01T12:00:00Z"));
+  test("C-T1: the window starts at the first of the month, not today", () => {
+    // Deliberately mid-month. This used to start at `now`, which dropped a
+    // race the morning after it began — an eleven-day event vanished on day
+    // two while it was still being run — and left days 1..today rendering as
+    // permanently empty calendar cells, because monthsInWindow has always
+    // started at the first.
+    const { from, to } = scheduleWindow(at("2026-08-17T12:00:00Z"));
     expect(from).toBe("2026-08-01");
     expect(to).toBe("2027-08-01");
   });
@@ -39,6 +47,76 @@ test.describe("C calendar window", () => {
     const late = scheduleWindow(at("2026-08-01T23:59:59Z"));
     expect(early).toEqual(late);
     expect(toDateString(at("2026-08-01T23:59:59Z"))).toBe("2026-08-01");
+  });
+
+  test("C-T11: an explicit anchor overrides the clock entirely", () => {
+    // What makes ?from= shareable: the same URL must mean the same window
+    // whenever it is opened, so `now` must not influence it at all.
+    const a = scheduleWindow(at("2026-08-17T12:00:00Z"), 12, "2025-08");
+    const b = scheduleWindow(at("2027-01-02T12:00:00Z"), 12, "2025-08");
+    expect(a).toEqual(b);
+    expect(a.from).toBe("2025-08-01");
+    expect(a.to).toBe("2026-08-01");
+
+    const months = monthsInWindow(at("2027-01-02T12:00:00Z"), 12, "2025-08");
+    expect(months[0].key).toBe("2025-08");
+    expect(months[11].key).toBe("2026-07");
+  });
+
+  test("C-T12: only a well-formed anchor is accepted", () => {
+    // These arrive from the query string, so they are attacker-controlled
+    // and just as often a stale bookmark. Anything unusable must fall back
+    // to the default window rather than producing an invalid date.
+    expect(parseMonthAnchor("2025-08")).toBe("2025-08");
+    for (const bad of [
+      "2025-13",
+      "2025-00",
+      "2025-8",
+      "25-08",
+      "2025-08-01",
+      "",
+      undefined,
+      null,
+      42,
+    ]) {
+      expect(parseMonthAnchor(bad)).toBeUndefined();
+    }
+  });
+
+  test("C-T13: shifting an anchor crosses year boundaries both ways", () => {
+    expect(shiftAnchor("2026-08", 12)).toBe("2027-08");
+    expect(shiftAnchor("2026-08", -12)).toBe("2025-08");
+    expect(shiftAnchor("2026-01", -1)).toBe("2025-12");
+    expect(shiftAnchor("2026-12", 1)).toBe("2027-01");
+  });
+
+  test("C-T14: a race is upcoming, then ongoing, then finished", () => {
+    const race = { startDate: "2026-08-08", endDate: "2026-08-18" };
+    const on = (iso: string) => raceState(race, at(iso)).kind;
+
+    expect(on("2026-08-07T23:00:00Z")).toBe("upcoming");
+    // Both boundaries inclusive, matching registration.ts: a race starting
+    // today is running today, and one ending today has not finished yet —
+    // its runners are still on the course.
+    expect(on("2026-08-08T00:00:00Z")).toBe("ongoing");
+    expect(on("2026-08-13T12:00:00Z")).toBe("ongoing");
+    expect(on("2026-08-18T23:59:59Z")).toBe("ongoing");
+    expect(on("2026-08-19T00:00:00Z")).toBe("finished");
+  });
+
+  test("C-T15: a single-day race ends on the day it starts", () => {
+    const race = { startDate: "2026-08-08" };
+    expect(raceState(race, at("2026-08-08T12:00:00Z")).kind).toBe("ongoing");
+    expect(raceState(race, at("2026-08-09T00:00:00Z")).kind).toBe("finished");
+  });
+
+  test("C-T16: a backwards range degrades to its start day", () => {
+    // Same degradation entriesByDate applies (C-T10), so a bad row is
+    // consistent between the calendar grid and the state label rather than
+    // being finished in one and ongoing in the other.
+    const race = { startDate: "2026-08-08", endDate: "2026-08-01" };
+    expect(raceState(race, at("2026-08-08T12:00:00Z")).kind).toBe("ongoing");
+    expect(raceState(race, at("2026-08-09T12:00:00Z")).kind).toBe("finished");
   });
 
   test("C-T3: twelve month keys, rolling over the year end", () => {

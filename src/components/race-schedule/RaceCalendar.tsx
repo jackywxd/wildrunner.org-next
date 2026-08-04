@@ -5,6 +5,7 @@ import {
   monthsInWindow,
   toDateString,
 } from "@/lib/races/calendar";
+import { isFinished } from "@/lib/races/race-state";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,13 @@ import { cn } from "@/lib/utils";
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 export function RaceCalendar({
+  anchor,
   entries,
   months = 12,
   now,
 }: {
+  /** Same anchor the list was queried with, so both show one window. */
+  anchor?: string;
   entries: SiteRaceScheduleEntry[];
   months?: number;
   now: Date;
@@ -37,7 +41,7 @@ export function RaceCalendar({
 
   return (
     <div className="space-y-10" data-testid="race-calendar">
-      {monthsInWindow(now, months).map((month) => {
+      {monthsInWindow(now, months, anchor).map((month) => {
         const cells = monthGrid(month);
 
         return (
@@ -96,15 +100,22 @@ export function RaceCalendar({
 
                     {dayEntries.length > 0 && (
                       <>
-                        {/* Phone: a dot per race, filled when entry is open. */}
+                        {/* Phone: a dot per race, filled when entry is open.
+                            A continuation day is hollow for the same reason
+                            the desktop chip recedes — so a run of dots does
+                            not read as one long race when a second one
+                            starts partway through it. */}
                         <span className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
                           {dayEntries.map((entry) => (
                             <span
                               className={cn(
                                 "block h-1.5 w-1.5",
-                                isRegistrationOpen(entry, now)
-                                  ? "bg-primary"
-                                  : "bg-muted-foreground",
+                                entry.startDate === cell.date
+                                  ? isRegistrationOpen(entry, now) &&
+                                    !isFinished(entry, now)
+                                    ? "bg-primary"
+                                    : "bg-muted-foreground"
+                                  : "border border-muted-foreground/50",
                               )}
                               key={entry.id}
                             />
@@ -112,26 +123,47 @@ export function RaceCalendar({
                         </span>
 
                         <span className="mt-1 hidden flex-col gap-0.5 sm:flex">
-                          {dayEntries.map((entry) => (
-                            <span
-                              className={cn(
-                                "block truncate px-1 text-[10px] leading-tight",
-                                isRegistrationOpen(entry, now)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted-foreground/15 text-foreground",
-                              )}
-                              data-race-id={entry.id}
-                              data-testid="race-calendar-event"
-                              key={entry.id}
-                              title={`${entry.nameZh || entry.name}${
-                                entry.distanceSummary
-                                  ? ` · ${entry.distanceSummary}`
-                                  : ""
-                              }`}
-                            >
-                              {entry.nameZh || entry.name}
-                            </span>
-                          ))}
+                          {dayEntries.map((entry) => {
+                            // A race that starts today is drawn solid; day
+                            // 2..n of a multi-day race is drawn as a
+                            // continuation.
+                            //
+                            // Without this, an eleven-day event repeats an
+                            // identical chip in eleven consecutive cells,
+                            // and a second race beginning inside that span
+                            // is just one more chip in the stack — which is
+                            // exactly how Squamish 50 went unnoticed
+                            // underneath Ticino Wildlands 500. Receding the
+                            // continuation days is what makes the day
+                            // something *starts* legible.
+                            const starts = entry.startDate === cell.date;
+                            const done = isFinished(entry, now);
+
+                            return (
+                              <span
+                                className={cn(
+                                  "block truncate border-l-2 px-1 text-[10px] leading-tight",
+                                  isRegistrationOpen(entry, now) && !done
+                                    ? "border-l-primary bg-primary text-primary-foreground"
+                                    : "border-l-muted-foreground/40 bg-muted-foreground/15 text-foreground",
+                                  !starts &&
+                                    "border-l-transparent bg-muted-foreground/5 text-muted-foreground",
+                                  done && "opacity-60",
+                                )}
+                                data-continuation={starts ? "false" : "true"}
+                                data-race-id={entry.id}
+                                data-testid="race-calendar-event"
+                                key={entry.id}
+                                title={`${entry.nameZh || entry.name}${
+                                  entry.distanceSummary
+                                    ? ` · ${entry.distanceSummary}`
+                                    : ""
+                                }`}
+                              >
+                                {entry.nameZh || entry.name}
+                              </span>
+                            );
+                          })}
                         </span>
                       </>
                     )}
