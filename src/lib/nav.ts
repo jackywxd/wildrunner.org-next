@@ -4,7 +4,7 @@ import { NAV_LIST } from "@/constants";
 export type NavItemData = {
   label: string;
   path: string;
-  icon: "rss" | "image" | "about" | "riders";
+  icon: "rss" | "image" | "about" | "riders" | "races";
 };
 
 const RIDERS_ITEM: NavItemData = {
@@ -23,6 +23,14 @@ function iconForHref(href: string, iconName?: string | null): NavItemData["icon"
   }
   if (key.includes("about") || key.includes("user") || key.includes("关于")) {
     return "about";
+  }
+  // Matched on the href as well as the icon string, because the Chinese
+  // keywords above are written in simplified form and the labels have since
+  // been changed to traditional (相冊, 關於). Those two still resolve only
+  // because /gallery and /about carry an English keyword — a row whose href
+  // has none falls straight through, which is what put the RSS icon on 賽事.
+  if (key.includes("race") || key.includes("event") || key.includes("賽事")) {
+    return "races";
   }
   return "rss";
 }

@@ -1,4 +1,5 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
+import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
 
@@ -43,10 +44,18 @@ export function RaceEntryRow({
   entry: SiteRaceScheduleEntry;
   now: Date;
 }) {
+  const state = raceState(entry, now);
+  const finished = state.kind === "finished";
+  const ongoing = state.kind === "ongoing";
   // Highlighting is never colour alone: the row accent below always comes
   // with the "報名中" label inside RegistrationStatus, and with the
   // data-registration-state attribute.
-  const open = isRegistrationOpen(entry, now);
+  //
+  // A finished race is never accented as open, whatever its dates say. An
+  // editor who never went back to close a window would otherwise have last
+  // month's race sitting at the top of the page in the same colour as one
+  // taking entries today.
+  const open = !finished && isRegistrationOpen(entry, now);
   const place = [entry.location, entry.country].filter(Boolean).join(" · ");
   const site = externalHref(entry.url);
 
@@ -55,8 +64,14 @@ export function RaceEntryRow({
       className={cn(
         "flex flex-col gap-2 border border-border bg-secondary p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6",
         open && "border-l-4 border-l-primary bg-primary/5",
+        ongoing && "border-l-4 border-l-foreground bg-foreground/5",
+        // Dimmed, not hidden. Past races are the reason this window pages
+        // backwards at all, so they have to stay readable — this only stops
+        // them competing with what is still to come.
+        finished && "opacity-60",
       )}
       data-race-id={entry.id}
+      data-race-state={state.kind}
       data-series={entry.series}
       data-start-date={entry.startDate}
       data-testid="race-list-item"
@@ -67,6 +82,22 @@ export function RaceEntryRow({
             {formatRange(entry)}
           </span>
           <RaceSeriesTag series={entry.series} />
+          {ongoing && (
+            <span
+              className="border border-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-foreground"
+              data-testid="race-state-tag"
+            >
+              進行中
+            </span>
+          )}
+          {finished && (
+            <span
+              className="border border-border px-1.5 py-0.5 text-[10px] leading-tight text-muted-foreground"
+              data-testid="race-state-tag"
+            >
+              已結束
+            </span>
+          )}
         </div>
 
         <h3 className="font-heading text-lg font-semibold leading-snug">
@@ -99,11 +130,18 @@ export function RaceEntryRow({
         )}
       </div>
 
-      <RegistrationStatus
-        className="shrink-0 sm:flex-col sm:items-end"
-        entry={entry}
-        now={now}
-      />
+      {/* No registration status once the race has been run. "報名資訊待公布"
+          on an event that finished last month is not merely unhelpful, it
+          reads as though entries are still coming — and the daily
+          maintenance job clears stale overrides precisely because nobody
+          returns to tidy these by hand. */}
+      {!finished && (
+        <RegistrationStatus
+          className="shrink-0 sm:flex-col sm:items-end"
+          entry={entry}
+          now={now}
+        />
+      )}
     </li>
   );
 }

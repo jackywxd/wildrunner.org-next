@@ -286,6 +286,70 @@ const ROWS: SeedRow[] = [
     sourceUrl: "https://squamish50.com/registration/",
     verifiedAt: "2026-08-04",
   },
+  // The four below were added once /races began showing past races. Three
+  // of them had already been run when they were entered, which is the point:
+  // a schedule that only ever looked forward had no way to be wrong about
+  // one, so they are also the first real test of the finished state.
+  {
+    name: "Québec Mega Trail",
+    series: "wtm",
+    // The one of these four the catalogue already knows, so this row gets a
+    // badge and the others do not — which is the eventId being optional
+    // working as designed, not a gap.
+    eventId: "wtm-quebec-mega-trail",
+    startDate: "2026-07-03",
+    endDate: "2026-07-04",
+    country: "CAN",
+    location: "Charlevoix / Côte-de-Beaupré, Québec",
+    distanceSummary: "QMT135 / 80 / 50 / 32 / 25 / 15 / 6 / 1",
+    url: "https://ultratrailcanada.com/en/",
+    sourceUrl: "https://ultratrailcanada.com/en/",
+    verifiedAt: "2026-08-04",
+  },
+  {
+    name: "Sinister 7 Ultra",
+    series: "others",
+    startDate: "2026-07-11",
+    endDate: "2026-07-12",
+    country: "CAN",
+    location: "Crowsnest Pass, Alberta",
+    distanceSummary: "100M / 50M / 50K / 半馬 / 接力",
+    url: "https://www.sinistersports.ca/sinister7/",
+    sourceUrl: "https://www.sinistersports.ca/sinister7/",
+    verifiedAt: "2026-08-04",
+  },
+  {
+    name: "Canadian Death Race",
+    series: "others",
+    startDate: "2026-08-01",
+    endDate: "2026-08-02",
+    country: "CAN",
+    location: "Grande Cache, Alberta",
+    distanceSummary: "118K / 42K / 接力",
+    url: "https://www.sinistersports.ca/deathrace/",
+    // The page carries both "registration opens 2026-10-10" and "deadline
+    // 2026-07-18", which cannot both describe one edition — it is mixing the
+    // finished 2026 race with the 2027 opening. Neither is claimed here.
+    sourceUrl: "https://www.sinistersports.ca/deathrace/",
+    verifiedAt: "2026-08-04",
+  },
+  {
+    name: "Ultra Trail Whistler by UTMB",
+    nameZh: "威士拿 UTMB",
+    series: "utmb",
+    startDate: "2026-08-21",
+    endDate: "2026-08-23",
+    country: "CAN",
+    location: "Whistler, British Columbia",
+    distanceSummary: "100K / 50K / 25K / 10K",
+    url: "https://whistler.utmb.world/",
+    // The site lists registration opening 8/22–8/23, inside this race's own
+    // dates. That is the 2027 edition opening as the 2026 one is run, which
+    // is the usual UTMB pattern — but it is not stated as such, so it is
+    // left off rather than attached to the wrong year.
+    sourceUrl: "https://whistler.utmb.world/",
+    verifiedAt: "2026-08-04",
+  },
 ];
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");

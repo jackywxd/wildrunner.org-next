@@ -57,18 +57,59 @@ export function toDateString(now: Date): DateString {
   return dayjs.utc(now).format("YYYY-MM-DD");
 }
 
+/** "YYYY-MM". The anchor a paged window starts at. */
+export type MonthAnchor = string;
+
+const MONTH_ANCHOR = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Narrow an untrusted query-string value to a usable anchor. */
+export function parseMonthAnchor(value: unknown): MonthAnchor | undefined {
+  return typeof value === "string" && MONTH_ANCHOR.test(value)
+    ? value
+    : undefined;
+}
+
+/** The month `now` falls in, as an anchor. */
+export function currentAnchor(now: Date): MonthAnchor {
+  return dayjs.utc(now).format("YYYY-MM");
+}
+
+/** `months` before (negative) or after (positive) an anchor. */
+export function shiftAnchor(
+  anchor: MonthAnchor,
+  months: number,
+): MonthAnchor {
+  return dayjs.utc(`${anchor}-01`).add(months, "month").format("YYYY-MM");
+}
+
 /**
- * The window `/races` covers: from the start of today through the same day
- * `months` later, exclusive.
+ * The window `/races` covers: the whole of the anchor month through the
+ * same day-of-month `months` later, exclusive.
  *
  * Exclusive on the far end so a race exactly twelve months out is not
- * double-counted against next year's window when the page is revisited.
+ * double-counted against the next window when the page is paged forward.
+ *
+ * Aligned to the month, not to today. It used to start at the start of
+ * today, which had two consequences worth naming. A race that had already
+ * begun vanished the next morning even though it was still running — Ticino
+ * Wildlands 500 runs eleven days and would have disappeared on day two. And
+ * the list disagreed with the calendar, whose `monthsInWindow` has always
+ * started at the first of the month: days 1..today rendered as permanently
+ * empty cells however many races fell in them. Both are the same off-by-one
+ * assumption, that "upcoming" and "not yet started" are the same question.
+ *
+ * `anchor` is what makes the window pageable. It is an absolute month
+ * rather than an offset from today on purpose: `?from=2025-08` means the
+ * same window whenever it is opened, so a link to it can be shared or
+ * bookmarked, which is the property the whole filter design is built on
+ * (see RaceScheduleFilters).
  */
 export function scheduleWindow(
   now: Date,
   months = 12,
+  anchor?: MonthAnchor,
 ): { from: DateString; to: DateString } {
-  const start = dayjs.utc(now).startOf("day");
+  const start = dayjs.utc(`${anchor ?? currentAnchor(now)}-01`);
   return {
     from: start.format("YYYY-MM-DD"),
     to: start.add(months, "month").format("YYYY-MM-DD"),
@@ -76,8 +117,15 @@ export function scheduleWindow(
 }
 
 /** The month blocks the calendar view renders, starting with `now`'s month. */
-export function monthsInWindow(now: Date, months = 12): MonthKey[] {
-  const start = dayjs.utc(now).startOf("month");
+export function monthsInWindow(
+  now: Date,
+  months = 12,
+  anchor?: MonthAnchor,
+): MonthKey[] {
+  // Same anchor as scheduleWindow, so the calendar renders exactly the
+  // months the list was queried for. Passing `now` through when no anchor is
+  // given keeps the default window identical to the list's.
+  const start = dayjs.utc(`${anchor ?? currentAnchor(now)}-01`);
   const keys: MonthKey[] = [];
   for (let i = 0; i < months; i += 1) {
     const cursor = start.add(i, "month");

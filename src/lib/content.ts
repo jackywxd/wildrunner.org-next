@@ -494,13 +494,18 @@ function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
 }
 
 /**
- * The races `/races` and the homepage teaser show: everything starting from
- * today up to `months` ahead.
+ * The races `/races` and the homepage teaser show: one `months`-long window,
+ * starting at the anchor month or, with no anchor, at the current one.
  *
- * Filtered on `startDate` rather than on an overlap with `endDate`, so a
- * three-day event that began yesterday drops off today. "Upcoming" is what
- * the page promises, and the overlap version needs an `or` clause to buy a
- * behaviour nobody asked for.
+ * Still filtered on `startDate` rather than on an overlap with `endDate`,
+ * but for a different reason than before. The old comment here justified it
+ * with "upcoming is what the page promises", and noted that a three-day
+ * event which began yesterday drops off today — which was the bug, not the
+ * feature: a race still being run was removed from the schedule. Aligning
+ * the window to the month fixes that case without an `or` clause, because a
+ * race that started earlier this month is still inside this month's window.
+ * What remains is a race spanning a *window* boundary, which is one click
+ * back on the pager.
  *
  * The bounds are ISO `Z` strings, which order lexicographically in exactly
  * date order — that is why a text column indexes and compares correctly
@@ -509,8 +514,13 @@ function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
 export async function getUpcomingRaces(opts?: {
   now?: Date;
   months?: number;
+  anchor?: string;
 }): Promise<SiteRaceScheduleEntry[]> {
-  const { from, to } = scheduleWindow(opts?.now ?? new Date(), opts?.months);
+  const { from, to } = scheduleWindow(
+    opts?.now ?? new Date(),
+    opts?.months,
+    opts?.anchor,
+  );
   const payload = await getPayloadClient();
 
   const result = await payload.find({
@@ -529,6 +539,55 @@ export async function getUpcomingRaces(opts?: {
   });
 
   return result.docs.map((doc) => mapRaceScheduleEntry(doc as RaceSchedule));
+}
+
+/**
+ * The first and last month any race falls in, or undefined when the
+ * schedule is empty.
+ *
+ * The pager needs this for two reasons. A visitor should not be able to
+ * click back through years of empty months looking for a schedule that
+ * starts in 2026; and every one of those months would be a distinct
+ * crawlable URL, so an unbounded pager quietly hands a crawler an infinite
+ * space. Bounding it is what keeps `?from=` a finite set.
+ *
+ * Two ordered single-row reads rather than a full scan — the whole point is
+ * to avoid loading the schedule twice per render.
+ */
+export async function getRaceScheduleBounds(): Promise<
+  { first: string; last: string } | undefined
+> {
+  const payload = await getPayloadClient();
+
+  const [earliest, latest] = await Promise.all([
+    payload.find({
+      collection: "race-schedule",
+      depth: 0,
+      limit: 1,
+      select: { startDate: true },
+      sort: "startDate",
+    }),
+    payload.find({
+      collection: "race-schedule",
+      depth: 0,
+      limit: 1,
+      select: { startDate: true },
+      sort: "-startDate",
+    }),
+  ]);
+
+  const first = earliest.docs[0] as RaceSchedule | undefined;
+  const last = latest.docs[0] as RaceSchedule | undefined;
+  if (!first || !last) return undefined;
+
+  // Month precision only. Payload stores these as full ISO UTC timestamps
+  // and the picker is dayOnly, so the leading "YYYY-MM" is the stored month
+  // with no parsing — the same reason the rest of this file compares these
+  // as strings rather than building a Date. See calendar.ts's header.
+  return {
+    first: String(first.startDate).slice(0, 7),
+    last: String(last.startDate).slice(0, 7),
+  };
 }
 
 /** Newest first, then by event, so badge order is stable across renders. */
