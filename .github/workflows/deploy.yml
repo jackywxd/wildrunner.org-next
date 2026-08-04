@@ -128,6 +128,23 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # CLOUDFLARE_ENV is not decoration here, and its absence was not
+          # harmless. `--env staging` reaches wrangler, but the `next build`
+          # that opennextjs-cloudflare spawns underneath reads
+          # process.env.CLOUDFLARE_ENV — unset means the top-level binding,
+          # which is *production*. `next build` also sets NODE_ENV=production,
+          # so payload.config asks for remote bindings, and collecting page
+          # data boots Payload, which runs prodMigrations. A step named
+          # "Deploy to staging" therefore migrated the production database.
+          #
+          # Observed, not theorised: a local `pnpm deploy:staging` on
+          # 2026-08-04 applied add_post_race_record to production while
+          # staging already had it, and two build workers racing left it
+          # applied but unrecorded. The migrate step above sets both vars
+          # precisely because that step was known to need them; this one was
+          # missed.
+          CLOUDFLARE_ENV: staging
+          NODE_ENV: production
         run: pnpm deploy:staging
 
   verify-staging:

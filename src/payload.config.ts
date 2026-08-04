@@ -74,6 +74,44 @@ const cloudflareLogger = {
   silent: () => {},
 } as any // Use PayloadLogger type when it's exported
 
+/**
+ * Refuse to reach production from a workstation unless it was asked for.
+ *
+ * `next build` sets NODE_ENV=production on its own, which flips
+ * `remoteBindings` on below. With CLOUDFLARE_ENV unset that resolves to the
+ * top-level binding — production — and collecting page data boots Payload,
+ * which runs `prodMigrations`. So a plain `pnpm build`, and a
+ * `pnpm deploy:staging` whose inner build never saw CLOUDFLARE_ENV, both
+ * migrated the live database while appearing to do nothing of the sort.
+ * Both happened on 2026-08-04; the second left production's schema changed
+ * but unrecorded, which only surfaces at the *next* deploy.
+ *
+ * Nothing here distinguishes an intentional production run from an accident
+ * except intent, so intent has to be stated. CI is exempt because its
+ * production job is already gated on a human approval, and every script that
+ * means production sets the flag in package.json.
+ */
+function assertProductionAccessIsIntended(environment: string | undefined): void {
+  if (!isProduction) return
+  if (environment && environment !== 'production') return
+  if (process.env.CI === 'true') return
+  if (process.env.ALLOW_REMOTE_PRODUCTION === '1') return
+
+  throw new Error(
+    [
+      'Refusing to open remote PRODUCTION bindings.',
+      '',
+      'NODE_ENV=production and no CLOUDFLARE_ENV means the top-level',
+      'wrangler environment, which is the live database. If that is what you',
+      'want, say so:  ALLOW_REMOTE_PRODUCTION=1 <command>',
+      '',
+      'If you meant staging, set CLOUDFLARE_ENV=staging.',
+      'If you meant local, drop NODE_ENV=production (plain `pnpm build` sets',
+      'it for you — use `pnpm typecheck` to check compilation instead).',
+    ].join('\n'),
+  )
+}
+
 // In a deployed Worker getCloudflareContext returns the real runtime
 // bindings. During `next build` there is no Worker, so it resolves them
 // through wrangler instead — and because wrangler.jsonc marks the
@@ -90,6 +128,13 @@ const cloudflareLogger = {
 // this runs inside Next's static-generation worker processes, and the
 // credential lookup spans env vars, ~/.wrangler config and an OAuth
 // session, so it can't be predicted reliably from here.
+// Before either branch, not inside one. The CLI path and the build path
+// reach production by different routes — `next build` takes the
+// getCloudflareContext branch below, which is how a plain `pnpm build`
+// migrated the live database while a guard sitting only in
+// getCloudflareContextFromWrangler watched it happen.
+assertProductionAccessIsIntended(process.env.CLOUDFLARE_ENV)
+
 const cloudflare =
   isCLI || !isProduction
     ? await getCloudflareContextFromWrangler()
@@ -212,10 +257,12 @@ export default buildConfig({
 function getCloudflareContextFromWrangler(
   overrides: Partial<GetPlatformProxyOptions> = {},
 ): Promise<CloudflareContext> {
+  const environment = process.env.CLOUDFLARE_ENV
+
   return import(/* webpackIgnore: true */ `${'__wrangler'.replaceAll('_', '')}`).then(
     ({ getPlatformProxy }) =>
       getPlatformProxy({
-        environment: process.env.CLOUDFLARE_ENV,
+        environment,
         // Repo scripts run with NODE_ENV=production when they mean to act
         // on the real D1/R2 (migrations, content refresh); without this
         // they would silently operate on the local emulated copy instead.
