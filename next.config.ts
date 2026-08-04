@@ -72,12 +72,35 @@ const nextConfig: NextConfig = {
   },
   headers: async () => [
     // Broad default first; more specific sources below override Cache-Control
+    //
+    // max-age=0 rather than 3600, which is not a tuning choice.
+    //
+    // Next serves three different bodies at this one URL — the HTML
+    // document, the RSC payload a Link click fetches, and the near-empty
+    // payload a Link *prefetch* fetches (234 bytes for /races, because a
+    // force-dynamic route prefetches no data) — and Vary here is only
+    // `Sec-CH-Prefers-Color-Scheme`, never `RSC`. A cache allowed to reuse
+    // without revalidating therefore cannot tell those three apart at all.
+    //
+    // Caching them for an hour was self-defeating on its own terms. Every
+    // page under this rule is force-dynamic and recomputes registration
+    // state per request precisely so the schedule turns over at midnight
+    // with no job running; an hour of browser cache preserved a stale answer
+    // without saving any of the work. Shared caches may still store and
+    // revalidate — this is not no-store — and these responses carry no ETag,
+    // so a revalidation refetches rather than risking a 304 that re-serves
+    // the wrong body.
+    //
+    // Not to be confused with the "clicking 月曆 does nothing until I
+    // refresh" bug, which looked like this and was not: that one was
+    // PageTransitionEffect keying on pathname alone, and it reproduced
+    // against `next dev`, which sends no-store. Fixed there, not here.
     {
       source: "/:path*",
       headers: [
         {
           key: "Cache-Control",
-          value: "public, max-age=3600, must-revalidate",
+          value: "public, max-age=0, must-revalidate",
         },
       ],
     },
@@ -127,6 +150,23 @@ const nextConfig: NextConfig = {
     // drafts and other members-only data are never cached at the edge.
     {
       source: "/members/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "private, no-store, max-age=0, must-revalidate",
+        },
+      ],
+    },
+    // The admin panel, on the same reasoning as /members — and it was the
+    // one authenticated area nobody carved out. Under the broad rule it
+    // shipped `public, max-age=3600`: the logged-out login screen was cached
+    // for an hour under /admin, so signing in and returning to the panel
+    // re-served that login screen until the page was manually reloaded.
+    // `public` on a response behind a session is the same shape as the
+    // /api/* problem noted above, and no shared cache should be invited to
+    // hold an admin's page at all.
+    {
+      source: "/admin/:path*",
       headers: [
         {
           key: "Cache-Control",
