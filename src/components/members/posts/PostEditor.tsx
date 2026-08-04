@@ -20,6 +20,9 @@ export function PostEditor({
     content: PayloadContent;
     description: string;
     id: number;
+    /** The author's own finish records, as picker options. */
+    raceOptions: { id: number; label: string }[];
+    raceRecord: number | null;
     slug: string;
     status: Status;
     title: string;
@@ -31,6 +34,9 @@ export function PostEditor({
   const [title, setTitle] = useState(initial.title);
   const [slug, setSlug] = useState(initial.slug);
   const [description, setDescription] = useState(initial.description);
+  const [raceRecord, setRaceRecord] = useState<number | null>(
+    initial.raceRecord,
+  );
   const [status, setStatus] = useState<Status>(initial.status);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(0);
@@ -65,7 +71,7 @@ export function PostEditor({
 
     const result = await savePost(
       initial.id,
-      { title, slug, description, content },
+      { title, slug, description, content, raceRecord },
       { publish },
     );
     setBusy(false);
@@ -151,6 +157,33 @@ export function PostEditor({
             className="border border-input bg-background px-3 py-2 text-sm"
           />
         </label>
+        {/* Only rendered when the member has records to choose from. An
+            empty picker would ask a question with no available answer and
+            give no hint that the answer lives in /members/races. */}
+        {initial.raceOptions.length > 0 && (
+          <label className="grid gap-1">
+            <span className="text-xs text-foreground/60">相關賽事</span>
+            <select
+              className="border border-input bg-background px-3 py-2 text-sm"
+              data-testid="post-race-record"
+              onChange={(e) => {
+                setRaceRecord(e.target.value ? Number(e.target.value) : null);
+                setDirty(true);
+              }}
+              value={raceRecord ?? ""}
+            >
+              <option value="">不指定</option>
+              {initial.raceOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-[11px] text-foreground/40">
+              只能選自己的完賽紀錄，選定後文章會顯示該賽事徽章。
+            </span>
+          </label>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/50">

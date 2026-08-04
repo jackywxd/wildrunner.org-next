@@ -62,6 +62,12 @@ const POST_CARD_SELECT = {
 const POST_DETAIL_SELECT = {
   ...POST_CARD_SELECT,
   content: true,
+  // Safe at the depth: 1 the detail query uses. One level populates the
+  // record document itself, so `race-records.owner` — a relationship to
+  // `users` — comes back as a bare id and no account document is pulled in
+  // behind the post. That is the same hazard the note at the top of this
+  // file describes, checked rather than assumed.
+  raceRecord: true,
 } as const satisfies PostsSelect<true>;
 
 const GALLERY_SELECT = {
@@ -94,7 +100,7 @@ type PostCardDoc = Pick<
   | "slug"
   | "title"
   | "_status"
-> & { content?: Post["content"] };
+> & { content?: Post["content"]; raceRecord?: Post["raceRecord"] };
 
 /** Exactly what GALLERY_SELECT returns — notably no `owner`. */
 type GalleryDoc = Pick<
@@ -227,6 +233,18 @@ export function mapPayloadPost(doc: PostCardDoc): SitePost {
     authorSlug: author?.slug,
     image: imageMedia ? mapMediaToSiteImage(imageMedia) : undefined,
     content: doc.content,
+    // Only when populated. A relationship arrives as a bare id at depth 0,
+    // which is what the card queries use — flattening here means no
+    // component has to handle both shapes.
+    raceRecord:
+      doc.raceRecord && typeof doc.raceRecord === "object"
+        ? {
+            distanceId: doc.raceRecord.distanceId,
+            eventId: doc.raceRecord.eventId,
+            id: doc.raceRecord.id,
+            year: doc.raceRecord.year,
+          }
+        : undefined,
   };
 }
 

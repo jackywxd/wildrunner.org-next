@@ -57,6 +57,13 @@ export type SitePost = {
   image?: SiteImage;
   /** Only the detail query selects the body; card queries leave it undefined. */
   content?: import("@/payload-types").Post["content"];
+  /**
+   * The author's own finish record for the race this post is about, when
+   * they attached one. Flattened to the three values a badge needs so no
+   * component has to know that a Payload relationship can arrive as either
+   * an id or a populated document.
+   */
+  raceRecord?: SiteRaceRecord;
 };
 
 /**

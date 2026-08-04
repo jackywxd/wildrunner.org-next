@@ -15,6 +15,16 @@ export type PostPayload = {
   content?: PayloadContent;
   description?: string;
   image?: number | null;
+  /**
+   * A race-record id, or null to clear it.
+   *
+   * Not validated here on purpose. The field's `filterOptions` in
+   * Posts.ts narrows to the caller's own records, and Payload applies that
+   * on write as well as in the picker — so a member who edits the request
+   * to point at somebody else's record is refused by the API, not by this
+   * client-side type.
+   */
+  raceRecord?: number | null;
   slug?: string;
   title?: string;
 };

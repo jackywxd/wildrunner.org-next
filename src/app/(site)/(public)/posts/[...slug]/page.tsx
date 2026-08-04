@@ -7,6 +7,8 @@ import "@/styles/mdx.css";
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
 import { PayloadRichText } from "@/components/payload-rich-text";
+import { RaceBadge } from "@/lib/races/badge";
+import { findRaceEvent } from "@/lib/races/catalogue";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
@@ -93,6 +95,31 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
         <h1 className="mt-2 inline-block text-4xl font-extrabold capitalize leading-tight text-foreground lg:text-5xl">
           {blog.title}
         </h1>
+
+        {/* The race this report is about, as the author's own finish badge.
+            Named alongside it rather than left as a bare square: a badge is
+            recognisable to somebody who already knows the race and opaque to
+            everybody else, and a race report is exactly where a reader may
+            be meeting it for the first time. */}
+        {blog.raceRecord && (
+          <div className="mt-4 flex items-center gap-3" data-testid="post-race-badge">
+            <RaceBadge
+              distanceId={blog.raceRecord.distanceId}
+              eventId={blog.raceRecord.eventId}
+              size={56}
+              year={blog.raceRecord.year}
+            />
+            <div className="leading-tight">
+              <p className="text-sm font-medium">
+                {findRaceEvent(blog.raceRecord.eventId)?.name ??
+                  blog.raceRecord.eventId}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {blog.raceRecord.year}
+              </p>
+            </div>
+          </div>
+        )}
 
         {blog.author && (
           <div className="mt-4 flex space-x-4">

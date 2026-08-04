@@ -245,6 +245,10 @@ export interface Post {
   author?: (number | null) | Author;
   featured?: boolean | null;
   publishedAt?: string | null;
+  /**
+   * One of your own race records. Its badge is shown on the post.
+   */
+  raceRecord?: (number | null) | RaceRecord;
   content: {
     root: {
       type: string;
@@ -263,6 +267,22 @@ export interface Post {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-records".
+ */
+export interface RaceRecord {
+  id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
+  eventId: string;
+  distanceId: string;
+  year: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -300,22 +320,6 @@ export interface Gallery {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "race-records".
- */
-export interface RaceRecord {
-  id: number;
-  /**
-   * Whoever created this. Only admins can reassign it.
-   */
-  owner?: (number | null) | User;
-  eventId: string;
-  distanceId: string;
-  year: number;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Upcoming races shown on /races. Dates and registration windows change often — leave a field empty rather than guessing, and update "Verified on" whenever you check a row against the official site.
@@ -551,6 +555,7 @@ export interface PostsSelect<T extends boolean = true> {
   author?: T;
   featured?: T;
   publishedAt?: T;
+  raceRecord?: T;
   content?: T;
   updatedAt?: T;
   createdAt?: T;

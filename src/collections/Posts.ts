@@ -1,6 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOnly } from '../access'
+import {
+  isAdminFieldLevel,
+  isAdminUser,
+  isAuthenticated,
+  isOwner,
+  ownedOnly,
+} from '../access'
 import { ownerField } from '../fields/owner'
 import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
@@ -96,6 +102,43 @@ export const Posts: CollectionConfig = {
         },
         position: 'sidebar',
       },
+    },
+    {
+      /**
+       * The race this post is about, as one of the author's own finish
+       * records — not a bare catalogue id.
+       *
+       * A badge needs three things (eventId, distanceId, year) and a record
+       * already carries all three, so pointing at one means the badge on a
+       * race report and the badge on its author's profile can never
+       * disagree. Storing the trio again on the post would let them drift,
+       * and there would be no answer to which was right.
+       *
+       * The cost is that a post can only be tagged with a race its author
+       * logged. That is the intended nudge — `race-records` is barely used
+       * — but it does mean this cannot mark a post *about* a race the
+       * author did not run. If that is ever wanted it is a second, separate
+       * field, not a loosening of this one.
+       */
+      name: 'raceRecord',
+      type: 'relationship',
+      relationTo: 'race-records',
+      label: { en: 'Related race', 'zh-TW': '相關賽事' },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'One of your own race records. Its badge is shown on the post.',
+          'zh-TW': '從你自己的完賽紀錄中選擇，該賽事的徽章會顯示在文章上。',
+        },
+      },
+      /**
+       * Own records only. `race-records` is publicly readable by design (a
+       * badge exists to be seen), so without this the picker would list
+       * every member's finishes and let one member attach another's record
+       * to their post.
+       */
+      filterOptions: ({ user }) =>
+        isAdminUser(user) ? true : { owner: { equals: user?.id } },
     },
     {
       name: 'aiAssist',
