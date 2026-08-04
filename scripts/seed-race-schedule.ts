@@ -4,7 +4,8 @@
  * Usage:
  *   pnpm seed:races:dry          # validate + print, write nothing
  *   pnpm seed:races              # local D1
- *   pnpm seed:races:prod         # remote, CLOUDFLARE_ENV decides which
+ *   pnpm seed:races:staging      # remote staging D1
+ *   pnpm seed:races:prod         # remote production D1
  *
  * THIS DATA IS A DRAFT, NOT AN AUTHORITY.
  *
@@ -325,14 +326,39 @@ async function main(): Promise<void> {
   }
 
   if (remote) {
-    // Same reasoning as migrate-velite-to-payload.ts: payload.config picks
-    // bindings via getPlatformProxy({ environment: CLOUDFLARE_ENV }), so
-    // without it --remote would happily write every row to the local D1 and
-    // report success.
+    // payload.config picks bindings via getPlatformProxy({ environment:
+    // CLOUDFLARE_ENV }), so without NODE_ENV=production --remote would
+    // happily write every row to the local D1 and report success.
+    //
+    // The target is named, never defaulted. This used to fall back to
+    // `?? "staging"`, which made `seed:races:prod` — no CLOUDFLARE_ENV in
+    // its package.json line, by the same convention the media:backfill-size
+    // pair uses — write to staging and report success under a name that
+    // promised production. A wrong destination that prints "created 24" is
+    // undetectable from the output; refusing to guess is the only version
+    // of this that cannot lie. Defaulting the other way is worse still: a
+    // bare `--remote` would then reach production.
+    const target = process.env.CLOUDFLARE_ENV;
+    if (target !== "staging" && target !== "production") {
+      console.error(
+        "--remote needs an explicit target: CLOUDFLARE_ENV=staging or " +
+          "CLOUDFLARE_ENV=production (use pnpm seed:races:staging / " +
+          "seed:races:prod).",
+      );
+      process.exit(1);
+    }
+
     Object.assign(process.env, {
       NODE_ENV: "production",
-      CLOUDFLARE_ENV: process.env.CLOUDFLARE_ENV ?? "staging",
+      // wrangler names the top-level environment by its absence, so
+      // "production" has to become undefined rather than be passed through
+      // — an environment literally named "production" does not exist in
+      // wrangler.jsonc and would fail to resolve.
+      CLOUDFLARE_ENV: target === "production" ? undefined : target,
     });
+    if (target === "production") delete process.env.CLOUDFLARE_ENV;
+
+    console.log(`target: ${target} (remote D1)`);
   }
 
   const { default: config } = await import("@payload-config");

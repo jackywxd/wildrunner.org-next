@@ -164,7 +164,8 @@ dates, which is worse than having none.
 ```bash
 pnpm seed:races:dry     # validate + print the verification checklist
 pnpm seed:races         # local D1
-pnpm seed:races:prod    # remote; CLOUDFLARE_ENV picks the environment
+pnpm seed:races:staging # remote staging D1
+pnpm seed:races:prod    # remote production D1
 ```
 
 `scripts/seed-race-schedule.ts` holds a starting set covering roughly
@@ -173,6 +174,14 @@ pnpm seed:races:prod    # remote; CLOUDFLARE_ENV picks the environment
 same invariants the collection enforces, and prints a per-row checklist to
 tick off against the official sites. **The seed data is a draft, not an
 authority.**
+
+A remote run names its target and will not infer one: `--remote` with no
+`CLOUDFLARE_ENV` exits rather than picking a database. It used to default to
+staging, which meant `seed:races:prod` wrote to staging and printed
+`created 12` — a wrong destination is invisible in this script's output,
+since every line it prints is about rows rather than about where they went.
+That is why production sat empty while the command that was supposed to fill
+it looked like it had worked.
 
 ## The daily maintenance job
 
