@@ -57,7 +57,16 @@ export function RaceCalendar({
               ))}
 
               {cells.map((cell) => {
-                const dayEntries = byDate.get(cell.date) ?? [];
+                // Only days belonging to this month carry their races.
+                //
+                // A 42-cell grid borrows the first and last few days from
+                // the adjacent months to square itself off. In a
+                // single-month widget, drawing events in those borrowed
+                // cells is a nicety; here twelve month blocks are stacked
+                // on one page, so the borrowed cells are always *also*
+                // rendered in their own month — and the race appeared
+                // twice. Hardrock on 2027-07-09 showed up under June.
+                const dayEntries = cell.inMonth ? (byDate.get(cell.date) ?? []) : [];
                 const hasOpen = dayEntries.some((entry) =>
                   isRegistrationOpen(entry, now),
                 );

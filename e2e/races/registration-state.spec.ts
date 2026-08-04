@@ -1,10 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 import {
+  REGISTRATION_TYPE_LABELS,
+  externalHref,
   isRegistrationOpen,
   registrationLabel,
   registrationState,
 } from "@/lib/races/registration";
+import type { RegistrationType } from "@/lib/races/registration";
 
 /**
  * Phase D — registration state.
@@ -103,6 +106,49 @@ test.describe("D registration state", () => {
     const label = registrationLabel({ kind: "override", value: "waitlist" });
     expect(label.text).toBe("候補中");
     expect(label.tone).toBe("outline");
+  });
+
+  test("D-T11: every registration type has a label", () => {
+    // A missing key renders literal "undefined" next to the status, which
+    // reads as a bug to a visitor and would never fail a type check —
+    // the map is keyed by a union, so an absent entry is a compile error
+    // only if the map is declared as Record<RegistrationType, string>.
+    // This pins the runtime side.
+    const types: RegistrationType[] = [
+      "first-come",
+      "lottery",
+      "qualifier",
+      "invitational",
+    ];
+    for (const type of types) {
+      expect(REGISTRATION_TYPE_LABELS[type]?.trim().length, type).toBeGreaterThan(0);
+    }
+  });
+
+  test("D-T12: only absolute http(s) links are handed to the page", () => {
+    // A bare domain in an href is *relative*: it resolves against our own
+    // origin and lands on a 404 of this site. The collection rejects one
+    // on write, but rows stored before that validator existed are never
+    // re-validated, so the render path drops what it cannot use.
+    expect(externalHref("https://hardrock100.com")).toBe("https://hardrock100.com");
+    expect(externalHref("http://hardrock100.com")).toBe("http://hardrock100.com");
+
+    expect(externalHref("hardrock100.com")).toBeUndefined();
+    expect(externalHref("/races")).toBeUndefined();
+    expect(externalHref("javascript:alert(1)")).toBeUndefined();
+    expect(externalHref("ftp://hardrock100.com")).toBeUndefined();
+    expect(externalHref("")).toBeUndefined();
+    expect(externalHref(undefined)).toBeUndefined();
+
+    // Falls through to the next candidate rather than giving up: this is
+    // how a race with a broken registration link still offers its site.
+    expect(externalHref("hardrock100.com", "https://hardrock100.com")).toBe(
+      "https://hardrock100.com",
+    );
+    expect(externalHref(undefined, "https://hardrock100.com")).toBe(
+      "https://hardrock100.com",
+    );
+    expect(externalHref("not-a-url", "also-not-a-url")).toBeUndefined();
   });
 
   test("D-T10: every state produces a non-empty label", () => {

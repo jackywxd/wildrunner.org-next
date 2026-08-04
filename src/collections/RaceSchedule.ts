@@ -60,6 +60,33 @@ const seriesOptions = RACE_SERIES.map((value) => ({
 const day = (value: unknown): string | null =>
   typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : null
 
+/**
+ * Link fields must be absolute http(s) URLs.
+ *
+ * Typing a bare domain is the natural thing to do and silently produces a
+ * link to nowhere: `hardrock100.com` in an href is *relative*, so it
+ * resolves against our own origin and lands on wildrunner.org/hardrock100.com,
+ * a 404 on our own site. The browser gives no hint, and neither did we.
+ *
+ * Rejected rather than auto-prefixed: guessing `https://` is right almost
+ * always, and silently rewriting what somebody typed is how "almost" turns
+ * into a wrong link nobody looks at again.
+ */
+const validateHttpUrl = (value: unknown): true | string => {
+  if (value === undefined || value === null || value === '') return true
+  if (typeof value !== 'string') return 'Link must be text.'
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return `Link must start with https:// — "${value}" is read as a path on this site, not an external address.`
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return `Link must be http(s), got "${parsed.protocol}".`
+  }
+  return true
+}
+
 export const RaceSchedule: CollectionConfig = {
   slug: 'race-schedule',
   // Sorted by date rather than by creation order, so the admin list reads
@@ -212,6 +239,13 @@ export const RaceSchedule: CollectionConfig = {
       name: 'url',
       type: 'text',
       label: { en: 'Official website', 'zh-TW': '官方網站' },
+      admin: {
+        description: {
+          en: 'Full address including https://',
+          'zh-TW': '完整網址，含 https://',
+        },
+      },
+      validate: validateHttpUrl,
     },
     {
       name: 'registrationOpensAt',
@@ -251,9 +285,10 @@ export const RaceSchedule: CollectionConfig = {
       admin: {
         description: {
           en: 'Separate from the official site — many races register through a third-party platform. Falls back to the official site when empty.',
-          'zh-TW': '與官網分開 —— 很多賽事透過第三方平台報名。留空時前端會退回顯示官網。',
+          'zh-TW': '與官網分開 —— 很多賽事透過第三方平台報名。留空時前端會退回顯示官網。完整網址，含 https://',
         },
       },
+      validate: validateHttpUrl,
     },
     {
       name: 'registrationType',

@@ -1,6 +1,7 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
 import {
   REGISTRATION_TYPE_LABELS,
+  externalHref,
   registrationLabel,
   registrationState,
 } from "@/lib/races/registration";
@@ -40,7 +41,7 @@ export function RegistrationStatus({
   // The link is only offered while it can still be acted on. Sending
   // somebody to a closed entry form reads as a bug, not as information.
   const actionable = state.kind === "open" || state.kind === "upcoming";
-  const href = entry.registrationUrl || entry.url;
+  const href = externalHref(entry.registrationUrl, entry.url);
 
   const stateKey = state.kind === "override" ? state.value : state.kind;
 

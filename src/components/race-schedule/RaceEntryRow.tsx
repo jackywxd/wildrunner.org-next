@@ -1,5 +1,5 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
-import { isRegistrationOpen } from "@/lib/races/registration";
+import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
 
 import { RaceSeriesTag } from "./RaceSeriesTag";
@@ -48,6 +48,7 @@ export function RaceEntryRow({
   // data-registration-state attribute.
   const open = isRegistrationOpen(entry, now);
   const place = [entry.location, entry.country].filter(Boolean).join(" · ");
+  const site = externalHref(entry.url);
 
   return (
     <li
@@ -69,10 +70,10 @@ export function RaceEntryRow({
         </div>
 
         <h3 className="font-heading text-lg font-semibold leading-snug">
-          {entry.url ? (
+          {site ? (
             <a
               className="hover:text-primary"
-              href={entry.url}
+              href={site}
               rel="noopener noreferrer"
               target="_blank"
             >

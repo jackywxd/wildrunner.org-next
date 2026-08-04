@@ -349,6 +349,9 @@ export interface RaceSchedule {
    * Free text, e.g. "20K / 50K / 100K / 100M". Deliberately not the catalogue distance enum, so a race outside the catalogue can still be scheduled.
    */
   distanceSummary?: string | null;
+  /**
+   * Full address including https://
+   */
   url?: string | null;
   /**
    * Leave empty if not announced. Never guess — a wrong date makes people miss entry.

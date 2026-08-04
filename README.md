@@ -85,16 +85,19 @@ flowchart TB
 
 ```
 wildrunner.org-next/
-├── src/app/           # 页面：/ posts gallery about og
-├── src/components/    # UI、MDX、相册、Analytics
+├── src/app/           # 页面：/ posts gallery riders races about og、/admin、/members
+├── src/collections/   # Payload collections（Posts/Galleries/Media/RaceRecords/RaceSchedule…）
+├── src/components/    # UI、MDX、相册、赛事日程、Analytics
 ├── src/content/       # MDX/JSON + 原始图片/视频（Git LFS）
-├── src/lib/           # veliteUtils（R2/sharp）等
+├── src/lib/races/     # 赛事目录（代码内）、徽章、月历与报名状态推导
+├── src/lib/           # content（站点数据层）、veliteUtils（R2/sharp）等
+├── src/migrations/    # D1 schema migrations（push:false，必须手写/生成）
 ├── public/fonts/      # OG 字体（Workers Assets）
 ├── .velite/            # Velite 生成物（纳入 Git；CI 不重跑 Velite）
 ├── wrangler.jsonc     # Worker 名、routes、R2、Images
 ├── open-next.config.ts
 ├── velite.config.ts
-├── docs/workers-builds.md
+├── docs/               # workers-builds、race-schedule、release-pipeline…
 └── PLAN.md            # 迁移计划与阶段记录
 ```
 
@@ -124,6 +127,7 @@ pnpm test:e2e
 | `pnpm dev` | Next + Payload Admin |
 | `pnpm payload migrate` | 应用 D1 schema migrations |
 | `pnpm migrate:velite` | 幂等导入 `.velite` → Payload |
+| `pnpm seed:races:dry` / `pnpm seed:races` | 赛事日程种子数据（幂等；`:dry` 只校验并打印核对清单） |
 | `pnpm test:e2e` | Playwright 门禁 |
 | `pnpm assert:bindings` | 校验 wrangler D1/R2/AI/IMAGES/STREAM |
 | `pnpm preview` / `pnpm deploy` | OpenNext 预览 / 部署 |
@@ -139,6 +143,7 @@ pnpm test:e2e
 | `NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN` | 可选 Web Analytics |
 | `NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE` | 可选 Stream 客户域 |
 | `R2_PUBLIC_URL` | 媒体公开基址 |
+| `RACE_MAINTENANCE_SECRET` | 可选。赛事日程每日维护端点的鉴权；**须用 `wrangler secret put`**，不可打进 bundle。不设则仅该端点拒绝，站点本身不受影响 |
 | `S3_*` | 仅遗留 Velite 本机处理 |
 
 ---
@@ -176,10 +181,13 @@ push `main` 自动部署。**不跑 Velite、不拉 Git LFS**。Build 含 `pnpm 
 
 | 路径 | 说明 |
 |------|------|
-| `/` | 首页：口号、最新文章、精选相册 |
+| `/` | 首页：口号、最新文章、近期赛事、精选相册 |
 | `/posts`、`/posts/[...slug]` | 文章列表 / Lexical 详情 |
 | `/gallery`、`/gallery/[slug]` | 相册 |
 | `/gallery/[slug]/v/[videoId]` | Stream 视频页 |
+| `/riders`、`/riders/[slug]` | 成员名录 / 个人页（含完赛徽章） |
+| `/races` | 赛事日程：未来一年，列表 / 月历两种视图 |
+| `/members/*` | 会员后台（文章、媒体、比赛纪录） |
 | `/admin` | Payload CMS |
 | `/about`、`/og` | 关于 / OG 图 |
 
@@ -187,11 +195,8 @@ push `main` 自动部署。**不跑 Velite、不拉 Git LFS**。Build 含 `pnpm 
 
 - [`docs/payload-migration.md`](docs/payload-migration.md)
 - [`docs/payload-testing.md`](docs/payload-testing.md)
+- [`docs/race-schedule.md`](docs/race-schedule.md) — 赛事日程：数据模型、报名状态推导、种子数据与每日维护
 - [`docs/workers-builds.md`](docs/workers-builds.md)
-
-| `/gallery`、`/gallery/[slug]` | 相册 |
-| `/about` | 关于 |
-| `/og?title=` | 动态 OG 图 |
 
 ---
 

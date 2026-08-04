@@ -65,7 +65,21 @@ test.describe("F race schedule maintenance", () => {
   test("F-T1: anonymous cannot run maintenance", async () => {
     const response = await anon.post("/api/races/maintenance");
     expect(response.ok()).toBeFalsy();
-    expect([401, 403, 500]).toContain(response.status());
+
+    // Two different rejections, and the difference matters more than it
+    // looks. 401 means "you are not authorised"; 500 means
+    // RACE_MAINTENANCE_SECRET is not configured *at all* — which is the
+    // state of any environment that has not opted into the daily job,
+    // including this test run and a fresh production deploy.
+    //
+    // This list originally existed only to make the test pass, and that
+    // hid the unconfigured case from view: nothing anywhere asked what
+    // happens on day one when the secret is absent. The answer turned out
+    // to be a blocked production deploy and a workflow that failed every
+    // day. Both are fixed; this comment is here so the 500 is read as a
+    // documented configuration state rather than noise to widen the list
+    // around.
+    expect([401, 500]).toContain(response.status());
   });
 
   test("F-T2: a wrong secret is rejected", async () => {

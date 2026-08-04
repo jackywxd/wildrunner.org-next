@@ -185,6 +185,42 @@ test.describe("E race schedule API", () => {
     expect(wrongYear.ok(), "a mistyped year must not paint the calendar").toBeFalsy();
   });
 
+  test("E-T9b: a link without a scheme is rejected", async () => {
+    // A bare domain in an href is *relative*: `hardrock100.com` resolves
+    // against our own origin and lands on a 404 of this site, with nothing
+    // to show for it. Typing one is the natural mistake, so it is caught at
+    // the field rather than discovered by a visitor.
+    for (const field of ["url", "registrationUrl"]) {
+      const bare = await createAs(admin, {
+        name: unique(`bare-${field}`),
+        series: "others",
+        startDate: "2027-08-01T00:00:00.000Z",
+        [field]: "hardrock100.com",
+      });
+      expect(bare.ok(), `${field} accepted a bare domain`).toBeFalsy();
+
+      const nonHttp = await createAs(admin, {
+        name: unique(`ftp-${field}`),
+        series: "others",
+        startDate: "2027-08-02T00:00:00.000Z",
+        [field]: "ftp://hardrock100.com",
+      });
+      expect(nonHttp.ok(), `${field} accepted a non-http scheme`).toBeFalsy();
+    }
+
+    // Absolute https, and empty, both remain fine.
+    const ok = await expectOkJson<{ doc: Entry }>(
+      await createAs(admin, {
+        name: unique("goodlink"),
+        registrationUrl: "",
+        series: "others",
+        startDate: "2027-08-03T00:00:00.000Z",
+        url: "https://hardrock100.com",
+      }),
+    );
+    created.push(ok.doc.id);
+  });
+
   test("E-T10: impossible registration windows are rejected", async () => {
     const backwards = await createAs(admin, {
       name: unique("regbackwards"),

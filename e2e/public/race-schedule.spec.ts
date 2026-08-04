@@ -135,9 +135,43 @@ test.describe("S public race schedule", () => {
 
     // The timezone regression: the cell is selected by date string, and the
     // race must be inside it.
-    const cell = page.locator(`[data-date="${SOON}"]`).first();
+    //
+    // `data-in-month="true"` is load-bearing, not decoration. Two cells
+    // carry any given date — the real one, and the borrowed copy filling
+    // out the neighbouring month's 42-slot grid — so a bare date selector
+    // plus .first() resolves to whichever comes first in the DOM. This
+    // assertion passed for the wrong reason while both cells drew the
+    // race; it only actually checks placement when scoped to the month the
+    // date belongs to.
+    const cell = page.locator(`[data-in-month="true"][data-date="${SOON}"]`);
+    await expect(cell).toHaveCount(1);
     await expect(cell).toHaveAttribute("data-race-count", /[1-9]/);
     await expect(cell.getByText(name("soon"))).toBeVisible();
+  });
+
+  test("S-T3b: no race is drawn twice across month blocks", async ({ page }) => {
+    // Twelve month grids are stacked on one page and each borrows a few
+    // days from its neighbours to fill 42 cells. Rendering races in those
+    // borrowed cells listed every month-boundary race twice — Hardrock on
+    // 2027-07-09 appeared under June as well as July. Nothing else caught
+    // it, because each block was correct in isolation.
+    await page.goto("/races?view=calendar");
+    await expect(page.getByTestId("race-calendar")).toBeVisible();
+
+    const rows = await page.$$eval('[data-testid="race-calendar-event"]', (els) =>
+      els.map((el) => ({
+        id: el.getAttribute("data-race-id"),
+        date: el.closest("[data-date]")?.getAttribute("data-date") ?? "",
+        month: el.closest("[data-month]")?.getAttribute("data-month") ?? "",
+      })),
+    );
+
+    // Every event sits in the block its own date belongs to.
+    expect(rows.filter((r) => r.date.slice(0, 7) !== r.month)).toEqual([]);
+
+    // And no (race, day) pair is rendered more than once on the page.
+    const keys = rows.map((r) => `${r.id}@${r.date}`);
+    expect(keys.length).toBe(new Set(keys).size);
   });
 
   test("S-T4: registration state is derived from the dates", async ({ page }) => {

@@ -30,9 +30,28 @@ jobs:
         env:
           RACE_MAINTENANCE_SECRET: ${{ secrets.RACE_MAINTENANCE_SECRET }}
         run: |
+          # Skip rather than fail when the secret is absent. This job is
+          # opt-in: the schedule works without it, because registration
+          # status is derived per request rather than written here. Failing
+          # would mean a red run every single day until somebody sets a
+          # secret they may not want — daily mail that teaches people to
+          # ignore this workflow, which is worse than no signal at all.
+          #
+          # A warning still surfaces on the run and in the Actions list, so
+          # "not set up yet" stays discoverable without being an incident.
           if [ -z "$RACE_MAINTENANCE_SECRET" ]; then
-            echo "::error::secrets.RACE_MAINTENANCE_SECRET is not set — the endpoint will reject this call"
-            exit 1
+            echo "::warning::RACE_MAINTENANCE_SECRET is not set — skipping. Set it with 'wrangler secret put RACE_MAINTENANCE_SECRET' and add the same value to GitHub Secrets to enable the daily run."
+            {
+              echo '## Race schedule maintenance — skipped'
+              echo
+              echo '`RACE_MAINTENANCE_SECRET` is not configured, so the daily'
+              echo 'upkeep did not run. The schedule itself is unaffected:'
+              echo 'registration status is derived on every request.'
+              echo
+              echo 'To enable: `wrangler secret put RACE_MAINTENANCE_SECRET`,'
+              echo 'then add the same value to this repo'"'"'s Actions secrets.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
           body=$(mktemp)
