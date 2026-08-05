@@ -23,10 +23,29 @@
  * to an entry form that closed, which is the worst thing this feature can
  * do.
  *
- * Idempotent on (eventId ?? name, startDate): re-running skips rows that
+ * EVERY ROW NEEDS AN eventId. It is the key into src/lib/races/catalogue.ts,
+ * and without it the race carries no badge and no member can write a report
+ * about it — see the header of src/collections/RaceSchedule.ts. Adding a
+ * race here therefore starts by adding it to the catalogue.
+ *
+ * Idempotent on (eventId, startDate): re-running skips rows that
  * already exist rather than duplicating them, so it is safe to run after
  * adding entries here.
+ *
+ * THAT PAIR IS ALSO THE ANNUAL-REFRESH KEY, and the reason it is a pair.
+ * A race's identity does not change between seasons; its dates do. So next
+ * year's Hardrock is the same `other-hardrock` with a new `startDate`, and
+ * this script sees an eventId it knows at a date it does not — a create,
+ * not a skip. Last year's row stays exactly where it is, which is required:
+ * a member's race report points at the edition they ran.
+ *
+ * Refreshing a season is therefore just editing the dates here and running
+ * the script again. Nothing needs deleting, and no row is ever rewritten in
+ * place — a row that has to *change* (a date moved after publication) is an
+ * admin-panel edit, because that is a correction rather than a new edition.
  */
+import { pathToFileURL } from "node:url";
+
 import { getPayload } from "payload";
 import type { Where } from "payload";
 import { z } from "zod";
@@ -49,7 +68,7 @@ type SeedRow = {
   name: string;
   nameZh?: string;
   series: (typeof RACE_SERIES)[number];
-  eventId?: string;
+  eventId: string;
   startDate: string;
   endDate?: string;
   country?: string;
@@ -79,7 +98,13 @@ type SeedRow = {
  * is a schedule that is useful on day one and a shape for the owner to
  * extend, not a complete calendar nobody can maintain.
  */
-const ROWS: SeedRow[] = [
+/**
+ * Exported so other tooling can read the seed rows without running the
+ * seed. `validate-catalogue.ts` cross-checks `distanceSummary` against the
+ * catalogue's categories, and that check has to work offline, mid-review,
+ * before anything has been imported.
+ */
+export const ROWS: SeedRow[] = [
   {
     name: "Sierre-Zinal",
     series: "others",
@@ -251,6 +276,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Ticino Wildlands 500",
     series: "others",
+    eventId: "other-ticino-wildlands",
     startDate: "2026-08-08",
     endDate: "2026-08-18",
     country: "CHE",
@@ -269,6 +295,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Squamish 50",
     series: "others",
+    eventId: "other-squamish-50",
     startDate: "2026-08-15",
     endDate: "2026-08-16",
     country: "CAN",
@@ -293,9 +320,6 @@ const ROWS: SeedRow[] = [
   {
     name: "Québec Mega Trail",
     series: "wtm",
-    // The one of these four the catalogue already knows, so this row gets a
-    // badge and the others do not — which is the eventId being optional
-    // working as designed, not a gap.
     eventId: "wtm-quebec-mega-trail",
     startDate: "2026-07-03",
     endDate: "2026-07-04",
@@ -309,6 +333,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Sinister 7 Ultra",
     series: "others",
+    eventId: "other-sinister-7",
     startDate: "2026-07-11",
     endDate: "2026-07-12",
     country: "CAN",
@@ -321,6 +346,7 @@ const ROWS: SeedRow[] = [
   {
     name: "Canadian Death Race",
     series: "others",
+    eventId: "other-canadian-death-race",
     startDate: "2026-08-01",
     endDate: "2026-08-02",
     country: "CAN",
@@ -337,6 +363,7 @@ const ROWS: SeedRow[] = [
     name: "Ultra Trail Whistler by UTMB",
     nameZh: "威士拿 UTMB",
     series: "utmb",
+    eventId: "utmb-whistler",
     startDate: "2026-08-21",
     endDate: "2026-08-23",
     country: "CAN",
@@ -359,7 +386,7 @@ const rowSchema = z
     country: z.string().regex(/^[A-Z]{3}$/).optional(),
     distanceSummary: z.string().optional(),
     endDate: isoDate.optional(),
-    eventId: z.string().optional(),
+    eventId: z.string(),
     location: z.string().optional(),
     name: z.string().min(1),
     nameZh: z.string().optional(),
@@ -396,11 +423,11 @@ const rowSchema = z
     (row) => !row.registrationClosesAt || row.registrationClosesAt <= row.startDate,
     { message: "registration closes after the race has run" },
   )
-  .refine((row) => !row.eventId || Boolean(findRaceEvent(row.eventId)), {
+  .refine((row) => Boolean(findRaceEvent(row.eventId)), {
     message: "eventId is not in the race catalogue",
   })
   .refine(
-    (row) => !row.eventId || findRaceEvent(row.eventId)?.series === row.series,
+    (row) => findRaceEvent(row.eventId)?.series === row.series,
     {
       // Not fatal in the collection — a schedule row is allowed to present a
       // race under a different series than its badge uses — but in seed data
@@ -488,9 +515,11 @@ async function main(): Promise<void> {
   let skipped = 0;
 
   for (const row of valid) {
-    const identity: Where = row.eventId
-      ? { eventId: { equals: row.eventId } }
-      : { name: { equals: row.name } };
+    // `eventId` alone, never the name: a race gets renamed (Squamish 50/50
+    // → Squamish 50 happened here) and matching on the name would then
+    // insert a second row for the same edition. The catalogue id cannot
+    // change — that is the guarantee RaceEvent.id makes.
+    const identity: Where = { eventId: { equals: row.eventId } };
 
     const existing = await payload.find({
       collection: "race-schedule",
@@ -567,7 +596,13 @@ function printChecklist(rows: SeedRow[]): void {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+// Only when run as a script. Importing this module used to seed a database
+// as a side effect of the import, which is what stopped `ROWS` from being
+// reusable — and would have made a stray import in a test connect to
+// whatever CLOUDFLARE_ENV happened to be set to.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

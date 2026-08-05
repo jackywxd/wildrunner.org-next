@@ -337,7 +337,7 @@ export interface RaceSchedule {
    */
   endDate?: string | null;
   /**
-   * Optional. An id from the race catalogue (e.g. utmb-mont-blanc). Only controls whether a badge is shown next to this race.
+   * Required. An id from the race catalogue (e.g. utmb-mont-blanc). Without it this race can carry no badge and no member can write a report about it. If the race is not in the catalogue yet, add it to src/lib/races/catalogue.ts first.
    */
   eventId?: string | null;
   /**

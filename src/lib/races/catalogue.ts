@@ -22,7 +22,13 @@
  *   - Independent races: each event's own site (see the section below)
  *
  * KNOWN INCOMPLETE: UTMB's own announcement puts the 2026 season at 64
- * events; 55 are listed below. The missing entries are new additions the
+ * events; 55 are listed below.
+ *
+ * Additions of 2026-08-04 (Whistler, Sinister 7, Canadian Death Race,
+ * Squamish 50, Ticino Wildlands) came in through the other direction: they
+ * were already dated rows in `race-schedule` with no `eventId`, so they
+ * appeared on /races but could carry no badge and no race record. Line-ups
+ * are from each event's own site, read that day. The missing entries are new additions the
  * published calendar had not yet broken out. Adding one is a two-line change
  * here plus a token in design-tokens.ts — nothing else in the app enumerates
  * races.
@@ -185,6 +191,7 @@ export const RACE_EVENTS: RaceEvent[] = [
   utmb("utmb-western-states", "Western States 100", "USA", [M100]),
   utmb("utmb-speedgoat", "Speedgoat Mountain Races", "USA"),
   utmb("utmb-borealys", "Boréalys Mont-Tremblant", "CAN"),
+  utmb("utmb-whistler", "Ultra Trail Whistler", "CAN"),
   utmb("utmb-grindstone", "Grindstone Trail Running Festival", "USA"),
   utmb("utmb-kodiak", "Kodiak Ultra Marathons", "USA"),
   utmb("utmb-pacific-trails", "Pacific Trails Ultra", "USA"),
@@ -264,6 +271,30 @@ export const RACE_EVENTS: RaceEvent[] = [
   other("other-bigfoot-200", "Bigfoot 200", "USA", [
     { id: "200m", label: "200M" },
   ]),
+  // The three Canadian races below run a relay alongside the solo
+  // categories. A relay leg is a real finish and members do claim it, so it
+  // is a distance like any other rather than a special case — the badge
+  // band reads "接力" and the record is as valid as a solo one.
+  other("other-sinister-7", "Sinister 7 Ultra", "CAN", [
+    M100,
+    { id: "50m", label: "50M" },
+    K50,
+    { id: "half", label: "半馬" },
+    { id: "relay", label: "接力" },
+  ]),
+  other("other-canadian-death-race", "Canadian Death Race", "CAN", [
+    { id: "118k", label: "118K" },
+    { id: "42k", label: "42K" },
+    { id: "relay", label: "接力" },
+  ]),
+  other("other-squamish-50", "Squamish 50", "CAN", [
+    { id: "50m", label: "50M" },
+    K50,
+    // Both races on consecutive days, scored as one finish — the event's
+    // own name for it, not a combination we invented.
+    { id: "50-50", label: "50/50" },
+    { id: "23k", label: "23K" },
+  ]),
 
   // Europe
   other("other-tor-des-geants", "Tor des Géants", "ITA", [
@@ -282,6 +313,11 @@ export const RACE_EVENTS: RaceEvent[] = [
   other("other-zegama", "Zegama-Aizkorri", "ESP", [{ id: "42k", label: "42K" }]),
   other("other-trofeo-kima", "Trofeo Kima", "ITA", [
     { id: "50k", label: "50K" },
+  ]),
+  other("other-ticino-wildlands", "Ticino Wildlands", "CHE", [
+    { id: "500k", label: "500K" },
+    { id: "250k", label: "250K" },
+    K50,
   ]),
 
   // Asia
