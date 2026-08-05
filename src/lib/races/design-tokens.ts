@@ -12,7 +12,7 @@
  * density and legibility now. Only the drawing itself is provisional.
  */
 
-import { findRaceEvent } from "./catalogue";
+import type { BadgeEvent } from "./badge-source";
 import type { BadgeToken, Motif } from "./badge-contract";
 
 /** FNV-1a, the same hash `riders/avatar.ts` uses, for the same reason. */
@@ -52,16 +52,22 @@ function abbreviate(name: string): string {
  */
 const MOCKUP_MOTIF: Motif = "peak";
 
-export function badgeToken(eventId: string): BadgeToken {
-  const event = findRaceEvent(eventId);
-
-  // An unknown id still gets a badge. Records outlive catalogue edits, and a
-  // member's profile throwing because a race was renamed would be a far
-  // worse failure than a neutral placeholder (A-T4).
-  if (!event) {
+/**
+ * Takes a resolved event rather than an id.
+ *
+ * The lookup moved to badge-source.ts so that nothing in the rendering path
+ * depends on the catalogue being a synchronous array — see that file. What
+ * has NOT changed is the input to the hash: still `event.id`, so every badge
+ * keeps the colour it had.
+ */
+export function badgeToken(event: BadgeEvent): BadgeToken {
+  // An unresolved id still gets a badge. Records outlive catalogue edits,
+  // and a member's profile throwing because a race was renamed would be a
+  // far worse failure than a neutral placeholder (A-T4).
+  if (event.series === null) {
     return {
       abbr: "?",
-      eventId,
+      eventId: event.id,
       ink: "hsl(0 0% 100%)",
       motif: MOCKUP_MOTIF,
       primary: "hsl(0 0% 45%)",

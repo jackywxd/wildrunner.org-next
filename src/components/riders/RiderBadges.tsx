@@ -1,5 +1,6 @@
 import type { SiteRaceRecord } from "@/lib/content-types";
 import { RaceBadge } from "@/lib/races/badge";
+import { resolveBadge } from "@/lib/races/badge-source";
 import {
   RACE_SERIES,
   RACE_SERIES_LABELS,
@@ -46,8 +47,7 @@ export function RiderBadgeRow({
       {shown.map((record) => (
         <RaceBadge
           key={record.id}
-          distanceId={record.distanceId}
-          eventId={record.eventId}
+          {...resolveBadge(record.eventId, record.distanceId)}
           size={32}
           year={record.year}
         />
@@ -98,8 +98,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
             {group.records.map((record) => (
               <RaceBadge
                 key={record.id}
-                distanceId={record.distanceId}
-                eventId={record.eventId}
+                {...resolveBadge(record.eventId, record.distanceId)}
                 size={72}
                 year={record.year}
               />
@@ -113,8 +112,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
           {unknown.map((record) => (
             <RaceBadge
               key={record.id}
-              distanceId={record.distanceId}
-              eventId={record.eventId}
+              {...resolveBadge(record.eventId, record.distanceId)}
               size={72}
               year={record.year}
             />

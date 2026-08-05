@@ -17,50 +17,37 @@ import {
 } from "./badge-contract";
 import { renderBadgeArt } from "./badge-art";
 import { badgeToken } from "./design-tokens";
-import {
-  RACE_SERIES_LABELS,
-  findRaceDistance,
-  findRaceEvent,
-} from "./catalogue";
+import type { BadgeDistance, BadgeEvent } from "./badge-source";
 import { cn } from "@/lib/utils";
 
 export type RaceBadgeProps = {
   className?: string;
-  distanceId: string;
-  eventId: string;
+  /** Resolved by the caller — see badge-source.ts for why. */
+  distance: BadgeDistance;
+  event: BadgeEvent;
   size?: number;
   year: number;
 };
 
 export function RaceBadge({
   className,
-  distanceId,
-  eventId,
+  distance,
+  event,
   size = 64,
   year,
 }: RaceBadgeProps) {
-  const event = findRaceEvent(eventId);
-  const token = badgeToken(eventId);
+  const token = badgeToken(event);
 
-  // An unknown event or distance still renders. A record is written once and
-  // read forever; the catalogue is edited between deploys. Throwing here
-  // would let a catalogue edit take down every profile holding an old
-  // record — so the id itself becomes the label and the badge stays honest
-  // about what it does not know.
-  const distance = event ? findRaceDistance(event, distanceId) : undefined;
-  const distanceLabel = distance?.label ?? distanceId.toUpperCase();
-  const eventName = event?.name ?? eventId;
-  const seriesLabel = event ? RACE_SERIES_LABELS[event.series] : "";
-
+  const distanceLabel = distance.label;
   const showYear = size >= BADGE_YEAR_MIN_SIZE;
-  const title = `${eventName} — ${distanceLabel} ${year}`;
+  const title = `${event.name} — ${distanceLabel} ${year}`;
 
   return (
     <svg
       aria-label={title}
       className={cn("shrink-0", className)}
-      data-distance-id={distanceId}
-      data-event-id={eventId}
+      data-distance-id={distance.id}
+      data-event-id={event.id}
       data-testid="race-badge"
       data-year={year}
       height={size}
@@ -97,10 +84,10 @@ export function RaceBadge({
 
       {/* Series tag. Two marks rather than a label: at 32px a word is
           unreadable, but a corner shape still distinguishes the series. */}
-      {event?.series === "utmb" && (
+      {event.series === "utmb" && (
         <path d="M0 0 L14 0 L0 14 Z" fill={token.ink} opacity={0.9} />
       )}
-      {event?.series === "wtm" && (
+      {event.series === "wtm" && (
         <circle cx={6} cy={6} fill={token.ink} opacity={0.9} r={4} />
       )}
     </svg>
