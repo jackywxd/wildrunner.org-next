@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { test, expect } from "@playwright/test";
 
+import { resolveBadgeEvent } from "@/lib/races/badge-source";
 import { badgeToken } from "@/lib/races/design-tokens";
 import {
   RACE_EVENTS,
@@ -99,7 +100,10 @@ test.describe("A race catalogue and badge contract", () => {
 
   test("A-T2: every event resolves to a complete badge token", () => {
     for (const event of RACE_EVENTS) {
-      const token = badgeToken(event.id);
+      // Through resolveBadgeEvent rather than passing the event straight
+      // in: the resolver is what the rendering path actually uses, so
+      // asserting on its output is asserting on what ships.
+      const token = badgeToken(resolveBadgeEvent(event.id));
 
       expect(token.eventId, `${event.id} token points elsewhere`).toBe(event.id);
       // An empty abbreviation renders a blank badge — the failure mode this
@@ -121,7 +125,9 @@ test.describe("A race catalogue and badge contract", () => {
     // Pages are cached, so a badge that differed between renders would read
     // as a bug and break any future snapshot of a profile.
     for (const event of RACE_EVENTS) {
-      expect(badgeToken(event.id)).toEqual(badgeToken(event.id));
+      expect(badgeToken(resolveBadgeEvent(event.id))).toEqual(
+        badgeToken(resolveBadgeEvent(event.id)),
+      );
     }
   });
 
@@ -130,7 +136,12 @@ test.describe("A race catalogue and badge contract", () => {
     // every profile holding a record that points at the old one.
     expect(findRaceEvent("utmb-not-a-real-race")).toBeUndefined();
 
-    const token = badgeToken("utmb-not-a-real-race");
+    // The resolver is where the fallback now lives, so this asserts it
+    // produces the shape the token's placeholder branch keys on.
+    const unknown = resolveBadgeEvent("utmb-not-a-real-race");
+    expect(unknown.series, "an unresolved id must report no series").toBeNull();
+
+    const token = badgeToken(unknown);
     expect(token.eventId).toBe("utmb-not-a-real-race");
     expect(token.abbr.length).toBeGreaterThan(0);
     expect(token.primary.length).toBeGreaterThan(0);

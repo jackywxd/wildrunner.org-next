@@ -59,7 +59,15 @@ async function landedOn(
   page: import("@playwright/test").Page,
   href: string,
 ) {
-  await expect(page).toHaveURL((url) => url.pathname === href);
+  // Longer than the 5s default on purpose. `next dev` compiles a route the
+  // first time it is requested, so a soft navigation to a cold page takes
+  // seconds that have nothing to do with the thing under test — and a
+  // timeout there looks exactly like a click that did nothing, which is
+  // the failure this file is meant to detect. A deployed build has no such
+  // pause, so this costs nothing where it matters.
+  await expect(page).toHaveURL((url) => url.pathname === href, {
+    timeout: 20_000,
+  });
 }
 
 async function arrived(locator: import("@playwright/test").Locator) {
@@ -130,8 +138,17 @@ test.describe("N navigation click paths", () => {
 
     expect(hrefs.length, "the top nav has no internal links").toBeGreaterThan(0);
 
+    // Load once, then walk the whole nav by clicking.
+    //
+    // The first version returned to "/" before each link, which meant every
+    // click raced that page's hydration: a Next <Link> clicked before React
+    // takes over does nothing at all, and the assertion saw the URL still on
+    // "/". Waiting for the network to settle once, then navigating purely
+    // client-side, removes the race and is closer to how the nav is really
+    // used — nobody reloads the home page between menu items.
+    await page.waitForLoadState("networkidle");
+
     for (const href of hrefs) {
-      await page.goto("/");
       await page.locator(`header a[href="${href}"]`).first().click();
       await landedOn(page, href);
       // A soft navigation that rendered nothing still changes the URL, so
