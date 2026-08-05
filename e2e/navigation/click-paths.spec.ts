@@ -1,4 +1,8 @@
+import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+
+import { expectOkJson } from "../helpers/api";
+import { adminContext } from "../helpers/members";
 
 /**
  * N — every navigable control, reached by clicking it.
@@ -40,12 +44,70 @@ import { expect, test } from "@playwright/test";
  * mounted is what the calendar bug looked like from the outside, so a
  * transition that never resolves fails here instead of passing.
  */
+/**
+ * Assert the browser landed on `href`, comparing paths rather than matching
+ * a regex.
+ *
+ * The first version interpolated the href straight into `new RegExp(...)`,
+ * which made every assertion depend on the slug containing no regex
+ * metacharacter. A member whose slug holds a dot or a plus — and e2e
+ * fixtures generate slugs from timestamps and free text — turned a correct
+ * navigation into an intermittent failure. That is the shape of flake that
+ * gets rerun rather than read.
+ */
+async function landedOn(
+  page: import("@playwright/test").Page,
+  href: string,
+) {
+  await expect(page).toHaveURL((url) => url.pathname === href);
+}
+
 async function arrived(locator: import("@playwright/test").Locator) {
   await expect(locator).toHaveCount(1);
   await expect(locator).toBeVisible();
 }
 
 test.describe("N navigation click paths", () => {
+  /**
+   * The schedule this file needs, created and removed by this file.
+   *
+   * The first version of N-T2 asserted on whatever rows happened to be in
+   * the database and passed locally, where a seeded schedule exists. In CI
+   * the database starts empty and `race-schedule.spec.ts` — which does
+   * create rows — runs *after* this file and deletes them again, so
+   * `/races` rendered its empty state and there was no list to toggle away
+   * from.
+   *
+   * Depending on ambient data is the failure this suite is otherwise
+   * careful to avoid, and it is worth naming here because the test that got
+   * it wrong is the one added to catch a class of bug the suite was missing.
+   */
+  let admin: APIRequestContext;
+  const created: number[] = [];
+  const stamp = Date.now();
+
+  test.beforeAll(async ({ baseURL }) => {
+    admin = await adminContext(baseURL);
+    // Inside the default twelve-month window, so both the list and the
+    // calendar have something to render.
+    const soon = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const body = await expectOkJson<{ doc: { id: number } }>(
+      await admin.post("/api/race-schedule", {
+        data: {
+          name: `E2E nav race ${stamp}`,
+          series: "others",
+          startDate: `${soon}T00:00:00.000Z`,
+        },
+      }),
+    );
+    created.push(body.doc.id);
+  });
+
+  test.afterAll(async () => {
+    for (const id of created) await admin.delete(`/api/race-schedule/${id}`);
+    await admin.dispose();
+  });
+
   test("N-T1: the top nav reaches every public page by clicking", async ({
     page,
   }) => {
@@ -71,7 +133,7 @@ test.describe("N navigation click paths", () => {
     for (const href of hrefs) {
       await page.goto("/");
       await page.locator(`header a[href="${href}"]`).first().click();
-      await expect(page).toHaveURL(new RegExp(`${href}(\\?|/|$)`));
+      await landedOn(page, href);
       // A soft navigation that rendered nothing still changes the URL, so
       // the URL on its own proves too little.
       await arrived(page.locator("main"));
@@ -124,7 +186,7 @@ test.describe("N navigation click paths", () => {
 
     const href = await card.getAttribute("href");
     await card.click();
-    await expect(page).toHaveURL(new RegExp(`${href}$`));
+    await landedOn(page, href!);
     await arrived(page.locator("h1"));
   });
 
@@ -135,7 +197,7 @@ test.describe("N navigation click paths", () => {
 
     const href = await card.getAttribute("href");
     await card.click();
-    await expect(page).toHaveURL(new RegExp(`${href}$`));
+    await landedOn(page, href!);
     await arrived(page.locator("h1"));
   });
 });
