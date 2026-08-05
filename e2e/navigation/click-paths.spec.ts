@@ -55,16 +55,50 @@ import { adminContext } from "../helpers/members";
  * navigation into an intermittent failure. That is the shape of flake that
  * gets rerun rather than read.
  */
+/**
+ * Click, wait for the navigation, and click again only if it was lost.
+ *
+ * A Next `<Link>` clicked while React is mid-hydration has its default
+ * prevented by a router that is not listening yet, so the click vanishes.
+ * That is worth retrying. What is NOT worth retrying is a navigation still
+ * in flight — clicking again cancels it.
+ *
+ * An earlier version used `expect(...).toPass()`, whose back-off starts at
+ * 100ms. Against a soft navigation that takes a second or two it re-clicked
+ * repeatedly and cancelled its own navigation every time, so it never
+ * arrived and looked exactly like a dead link. `waitForLoadState(
+ * "networkidle")` was tried before that and was worse: HMR holds a
+ * websocket open, so it never settles against a dev server at all.
+ *
+ * So: one click, a full wait, then at most two more attempts. Each attempt
+ * gets the whole budget, and a link that genuinely does nothing still
+ * fails — which is the point of this file.
+ */
+async function clickTo(
+  page: import("@playwright/test").Page,
+  selector: string,
+  href: string,
+) {
+  const attempts = 3;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    await page.locator(selector).first().click();
+    try {
+      await expect(page).toHaveURL((url) => url.pathname === href, {
+        timeout: 10_000,
+      });
+      return;
+    } catch (error) {
+      if (attempt === attempts) throw error;
+    }
+  }
+}
+
 async function landedOn(
   page: import("@playwright/test").Page,
   href: string,
 ) {
-  // Longer than the 5s default on purpose. `next dev` compiles a route the
-  // first time it is requested, so a soft navigation to a cold page takes
-  // seconds that have nothing to do with the thing under test — and a
-  // timeout there looks exactly like a click that did nothing, which is
-  // the failure this file is meant to detect. A deployed build has no such
-  // pause, so this costs nothing where it matters.
+  // `next dev` compiles a cold route on first request, so give a navigation
+  // more than the 5s default. A deployed build has no such pause.
   await expect(page).toHaveURL((url) => url.pathname === href, {
     timeout: 20_000,
   });
@@ -119,6 +153,13 @@ test.describe("N navigation click paths", () => {
   test("N-T1: the top nav reaches every public page by clicking", async ({
     page,
   }) => {
+    // The only test here that visits every public route in one go, and
+    // `next dev` compiles each one the first time it is asked for. The
+    // default 30s budget is spent on compilation, not on anything this is
+    // measuring. `slow()` triples whatever the config set, so it scales
+    // with the local/remote split already there.
+    test.slow();
+
     await page.goto("/");
 
     // Read the nav's own links rather than hard-coding them: the list comes
@@ -138,19 +179,20 @@ test.describe("N navigation click paths", () => {
 
     expect(hrefs.length, "the top nav has no internal links").toBeGreaterThan(0);
 
-    // Load once, then walk the whole nav by clicking.
+    // Warm every route before testing the clicks.
     //
-    // The first version returned to "/" before each link, which meant every
-    // click raced that page's hydration: a Next <Link> clicked before React
-    // takes over does nothing at all, and the assertion saw the URL still on
-    // "/". Waiting for the network to settle once, then navigating purely
-    // client-side, removes the race and is closer to how the nav is really
-    // used — nobody reloads the home page between menu items.
-    await page.waitForLoadState("networkidle");
+    // `next dev` compiles a route on first request, and a first compile can
+    // outlast any reasonable click budget — so an un-warmed route makes a
+    // working link indistinguishable from a broken one. Warming is setup;
+    // what this test is about starts below.
+    for (const href of hrefs) await page.goto(href);
+    await page.goto("/");
 
+    // Then the whole nav walked by clicking. Returning to "/" before each
+    // link would re-race hydration every time; navigating purely
+    // client-side is also closer to how a menu is really used.
     for (const href of hrefs) {
-      await page.locator(`header a[href="${href}"]`).first().click();
-      await landedOn(page, href);
+      await clickTo(page, `header a[href="${href}"]`, href);
       // A soft navigation that rendered nothing still changes the URL, so
       // the URL on its own proves too little.
       await arrived(page.locator("main"));
@@ -168,7 +210,7 @@ test.describe("N navigation click paths", () => {
     // THE REGRESSION TEST. Clicking, not goto — the bug lived entirely in
     // the soft-navigation path and a full load hides it completely.
     await toggle.getByRole("link", { name: "月曆" }).click();
-    await expect(page).toHaveURL(/view=calendar/);
+    await expect(page).toHaveURL(/view=calendar/, { timeout: 20_000 });
     await arrived(page.getByTestId("race-calendar"));
     await expect(page.getByTestId("race-list")).toHaveCount(0);
 
