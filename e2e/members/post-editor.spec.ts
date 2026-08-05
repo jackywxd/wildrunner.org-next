@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 import { lexicalParagraph } from "@/lib/lexical-helpers";
 import {

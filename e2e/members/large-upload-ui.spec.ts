@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { APIRequestContext } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 import {
   TEST_MEMBER,

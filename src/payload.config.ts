@@ -90,8 +90,22 @@ const cloudflareLogger = {
 // this runs inside Next's static-generation worker processes, and the
 // credential lookup spans env vars, ~/.wrangler config and an OAuth
 // session, so it can't be predicted reliably from here.
+//
+// Only the CLI calls getPlatformProxy directly. `next dev` must not: it
+// runs app code inside a pool of jest-worker child processes, and this
+// module is evaluated once per process, so a direct call meant every worker
+// booted its *own* miniflare over the same local SQLite file. Measured on
+// one 23-second spec run: 12 worker processes, 14 miniflare instances,
+// intermittent `SQLITE_BUSY: database is locked` that surfaced in CI as
+// ECONNRESET during test teardown and made red runs unreadable. Routing dev
+// through getCloudflareContext instead reuses the single instance
+// `initOpenNextCloudflareForDev()` already starts in next.config.ts — same
+// run measured 0 instances created here, 0 SQLITE_BUSY, 0 500s.
+//
+// `experimental.cpus` does not help: it bounds the *build*'s worker pool
+// and leaves the dev pool untouched (measured — 12 children either way).
 const cloudflare =
-  isCLI || !isProduction
+  isCLI
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true }).catch(async (error) => {
         // Loud on purpose: a deploy build landing here would prerender
@@ -130,11 +144,16 @@ export default buildConfig({
   // Traditional Chinese first: every member and the admin are Chinese
   // speakers, and it matches the language the site's own copy and email
   // templates are already in (see src/lib/invite.ts, Users.ts's
-  // generateEmailSubject). English stays available per-account from
-  // /admin/account — Payload persists the choice on the user, so switching
-  // once is permanent, not a per-request negotiation.
+  // generateEmailSubject). English stays available from /admin/account —
+  // Payload stores that choice in a `payload-lng` cookie, not on the user
+  // document, so it is per-browser and does not survive a cleared cookie.
   i18n: {
     supportedLanguages: { en, 'zh-TW': zhTw },
+    // Only consulted when the request carries no `payload-lng` cookie and no
+    // Accept-Language that matches a supported key — see Payload's
+    // getRequestLanguage. A browser sending `en-US` therefore gets English,
+    // because `en` is supported here; that is the language switcher working,
+    // not the fallback failing. Tests must pin their locale to see zh-TW.
     fallbackLanguage: 'zh-TW',
   },
   collections: [Users, Media, Authors, Posts, Galleries, RaceRecords, RaceSchedule],

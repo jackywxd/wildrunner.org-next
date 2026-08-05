@@ -38,13 +38,21 @@ function orDefault<Args>(
  * the author's own string never reaches the iframe. `loading="lazy"` keeps
  * a post with several videos from opening several player connections before
  * the reader has scrolled to any of them.
+ *
+ * The wrapper is a `<span class="block">`, not a `<div>`, because the `link`
+ * and `autolink` converters below substitute this for an *inline* node — one
+ * that sits inside the paragraph Lexical wrapped it in. A `<div>` there is a
+ * div inside a `<p>`, which the parser closes the paragraph to escape: the
+ * server's HTML and the client's tree then disagree and hydration fails for
+ * the whole page. `<span>` is phrasing content, so it is legal in both
+ * positions, and `block` restores the layout the `<div>` had.
  */
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
-    <div
+    <span
       data-testid="youtube-embed"
       data-video-id={videoId}
-      className="my-6 aspect-video w-full"
+      className="my-6 block aspect-video w-full"
     >
       <iframe
         src={youTubeEmbedUrl(videoId)}
@@ -55,7 +63,7 @@ function YouTubeEmbed({ videoId }: { videoId: string }) {
         referrerPolicy="strict-origin-when-cross-origin"
         className="h-full w-full border-0"
       />
-    </div>
+    </span>
   );
 }
 

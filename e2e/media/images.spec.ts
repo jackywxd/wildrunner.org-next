@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/test";
 import sharp from "sharp";
 
 import { ensureAdminUser } from "../helpers/auth";

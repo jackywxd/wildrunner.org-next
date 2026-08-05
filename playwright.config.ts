@@ -39,6 +39,13 @@ export default defineConfig({
     // send one of the two; APIRequestContext sends neither, so every API
     // call here would silently authenticate as nobody.
     extraHTTPHeaders: { Origin: BASE_URL },
+    // The admin panel's language comes from Accept-Language before it falls
+    // back to `i18n.fallbackLanguage`, and `en` is a supported language, so
+    // Chromium's default `en-US` makes Payload render the panel in English.
+    // Our members are Traditional Chinese speakers; pinning the locale is what
+    // makes the browser under test one of them, rather than leaving the thing
+    // the i18n specs assert on decided by a Playwright default.
+    locale: "zh-TW",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

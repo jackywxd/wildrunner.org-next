@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/test";
 
 test.describe("P1 access control", () => {
   test("P1-T8: unauthenticated cannot create posts", async ({ request }) => {

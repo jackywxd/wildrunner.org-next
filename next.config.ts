@@ -22,13 +22,19 @@ const nextConfig: NextConfig = {
     // deploy.yml), not left to whichever worker gets there first.
     cpus: Number(process.env.NEXT_BUILD_CPUS) || undefined,
   },
-  eslint: {
-    // Legacy site has many pre-existing lint warnings/errors; keep CI green during migration.
-    ignoreDuringBuilds: true,
-  },
   // Packages with Cloudflare Workers (workerd) specific code
   // Read more: https://opennext.js.org/cloudflare/howtos/workerd
-  serverExternalPackages: ["jose", "pg-cloudflare"],
+  // `drizzle-kit` is here because of how Turbopack rewrites specifiers.
+  // `@payloadcms/drizzle` reaches it through `createRequire` +
+  // `require('drizzle-kit/api')`, which webpack left alone. Turbopack
+  // rewrites it to an internal hashed name, and OpenNext's esbuild pass
+  // then fails with `Could not resolve "drizzle-kit-<hash>/api"`.
+  //
+  // Nothing needs it at runtime: it exists for drizzle's schema push, and
+  // this adapter runs with `push: false` (see payload.config.ts) because
+  // push recreates indexes D1 already has. Marking it external keeps the
+  // dynamic require intact and out of the bundle.
+  serverExternalPackages: ["jose", "pg-cloudflare", "drizzle-kit"],
   images: {
     formats: ["image/webp", "image/avif"],
     // Standard Next.js breakpoints so /_next/image width params resolve correctly
@@ -61,6 +67,26 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // BOTH builders are configured, on purpose.
+  //
+  // `next dev` uses Turbopack — the Next 16 default, and dramatically
+  // faster: the dev server is ready in ~340ms rather than seconds.
+  // Turbopack resolves TypeScript extensions itself and needs nothing here.
+  //
+  // The production build opts back out with `next build --webpack` (see the
+  // `build` script). Turbopack rewrites module specifiers, and
+  // `@payloadcms/drizzle` reaches drizzle-kit through `createRequire` +
+  // `require('drizzle-kit/api')`; Turbopack turns that into an internal
+  // hashed name and OpenNext's esbuild pass then fails with
+  // `Could not resolve "drizzle-kit-<hash>/api"` on five chunks.
+  // `serverExternalPackages` does not prevent the rewrite. Nothing needs
+  // drizzle-kit at runtime — it is for drizzle's schema push, and this
+  // adapter runs `push: false` — so the fix is to keep Turbopack away from
+  // it, using the opt-out Next 16 documents.
+  //
+  // Webpack does need the alias below: Payload and Lexical ship ESM whose
+  // relative imports carry a `.js` extension that only exists as `.ts`.
+  turbopack: {},
   webpack: (webpackConfig) => {
     webpackConfig.resolve = webpackConfig.resolve ?? {};
     webpackConfig.resolve.extensionAlias = {
@@ -148,6 +174,26 @@ const nextConfig: NextConfig = {
     },
     // Overrides the broad "/:path*" default above (later entries win) so
     // drafts and other members-only data are never cached at the edge.
+    //
+    // The bare path is listed separately from `/:path*` on purpose. Whether
+    // Next matches `/members` with `/members/:path*` is a detail of its
+    // path matching that has changed shape between versions, and this is
+    // the one rule where being wrong means a shared cache holding a page
+    // that depends on who asked. Stating both costs nothing.
+    //
+    // `next dev` overrides Cache-Control on page responses whatever
+    // `headers()` returns, so this cannot be verified locally at all —
+    // e2e/public/cache-headers.spec.ts runs against staging and is what
+    // actually checks it.
+    {
+      source: "/members",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "private, no-store, max-age=0, must-revalidate",
+        },
+      ],
+    },
     {
       source: "/members/:path*",
       headers: [
@@ -165,6 +211,16 @@ const nextConfig: NextConfig = {
     // `public` on a response behind a session is the same shape as the
     // /api/* problem noted above, and no shared cache should be invited to
     // hold an admin's page at all.
+    // Same pair for the same reason.
+    {
+      source: "/admin",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "private, no-store, max-age=0, must-revalidate",
+        },
+      ],
+    },
     {
       source: "/admin/:path*",
       headers: [

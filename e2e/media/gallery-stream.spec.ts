@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/test";
 
 import { ensureAdminUser } from "../helpers/auth";
 import { expectOkJson, uploadMedia } from "../helpers/api";
@@ -54,7 +54,15 @@ test.describe("P5 gallery and stream UX", () => {
     );
 
     await page.goto("/gallery");
-    await expect(page.getByText(galleryName)).toBeVisible();
+    // By its link, not its text. Every card on /gallery renders two anchors to
+    // the same gallery — measured on the rendered page: 504 links, 252
+    // distinct, every one of them twice — so `getByText(name)` matches two
+    // elements and `toBeVisible()` fails strict mode. The link is also the
+    // better assertion: what this step is checking is that the gallery is
+    // reachable from the public list, not that its name appears somewhere.
+    await expect(
+      page.locator(`a[href$="/gallery/${slug}"]`).first(),
+    ).toBeVisible();
 
     await page.goto(`/gallery/${slug}`);
     await expect(page.getByRole("heading", { name: galleryName })).toBeVisible();

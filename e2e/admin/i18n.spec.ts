@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 import { TEST_ADMIN } from "../helpers/auth";
 import { adminContext } from "../helpers/members";

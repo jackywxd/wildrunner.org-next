@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 import { lexicalParagraph } from "@/lib/lexical-helpers";
 import {
@@ -73,14 +73,26 @@ test.describe("G interface switch and AI assist", () => {
   test("G-T2: following it lands in the member area, with a way back", async ({
     page,
   }) => {
+    // Payload's sidebar is a drawer on a narrow window and permanently open
+    // on a wide one, and Playwright's Desktop Chrome default is 1280 — narrow.
+    // The previous version opened the drawer with `.nav-toggler` and then
+    // clicked the link, which failed roughly half the time: Playwright retried
+    // the click for the full 30s while `<h1 class="list-header__title">` sat
+    // on top of a link that was technically "visible", because the toggler
+    // click had landed before the panel was interactive and did nothing.
+    //
+    // Measured on this build — element at the link's own centre point:
+    //   1280 → <h1 class="list-header__title">   (blocked)
+    //   1440 → <h1 class="list-header__title">   (blocked)
+    //   1600 → the link itself
+    //
+    // So the window is sized past the breakpoint instead. Nothing about this
+    // test is about the hamburger; that was an accident of the default device
+    // profile, and retrying a lost click is not a fix for one.
+    await page.setViewportSize({ width: 1600, height: 900 });
     await signIn(page, TEST_ADMIN);
     await page.goto("/admin/collections/posts");
 
-    // Payload's sidebar is collapsed at this viewport, so every nav entry —
-    // ours and its own collection links alike — sits underneath the page
-    // content until the hamburger is opened. Open it the way an admin would
-    // rather than force-clicking through the overlay.
-    await page.locator(".nav-toggler").first().click();
     await page.getByTestId("admin-member-area-link").click();
 
     await page.waitForURL("**/members");

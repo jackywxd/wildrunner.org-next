@@ -51,7 +51,7 @@ flowchart TB
 
 ### 运行时（Workers）
 
-- **Next.js 15 App Router** 经 [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) 打包为 Worker
+- **Next.js 16 App Router** 经 [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) 打包为 Worker
 - **Payload CMS 3**：编辑后台 `/admin`，内容存 **D1**，媒体原件存 **R2**
 - **图片优化**：`IMAGES` binding + `next/image`
 - **视频**：Cloudflare **Stream**（`STREAM` binding）
@@ -72,7 +72,7 @@ flowchart TB
 
 | 层 | 技术 |
 |----|------|
-| 框架 | Next.js 15 · React 19 · TypeScript |
+| 框架 | Next.js 16 · React 19.2 · TypeScript |
 | 边缘运行时 | Cloudflare Workers · OpenNext · Wrangler |
 | 内容 | Velite · MDX · remark/rehype · Shiki |
 | 样式 | Tailwind CSS 3 · shadcn/ui |

@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 import { lexicalParagraph } from "@/lib/lexical-helpers";
 import {
@@ -143,14 +143,18 @@ test.describe("D member area skeleton, auth, profile", () => {
     expect(shown).not.toBe(admin2.name);
   });
 
-  test("D-T6: /members responses are never publicly cached", async ({
-    request,
-  }) => {
-    const res = await request.get("/members", { maxRedirects: 0 });
-    const cacheControl = res.headers()["cache-control"] ?? "";
-    expect(cacheControl).toContain("no-store");
-    expect(cacheControl).not.toContain("max-age=3600");
-  });
+  // D-T6 lived here and asserted `Cache-Control: no-store` on /members
+  // against localhost. It never tested this project's configuration: `next
+  // dev` replaces Cache-Control on page responses regardless of what
+  // `headers()` returns, so the value came from Next itself. Next 15's
+  // default happened to contain `no-store` and the test passed; Next 16
+  // sends `no-cache, must-revalidate` and it failed. Neither outcome says
+  // anything about production.
+  //
+  // `e2e/public/cache-headers.spec.ts` covers /members properly — it runs
+  // only against a deployed origin, for exactly this reason, and its header
+  // explains the trap at length. Deleted rather than loosened: a test that
+  // cannot tell the fixed state from the broken one is worse than none.
 
   test("D-T7: an admin can open /members", async ({ page }) => {
     await loginViaForm(page, {
