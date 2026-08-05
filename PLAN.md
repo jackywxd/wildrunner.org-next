@@ -1,3 +1,13 @@
+> **Historical.** Kept for the reasoning, not as a live specification.
+>
+> The `X-Tn` identifiers here were once traceability into the test suite.
+> They no longer are: 162 of the 211 IDs the specs use appear in no plan
+> at all, because the form outlived the practice. Do not read a test's ID
+> as a reference to a numbered requirement.
+>
+> What the suite is for, and what it should contain, is
+> `docs/testing-strategy.md` and `docs/testing-plan.md`.
+
 > **⚠️ 本文档已归档（2026-07-27）。**
 > 下述 Phase 0–3（Docker/Traefik → Cloudflare Workers + OpenNext + Velite，无 DB/CMS）已于 2026-07-20 完成并切流，内容作为历史记录保留。
 > 此后架构方向发生了根本性变更：`feat/payload-cms-migration` 分支引入了 **Payload CMS 3 + D1 + R2 + Cloudflare Stream + Workers AI**，与本计划第 130 行「不引入 D1/第三方 CMS」的约束相反。

@@ -1,3 +1,13 @@
+> **Historical.** Kept for the reasoning, not as a live specification.
+>
+> The `X-Tn` identifiers here were once traceability into the test suite.
+> They no longer are: 162 of the 211 IDs the specs use appear in no plan
+> at all, because the form outlived the practice. Do not read a test's ID
+> as a reference to a numbered requirement.
+>
+> What the suite is for, and what it should contain, is
+> `docs/testing-strategy.md` and `docs/testing-plan.md`.
+
 # Payload CMS 迁移计划（`feat/payload-cms-migration`）
 
 > 本文档取代 [PLAN.md](./PLAN.md) 中已归档的 Phase 0–3 之后的后续工作。

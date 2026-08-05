@@ -26,6 +26,7 @@
     "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "assert:bindings": "node scripts/assert-bindings.mjs",
     "assert:lfs": "node scripts/assert-no-lfs-in-builds.mjs",
+    "assert:tests": "node scripts/assert-test-strategy.mjs",
     "assert:lexical": "node scripts/assert-lexical-single-copy.mjs",
     "migrate:velite": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts",
     "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts --dry-run",

@@ -1,3 +1,13 @@
+> **Historical.** Kept for the reasoning, not as a live specification.
+>
+> The `X-Tn` identifiers here were once traceability into the test suite.
+> They no longer are: 162 of the 211 IDs the specs use appear in no plan
+> at all, because the form outlived the practice. Do not read a test's ID
+> as a reference to a numbered requirement.
+>
+> What the suite is for, and what it should contain, is
+> `docs/testing-strategy.md` and `docs/testing-plan.md`.
+
 # 會員系統開發計劃（多作者投稿）
 
 > 承接 [PLAN-payload.md](./PLAN-payload.md)。Payload CMS 遷移完成後，站點從「單人後台」擴充為「管理員邀請制的多作者平台」。
