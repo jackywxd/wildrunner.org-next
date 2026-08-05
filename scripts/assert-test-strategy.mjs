@@ -37,9 +37,6 @@ const GRANDFATHERED = new Set([
   // class where that is arguably the point; the rest are quota counters.
   'members/large-upload.spec.ts::V2-T2',
   'members/media-library.spec.ts::E-T6',
-  // Rule 3.3 — already fixed in #31, which is not merged yet. Remove this
-  // line when it is; the checker will then be clean with no entry for it.
-  'admin/branding.spec.ts::A1-T4',
 ])
 
 function specFiles(dir) {
@@ -52,6 +49,21 @@ function specFiles(dir) {
   return out
 }
 
+/**
+ * Strip comments before matching code rules.
+ *
+ * Without this the checker reads its own explanations. A1-T4's doc comment
+ * quotes the `page.evaluate(... setAttribute ...)` it was rewritten to avoid,
+ * and because bodies are split on `test(` boundaries that comment belongs to
+ * the *preceding* test — so fixing the violation reported it against A1-T3.
+ * A checker that flags the prose describing a fix is worse than no checker.
+ *
+ * The §5 declaration rule deliberately runs against the raw text: there, the
+ * comment is the thing being asked for.
+ */
+const stripComments = (source) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
 /** Split a spec into its individual `test(...)` bodies. */
 function tests(source) {
   const parts = source.split(/(?=^\s*test\(\s*[`"'])/m)
@@ -61,7 +73,7 @@ function tests(source) {
     if (!match) continue
     const title = match[1]
     const id = title.match(/^[A-Z][A-Za-z0-9]*-T[0-9]+/)?.[0] ?? title.slice(0, 40)
-    out.push({ id, title, body: part })
+    out.push({ id, title, body: stripComments(part), raw: part })
   }
   return out
 }
@@ -89,7 +101,7 @@ for (const file of specFiles(E2E)) {
     })
   }
 
-  for (const { id, body } of tests(source)) {
+  for (const { id, body, raw } of tests(source)) {
     // §3.3 — a test that writes the state it asserts on is watching itself.
     if (/page\.evaluate\((?:[^)]|\)(?!\s*[,;]))*?(setAttribute|classList|innerHTML|document\.\w+\s*=)/s.test(body)) {
       report(file, id, '§3.3 must not cause what it observes', 'mutates the DOM via page.evaluate')
@@ -119,7 +131,8 @@ for (const file of specFiles(E2E)) {
     const assertsWholeSet =
       /totalDocs\s*\)?\s*\)?\s*\.?to(Be|Equal)\(/.test(body) ||
       /expect\(\s*(docs|rows|slugs)\s*\)\.toHaveLength\(/.test(body)
-    const declares = /corpus-scoped|fixture-scoped/.test(body)
+    // Raw, not stripped: the declaration this asks for *is* a comment.
+    const declares = /corpus-scoped|fixture-scoped/.test(raw)
     if (assertsWholeSet && !declares) {
       report(
         file,
