@@ -59,7 +59,20 @@ async function landedOn(
   page: import("@playwright/test").Page,
   href: string,
 ) {
-  await expect(page).toHaveURL((url) => url.pathname === href);
+  // 15s, not `toHaveURL`'s 5s default, and the number is measured rather than
+  // padded. `next dev` compiles a route on its first request, and under the
+  // full suite that is not fast: the run this was diagnosed from logged
+  // `GET /riders/admin 200 in 5.2s` — the exact navigation N-T5 makes, 200ms
+  // past the default budget.
+  //
+  // That is why this looked flaky for weeks: it passes on a warm server and in
+  // isolation, and fails once the suite has loaded the server up. The property
+  // under test is that clicking navigates, not that a dev server compiles
+  // within five seconds. The per-test timeout is 30s, so this stays well
+  // inside it and a click that genuinely goes nowhere still fails.
+  await expect(page).toHaveURL((url) => url.pathname === href, {
+    timeout: 15_000,
+  });
 }
 
 async function arrived(locator: import("@playwright/test").Locator) {
