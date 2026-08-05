@@ -1,6 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 import { ensureAdminUser, TEST_ADMIN } from "../helpers/auth";
 import { lexicalParagraph } from "@/lib/lexical-helpers";
+
+import { BASE_URL } from "../../playwright.config";
+
+/** Same test as e2e/public/cache-headers.spec.ts uses to gate deploy-only assertions. */
+const IS_LOCAL_TARGET = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
+  BASE_URL,
+);
 
 /**
  * Fields that exist only on a `users` document. `posts.owner` and
@@ -108,7 +115,34 @@ test.describe("P2 public posts from Payload", () => {
     }
   });
 
+  /**
+   * Deployed origins only, and that gate is the point of the test.
+   *
+   * `ImageResponse` rasterises through two different pipelines depending on
+   * where it runs. The documented one is Satori + Resvg, and that is what the
+   * Worker uses: workerd has no native modules, so `@vercel/og`'s
+   * `import("sharp")` fails and it falls back to the Resvg WASM build. Under
+   * `next dev` that import succeeds, so it takes a `sharp` fast path instead —
+   * and Payload processes uploaded images with the *same* `sharp` in the *same*
+   * Node process. Once the media specs have run, that shared instance can no
+   * longer rasterise Satori's SVG and `/og` answers 500.
+   *
+   * Reproduced deliberately: `/og` returns 200 before `e2e/media/` runs and 500
+   * immediately afterwards on the same server, while
+   * `curl https://wildrunner.org/og?title=test` returned a valid 1920x1080 PNG
+   * throughout. Locally this test asserted on a code path that is never
+   * deployed and failed for a reason no reader can hit.
+   *
+   * Same reasoning as `e2e/public/cache-headers.spec.ts`: a test that cannot
+   * tell the shipped state from a local artefact is not testing the product.
+   * deploy.yml's `verify-staging` runs the suite against staging, so this still
+   * gates a release — just not a pull request.
+   */
   test("P2-T8: /og returns an image", async ({ request }) => {
+    test.skip(
+      IS_LOCAL_TARGET,
+      "next dev renders /og through sharp, which the Worker never uses; only a deployed origin exercises the shipped Resvg path",
+    );
     const response = await request.get("/og?title=test");
     expect(response.ok()).toBeTruthy();
     const contentType = response.headers()["content-type"] ?? "";

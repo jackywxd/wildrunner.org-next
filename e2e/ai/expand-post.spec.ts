@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 import { ensureAdminUser, TEST_ADMIN } from "../helpers/auth";
 import { expectOkJson } from "../helpers/api";
 import { adminContext, ensureMemberUser, loginContext } from "../helpers/members";

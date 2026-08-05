@@ -10,13 +10,38 @@ name: E2E
 # like gates when only the PR one is, plus ~13 minutes per merge. The
 # post-merge check that matters is deploy.yml's `verify-staging`, because it
 # exercises a real deployment rather than a local dev server.
+#
+# ---
+#
+# Split into four jobs. It was one, and that one took 18 minutes with the
+# Playwright run alone accounting for 17 of them — every test after the first
+# waiting on every test before it, on a single runner.
+#
+# The suite runs with `workers: 1` and cannot simply be parallelised: every
+# spec shares one local D1, and several assert over the whole corpus (`M1-T8`
+# counts unowned rows; `e2e/corpus/` asserts about the data that is actually
+# there). A second worker writing fixtures mid-assertion would make those
+# read as failures. Sharding sidesteps that entirely — each shard is a
+# separate runner with its own checkout, its own emulated D1 and its own dev
+# server, so there is no shared state to race on.
+#
+# Verified before landing: each of `--shard=1/3`, `2/3` and `3/3` passes on
+# its own locally (92 + 79 + 83 = the same 254 the unsharded run reports).
+# That mattered — sharding regroups spec files, so any latent dependency
+# between files would surface here. There is none.
+#
+# `playwright` at the bottom exists only to keep that name as the required
+# check; branch protection cannot depend on a matrix job, whose runs are named
+# `e2e (1)`, `e2e (2)`, `e2e (3)`.
 on:
   pull_request:
 
 jobs:
-  playwright:
+  # Cheap, and none of it needs a database — so it fails in ~2 minutes
+  # instead of waiting behind a browser suite.
+  checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,8 +57,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       # Before Playwright, not after: the browser suite cannot catch a bad
-      # node subclass or a wrong serialized shape, and `next build` — the
-      # de-facto typecheck until now — only runs at the very end.
+      # node subclass or a wrong serialized shape.
       - name: Typecheck
         run: pnpm typecheck
       - name: Assert Cloudflare bindings
@@ -45,6 +69,78 @@ jobs:
       # the moment someone inserts a table, so check the version specs here.
       - name: Assert a single @lexical/table copy
         run: pnpm assert:lexical
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # Every shard reports. One failing shard telling the other two to stop
+      # would hide whichever failures they were about to find, and re-running
+      # to discover them costs another full round.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply local D1 migrations
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm payload migrate
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright (shard ${{ matrix.shard }}/3)
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+          NEXTJS_ENV: test
+          GIT_LFS_SKIP_SMUDGE: "1"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          # No `--` before the flag: `pnpm test:e2e -- --shard=1/3` exits 1
+          # under pnpm 10, while passing it directly works. Checked both.
+          pnpm test:e2e --shard=${{ matrix.shard }}/3
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # Runs alongside the shards rather than after them: it proves the app
+  # compiles and bundles, which no test does, and it needs nothing the suite
+  # produces.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Apply local D1 migrations
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
@@ -56,19 +152,6 @@ jobs:
           pnpm payload migrate
       - name: Migration dry-run counts
         run: pnpm migrate:velite:dry
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Run Playwright
-        env:
-          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
-          CI: "true"
-          NEXTJS_ENV: test
-          GIT_LFS_SKIP_SMUDGE: "1"
-        run: |
-          if [ -z "$PAYLOAD_SECRET" ]; then
-            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
-          fi
-          pnpm test:e2e
       - name: OpenNext Cloudflare build
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
@@ -83,11 +166,23 @@ jobs:
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
           pnpm exec opennextjs-cloudflare build
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
+
+  # The name branch protection requires. Nothing runs here — it passes only
+  # if every job above did. `if: always()` so a skipped or cancelled upstream
+  # job is reported as a failure rather than quietly leaving this green.
+  playwright:
+    runs-on: ubuntu-latest
+    needs: [checks, e2e, build]
+    if: always()
+    steps:
+      - name: Report
+        run: |
+          echo "checks: ${{ needs.checks.result }}"
+          echo "e2e:    ${{ needs.e2e.result }}"
+          echo "build:  ${{ needs.build.result }}"
+          if [ "${{ needs.checks.result }}" != "success" ] \
+            || [ "${{ needs.e2e.result }}" != "success" ] \
+            || [ "${{ needs.build.result }}" != "success" ]; then
+            echo "::error::One or more E2E jobs did not succeed."
+            exit 1
+          fi
