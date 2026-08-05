@@ -1,5 +1,7 @@
 import { test, expect } from "../helpers/test";
 
+import { BASE_URL } from "../../playwright.config";
+
 import { adminContext } from "../helpers/members";
 
 /**
@@ -54,15 +56,33 @@ test.describe("A1 admin login branding", () => {
     await expect(page).toHaveTitle(/野馬營/);
   });
 
-  test("A1-T4: the lockup is legible on both admin themes", async ({ page }) => {
-    await page.goto("/admin/login");
-    const logo = page.getByTestId("brand-logo");
-
+  /**
+   * Through Payload's own theme cookie, not by setting the attribute.
+   *
+   * This used to `page.evaluate(() => documentElement.setAttribute(...))`
+   * after `goto`, which mutates <html> while React is still hydrating. When
+   * the mutation won the race, React reported "a tree hydrated but some
+   * attributes of the server rendered HTML didn't match" — a console error
+   * the test itself had caused. It failed all three retries on one CI run and
+   * passed entirely on the previous one, on identical application code.
+   *
+   * `payload-theme` is the cookie Payload's ThemeProvider reads (see
+   * @payloadcms/ui providers/Theme: `${cookiePrefix || "payload"}-theme`), so
+   * setting it before navigating makes the server render the theme. No
+   * mutation, no race — and asserting `data-theme` afterwards makes this a
+   * stronger test than forcing the value ever was.
+   */
+  test("A1-T4: the lockup is legible on both admin themes", async ({
+    page,
+    context,
+  }) => {
     for (const theme of ["dark", "light"] as const) {
-      await page.evaluate(
-        (t) => document.documentElement.setAttribute("data-theme", t),
-        theme,
-      );
+      await context.addCookies([
+        { name: "payload-theme", value: theme, url: BASE_URL },
+      ]);
+      await page.goto("/admin/login");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      const logo = page.getByTestId("brand-logo");
       // currentColor only resolves to something visible if it's actually
       // inheriting page colour, not stuck at a hardcoded near-black that
       // happens to match one theme.
