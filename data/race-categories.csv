@@ -1,0 +1,395 @@
+event_key,key,label,distance_km,elevation_gain_m,order,verified,verified_at,source
+utmb-arc-of-attrition,100m,Arc 100M,173,5507,1,yes,2026-08-05,https://arcofattrition.utmb.world/
+utmb-arc-of-attrition,100k,Arc 100K,82.7,2708,2,yes,2026-08-05,https://arcofattrition.utmb.world/
+utmb-arc-of-attrition,50k,Arc 50K,49.4,1458,3,yes,2026-08-05,https://arcofattrition.utmb.world/
+utmb-arc-of-attrition,20k,Arc 20K,22.1,744,4,yes,2026-08-05,https://arcofattrition.utmb.world/
+utmb-chianti,utcc,Ultra Trail Chianti Castles,123,5200,1,yes,2026-08-05,https://chianti.utmb.world/
+utmb-chianti,ultra,Chianti Ultra Trail,73,3000,2,yes,2026-08-05,https://chianti.utmb.world/
+utmb-chianti,marathon,Chianti Marathon Trail,46,1650,3,yes,2026-08-05,https://chianti.utmb.world/
+utmb-chianti,half,Chianti Half Trail,20,920,4,yes,2026-08-05,https://chianti.utmb.world/
+utmb-chianti,wine-run,Chianti Wine Run,10,400,5,yes,2026-08-05,https://chianti.utmb.world/
+utmb-tenerife,110k,Tenerife Bluetrail 110K,110,6250,1,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,82k,Tenerife Bluetrail 82K,82,3300,2,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,68k,Tenerife Bluetrail 68K,68,3600,3,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,47k,Tenerife Bluetrail 47K,47,2600,4,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,47k-relay,Tenerife Bluetrail 47K Relay,47,2600,5,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,24k,Tenerife Bluetrail 24K,24,1300,6,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-tenerife,vnc,Vertical Night Challenge,6.5,850,7,yes,2026-08-05,https://tenerife.utmb.world/
+utmb-istria,168k,Istria 168K,168,6800,1,yes,2026-08-05,https://istria.utmb.world/
+utmb-istria,110k,Istria 110K,111,4200,2,yes,2026-08-05,https://istria.utmb.world/
+utmb-istria,69k,Istria 69K,69.6,2400,3,yes,2026-08-05,https://istria.utmb.world/
+utmb-istria,42k,Istria 42K,42,1000,4,yes,2026-08-05,https://istria.utmb.world/
+utmb-istria,21k,Istria 21K,21.5,157,5,yes,2026-08-05,https://istria.utmb.world/
+utmb-ventoux,ugp,Ultra Géant de Provence,125,5700,1,yes,2026-08-05,https://ventoux.utmb.world/
+utmb-ventoux,gev,Grande Epopée Ventoux,87,4200,2,yes,2026-08-05,https://ventoux.utmb.world/
+utmb-ventoux,mmt,Mistral Marathon Trail,51,2500,3,yes,2026-08-05,https://ventoux.utmb.world/
+utmb-ventoux,tdc,Trail des Coteaux,26,1100,4,yes,2026-08-05,https://ventoux.utmb.world/
+utmb-oh-my-deus,100m,Oh Meu Deus 100M,167,8900,1,yes,2026-08-05,https://ohmeudeus.utmb.world/
+utmb-oh-my-deus,100k,Oh Meu Deus 100K,94,5300,2,yes,2026-08-05,https://ohmeudeus.utmb.world/
+utmb-oh-my-deus,50k,Oh Meu Deus 50K,52,2900,3,yes,2026-08-05,https://ohmeudeus.utmb.world/
+utmb-oh-my-deus,20k,Oh Meu Deus 20K,22,1000,4,yes,2026-08-05,https://ohmeudeus.utmb.world/
+utmb-alsace,utdc,Ultra-Trail des Chevaliers,158,5100,1,yes,2026-08-05,https://alsace.utmb.world/
+utmb-alsace,utdp,Ultra-Trail des Païens,108,3900,2,yes,2026-08-05,https://alsace.utmb.world/
+utmb-alsace,tdc,Trail des Celtes,47,1600,3,yes,2026-08-05,https://alsace.utmb.world/
+utmb-alsace,tdp,Trail des Pèlerins,29,800,4,yes,2026-08-05,https://alsace.utmb.world/
+utmb-alsace,rdp,Ronde des Pages,18,250,5,yes,2026-08-05,https://alsace.utmb.world/
+utmb-alsace,tde,Trail des Ecuyers,10.5,400,6,yes,2026-08-05,https://alsace.utmb.world/
+utmb-snowdonia,100m,Eryri 100M,163,9200,1,yes,2026-08-05,https://eryri.utmb.world/
+utmb-snowdonia,100k,Eryri 100K,106,5400,2,yes,2026-08-05,https://eryri.utmb.world/
+utmb-snowdonia,80k,Eryri 80K,78,2500,3,yes,2026-08-05,https://eryri.utmb.world/
+utmb-snowdonia,50k,Eryri 50K,56,3400,4,yes,2026-08-05,https://eryri.utmb.world/
+utmb-snowdonia,25k,Eryri 25K,22,1100,5,yes,2026-08-05,https://eryri.utmb.world/
+utmb-mozart,100,mozart 100,119,6000,1,yes,2026-08-05,https://mozart.utmb.world/
+utmb-mozart,ultra,mozart Ultra,84,4800,2,yes,2026-08-05,https://mozart.utmb.world/
+utmb-mozart,ultra-relay,mozart Ultra Relay,84,4800,3,yes,2026-08-05,https://mozart.utmb.world/
+utmb-mozart,marathon,mozart Marathon,44,1600,4,yes,2026-08-05,https://mozart.utmb.world/
+utmb-mozart,half,mozart Half Marathon,28,1100,5,yes,2026-08-05,https://mozart.utmb.world/
+utmb-mozart,lake,mozart Lake Trail,12,200,6,yes,2026-08-05,https://mozart.utmb.world/
+utmb-andorra,105k,Ultra 105K,105,6800,1,yes,2026-08-05,https://andorra.utmb.world/
+utmb-andorra,80k,Trail 80K,79,3900,2,yes,2026-08-05,https://andorra.utmb.world/
+utmb-andorra,50k,Trail 50K,50,3400,3,yes,2026-08-05,https://andorra.utmb.world/
+utmb-andorra,21k,Trail 21K,24.9,1350,4,yes,2026-08-05,https://andorra.utmb.world/
+utmb-andorra,10k,Trail 10K,10,500,5,yes,2026-08-05,https://andorra.utmb.world/
+utmb-saint-jacques,100m,Ultra du Saint Jacques 100M,140,6000,1,yes,2026-08-05,https://saint-jacques.utmb.world/
+utmb-saint-jacques,100k,Grand Trail du Saint Jacques 100K,88,3600,2,yes,2026-08-05,https://saint-jacques.utmb.world/
+utmb-saint-jacques,50k,Monistrail 50K,55,2100,3,yes,2026-08-05,https://saint-jacques.utmb.world/
+utmb-saint-jacques,20k,Les Chibottes 20K,28,750,4,yes,2026-08-05,https://saint-jacques.utmb.world/
+utmb-saint-jacques,12k,Le 12 du Dolaizon,12,200,5,yes,2026-08-05,https://saint-jacques.utmb.world/
+utmb-zugspitz,zut100,ZUT100,107,5280,1,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,ultratrail,Ultratrail,74,3000,2,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,ehrwald,Ehrwald Trail,74,3000,3,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,leutasch,Leutasch Trail,69,3140,4,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,mittenwald,Mittenwald Trail,44,2110,5,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,gapa,Garmisch-Partenkirchen Trail,29,1565,6,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-zugspitz,grainau,Grainau Trail,16,760,7,yes,2026-08-05,https://zugspitz.utmb.world/
+utmb-lavaredo,120k,Lavaredo 120K,120,5800,1,yes,2026-08-05,https://lavaredo.utmb.world/
+utmb-lavaredo,80k,Lavaredo 80K,80,4600,2,yes,2026-08-05,https://lavaredo.utmb.world/
+utmb-lavaredo,50k,Lavaredo 50K,50,2600,3,yes,2026-08-05,https://lavaredo.utmb.world/
+utmb-lavaredo,20k,Lavaredo 20K,20,1000,4,yes,2026-08-05,https://lavaredo.utmb.world/
+utmb-lavaredo,10k,Lavaredo 10K,10,300,5,yes,2026-08-05,https://lavaredo.utmb.world/
+utmb-val-daran,vda,Torn dera Val d'Aran,163,10000,1,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,cdh,Camins d'Hèr,110,6400,2,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,tdl,Termières dera Libertat,75,5100,3,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,pda,Peades d'Aigua,55,3300,4,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,exp,Experiència d'Aran,32,2100,5,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,sky-promesas,SKY 18K Promesas,18,900,6,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,sky,SKY Baqueira Beret,18,900,7,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-val-daran,vielha10k,Vielha 10K,10,500,8,yes,2026-08-05,https://valdaran.utmb.world/
+utmb-restonica,utc100m,UTC100M,110,7200,1,yes,2026-08-05,https://restonica.utmb.world/
+utmb-restonica,rt100k,RT100K,69,3950,2,yes,2026-08-05,https://restonica.utmb.world/
+utmb-restonica,tt50k,TT50K,33,2400,3,yes,2026-08-05,https://restonica.utmb.world/
+utmb-restonica,gt20k,GT20K,17,650,4,yes,2026-08-05,https://restonica.utmb.world/
+utmb-verbier,x-alpine,X-Alpine,140,9000,1,yes,2026-08-05,https://verbier.utmb.world/
+utmb-verbier,x-traversee,X-Traversée,77,5100,2,yes,2026-08-05,https://verbier.utmb.world/
+utmb-verbier,marathon,Verbier Marathon,43,3000,3,yes,2026-08-05,https://verbier.utmb.world/
+utmb-verbier,x-plore,Verbier X-Plore,28,1700,4,yes,2026-08-05,https://verbier.utmb.world/
+utmb-eiger,e250,E250 UNESCO Trail,261,18000,1,yes,2026-08-05,https://eiger.utmb.world/
+utmb-eiger,e101,E101 Ultra Trail,101,6700,2,yes,2026-08-05,https://eiger.utmb.world/
+utmb-eiger,e51,E51 Panorama Trail,51,3100,3,yes,2026-08-05,https://eiger.utmb.world/
+utmb-eiger,e35,E35 North Face Trail,35,2500,4,yes,2026-08-05,https://eiger.utmb.world/
+utmb-eiger,e16,E16 Pleasure Trail,16,950,5,yes,2026-08-05,https://eiger.utmb.world/
+utmb-eiger,surprise,Trail Surprise,15,800,6,yes,2026-08-05,https://eiger.utmb.world/
+utmb-mrww,sdv,Sentieri dei Valdôtains,120,8200,1,yes,2026-08-05,https://mrww.utmb.world/
+utmb-mrww,mrt,Monte Rosa Trail,82,6300,2,yes,2026-08-05,https://mrww.utmb.world/
+utmb-mrww,wwt,Walserwaeg Trail,43,3100,3,yes,2026-08-05,https://mrww.utmb.world/
+utmb-mrww,rmt,Regina Margherita Trail,15,650,4,yes,2026-08-05,https://mrww.utmb.world/
+utmb-mrww,jwt,Junior Walser Trail,9,600,5,yes,2026-08-05,https://mrww.utmb.world/
+utmb-mrww,bp,Becca Pink,4,,6,yes,2026-08-05,https://mrww.utmb.world/
+utmb-bucovina,ultra-rocks,Ultra Rocks,114,7000,1,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,four-summits,Four Summits,72,4600,2,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,ladys-rocks,Lady's Rocks,48,3200,3,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,rocky,Rocky,33,2000,4,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,radical,Radical,20,1100,5,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,rumble-rock,Rumble Rock,16.5,700,6,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-bucovina,runc,Runc Challenge,5,550,7,yes,2026-08-05,https://bucovina.utmb.world/
+utmb-gauja,100k,Gauja Trail 100K,91,2200,1,yes,2026-08-05,https://gauja.utmb.world/
+utmb-gauja,50k,Gauja Trail 50K,53,1200,2,yes,2026-08-05,https://gauja.utmb.world/
+utmb-gauja,20k,Gauja Trail 20K,21,500,3,yes,2026-08-05,https://gauja.utmb.world/
+utmb-gauja,20k-nw,Gauja Trail 20K Nordic Walking,21,500,4,yes,2026-08-05,https://gauja.utmb.world/
+utmb-gauja,10k,Gauja Trail 10K,13.5,300,5,yes,2026-08-05,https://gauja.utmb.world/
+utmb-gauja,youth,Gauja Trail Youth,6,100,6,yes,2026-08-05,https://gauja.utmb.world/
+utmb-kat100,100m,100 Miles,169,9000,1,yes,2026-08-05,https://kat.utmb.world/
+utmb-kat100,endurance,Endurance Trail,75,4100,2,yes,2026-08-05,https://kat.utmb.world/
+utmb-kat100,marathon,Marathon Trail,51,3250,3,yes,2026-08-05,https://kat.utmb.world/
+utmb-kat100,speed,Speed Trail,24,1650,4,yes,2026-08-05,https://kat.utmb.world/
+utmb-kat100,easy,Easy Trail,8,250,5,yes,2026-08-05,https://kat.utmb.world/
+utmb-mont-blanc,ptl,PTL,300,25000,1,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,utmb,UTMB,174,9900,2,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,tds,TDS,145,9500,3,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,ccc,CCC,101,6050,4,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,occ,OCC,60,3500,5,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,mcc,MCC,40,2350,6,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,etc,ETC,15,1200,7,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-mont-blanc,ycc,YCC,15,1200,8,yes,2026-08-05,https://montblanc.utmb.world/
+utmb-wildstrubel,wild110,Wild 110 Crans-Montana,113,6600,1,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,wild70,Wild 70 Kandersteg,72,4600,2,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,wild55,Wild 55 Adelboden,55,3300,3,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,glacier-marathon,Wild Glacier Marathon Lenk,42,2700,4,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,wild25,Wild 25 Leukerbad,26,1200,5,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,wild10,Wild 10 Crans-Montana,10,500,6,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-wildstrubel,nextgen,Wild NextGen Crans-Montana,10,500,7,yes,2026-08-05,https://wildstrubel.utmb.world/
+utmb-kackar,100k,Kaçkar 100K,82,5600,1,yes,2026-08-05,https://kackar.utmb.world/
+utmb-kackar,50k,Kaçkar 50K,44,3000,2,yes,2026-08-05,https://kackar.utmb.world/
+utmb-kackar,20k,Kaçkar 20K,20,1400,3,yes,2026-08-05,https://kackar.utmb.world/
+utmb-kackar,ayder4k,Ayder 4K,4,230,4,yes,2026-08-05,https://kackar.utmb.world/
+utmb-julian-alps,120k,I Feel Slovenia 120K,124,5893,1,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-julian-alps,80k,Lake Bled 80K,80,3826,2,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-julian-alps,50k,Sky Trail 50K,50,2665,3,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-julian-alps,25k,Kranjska Gora 25K,25,1028,4,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-julian-alps,15k,Intersport Speed 15K,15,553,5,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-julian-alps,10k,Funny 10K,10,308,6,yes,2026-08-05,https://julianalps.utmb.world/
+utmb-nice,100m,Ultra Trail Métropole Nice Côte d'Azur 100M,165,8900,1,yes,2026-08-05,https://nice.utmb.world/
+utmb-nice,100k,Roubion - Nice 100K,109,5400,2,yes,2026-08-05,https://nice.utmb.world/
+utmb-nice,50k-eze,Eze - Nice 50K,50,2000,3,yes,2026-08-05,https://nice.utmb.world/
+utmb-nice,50k-levens,Levens - Nice 50K,39,1388,4,yes,2026-08-05,https://nice.utmb.world/
+utmb-nice,20k,Saint-Jean-Cap-Ferrat - Nice 20K,23,680,5,yes,2026-08-05,https://nice.utmb.world/
+utmb-kullamannen,100m,Ultra 100 Miles,173,2300,1,yes,2026-08-05,https://kullamannen.utmb.world/
+utmb-kullamannen,100k,Sprint Ultra 100 km,108,749,2,yes,2026-08-05,https://kullamannen.utmb.world/
+utmb-kullamannen,seventh-seal,Seventh Seal,53,727,3,yes,2026-08-05,https://kullamannen.utmb.world/
+utmb-kullamannen,north-shore,North Shore,22,96,4,yes,2026-08-05,https://kullamannen.utmb.world/
+utmb-mallorca,sdt,SDT - Serra de Tramuntana,,,1,yes,2026-08-05,https://mallorca.utmb.world/
+utmb-mallorca,cps,CPS - Camins de Pedra en Sec,,,2,yes,2026-08-05,https://mallorca.utmb.world/
+utmb-mallorca,etm,ETM - Els Tres Mils,,,3,yes,2026-08-05,https://mallorca.utmb.world/
+utmb-mallorca,cda,CDA - Camins de s'Arxiduc,,,4,yes,2026-08-05,https://mallorca.utmb.world/
+utmb-tarawera,tmiler,TMiler,163,3800,1,yes,2026-08-05,https://tarawera.utmb.world/
+utmb-tarawera,t102,T102,102,2300,2,yes,2026-08-05,https://tarawera.utmb.world/
+utmb-tarawera,t50,T50,52,1150,3,yes,2026-08-05,https://tarawera.utmb.world/
+utmb-tarawera,t21,T21,23,400,4,yes,2026-08-05,https://tarawera.utmb.world/
+utmb-tarawera,t14,T14,14,161,5,yes,2026-08-05,https://tarawera.utmb.world/
+utmb-australia,utamiler,UTAMiler,161.1,7200,1,yes,2026-08-05,https://uta.utmb.world/
+utmb-australia,uta100,UTA100,101,4400,2,yes,2026-08-05,https://uta.utmb.world/
+utmb-australia,uta50,UTA50,51,2400,3,yes,2026-08-05,https://uta.utmb.world/
+utmb-australia,uta22,UTA22,22,1200,4,yes,2026-08-05,https://uta.utmb.world/
+utmb-australia,uta11,UTA11,11.5,731,5,yes,2026-08-05,https://uta.utmb.world/
+utmb-kosciuszko,koscimiler,KosciMiler,161,5131,1,yes,2026-08-05,https://kosciuszko.utmb.world/
+utmb-kosciuszko,kosci100,Kosci100,106,3260,2,yes,2026-08-05,https://kosciuszko.utmb.world/
+utmb-kosciuszko,kosci50,Kosci50,50,1400,3,yes,2026-08-05,https://kosciuszko.utmb.world/
+utmb-kosciuszko,kosci30,Kosci30,32,670,4,yes,2026-08-05,https://kosciuszko.utmb.world/
+utmb-puerto-vallarta,hikuri81k,Hikuri 81K,81,3900,1,yes,2026-08-05,https://puerto-vallarta.utmb.world/
+utmb-puerto-vallarta,nakawe53k,Nakawé 53K,53,2500,2,yes,2026-08-05,https://puerto-vallarta.utmb.world/
+utmb-puerto-vallarta,haramara37k,Haramara 37K,37,1600,3,yes,2026-08-05,https://puerto-vallarta.utmb.world/
+utmb-puerto-vallarta,ereno20k,Ereno 20K,20,1050,4,yes,2026-08-05,https://puerto-vallarta.utmb.world/
+utmb-puerto-vallarta,pata-salada5k,Pata Salada 5K,5,200,5,yes,2026-08-05,https://puerto-vallarta.utmb.world/
+utmb-desert-rats,100k,100K,100,2050,1,yes,2026-08-05,https://desertrats.utmb.world/
+utmb-desert-rats,50k,50K,48,1050,2,yes,2026-08-05,https://desertrats.utmb.world/
+utmb-desert-rats,21k,21K,21,700,3,yes,2026-08-05,https://desertrats.utmb.world/
+utmb-desert-rats,10k,10K,9,200,4,yes,2026-08-05,https://desertrats.utmb.world/
+utmb-canyons,100m,100M,161,5550,1,yes,2026-08-05,https://canyons.utmb.world/
+utmb-canyons,100k,100K,100,3750,2,yes,2026-08-05,https://canyons.utmb.world/
+utmb-canyons,50k,50K,50,1700,3,yes,2026-08-05,https://canyons.utmb.world/
+utmb-canyons,25k,25K,25,850,4,yes,2026-08-05,https://canyons.utmb.world/
+utmb-rothrock,50k,50K,53.3,1550,1,yes,2026-08-05,https://rothrock.utmb.world/
+utmb-rothrock,25k,25K,26.9,1188,2,yes,2026-08-05,https://rothrock.utmb.world/
+utmb-western-states,100m,Western States 100-Mile Endurance Run,161,5490,1,yes,2026-08-05,https://www.wser.org/
+utmb-speedgoat,50k,50K,50,3450,1,yes,2026-08-05,https://speedgoat.utmb.world/
+utmb-speedgoat,30k,30K,31,2000,2,yes,2026-08-05,https://speedgoat.utmb.world/
+utmb-speedgoat,10k,10K,10,500,3,yes,2026-08-05,https://speedgoat.utmb.world/
+utmb-speedgoat,summit,The Summit,5.6,921,4,yes,2026-08-05,https://speedgoat.utmb.world/
+utmb-borealys,odyssee100k,Odyssée 100K,81,4020,1,yes,2026-08-05,https://borealys.utmb.world/
+utmb-borealys,relais80k,Relais 80K,81,4020,2,yes,2026-08-05,https://borealys.utmb.world/
+utmb-borealys,tremblante50k,Tremblante 50K,46.4,2612,3,yes,2026-08-05,https://borealys.utmb.world/
+utmb-borealys,diable20k,Diable 20K,26.6,1645,4,yes,2026-08-05,https://borealys.utmb.world/
+utmb-borealys,chutes-croches,Chutes-Croches 20K,14.5,896,5,yes,2026-08-05,https://borealys.utmb.world/
+utmb-borealys,ptite5k,P'tite 5K,5.8,379,6,yes,2026-08-05,https://borealys.utmb.world/
+utmb-whistler,100k,100K,100,5100,1,yes,2026-08-05,https://whistler.utmb.world/
+utmb-whistler,50k,50K,50,3200,2,yes,2026-08-05,https://whistler.utmb.world/
+utmb-whistler,25k,25K,26,1500,3,yes,2026-08-05,https://whistler.utmb.world/
+utmb-whistler,10k,10K,12,550,4,yes,2026-08-05,https://whistler.utmb.world/
+utmb-grindstone,100m,100M,167.4,6400,1,yes,2026-08-05,https://grindstone.utmb.world/
+utmb-grindstone,100k,100K,100,3350,2,yes,2026-08-05,https://grindstone.utmb.world/
+utmb-grindstone,50k,50K,50,1550,3,yes,2026-08-05,https://grindstone.utmb.world/
+utmb-grindstone,21k,21K,21,500,4,yes,2026-08-05,https://grindstone.utmb.world/
+utmb-kodiak,100m,100M,162,4850,1,yes,2026-08-05,https://kodiak.utmb.world/
+utmb-kodiak,100k,100K,99,3120,2,yes,2026-08-05,https://kodiak.utmb.world/
+utmb-kodiak,50k,50K,48.4,1339,3,yes,2026-08-05,https://kodiak.utmb.world/
+utmb-kodiak,21k,21K,19.5,575,4,yes,2026-08-05,https://kodiak.utmb.world/
+utmb-kodiak,10k,10K,10.5,280,5,yes,2026-08-05,https://kodiak.utmb.world/
+utmb-pacific-trails,50k,50K,51,1550,1,yes,2026-08-05,https://pacifictrails.utmb.world/
+utmb-pacific-trails,25k,25K,25,650,2,yes,2026-08-05,https://pacifictrails.utmb.world/
+utmb-valholl,epic130k,EPIC 130K,113,4854,1,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-valholl,advance85k,ADVANCE 85K,86.8,3677,2,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-valholl,challenge50k,CHALLENGE 50K,50,2712,3,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-valholl,courage33k,COURAGE 33K,33.8,1553,4,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-valholl,power22k,POWER 22K,22.4,944,5,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-valholl,explore12k,EXPLORE 12K,13.4,684,6,yes,2026-08-05,https://ushuaia.utmb.world/
+utmb-torrencial,pilolcura100k,PILOLCURA 100K,100,,1,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-torrencial,oncol65k,ONCOL 65K,65,,2,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-torrencial,llancahue44k,LLANCAHUE 44K,44,,3,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-torrencial,collico21k,COLLICO 21K,21,,4,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-torrencial,cau-cau12k,CAU CAU 12K,12,,5,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-torrencial,isla-teja6k,ISLA TEJA 6K,6,,6,yes,2026-08-05,https://torrencial.utmb.world/races
+utmb-quito,oso80k,80K Oso,76,4400,1,yes,2026-08-05,https://quito.utmb.world/
+utmb-quito,nutria50k,50K Nutria,53,2800,2,yes,2026-08-05,https://quito.utmb.world/
+utmb-quito,tucan30k,30K Tucán,31,1600,3,yes,2026-08-05,https://quito.utmb.world/
+utmb-quito,quinde20k,20K Quinde,20,1000,4,yes,2026-08-05,https://quito.utmb.world/
+utmb-quito,humboldt12k,12K Humboldt,13,850,5,yes,2026-08-05,https://quito.utmb.world/
+utmb-quito,rana6k,6K Rana,6.5,300,6,yes,2026-08-05,https://quito.utmb.world/
+utmb-paraty,ptr108,PTR 108,108,4850,1,yes,2026-08-05,https://paraty.utmb.world/
+utmb-paraty,ptr58,PTR 58,58,3400,2,yes,2026-08-05,https://paraty.utmb.world/
+utmb-paraty,ptr34,PTR 34,34,1150,3,yes,2026-08-05,https://paraty.utmb.world/
+utmb-paraty,ptr25,PTR 25,25,750,4,yes,2026-08-05,https://paraty.utmb.world/
+utmb-paraty,ptr17,PTR 17,17,600,5,yes,2026-08-05,https://paraty.utmb.world/
+utmb-paraty,run7,RUN 7,7,50,6,yes,2026-08-05,https://paraty.utmb.world/
+utmb-bariloche,tronador130k,TRONADOR 130K,132,6516,1,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-bariloche,frey85k,FREY 85K,86,4725,2,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-bariloche,bella-vista55k,BELLA VISTA 55K,57.5,3000,3,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-bariloche,nahuel-huapi33k,NAHUEL HUAPI 33K,36,1421,4,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-bariloche,cerro-lindo22k,CERRO LINDO 22K,22,800,5,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-bariloche,otto12k,OTTO 12K,12.7,500,6,yes,2026-08-05,https://bariloche.utmb.world/
+utmb-kenting,100k,Xtrail 100K,98,3291,1,yes,2026-08-05,https://xtrail.utmb.world/
+utmb-kenting,50k,Xtrail 50K,50,1496,2,yes,2026-08-05,https://xtrail.utmb.world/
+utmb-kenting,25k,Xtrail 25K,26,589,3,yes,2026-08-05,https://xtrail.utmb.world/
+utmb-kenting,10k,Xtrail 10K,11,201,4,yes,2026-08-05,https://xtrail.utmb.world/
+utmb-xiamen,lxm100k,LXM 100K,96.4,5154,1,yes,2026-08-05,https://xiamen.utmb.world/
+utmb-xiamen,mxm50k,MXM 50K,53,2460,2,yes,2026-08-05,https://xiamen.utmb.world/
+utmb-xiamen,sxm20k,SXM 20K,28.9,1519,3,yes,2026-08-05,https://xiamen.utmb.world/
+utmb-xiamen,exm10k,EXM 10K,10.3,263,4,yes,2026-08-05,https://xiamen.utmb.world/
+utmb-mogan,dmg,DMG,114,6600,1,yes,2026-08-05,https://mogan.utmb.world/
+utmb-mogan,cmg,CMG,81,4600,2,yes,2026-08-05,https://mogan.utmb.world/
+utmb-mogan,mmg,MMG,48,2500,3,yes,2026-08-05,https://mogan.utmb.world/
+utmb-mogan,emg,EMG,25,1200,4,yes,2026-08-05,https://mogan.utmb.world/
+utmb-amazean,betong100m,BETONG 100M,116,5570,1,yes,2026-08-05,https://amazean.utmb.world/
+utmb-amazean,tunnel100k,TUNNEL 100K,91,3870,2,yes,2026-08-05,https://amazean.utmb.world/
+utmb-amazean,jungle50k,JUNGLE 50K,55,2200,3,yes,2026-08-05,https://amazean.utmb.world/
+utmb-amazean,mist20k,MIST 20K,26,900,4,yes,2026-08-05,https://amazean.utmb.world/
+utmb-amazean,flower20k,FLOWER 20K,17,400,5,yes,2026-08-05,https://amazean.utmb.world/
+utmb-amazean,sat-night,SAT NIGHT RUN,4,70,6,yes,2026-08-05,https://amazean.utmb.world/
+utmb-kagaspa,100k,KAGASPA 100K,100,,1,yes,2026-08-05,https://kagaspa.utmb.world/
+utmb-kagaspa,50k,KAGASPA 50K,50,,2,yes,2026-08-05,https://kagaspa.utmb.world/
+utmb-kagaspa,20k,KAGASPA 20K,20,,3,yes,2026-08-05,https://kagaspa.utmb.world/
+utmb-malaysia,my100,MY100,100,,1,yes,2026-08-05,https://malaysia.utmb.world/
+utmb-malaysia,my50,MY50,50,,2,yes,2026-08-05,https://malaysia.utmb.world/
+utmb-malaysia,my25,MY25,25,,3,yes,2026-08-05,https://malaysia.utmb.world/
+utmb-malaysia,my13,MY13,13,,4,yes,2026-08-05,https://malaysia.utmb.world/
+utmb-oman,hajar-ultra,Hajar Ultra,154,8000,1,yes,2026-08-05,https://oman.utmb.world/
+utmb-oman,jabal-classic,Jabal Classic,103,5000,2,yes,2026-08-05,https://oman.utmb.world/
+utmb-oman,skyward-canyon,Skyward Canyon,50,2400,3,yes,2026-08-05,https://oman.utmb.world/
+utmb-oman,old-capital,Old Capital Trail,32,1400,4,yes,2026-08-05,https://oman.utmb.world/
+utmb-oman,scenic-ascent,Scenic Ascent,21.5,550,5,yes,2026-08-05,https://oman.utmb.world/
+utmb-mauritius,20k,20K,,,1,no,,
+utmb-mauritius,50k,50K,,,2,no,,
+utmb-mauritius,100k,100K,,,3,no,,
+utmb-mauritius,100m,100M,,,4,no,,
+wtm-hk100,100k,100K,100,,1,yes,2026-08-05,https://ultraracecalendar.com/events/6165/hong-kong-100/
+wtm-black-canyon,100k,100K,100,1591,1,yes,2026-08-05,https://www.aravaiparunning.com/blackcanyon/
+wtm-black-canyon,50k,50K,50,611,2,yes,2026-08-05,https://www.aravaiparunning.com/blackcanyon/
+wtm-transgrancanaria,classic,Classic,125,6764,1,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,advanced,Advanced,81,4314,2,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,marathon,Marathon,46,1784,3,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,half,Half,23,1817,4,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,open-agaldar,Open Agáldar,21,613,5,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,promo,Promo,12,869,6,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,short,Short,5,264,7,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,family,Family Trail,5,264,8,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,vk,VK El Gigante,5.5,1090,9,yes,2026-08-05,https://transgrancanaria.net/
+wtm-transgrancanaria,stages,Stages,120,6886,10,yes,2026-08-05,https://transgrancanaria.net/
+wtm-mt-fuji,fuji100,Mt.FUJI 100,,,1,yes,2026-08-05,https://www.mtfuji100.com/
+wtm-mt-fuji,kai70k,KAI 70K,70,,2,yes,2026-08-05,https://www.mtfuji100.com/
+wtm-mt-fuji,asumi40k,ASUMI 40K,40,,3,yes,2026-08-05,https://www.mtfuji100.com/
+wtm-miut,miut115,MIUT 115,114.9,7200,1,yes,2026-08-05,https://itra.run/Races/RaceDetails/10959
+wtm-miut,miut85,MIUT 85,85,4600,2,yes,2026-08-05,https://itra.run/Races/RaceDetails/10959
+wtm-miut,miut60,MIUT 60,60,,3,yes,2026-08-05,https://itra.run/Races/RaceDetails/10959
+wtm-miut,miut42,MIUT 42,42,,4,yes,2026-08-05,https://itra.run/Races/RaceDetails/10959
+wtm-miut,miut16,MIUT 16,16,,5,yes,2026-08-05,https://itra.run/Races/RaceDetails/10959
+wtm-south-downs,sdw100,South Downs Way 100,161,,1,yes,2026-08-05,https://www.centurionrunning.com/races/south-downs-way-100-2026
+wtm-quebec-mega-trail,qmt135,QMT135,135,,1,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt80,QMT80,80,,2,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt50,QMT50,50,,3,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt32,QMT32,32,,4,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt25,QMT25,25,,5,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt15,QMT15,15,,6,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-quebec-mega-trail,qmt6,QMT6,6,,7,yes,2026-08-05,https://ultratrailcanada.com/en/
+wtm-vietnam-mountain,100m,100 Miles Ultra Trail,161,8800,1,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-vietnam-mountain,100k,100km Ultra Trail,100,,2,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-vietnam-mountain,70k,70km Ultra Trail,70,,3,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-vietnam-mountain,50k,50km Ultra Trail,50,,4,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-vietnam-mountain,21k,21km Trail Run,21,,5,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-vietnam-mountain,10k,10km Trail Run,10,,6,yes,2026-08-05,https://vietnamtrailseries.com/mountain-marathon/
+wtm-grampians,gpt100-miler,GPT100 Miler,162,7700,1,yes,2026-08-05,https://www.gpt100.com.au/
+wtm-grampians,gpt100-stage,GPT100 Stage Race,162,7700,2,yes,2026-08-05,https://www.gpt100.com.au/
+wtm-grampians,gpt100-relay,GPT100 Miler Team Relay,162,7700,3,yes,2026-08-05,https://www.gpt100.com.au/
+wtm-grampians,gpt50k,GPT50k,50,,4,yes,2026-08-05,https://www.gpt100.com.au/
+wtm-grampians,gpt33,GPT33,33,,5,yes,2026-08-05,https://www.gpt100.com.au/
+wtm-cape-town,utct,UTCT,160.9,7516,1,yes,2026-08-05,https://www.ultratrailcapetown.com/
+wtm-cape-town,ut100,UT100,100,,2,yes,2026-08-05,https://www.ultratrailcapetown.com/
+wtm-cape-town,pt55,PT55,55,,3,yes,2026-08-05,https://www.ultratrailcapetown.com/
+wtm-cape-town,tm35,TM35,35,,4,yes,2026-08-05,https://www.ultratrailcapetown.com/
+wtm-cape-town,ex23,EX23,23,,5,yes,2026-08-05,https://www.ultratrailcapetown.com/
+wtm-cape-town,ks16,KS16,16,,6,yes,2026-08-05,https://www.ultratrailcapetown.com/
+other-hardrock,100m,100M,,,1,yes,,
+other-leadville,100m,100M,,,1,yes,,
+other-badwater,135m,135M,,,1,yes,,
+other-wasatch,100m,100M,,,1,yes,,
+other-angeles-crest,100m,100M,,,1,yes,,
+other-vermont,100m,100M,,,1,yes,,
+other-vermont,100k,100K,,,2,yes,,
+other-barkley,fun-run,Fun Run,,,1,yes,,
+other-barkley,full,Full,,,2,yes,,
+other-cocodona,250m,250M,,,1,yes,,
+other-moab-240,240m,240M,,,1,yes,,
+other-bigfoot-200,200m,200M,,,1,yes,,
+other-sinister-7,100m,100M,,,1,yes,,
+other-sinister-7,50m,50M,,,2,yes,,
+other-sinister-7,50k,50K,,,3,yes,,
+other-sinister-7,half,半馬,,,4,yes,,
+other-sinister-7,relay,接力,,,5,yes,,
+other-canadian-death-race,118k,118K,,,1,yes,,
+other-canadian-death-race,42k,42K,,,2,yes,,
+other-canadian-death-race,relay,接力,,,3,yes,,
+other-squamish-50,50m,50M,,,1,yes,,
+other-squamish-50,50k,50K,,,2,yes,,
+other-squamish-50,50-50,50/50,,,3,yes,,
+other-squamish-50,23k,23K,,,4,yes,,
+other-tor-des-geants,330k,330K,,,1,yes,,
+other-tor-des-geants,450k,450K,,,2,yes,,
+other-templiers,76k,76K,,,1,yes,,
+other-transvulcania,73k,73K,,,1,yes,,
+other-sierre-zinal,31k,31K,,,1,yes,,
+other-zegama,42k,42K,,,1,yes,,
+other-trofeo-kima,50k,50K,,,1,yes,,
+other-ticino-wildlands,500k,500K,,,1,yes,,
+other-ticino-wildlands,250k,250K,,,2,yes,,
+other-ticino-wildlands,50k,50K,,,3,yes,,
+other-translantau,100,TransLantau100,104,4500,1,yes,2026-08-05,https://translantau.utmb.world/
+other-translantau,50,TransLantau50,45,2500,2,yes,2026-08-05,https://translantau.utmb.world/
+other-translantau,25,TransLantau25,27,1100,3,yes,2026-08-05,https://translantau.utmb.world/
+other-translantau,15,TransLantau15,15,500,4,yes,2026-08-05,https://translantau.utmb.world/
+other-hk4tuc,298k,298K,,,1,yes,,
+other-diagonale-des-fous,diagonale,Diagonale,,,1,yes,,
+other-diagonale-des-fous,bourbon,Bourbon,,,2,yes,,
+other-diagonale-des-fous,mascareignes,Mascareignes,,,3,yes,,
+other-marathon-des-sables,250k,250K,,,1,yes,,
+other-chongli-168,168k,崇礼 168,170.7,8292,1,yes,2026-08-05,https://www.news.cn/sports/20260714/3b0fb7fd97664f099b76f8204ce12715/c.html
+other-chongli-168,100k,崇礼 100,,,2,yes,2026-08-05,https://www.news.cn/sports/20260714/3b0fb7fd97664f099b76f8204ce12715/c.html
+other-chongli-168,70k,雪如意 70,,,3,yes,2026-08-05,https://www.news.cn/sports/20260714/3b0fb7fd97664f099b76f8204ce12715/c.html
+other-chongli-168,50k,万龙 50,,,4,yes,2026-08-05,https://www.news.cn/sports/20260714/3b0fb7fd97664f099b76f8204ce12715/c.html
+other-chongli-168,30k,云顶 30,,,5,yes,2026-08-05,https://www.news.cn/sports/20260714/3b0fb7fd97664f099b76f8204ce12715/c.html
+other-ninghai,utnh,UTNH 105K,106,5190,1,yes,2026-08-05,https://www.ninghai.gov.cn/art/2024/10/17/art_1229092276_59178857.html
+other-ninghai,cnh,CNH 60K,65,2840,2,yes,2026-08-05,https://www.ninghai.gov.cn/art/2024/10/17/art_1229092276_59178857.html
+other-ninghai,ynh,YNH 25K,,,3,yes,2026-08-05,https://www.ninghai.gov.cn/art/2024/10/17/art_1229092276_59178857.html
+other-dali-100,100k,100K,,4339,1,yes,2026-08-05,https://sports.people.com.cn/n/2015/1105/c14820-27780823.html
+other-dali-100,50k,50K,,2460,2,yes,2026-08-05,https://sports.people.com.cn/n/2015/1105/c14820-27780823.html
+other-wugongshan,100k,100K,98,6346,1,yes,2026-08-05,https://zuicool.com/event/4266400
+other-wugongshan,50k,50K,56,3302,2,yes,2026-08-05,https://zuicool.com/event/4266400
+other-wugongshan,30k,30K,33,1884,3,yes,2026-08-05,https://zuicool.com/event/4266400
+other-huangshan-168,168k,168K,162,7165,1,yes,2026-08-05,https://www.runninginchina.org/event/default/2980.html
+other-huangshan-168,100k,100K,103,4000,2,yes,2026-08-05,https://www.runninginchina.org/event/default/2980.html
+other-huangshan-168,56k,56K,56,2258,3,yes,2026-08-05,https://www.runninginchina.org/event/default/2980.html
+other-huangshan-168,35k,35K,35,1042,4,yes,2026-08-05,https://www.runninginchina.org/event/default/2980.html
+utmb-mut,miler,MUT Miler,168,8014,1,yes,2026-08-05,https://mut.utmb.world/
+utmb-mut,100,MUT 100,100,4717,2,yes,2026-08-05,https://mut.utmb.world/
+utmb-mut,60,MUT 60,58,3005,3,yes,2026-08-05,https://mut.utmb.world/
+utmb-mut,marathon,MUT Marathon,43,2312,4,yes,2026-08-05,https://mut.utmb.world/
+utmb-mut,challenge,MUT Challenge,25,1043,5,yes,2026-08-05,https://mut.utmb.world/
+utmb-mut,lite,MUT Lite,11.9,312,6,yes,2026-08-05,https://mut.utmb.world/
+other-fat-dog,120m,120 Mile,200,7925,1,yes,2026-08-05,https://www.fatdog120.ca/
+other-fat-dog,100k,100 km,100,,2,yes,2026-08-05,https://www.fatdog120.ca/
+other-fat-dog,40m,40 Mile,64,,3,yes,2026-08-05,https://www.fatdog120.ca/
+other-knee-knacker,50k,30 Mile,48.6,2600,1,yes,2026-08-05,https://kneeknacker.com/
+other-frosty-mountain,50k,50K,50,2400,1,yes,2026-08-05,https://trailwhisperer.ca/frosty/
+other-frosty-mountain,27k,27K,27,1300,2,yes,2026-08-05,https://trailwhisperer.ca/frosty/
+other-frosty-mountain,13k,13K,13,185,3,yes,2026-08-05,https://trailwhisperer.ca/frosty/
+other-meet-your-maker,50m,50 Mile,84,,1,yes,2026-08-05,https://trailrunner.com/event/meet-your-maker-50/
+other-black-spur,108k,108K,108,4460,1,yes,2026-08-05,https://www.sinistersports.ca/blackspur/
+other-black-spur,54k,54K,54,2230,2,yes,2026-08-05,https://www.sinistersports.ca/blackspur/
+other-black-spur,21k,21K,21,,3,yes,2026-08-05,https://www.sinistersports.ca/blackspur/

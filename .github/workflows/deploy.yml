@@ -85,7 +85,8 @@ jobs:
       # bindings (see getCloudflareContextFromWrangler); without it this
       # would migrate the runner's throwaway local D1 and report success.
       # CLOUDFLARE_ENV picks staging's database rather than production's.
-      # `.env.staging` sets neither, so both survive with-env.
+      # The deploy step below sets it too — see the note there for why it is
+      # in this file and not in the STAGING_DOTENV secret.
       #
       # Production deliberately does NOT do this: its job asserts migrations
       # are already applied (`preflight:prod`) and fails if they are not,
@@ -124,10 +125,27 @@ jobs:
           echo "::error::staging migrations failed after 3 attempts"
           exit 1
 
+      # CLOUDFLARE_ENV is set HERE, in the repo, not in the STAGING_DOTENV
+      # secret — and that placement is the point.
+      #
+      # `--env staging` reaches wrangler but not the `next build` that
+      # `opennextjs-cloudflare build` forks, and payload.config resolves its
+      # D1 binding inside that child via
+      # getPlatformProxy({ environment: process.env.CLOUDFLARE_ENV }).
+      # Unset, it resolves the top-level binding — production — and because
+      # the adapter applies `prodMigrations` on init when NODE_ENV=production,
+      # a staging deploy then migrates the production database. That happened
+      # twice.
+      #
+      # It belongs in the secret as well, and with-env would then override
+      # this with the same value. But a secret's contents cannot be reviewed
+      # or diffed, so the one setting that decides which database a build
+      # writes to lives where it can be read.
       - name: Deploy to staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ENV: staging
         run: pnpm deploy:staging
 
   verify-staging:
@@ -226,10 +244,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm preflight:prod
 
+      # Stated for the same reason as staging's. Production is the default
+      # binding so this changes nothing today; both jobs naming their target
+      # is what makes the staging one reviewable rather than remarkable.
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ENV: production
         run: pnpm deploy:prod
 
       - name: Smoke-check production
