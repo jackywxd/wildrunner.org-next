@@ -78,6 +78,7 @@ test.describe("M2 member invitations", () => {
   });
 
   test("M2-T4: inviting an existing email is rejected", async () => {
+    // fixture-scoped: the count is of the address this test invited.
     const response = await admin.post("/api/members/invite", {
       data: { email: invitedEmail },
     });

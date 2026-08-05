@@ -105,6 +105,7 @@ test.describe("M4 storage quota", () => {
   });
 
   test("M4-T4: an upload past quota is rejected and leaves nothing behind", async () => {
+    // fixture-scoped: counts only the filename this test tried to upload.
     await admin.patch(`/api/users/${memberUserId}`, {
       data: { storageQuotaMb: 0.00001 }, // ~10 bytes; the tiny PNG exceeds it
     });

@@ -69,6 +69,11 @@ jobs:
       # the moment someone inserts a table, so check the version specs here.
       - name: Assert a single @lexical/table copy
         run: pnpm assert:lexical
+      # The mechanical half of docs/testing-strategy.md. Here rather than in
+      # the e2e job because it needs neither a database nor a browser, so a
+      # test written the wrong way fails in 40 seconds instead of 7 minutes.
+      - name: Assert the test strategy
+        run: pnpm assert:tests
 
   e2e:
     runs-on: ubuntu-latest

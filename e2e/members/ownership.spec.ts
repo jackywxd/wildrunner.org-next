@@ -232,6 +232,9 @@ test.describe("M1 content ownership", () => {
   });
 
   test("M1-T8: existing content was backfilled with an owner", async () => {
+    // corpus-scoped: every row must satisfy this, so it fails on bad data
+    // rather than bad code — and it covers `posts` only, while the same
+    // defect reached media, galleries, authors and both version tables.
     // The migration assigns pre-ownership content to the first admin; an
     // unowned row would be invisible to `isOwner` forever.
     const response = await admin.get(

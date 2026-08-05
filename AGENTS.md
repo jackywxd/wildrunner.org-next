@@ -142,6 +142,17 @@ SQL. `docs/race-data-sources.md` is the full account; the short version:
 
 ## Testing
 
+**`docs/testing-strategy.md` decides what gets a test and at what level;
+`docs/testing-plan.md` is the suite that follows from it.** Read those before
+adding one. The short version: a test covers a user's use case, our own logic,
+or our configuration of a framework — and nothing else. ~60% of the suite as
+measured was none of those, and it is being removed.
+
+`scripts/assert-test-strategy.mjs` enforces the mechanical rules in CI, because
+this file already carried rules that were broken repeatedly in one session.
+
+The incidents below are what those documents were written from.
+
 ~270 tests, and three structural blind spots. Two are now covered; the shape
 of all three is worth carrying.
 

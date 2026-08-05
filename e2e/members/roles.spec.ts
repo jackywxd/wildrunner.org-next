@@ -65,6 +65,8 @@ test.describe("M0 roles and privilege boundaries", () => {
   });
 
   test("M0-T4: member only sees its own user record", async () => {
+    // fixture-scoped: access control returns exactly the caller's own row,
+    // whatever else is in the users table.
     const response = await member.get("/api/users?limit=100&depth=0");
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
