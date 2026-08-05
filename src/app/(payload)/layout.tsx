@@ -25,15 +25,20 @@ const serverFunction: ServerFunctionClient = async function (args) {
 /**
  * Separate root layout for /admin so site chrome (theme, framer-motion, etc.)
  * does not wrap Payload and cause DOM insertBefore / hydration crashes.
+ *
+ * `RootLayout` renders its own <html lang={languageCode}> and <body> — do not
+ * add another pair around it. A hand-written <html><body> wrapper lived here
+ * and produced a nested <html> inside <body> on every admin page: React logged
+ * "cannot be a child of <body>", remounted html and body, and failed
+ * hydration, so the whole admin tree was thrown away and rebuilt client-side.
+ * It also pinned the outer lang to "en", which is what made the panel look
+ * like an i18n bug. The route group alone is what keeps site chrome out —
+ * `(site)/layout.tsx` is a sibling and never wraps /admin.
  */
 const Layout = ({ children }: Args) => (
-  <html lang="en" suppressHydrationWarning>
-    <body>
-      <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
-        {children}
-      </RootLayout>
-    </body>
-  </html>
+  <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
+    {children}
+  </RootLayout>
 )
 
 export default Layout
