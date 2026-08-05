@@ -17,22 +17,10 @@ import { revalidateRaceSchedule } from './hooks/revalidate'
  * *identity* — the id a member's badge points at, which must never change.
  * This collection owns a race's *edition* — the 2026 running of it, with a
  * date and a registration window that change every year and must be
- * editable without a deploy. `eventId` links the two, and it is REQUIRED.
- *
- * It used to be optional, on the reasoning that a row with no catalogue
- * entry still renders fine — it just shows no badge. That stopped being
- * true when race reports were tied to race records: a member writes a
- * report by picking a finished race, and the record behind it needs an
- * event and a distance, both of which come from the catalogue. A row with
- * no `eventId` is therefore a race nobody can write about, silently — the
- * button is simply absent and nothing says why. Five such rows existed
- * (Whistler, Sinister 7, Canadian Death Race, Squamish 50, Ticino
- * Wildlands); all five were added to the catalogue instead.
- *
- * The cost is that scheduling a brand-new race is no longer purely an admin
- * action — it needs a catalogue line first, which is a deploy. That is the
- * intended trade: the catalogue is what a badge id points at forever, so
- * inventing one from a text box was never safe anyway.
+ * editable without a deploy. `eventId` links the two and is OPTIONAL in
+ * both directions: a schedule row with no catalogue entry is a perfectly
+ * good row (it just renders without a badge), and that is what makes "add a
+ * race in the admin panel" actually possible rather than a code change.
  *
  * It also means the two can disagree on purpose. Western States is a UTMB
  * World Series event and its catalogue id says so, but a schedule row for
@@ -202,27 +190,14 @@ export const RaceSchedule: CollectionConfig = {
       index: true,
       admin: {
         description: {
-          en: 'Required. An id from the race catalogue (e.g. utmb-mont-blanc). Without it this race can carry no badge and no member can write a report about it. If the race is not in the catalogue yet, add it to src/lib/races/catalogue.ts first.',
+          en: 'Optional. An id from the race catalogue (e.g. utmb-mont-blanc). Only controls whether a badge is shown next to this race.',
           'zh-TW':
-            '必填。賽事目錄裡的代碼（例如 utmb-mont-blanc）。沒有它，這場賽事就沒有徽章，會員也無法寫賽記。目錄裡還沒有的話，要先加進 src/lib/races/catalogue.ts。',
+            '選填。賽事目錄裡的代碼（例如 utmb-mont-blanc）。只影響這場賽事旁邊要不要顯示徽章。',
         },
       },
-      /**
-       * Enforced here rather than with `required: true`.
-       *
-       * `required` on a text field makes drizzle emit NOT NULL, and adding
-       * NOT NULL to an existing SQLite column means a full table rebuild —
-       * create, copy, drop, rename — for a constraint this validator
-       * already enforces on every write that goes through Payload. Nothing
-       * writes to this collection except Payload and the seed script, which
-       * also goes through Payload. The rebuild would buy a guarantee
-       * against a writer that does not exist, at the cost of the riskiest
-       * migration shape D1 has.
-       */
       validate: (value: unknown) => {
-        if (value === undefined || value === null || value === '') {
-          return 'Catalogue event is required — add the race to src/lib/races/catalogue.ts if it is not there yet.'
-        }
+        // Empty is the normal case for a race that is not in the catalogue.
+        if (value === undefined || value === null || value === '') return true
         if (typeof value !== 'string') return 'Catalogue event must be text.'
         if (!findRaceEvent(value)) return `Unknown race event: ${value}`
         return true
