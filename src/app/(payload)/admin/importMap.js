@@ -38,6 +38,7 @@ import { MemberAreaLink as MemberAreaLink_626598a79461db9863311a85459f6dfb } fro
 import { R2ClientUploadHandler as R2ClientUploadHandler_85cc02ed84006fcc91d3aff39dda669d } from '@payloadcms/storage-r2/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
+/** @type import('payload').ImportMap */
 export const importMap = {
   "@/components/admin/InviteMemberPanel#InviteMemberPanel": InviteMemberPanel_dd2c2e3be9264ad6026a3730d12a29f2,
   "@/components/admin/StorageQuotaField#StorageQuotaField": StorageQuotaField_5d8d4971f596e8a01a5bf2aaf83b704f,

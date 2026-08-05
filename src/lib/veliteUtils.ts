@@ -2,6 +2,10 @@ import fs from "fs/promises";
 import { createReadStream } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+// sharp 0.35 exposes its types through `export =`, so `Sharp` in a
+// type position no longer resolves through the default import the way it
+// did on 0.34. Named type imports work with both.
+import type { Metadata, Sharp } from "sharp";
 import ExifReader from "exifreader";
 import heicConvert from "heic-convert";
 import {
@@ -276,7 +280,7 @@ const blurWidth = 20;
 
 // Function to generate blurDataUrl
 const generateBlurDataUrl = async (
-  sharpedImage: sharp.Sharp
+  sharpedImage: Sharp
 ): Promise<string> => {
   const buffer = await sharpedImage
     .clone()
@@ -290,10 +294,10 @@ const generateBlurDataUrl = async (
 
 // Function to rotate the image based on EXIF orientation
 async function rotateImageBasedOnExif(
-  image: sharp.Sharp,
+  image: Sharp,
   exifData: ExifReader.ExpandedTags,
-  metadata: sharp.Metadata
-): Promise<sharp.Sharp> {
+  metadata: Metadata
+): Promise<Sharp> {
   if (exifData && exifData.exif && exifData.exif.Orientation) {
     let width = metadata.width;
     let height = metadata.height;
