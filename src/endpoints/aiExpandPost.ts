@@ -47,6 +47,26 @@ export const aiExpandPostEndpoint: Endpoint = {
       throw new APIError("Unauthorized", 401);
     }
 
+    const { env } = await getCloudflareContext({ async: true });
+    // Counted before the body is even parsed, and that ordering is the point.
+    //
+    // It used to sit after validation, so a malformed or empty body was
+    // refused with a 400 without ever being counted — the endpoint could be
+    // hammered indefinitely as long as every request was invalid. The limit is
+    // on *asking*, not on asking correctly.
+    //
+    // That ordering also made the limit untestable anywhere it ships: reaching
+    // the counter needed a valid request, a valid request runs real inference
+    // at roughly ten seconds, and eleven of those outlast the sixty-second
+    // window — so no 429 was ever observed against a deployed origin and both
+    // specs skipped themselves there. Counting first means eleven cheap
+    // invalid requests exercise the limiter on any environment.
+    //
+    // Keyed on the user alone, not user+IP: every member gets their own AI
+    // budget regardless of network, and switching IP or User-Agent cannot
+    // reset it.
+    await checkRateLimit(env.D1, String(req.user.id));
+
     let body: ExpandBody;
     try {
       body = (await req.json?.()) as ExpandBody;
@@ -62,10 +82,6 @@ export const aiExpandPostEndpoint: Endpoint = {
       throw new APIError("outline or partialContent is required", 400);
     }
 
-    const { env } = await getCloudflareContext({ async: true });
-    // Keyed on the user alone, not user+IP: every member gets their own AI
-    // budget regardless of network, and switching IP/UA can't reset it.
-    await checkRateLimit(env.D1, String(req.user.id));
     const ai = env.AI;
 
     const prompt = [
