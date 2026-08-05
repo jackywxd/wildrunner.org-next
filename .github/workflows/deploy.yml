@@ -244,14 +244,25 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm preflight:prod
 
-      # Stated for the same reason as staging's. Production is the default
-      # binding so this changes nothing today; both jobs naming their target
-      # is what makes the staging one reviewable rather than remarkable.
+      # No CLOUDFLARE_ENV here, and the asymmetry with the staging job is the
+      # point. `wrangler.jsonc` has exactly one `env` section — `staging` —
+      # and production is the top-level config, which is wrangler's normal
+      # shape. Setting CLOUDFLARE_ENV=production makes OpenNext pass
+      # `--env=production`, and wrangler rejects it outright:
+      #
+      #   Before using `--env=production` there should be an equivalent
+      #   environment section in the configuration.
+      #   The available configured environment names are: ["staging"]
+      #
+      # It was added for symmetry, under a comment asserting it "changes
+      # nothing today". It changed everything: run 31019383368 sat through
+      # the approval gate and then failed on this step, so #26 never reached
+      # production at all. Staging needs the variable because staging is not
+      # the default; production must not have it because production is.
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_ENV: production
         run: pnpm deploy:prod
 
       - name: Smoke-check production
