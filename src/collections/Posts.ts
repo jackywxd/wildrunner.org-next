@@ -5,6 +5,7 @@ import { ownerField } from '../fields/owner'
 import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
+import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
 
 export const Posts: CollectionConfig = {
@@ -18,7 +19,11 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'slug', '_status', 'publishedAt', 'updatedAt'],
   },
   hooks: {
-    beforeValidate: [guardPostContent, uniquePostSlug],
+    // derivePostSlug before uniquePostSlug, and the order is the point: the
+    // first fills an empty slug, the second checks whatever slug is now there.
+    // Reversed, a member who cleared the field would be told nothing collides
+    // and then have the save refused for a missing required value anyway.
+    beforeValidate: [guardPostContent, derivePostSlug, uniquePostSlug],
     beforeChange: [setOwner],
     afterChange: [revalidatePosts],
   },
