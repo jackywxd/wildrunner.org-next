@@ -28,15 +28,10 @@ const E2E = 'e2e'
  * disabling the rule, because that is what it does for that test.
  */
 const GRANDFATHERED = new Set([
-  // Rule 4 — gate themselves off against the only environment that ships.
-  // All three depend on real Workers AI latency exceeding a 60s window.
-  'ai/expand-post.spec.ts::P4-T5',
-  'members/ai.spec.ts::M6-T3',
-  'members/media-pipeline.spec.ts::M5-T4',
-  // Rule 5 — read ambient data without declaring it. Ownership is the one
-  // class where that is arguably the point; the rest are quota counters.
-  'members/large-upload.spec.ts::V2-T2',
-  'members/media-library.spec.ts::E-T6',
+  // Empty, and it should stay that way. The five entries that lived here
+  // belonged to specs the use-case rewrite deleted; none of the tests written
+  // from `docs/testing-plan.md` needs an exemption, which is the point of
+  // having designed them rather than inherited them.
 ])
 
 function specFiles(dir) {
