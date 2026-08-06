@@ -28,8 +28,19 @@ import { getPayload } from "payload";
 
 import config from "../src/payload.config";
 
-const EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@wildrunner.test";
-const PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "WildRunnerAdmin1!";
+/**
+ * Blank means unset. GitHub Actions substitutes a missing secret as an empty
+ * string rather than leaving the variable absent, so `??` kept the `""` and
+ * this script tried to create a user with no email — which failed the seed
+ * step and took all three CI shards down with it.
+ */
+function fromEnv(name: string, fallback: string): string {
+  const value = process.env[name];
+  return value !== undefined && value.trim() !== "" ? value : fallback;
+}
+
+const EMAIL = fromEnv("E2E_ADMIN_EMAIL", "admin@wildrunner.test");
+const PASSWORD = fromEnv("E2E_ADMIN_PASSWORD", "WildRunnerAdmin1!");
 
 /** Everything `migrate:velite` creates that carries an owner. */
 const OWNED = ["authors", "posts", "galleries", "media"] as const;

@@ -1,9 +1,72 @@
 import type { APIRequestContext } from "@playwright/test";
 
+import { BASE_URL } from "../../playwright.config";
+
+/**
+ * The fallback password below is published. This repository is public, so
+ * anybody can read it — which is fine for a database that lives inside a CI
+ * job or on a laptop, and is not fine for anything reachable from the
+ * internet.
+ *
+ * It was not fine. The staging Worker answers `/`, `/admin` and
+ * `/members/login` with 200 to anyone, `deploy.yml` ran this suite against it,
+ * and no workflow set `E2E_ADMIN_PASSWORD` — so every deploy demonstrated that
+ * a published credential opened a public site. Nothing had to be guessed: the
+ * job succeeded, which is the proof.
+ *
+ * The blast radius was smaller than it sounds, and by design rather than by
+ * luck: `sync-prod-content-to-staging.ts` deliberately keeps `users` out of
+ * staging — its header names this very constant as the reason — so no real
+ * email or password hash was ever there, and staging cannot send mail. What
+ * was exposed was the ability to sign in and change staging content.
+ *
+ * The guard below is the part that matters. Removing the fallback would only
+ * mean the next person re-adds one; failing loudly when a *published* password
+ * meets a *remote* origin makes the unsafe combination impossible to
+ * reintroduce quietly, and leaves local runs exactly as convenient as before.
+ */
+/**
+ * `??` is wrong for these, and the difference is not cosmetic.
+ *
+ * GitHub Actions substitutes a **missing secret as an empty string**, not as
+ * an absent variable. `process.env.X ?? fallback` therefore yields `""` — and
+ * `""` is not the published constant, so the guard below would decide the
+ * password was safely overridden and wave a deploy through with no credential
+ * at all. It also fed `email: ""` to the seed script, which is what turned all
+ * three CI shards red the first time this was pushed.
+ *
+ * So: blank means unset.
+ */
+function fromEnv(name: string, fallback: string): string {
+  const value = process.env[name];
+  return value !== undefined && value.trim() !== "" ? value : fallback;
+}
+
+const PUBLISHED_FALLBACK = "WildRunnerAdmin1!";
+
+const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
+  BASE_URL,
+);
+
 export const TEST_ADMIN = {
-  email: process.env.E2E_ADMIN_EMAIL ?? "admin@wildrunner.test",
-  password: process.env.E2E_ADMIN_PASSWORD ?? "WildRunnerAdmin1!",
+  email: fromEnv("E2E_ADMIN_EMAIL", "admin@wildrunner.test"),
+  password: fromEnv("E2E_ADMIN_PASSWORD", PUBLISHED_FALLBACK),
 };
+
+if (!isLocalTarget && TEST_ADMIN.password === PUBLISHED_FALLBACK) {
+  throw new Error(
+    [
+      `Refusing to sign in to ${BASE_URL} with the password published in this repository.`,
+      "",
+      "Set E2E_ADMIN_PASSWORD (and E2E_ADMIN_EMAIL if it differs) for any run",
+      "against a deployed origin. In CI that means a repository secret wired",
+      "into the workflow step; see .github/workflows/deploy.yml.",
+      "",
+      "Changing the password on the deployed environment is a separate step,",
+      "and this guard does not do it: rotate the account there as well.",
+    ].join("\n"),
+  );
+}
 
 async function login(request: APIRequestContext) {
   return request.post("/api/users/login", {
