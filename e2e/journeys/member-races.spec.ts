@@ -35,9 +35,42 @@ async function badgeCount(
   year: string,
 ) {
   await page.goto("/riders", { waitUntil: "domcontentloaded" });
-  return page
-    .locator(`[data-event-id="${eventId}"][data-year="${year}"]`)
-    .count();
+  const selector = `[data-event-id="${eventId}"][data-year="${year}"]`;
+
+  // TEMPORARY DIAGNOSTIC — remove before merge.
+  //
+  // On CI this journey saw two badges where it added one record, and locally
+  // it sees one. CI has a single author and a single rider card, and nothing
+  // in the rider path reads the new editions table, so the obvious
+  // explanations are already ruled out. Rather than guess a fourth time, this
+  // reports where each matching badge actually sits: same card twice is a
+  // rendering repeat, different cards is something about the directory.
+  const where = await page.evaluate((sel) => {
+    return [...document.querySelectorAll(sel)].map((el) => {
+      const card = el.closest("[data-rider-slug]");
+      const chain: string[] = [];
+      let node: Element | null = el;
+      for (let i = 0; i < 6 && node; i += 1) {
+        chain.push(
+          node.tagName.toLowerCase() +
+            (node.getAttribute("data-testid")
+              ? `[${node.getAttribute("data-testid")}]`
+              : ""),
+        );
+        node = node.parentElement;
+      }
+      return {
+        rider: card?.getAttribute("data-rider-slug") ?? "(no rider card)",
+        chain: chain.join(" < "),
+      };
+    });
+  }, selector);
+  console.log(`>>> badges matching ${selector}: ${where.length}`);
+  for (const w of where) {
+    console.log(`>>>   rider=${w.rider}  ${w.chain}`);
+  }
+
+  return page.locator(selector).count();
 }
 
 test.describe("M what a member does with race records", () => {
