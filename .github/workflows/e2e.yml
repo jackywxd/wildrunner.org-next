@@ -125,6 +125,11 @@ jobs:
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
+          # Optional here — this database is created and destroyed inside
+          # the job — but passed so the seeded account and the account the
+          # suite signs in as cannot drift apart.
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
           if [ -z "$PAYLOAD_SECRET" ]; then
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
@@ -149,6 +154,11 @@ jobs:
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
+          # Optional here — this database is created and destroyed inside
+          # the job — but passed so the seeded account and the account the
+          # suite signs in as cannot drift apart.
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           NEXTJS_ENV: test
           GIT_LFS_SKIP_SMUDGE: "1"
         run: |

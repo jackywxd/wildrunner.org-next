@@ -81,6 +81,36 @@ dev server misbehaved and the symptoms were worked around in tests instead.
 - **When a tool misbehaves twice, check peer ranges before writing the second
   workaround.**
 
+### Test credentials are published, and staging is on the internet
+
+`e2e/helpers/auth.ts` carries a fallback password. **This repository is
+public**, so that fallback is readable by anyone — which is fine for a
+database created and destroyed inside a CI job, and was not fine for
+`deploy.yml`, which ran the same suite against the staging Worker while
+setting no `E2E_ADMIN_PASSWORD`.
+
+Staging answers `/`, `/admin` and `/members/login` with 200 to anyone. So
+every deploy signed in to a publicly reachable site with a credential anybody
+could read, and the job succeeding *was* the proof that it worked. Nothing had
+to be guessed.
+
+What kept it small was already deliberate: `sync-prod-content-to-staging.ts`
+keeps `users` out of staging — its header names this very constant as the
+reason — so no real email or hash was ever there, and staging's
+`RESEND_API_KEY` is empty, so it cannot mail anyone.
+
+- The guard in `auth.ts` refuses a **published password against a non-local
+  origin**. Removing the fallback would only mean the next person adds one
+  back; making the unsafe *combination* fail loudly is what cannot be
+  reintroduced quietly.
+- Wiring the secret is half the fix. **The password on the deployed
+  environment has to be rotated too** — otherwise the published one keeps
+  working whether or not this suite uses it.
+- The general rule: **before pointing a test suite at a deployed origin, ask
+  what it authenticates as and where that credential is written down.** A
+  fixture that is harmless in a disposable database is a public login the
+  moment the target is public.
+
 ### PII in public queries
 
 `posts.owner`, `galleries.owner`, `media.owner` and `authors.owner` are all
