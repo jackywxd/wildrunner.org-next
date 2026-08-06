@@ -87,7 +87,12 @@ const report = (file, id, rule, detail) => {
 
 for (const file of specFiles(E2E)) {
   const source = readFileSync(file, 'utf8')
-  const usesPage = /\bpage\./.test(source)
+  // Stripped here too, not just per test. This heuristic matched the word
+  // "page" ending a sentence in a doc comment — `...text on a page.` — and
+  // reported a pure unit spec as an unguarded browser spec. Third false
+  // positive from the same root cause: every rule that describes code must
+  // read code.
+  const usesPage = /\bpage\./.test(stripComments(source))
   const relative = file.replace(`${E2E}/`, '')
 
   // §4 journey — every browser spec must go through the console guard, or a
