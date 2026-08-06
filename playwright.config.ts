@@ -27,7 +27,18 @@ const TIMEOUT = isLocalTarget ? 30_000 : 300_000;
 export default defineConfig({
   testDir: "./e2e",
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Runs once per shard, after `webServer` reports ready and before the first
+  // test's clock starts. See e2e/helpers/warmup.ts for why the cost belongs
+  // here rather than inside whichever test happened to run first.
+  globalSetup: "./e2e/helpers/warmup.ts",
+  // No retries, on CI or anywhere. Every test called "flaky" on this project
+  // turned out to have a deterministic mechanism once somebody looked — a
+  // viewport breakpoint, a spec mutating its own subject, a carousel eating a
+  // click, a 5.2s route against a 5s budget. A retry is what stopped anyone
+  // finding them, and a suite that goes green on the second attempt is a suite
+  // reporting something other than whether the app works.
+  // docs/testing-strategy.md §7.
+  retries: 0,
   workers: 1,
   timeout: TIMEOUT,
   reporter: [["list"], ["html", { open: "never" }]],
