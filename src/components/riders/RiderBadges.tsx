@@ -1,5 +1,6 @@
 import type { SiteRaceRecord } from "@/lib/content-types";
 import { RaceBadge } from "@/lib/races/badge";
+import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
 import {
   RACE_SERIES,
   RACE_SERIES_LABELS,
@@ -46,8 +47,7 @@ export function RiderBadgeRow({
       {shown.map((record) => (
         <RaceBadge
           key={record.id}
-          distanceId={record.distanceId}
-          eventId={record.eventId}
+          {...resolveBadge(record.eventId, record.distanceId)}
           size={32}
           year={record.year}
         />
@@ -68,20 +68,9 @@ export function RiderBadgeRow({
 export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
   if (records.length === 0) return null;
 
-  // Grouped in RACE_SERIES order rather than a local copy of it, so a new
-  // series shows up here without a second edit — the empty groups are
-  // filtered out below, so listing all of them costs nothing.
-  const groups = RACE_SERIES.map((series) => ({
-    records: records.filter(
-      (record) => findRaceEvent(record.eventId)?.series === series,
-    ),
-    series,
-  })).filter((group) => group.records.length > 0);
-
-  // Every record whose event is no longer in the catalogue. They still
-  // belong to the member, so they are shown rather than silently dropped —
-  // the badge renders a neutral placeholder for them (A-T4).
-  const unknown = records.filter((record) => !findRaceEvent(record.eventId));
+  // The grouping lives in badge-source.ts so it can be checked without a
+  // browser — see U-GROUP in e2e/unit/badge-source.spec.ts.
+  const { groups, unknown } = groupRecordsBySeries(records);
 
   return (
     <section className="space-y-6" data-testid="rider-badge-wall">
@@ -98,8 +87,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
             {group.records.map((record) => (
               <RaceBadge
                 key={record.id}
-                distanceId={record.distanceId}
-                eventId={record.eventId}
+                {...resolveBadge(record.eventId, record.distanceId)}
                 size={72}
                 year={record.year}
               />
@@ -113,8 +101,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
           {unknown.map((record) => (
             <RaceBadge
               key={record.id}
-              distanceId={record.distanceId}
-              eventId={record.eventId}
+              {...resolveBadge(record.eventId, record.distanceId)}
               size={72}
               year={record.year}
             />

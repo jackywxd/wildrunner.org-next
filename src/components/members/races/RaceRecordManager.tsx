@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { RaceBadge } from "@/lib/races/badge";
+import { resolveBadge } from "@/lib/races/badge-source";
 import {
   RACE_SERIES,
   RACE_SERIES_LABELS,
@@ -229,8 +230,7 @@ export function RaceRecordManager({
                   data-testid="race-record-row"
                 >
                   <RaceBadge
-                    distanceId={record.distanceId}
-                    eventId={record.eventId}
+                    {...resolveBadge(record.eventId, record.distanceId)}
                     size={56}
                     year={record.year}
                   />
