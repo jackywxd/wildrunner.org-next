@@ -114,7 +114,11 @@ test.describe("M what a member does with race records", () => {
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
-    await expect(page).toHaveURL(/\/members(\/|$)/, { timeout: 15_000 });
+    // Anchored to the end. `/\/members(\/|$)/` also matches `/members/login`,
+    // so a failed sign-in satisfied it and the next page loaded as an
+    // anonymous visitor — which showed up much later as a missing control.
+    // Third time a prefix pattern has passed for a page that never moved.
+    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
 
     // 2. Arrive by clicking. The calendar-toggle bug lived entirely in soft
     //    navigation; anything reachable by a link needs one test that uses it.

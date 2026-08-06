@@ -77,7 +77,11 @@ test.describe("R what a member does with a race report", () => {
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
-    await expect(page).toHaveURL(/\/members(\/|$)/, { timeout: 15_000 });
+    // Anchored to the end. `/\/members(\/|$)/` also matches `/members/login`,
+    // so a failed sign-in satisfied it and the next page loaded as an
+    // anonymous visitor — which showed up much later as a missing control.
+    // Third time a prefix pattern has passed for a page that never moved.
+    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
 
     // By clicking, not by URL: soft navigation is where the calendar-toggle
     // bug lived, invisible to a suite that only ever used `goto`.
@@ -172,4 +176,68 @@ test.describe("R what a member does with a race report", () => {
     raceRecordId = String(body.raceRecord);
   });
 
+
+  test("R-DUPLICATE: a second report on the same race is refused", async ({
+    page,
+  }) => {
+    // The refusal is the feature. One report per member per race, and the site
+    // says so on the start page rather than failing at save. An earlier draft
+    // routed *around* this by hunting for an unused race, which discarded the
+    // case and hid why the happy path was blocked.
+    await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
+    await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
+    await page.getByTestId("member-login-submit").click();
+    // Anchored to the end. `/\/members(\/|$)/` also matches `/members/login`,
+    // so a failed sign-in satisfied it and the next page loaded as an
+    // anonymous visitor — which showed up much later as a missing control.
+    // Third time a prefix pattern has passed for a page that never moved.
+    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+
+    // Arrive from the race itself. `:visible` because the page renders this
+    // control twice — once at zero size for the other breakpoint — so
+    // `.first()` selects one that can never be clicked.
+    await page.goto("/races", { waitUntil: "domcontentloaded" });
+    const write = page
+      .locator('[data-testid="race-write-report"]:visible')
+      .first();
+    await expect(write).toBeVisible({ timeout: 15_000 });
+    const href = await write.getAttribute("href");
+    if (!href) throw new Error("the report control has no destination");
+    await write.click();
+    await expect(page).toHaveURL(/\/members\/posts\/new/, { timeout: 20_000 });
+
+    const distance = page.getByTestId("race-report-distance");
+    const category = await distance
+      .locator("option:not([value=''])")
+      .first()
+      .getAttribute("value");
+    if (!category) throw new Error("the finished race offers no category");
+    await distance.selectOption(category);
+    await page.getByTestId("race-report-start").click();
+    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: 20_000 });
+
+    const created = page.url().match(/\/members\/posts\/(\d+)/);
+    if (!created) throw new Error(`no post id in ${page.url()}`);
+    postId = created[1];
+    const doc = await page.request.get(`/api/posts/${postId}?depth=0`);
+    const body = (await doc.json()) as { raceRecord?: number | string | null };
+    if (body.raceRecord) raceRecordId = String(body.raceRecord);
+
+    // The same race again — and the refusal comes from *submitting*, not from
+    // loading. `StartRaceReport` sets it inside the handler, so a test that
+    // only navigates back sees nothing and would read as a missing feature.
+    //
+    // `race-report-error` is the element the component actually uses. An
+    // invented `race-report-start-error` cost an afternoon, because a wrong
+    // selector fails as "element not found" — indistinguishable from a
+    // regression.
+    await page.goto(href, { waitUntil: "domcontentloaded" });
+    await page.getByTestId("race-report-distance").selectOption(category);
+    await page.getByTestId("race-report-start").click();
+    await expect(page.getByTestId("race-report-error")).toContainText(
+      "已經寫過",
+      { timeout: 15_000 },
+    );
+  });
 });
