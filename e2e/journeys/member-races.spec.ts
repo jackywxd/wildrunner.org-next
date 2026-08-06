@@ -32,45 +32,29 @@ import { TEST_ADMIN } from "../helpers/auth";
 async function badgeCount(
   page: import("@playwright/test").Page,
   eventId: string,
+  distanceId: string,
   year: string,
 ) {
   await page.goto("/riders", { waitUntil: "domcontentloaded" });
-  const selector = `[data-event-id="${eventId}"][data-year="${year}"]`;
-
-  // TEMPORARY DIAGNOSTIC — remove before merge.
+  // Matched on all three of event, category and year — not event and year.
   //
-  // On CI this journey saw two badges where it added one record, and locally
-  // it sees one. CI has a single author and a single rider card, and nothing
-  // in the rider path reads the new editions table, so the obvious
-  // explanations are already ruled out. Rather than guess a fourth time, this
-  // reports where each matching badge actually sits: same card twice is a
-  // rendering repeat, different cards is something about the directory.
-  const where = await page.evaluate((sel) => {
-    return [...document.querySelectorAll(sel)].map((el) => {
-      const card = el.closest("[data-rider-slug]");
-      const chain: string[] = [];
-      let node: Element | null = el;
-      for (let i = 0; i < 6 && node; i += 1) {
-        chain.push(
-          node.tagName.toLowerCase() +
-            (node.getAttribute("data-testid")
-              ? `[${node.getAttribute("data-testid")}]`
-              : ""),
-        );
-        node = node.parentElement;
-      }
-      return {
-        rider: card?.getAttribute("data-rider-slug") ?? "(no rider card)",
-        chain: chain.join(" < "),
-      };
-    });
-  }, selector);
-  console.log(`>>> badges matching ${selector}: ${where.length}`);
-  for (const w of where) {
-    console.log(`>>>   rider=${w.rider}  ${w.chain}`);
-  }
-
-  return page.locator(selector).count();
+  // A badge is one (event, category, year). Matching on two of the three
+  // counts every category a member entered at that race in that year as the
+  // same badge, so "one more than before" could be satisfied by a record this
+  // test did not create. That is not a hypothetical tidy-up: this assertion
+  // read 2 where it expected 1 on one CI run and has not done so since, and
+  // an under-specified selector is the only part of it that could be true of
+  // more rows than the test made.
+  //
+  // Which is not a claim to have found that cause. It did not reproduce, and
+  // there is no mechanism, so it is not closed — see docs/testing-plan.md.
+  // This narrows what the assertion can be answered by, so a recurrence says
+  // something specific instead of something ambiguous.
+  return page
+    .locator(
+      `[data-event-id="${eventId}"][data-distance-id="${distanceId}"][data-year="${year}"]`,
+    )
+    .count();
 }
 
 test.describe("M what a member does with race records", () => {
@@ -166,7 +150,7 @@ test.describe("M what a member does with race records", () => {
     if (!year) throw new Error("every selectable year already has a record");
     await yearSelect.selectOption(year);
 
-    const before = await badgeCount(page, eventId, year);
+    const before = await badgeCount(page, eventId, distanceId, year);
     await page.goto("/members/races", { waitUntil: "domcontentloaded" });
 
     // 4. Record it.
@@ -194,7 +178,7 @@ test.describe("M what a member does with race records", () => {
     createdRecordId = await newRow.first().getAttribute("data-record-id");
 
     // 5. The payoff: it is public now.
-    expect(await badgeCount(page, eventId, year)).toBe(before + 1);
+    expect(await badgeCount(page, eventId, distanceId, year)).toBe(before + 1);
 
     // 6. And a member can take it back. Also this test's cleanup — a journey
     //    that leaves rows behind becomes the input to the next run of itself,
@@ -216,6 +200,6 @@ test.describe("M what a member does with race records", () => {
       page.getByTestId("race-record-row").filter({ hasText: year }),
     ).toHaveCount(0, { timeout: 15_000 });
 
-    expect(await badgeCount(page, eventId, year)).toBe(before);
+    expect(await badgeCount(page, eventId, distanceId, year)).toBe(before);
   });
 });

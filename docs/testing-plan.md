@@ -208,3 +208,41 @@ Each step lands green before the next starts.
 
 `scripts/assert-test-strategy.mjs` runs in CI's `checks` job throughout, so the
 rules bind while the rewrite is in progress rather than after it.
+
+## Open, not closed
+
+Things that went red once and are not explained. Listed so they are not
+quietly forgotten, and so a recurrence is recognised as a second occurrence
+rather than a first.
+
+### M-RACES read 2 badges where it added 1 record (CI, run 31076762757)
+
+`expect(badgeCount).toBe(before + 1)` received 2. It has not reproduced —
+the same commit plus a logging-only change passed, and the probe showed a
+single badge under a single rider card, identical to local.
+
+Ruled out, with evidence rather than argument:
+
+- **Residue from an earlier run.** Each CI job builds its own database.
+- **The new editions table.** Nothing in the rider rendering path reads it;
+  `/riders` renders one card per rider.
+- **A second rider.** CI seeds exactly one author, and the probe reported one
+  card.
+
+What changed in response: the assertion matched on event and year only, so it
+counted every category a member entered at that race in that year as the same
+badge. It now matches event, category and year. **That is a narrowing, not a
+diagnosis** — it makes a recurrence say something specific instead of
+something ambiguous.
+
+Per docs/testing-strategy.md §6, "flaky" is not a classification. This is an
+open item with no mechanism, and it stays here until it has one or until it
+has gone a long time without returning.
+
+### A member pressing Back does not see a record they just added
+
+Noticed while writing `member-races.spec.ts`: `goBack()` after visiting
+`/riders` restored Next's client router cache, showing the list as it was
+before the add. The journey navigates explicitly instead, because that
+question is a different test's subject. Whether it is a bug worth fixing has
+not been decided.
