@@ -136,6 +136,13 @@ jobs:
           # and `setOwner` stamps that from the authenticated user, which a
           # CLI script does not have.
           pnpm seed:e2e:account
+          # After seed:races, and this ordering is the whole point. The domain
+          # migration derives editions from `race_schedule` with a JOIN, and on
+          # CI it runs against an empty database — zero editions, while the
+          # schedule it would have read arrives one step later. Two corpus
+          # tests skipped rather than failed, and the run went green having
+          # asserted nothing about editions.
+          pnpm seed:editions
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
