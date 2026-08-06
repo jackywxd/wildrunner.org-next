@@ -259,6 +259,27 @@ files and surfaces any latent dependency between them.
 Slow feedback is not just annoying: an 18-minute red is one nobody reads
 carefully, and this whole document is about failures nobody read carefully.
 
+## Every dev run rebuilds the environment and its data
+
+**Setup and teardown are mandatory, not optional, and they run every time.**
+
+This project does it correctly in CI and not at all locally. Each CI job starts
+from an empty database and runs `payload migrate`, `migrate:velite`,
+`seed:races`, `seed:e2e:account`, `seed:editions` — a known corpus, rebuilt per
+run. A developer's machine inherits everything every previous run and
+walkthrough left behind; AGENTS.md calls local D1 what it is, e2e residue.
+
+The cost of that gap is measured, not theoretical. Two journeys collided with
+rows created minutes earlier — one with its own residue after a mid-way
+failure, one with a record from a manual walkthrough — and in both cases the
+first instinct was to add logic that *scans for unused data*. That logic is the
+symptom: a test hunting for a free slot is compensating for an environment
+nobody prepared, and it makes each run depend on the history of the last.
+
+**Conflicting state is a test path, not an obstacle.** "You already wrote a
+report for this race" is behaviour worth its own assertion. Routing around it
+discards a case and hides why the happy path was blocked.
+
 ## Setup and teardown
 
 A test prepares the data it needs and removes what it created, **including

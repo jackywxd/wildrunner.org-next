@@ -258,12 +258,17 @@ Then approve the `production` environment gate. See
 starts with `E2E ` and then deletes **by id**, after printing a report and
 honouring `--dry-run`.
 
-> **Flagged, not changed.** A prefix still *decides* which rows are destroyed,
-> which is the shape a later rule forbids outright ("never `like`, a prefix, or
-> any pattern"). This one predates the rule, is deliberate, runs only against
-> staging, and shows what it will take before taking it — so it is left alone
-> pending a decision rather than rewritten unilaterally. The alternative is for
-> specs to record the ids they create and for cleanup to read that list.
+> **Changed.** A prefix no longer decides what is destroyed. Specs record every
+> row they create (`e2e/helpers/created.ts`), and cleanup deletes only what the
+> run claims. The heuristics remain, but they now *report* — anything they flag
+> and the ledger does not claim is left alone and printed, so drift stays
+> visible without a pattern removing data. `--sweep` deletes the unclaimed
+> rows, for a person who has read that report; it is the only circumstance in
+> which a pattern may take something.
+>
+> Failing safe is deliberate: no ledger means nothing is claimed, which means
+> nothing is deleted. A cleanup that cannot tell what it made should remove
+> nothing.
 
 
 > Running the full suite locally can produce `SQLITE_BUSY` failures in
