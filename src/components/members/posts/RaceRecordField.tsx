@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { RaceChoice } from "@/components/members/posts/RaceChoice";
 import { RaceBadge } from "@/lib/races/badge";
 import { resolveBadge } from "@/lib/races/badge-source";
+import { catalogueMap } from "@/lib/races/catalogue-shape";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import { ensureRaceRecord } from "@/lib/members/race-records";
 import type { RaceReportOption } from "@/lib/races/report-options";
 
@@ -33,17 +35,23 @@ export type LinkedRace = {
  * even if the draft is abandoned — see the header of StartRaceReport.
  */
 export function RaceRecordField({
+  catalogueEvents,
   linked,
   onChange,
   options,
   ownerId,
 }: {
+  catalogueEvents: CatalogueEvent[];
   linked: LinkedRace | null;
   /** `null` detaches. The editor holds the value; this only proposes changes. */
   onChange: (value: LinkedRace | null) => void;
   options: RaceReportOption[];
   ownerId: number;
 }) {
+  const catalogue = useMemo(
+    () => catalogueMap(catalogueEvents),
+    [catalogueEvents],
+  );
   const [open, setOpen] = useState(false);
   const [scheduleId, setScheduleId] = useState<number | null>(null);
   const [distanceId, setDistanceId] = useState("");
@@ -114,7 +122,7 @@ export function RaceRecordField({
       {linked && !open ? (
         <div className="flex items-center gap-3" data-testid="post-race-linked">
           <RaceBadge
-            {...resolveBadge(linked.eventId, linked.distanceId)}
+            {...resolveBadge(catalogue, linked.eventId, linked.distanceId)}
             size={48}
             year={linked.year}
           />
@@ -155,6 +163,7 @@ export function RaceRecordField({
         <div className="space-y-3">
           <RaceChoice
             busy={busy}
+            catalogueEvents={catalogueEvents}
             distanceId={distanceId}
             onDistance={setDistanceId}
             onRace={chooseRace}

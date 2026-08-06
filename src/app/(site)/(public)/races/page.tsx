@@ -18,6 +18,7 @@ import {
 } from "@/lib/races/calendar";
 import { RACE_SERIES } from "@/lib/races/catalogue";
 import type { RaceSeries } from "@/lib/races/catalogue";
+import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { isRegistrationOpen } from "@/lib/races/registration";
 
 export const dynamic = "force-dynamic";
@@ -132,11 +133,13 @@ export default async function RacesPage({
   // 「紀錄比賽」 is for members only. A signed-out visitor gets no button —
   // it leads into the members area, and a control whose only outcome is a
   // login screen does not belong on a public schedule.
-  const [all, bounds, user] = await Promise.all([
+  const [all, bounds, user, catalogueEvents] = await Promise.all([
     getUpcomingRaces({ anchor, now }),
     getRaceScheduleBounds(),
     getCurrentUser(),
+    getRaceCatalogueEvents(),
   ]);
+  const catalogue = catalogueMap(catalogueEvents);
 
   const windowAnchor = anchor ?? currentAnchor(now);
   const pager = buildPager(windowAnchor, bounds);
@@ -180,6 +183,7 @@ export default async function RacesPage({
         ) : (
           <RaceList
             canWriteReport={Boolean(user)}
+            catalogue={catalogue}
             entries={entries}
             now={now}
           />

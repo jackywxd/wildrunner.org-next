@@ -6,7 +6,9 @@ import type { LinkedRace } from "@/components/members/posts/RaceRecordField";
 import { emptyContent } from "@/lib/editor/empty";
 import type { PayloadContent } from "@/lib/editor/serialize";
 import { getFinishedRaces } from "@/lib/content";
-import { findRaceEvent } from "@/lib/races/catalogue";
+import { resolveBadgeEvent } from "@/lib/races/badge-source";
+import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
 import { reportOptions } from "@/lib/races/report-options";
 import type { Post, RaceRecord } from "@/payload-types";
 
@@ -21,13 +23,16 @@ export const dynamic = "force-dynamic";
  * at an event, not at an edition, and a catalogue rename should follow the
  * badge rather than be pinned to whatever the schedule said that year.
  */
-function toLinkedRace(value: Post["raceRecord"]): LinkedRace | null {
+function toLinkedRace(
+  catalogue: RaceCatalogueMap,
+  value: Post["raceRecord"],
+): LinkedRace | null {
   if (!value || typeof value !== "object") return null;
   const record = value as RaceRecord;
   return {
     distanceId: record.distanceId,
     eventId: record.eventId,
-    label: findRaceEvent(record.eventId)?.name ?? record.eventId,
+    label: resolveBadgeEvent(catalogue, record.eventId).name,
     recordId: record.id,
     year: record.year,
   };
@@ -62,10 +67,16 @@ export default async function EditPostPage({
   }
 
   const now = new Date();
-  const raceOptions = reportOptions(await getFinishedRaces(now), now);
+  const [finishedRaces, catalogueEvents] = await Promise.all([
+    getFinishedRaces(now),
+    getRaceCatalogueEvents(),
+  ]);
+  const catalogue = catalogueMap(catalogueEvents);
+  const raceOptions = reportOptions(catalogue, finishedRaces, now);
 
   return (
     <PostEditor
+      catalogueEvents={catalogueEvents}
       initial={{
         id: post.id,
         title: post.title ?? "",
@@ -73,7 +84,7 @@ export default async function EditPostPage({
         description: post.description ?? "",
         status: post._status === "published" ? "published" : "draft",
         content: (post.content as unknown as PayloadContent) ?? emptyContent(),
-        race: toLinkedRace(post.raceRecord),
+        race: toLinkedRace(catalogue, post.raceRecord),
       }}
       ownerId={user.id}
       raceOptions={raceOptions}

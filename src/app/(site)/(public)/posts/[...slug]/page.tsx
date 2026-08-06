@@ -16,8 +16,12 @@ import {
 } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { RaceBadge } from "@/lib/races/badge";
-import { resolveBadge } from "@/lib/races/badge-source";
-import { findRaceDistance, findRaceEvent } from "@/lib/races/catalogue";
+import {
+  resolveBadge,
+  resolveBadgeDistance,
+  resolveBadgeEvent,
+} from "@/lib/races/badge-source";
+import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -80,6 +84,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
   if (!blog) {
     notFound();
   }
+  // `React.cache`'d, so fetching it here costs nothing extra on a page that
+  // also renders `RiderBadgeRow`/`RiderBadgeWall` elsewhere in the request —
+  // and most posts have no race attached, so the common case does one lookup
+  // in a Map rather than a second query.
+  const catalogue = blog.race ? catalogueMap(await getRaceCatalogueEvents()) : null;
 
   return (
     <article className="container relative max-w-3xl py-6 lg:py-10">
@@ -120,30 +129,30 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             footnote to it. Present only when the author linked a race
             record, which is the only thing that can supply the distance a
             badge needs. */}
-        {blog.race && (
+        {blog.race && catalogue && (
           <div
             className="mt-6 flex items-center gap-3 border border-border bg-secondary p-3"
             data-testid="post-race-badge"
           >
             <RaceBadge
-              {...resolveBadge(blog.race.eventId, blog.race.distanceId)}
+              {...resolveBadge(catalogue, blog.race.eventId, blog.race.distanceId)}
               size={56}
               year={blog.race.year}
             />
             <div className="min-w-0 text-sm">
               <p className="truncate font-semibold">
-                {findRaceEvent(blog.race.eventId)?.name ?? blog.race.eventId}
+                {resolveBadgeEvent(catalogue, blog.race.eventId).name}
               </p>
               <p className="text-xs text-muted-foreground">
                 {blog.race.year}
                 {" · "}
-                {(() => {
-                  const event = findRaceEvent(blog.race!.eventId);
-                  const distance = event
-                    ? findRaceDistance(event, blog.race!.distanceId)
-                    : undefined;
-                  return distance?.label ?? blog.race!.distanceId.toUpperCase();
-                })()}
+                {
+                  resolveBadgeDistance(
+                    catalogue,
+                    blog.race.eventId,
+                    blog.race.distanceId,
+                  ).label
+                }
               </p>
             </div>
           </div>

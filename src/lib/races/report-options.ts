@@ -10,13 +10,18 @@
  * has to ask exactly one question — which distance — and this module is
  * what tells the UI which question to ask and what the valid answers are.
  *
+ * Resolves against the database catalogue (`RaceCatalogueMap`), not
+ * `src/lib/races/catalogue.ts` — see `catalogue-db.ts` for why that stopped
+ * being safe: two production records named categories the in-code catalogue
+ * had invented and the reviewed data does not carry.
+ *
  * Same date conventions as the rest of `lib/races`: `now` is a parameter,
  * dates are "YYYY-MM-DD" strings, and no `Date` is built from a stored
  * value. See the header of calendar.ts.
  */
 
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
-import { findRaceEvent, type RaceDistance } from "./catalogue";
+import type { CatalogueDistance, RaceCatalogueMap } from "./catalogue-db";
 import { isFinished } from "./race-state";
 
 export type RaceReportOption = {
@@ -32,7 +37,7 @@ export type RaceReportOption = {
    *  are published under. */
   year: number;
   /** The choice the member still has to make. Never empty. */
-  distances: RaceDistance[];
+  distances: CatalogueDistance[];
 };
 
 /**
@@ -45,16 +50,21 @@ export type RaceReportOption = {
  * against rows written before that rule, not an expected state.
  */
 export function canReport(
+  catalogue: RaceCatalogueMap,
   entry: SiteRaceScheduleEntry,
   now: Date,
 ): boolean {
-  return isFinished(entry, now) && Boolean(entry.eventId && findRaceEvent(entry.eventId));
+  return (
+    isFinished(entry, now) &&
+    Boolean(entry.eventId && catalogue.get(entry.eventId))
+  );
 }
 
 export function toReportOption(
+  catalogue: RaceCatalogueMap,
   entry: SiteRaceScheduleEntry,
 ): RaceReportOption | null {
-  const event = entry.eventId ? findRaceEvent(entry.eventId) : undefined;
+  const event = entry.eventId ? catalogue.get(entry.eventId) : undefined;
   if (!event || event.distances.length === 0) return null;
 
   const zh = entry.nameZh?.trim();
@@ -70,11 +80,12 @@ export function toReportOption(
 
 /** Every finished, catalogue-linked race, newest first. */
 export function reportOptions(
+  catalogue: RaceCatalogueMap,
   entries: SiteRaceScheduleEntry[],
   now: Date,
 ): RaceReportOption[] {
   return entries
-    .filter((entry) => canReport(entry, now))
-    .map(toReportOption)
+    .filter((entry) => canReport(catalogue, entry, now))
+    .map((entry) => toReportOption(catalogue, entry))
     .filter((option): option is RaceReportOption => option !== null);
 }

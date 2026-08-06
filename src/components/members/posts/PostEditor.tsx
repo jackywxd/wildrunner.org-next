@@ -14,15 +14,18 @@ import {
 } from "@/components/members/posts/RaceRecordField";
 import { savePost, unpublishPost } from "@/lib/members/posts";
 import type { PayloadContent } from "@/lib/editor/serialize";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import type { RaceReportOption } from "@/lib/races/report-options";
 
 type Status = "draft" | "published";
 
 export function PostEditor({
+  catalogueEvents,
   initial,
   ownerId,
   raceOptions,
 }: {
+  catalogueEvents: CatalogueEvent[];
   initial: {
     content: PayloadContent;
     description: string;
@@ -220,6 +223,7 @@ export function PostEditor({
       </div>
 
       <RaceRecordField
+        catalogueEvents={catalogueEvents}
         linked={race}
         onChange={(value) => {
           setRace(value);

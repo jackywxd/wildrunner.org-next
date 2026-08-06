@@ -2,17 +2,20 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { isAdminUser, isAuthenticated, isOwner } from '../access'
 import { ownerField } from '../fields/owner'
-import { EARLIEST_RACE_YEAR, findRaceEvent } from '../lib/races/catalogue'
+import { EARLIEST_RACE_YEAR } from '../lib/races/catalogue'
 import { setOwner } from './hooks/owner'
 import { uniqueRaceRecord } from './hooks/unique-race-record'
+import { validateRaceCatalogueRef } from './hooks/validate-race-catalogue-ref'
 import { revalidateRaceRecord } from './hooks/revalidate'
 
 /**
  * A race a member has finished: which event, which distance, which year.
  *
- * The event catalogue itself lives in code (src/lib/races/catalogue.ts), so
- * this collection stores only the member's own claims — `eventId` and
- * `distanceId` are keys into that catalogue, not free text.
+ * The event catalogue is `race-events`/`race-categories` — rows a person
+ * reviews and edits, not `src/lib/races/catalogue.ts`. This collection
+ * stores only the member's own claims: `eventId` and `distanceId` are keys
+ * into those collections, checked against them on every write by
+ * `validateRaceCatalogueRef`, not free text.
  */
 export const RaceRecords: CollectionConfig = {
   slug: 'race-records',
@@ -50,7 +53,11 @@ export const RaceRecords: CollectionConfig = {
     admin: ({ req }) => isAdminUser(req.user),
   },
   hooks: {
-    beforeValidate: [uniqueRaceRecord],
+    // `validateRaceCatalogueRef` before `uniqueRaceRecord`: report "this
+    // event/distance does not exist" before "you already logged it" — a
+    // duplicate check on values that are not even real is the wrong
+    // complaint first.
+    beforeValidate: [validateRaceCatalogueRef, uniqueRaceRecord],
     beforeChange: [setOwner],
     afterChange: [revalidateRaceRecord.afterChange],
     afterDelete: [revalidateRaceRecord.afterDelete],
@@ -63,13 +70,12 @@ export const RaceRecords: CollectionConfig = {
       label: { en: 'Event', 'zh-TW': '賽事' },
       required: true,
       index: true,
+      // Presence only — whether the id resolves to a real event is
+      // `validateRaceCatalogueRef`'s job, in `hooks.beforeValidate` above,
+      // because it needs a database query this field-level validator has no
+      // reason to duplicate.
       validate: (value: unknown) => {
         if (typeof value !== 'string' || value === '') return 'Event is required.'
-        // Rejected at write time so junk never enters. Records already
-        // stored are never re-validated unless edited, which is what lets a
-        // catalogue entry be renamed without invalidating history — the
-        // badge falls back to a neutral placeholder for those (A-T4).
-        if (!findRaceEvent(value)) return `Unknown race event: ${value}`
         return true
       },
     },
@@ -78,17 +84,8 @@ export const RaceRecords: CollectionConfig = {
       type: 'text',
       label: { en: 'Distance', 'zh-TW': '距離' },
       required: true,
-      validate: (value: unknown, { data }: { data?: Partial<{ eventId: string }> }) => {
+      validate: (value: unknown) => {
         if (typeof value !== 'string' || value === '') return 'Distance is required.'
-
-        const event = data?.eventId ? findRaceEvent(data.eventId) : undefined
-        // Unknown event — `eventId`'s own validator is already reporting it,
-        // and repeating the complaint on both fields helps nobody.
-        if (!event) return true
-
-        if (!event.distances.some((distance) => distance.id === value)) {
-          return `${event.name} has no distance "${value}"`
-        }
         return true
       },
     },

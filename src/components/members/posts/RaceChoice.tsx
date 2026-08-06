@@ -1,7 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { RaceBadge } from "@/lib/races/badge";
 import { resolveBadge } from "@/lib/races/badge-source";
+import { catalogueMap } from "@/lib/races/catalogue-shape";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import type { RaceReportOption } from "@/lib/races/report-options";
 
 const selectClass =
@@ -23,6 +27,7 @@ const selectClass =
  */
 export function RaceChoice({
   busy = false,
+  catalogueEvents,
   distanceId,
   onDistance,
   onRace,
@@ -30,12 +35,22 @@ export function RaceChoice({
   scheduleId,
 }: {
   busy?: boolean;
+  /**
+   * Plain and serializable — this crosses the server/client boundary as a
+   * prop, so it cannot be the `Map` `resolveBadge` wants. Rebuilt into one
+   * with `catalogueMap()` below, same as every server caller does.
+   */
+  catalogueEvents: CatalogueEvent[];
   distanceId: string;
   onDistance: (value: string) => void;
   onRace: (value: number | null) => void;
   options: RaceReportOption[];
   scheduleId: number | null;
 }) {
+  const catalogue = useMemo(
+    () => catalogueMap(catalogueEvents),
+    [catalogueEvents],
+  );
   const chosen = options.find((option) => option.scheduleId === scheduleId);
 
   return (
@@ -88,7 +103,7 @@ export function RaceChoice({
           data-testid="race-report-preview"
         >
           <RaceBadge
-            {...resolveBadge(chosen.eventId, distanceId)}
+            {...resolveBadge(catalogue, chosen.eventId, distanceId)}
             size={56}
             year={chosen.year}
           />

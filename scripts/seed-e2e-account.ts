@@ -204,20 +204,15 @@ async function seedRaceRecords(
    * the race-report journey has a free race to claim — these deliberately use
    * events that journey does not pick first.
    *
-   * Every pair must satisfy **both** authorities, and today they disagree.
-   *
-   * `data/race-categories.csv` became `race_categories` in the database, but
-   * `RaceRecords` still validates through `findRaceEvent` in
-   * `src/lib/races/catalogue.ts`. For `wtm-hk100` the database says `100k` and
-   * the code does not, so a record the database would accept is rejected on
-   * write with 以下欄位無效： 距離.
-   *
-   * These three pairs are accepted by both. Retiring `catalogue.ts` as a
-   * runtime authority is the remaining half of the domain-model work
-   * (docs/plan PR 2); until then, checking only the CSV is checking the wrong
-   * source — which is how the first draft picked `wtm-hk100/ultra`, a World
-   * Trail Majors *ranking tier* rather than anything anyone enters, and the
-   * same fabricated shape that put two unresolvable rows into production.
+   * `RaceRecords` now validates against `race-events`/`race-categories`
+   * directly (`validateRaceCatalogueRef`) rather than through `findRaceEvent`
+   * in `src/lib/races/catalogue.ts` — the database is the only authority a
+   * write has to satisfy. That retirement is what makes these three pairs
+   * simple to pick correctly: before it, the first draft of this file chose
+   * `wtm-hk100/ultra`, a World Trail Majors *ranking tier* rather than
+   * anything anyone enters, "verified" against the CSV — the wrong source at
+   * the time, and the same fabricated shape that put two unresolvable rows
+   * into production.
    */
   const RECORDS = [
     { eventId: "other-hardrock", distanceId: "100m", year: 2023 },

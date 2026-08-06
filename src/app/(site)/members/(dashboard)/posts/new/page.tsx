@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StartRaceReport } from "@/components/members/posts/StartRaceReport";
 import { requireMember } from "@/lib/auth";
 import { getFinishedRaces } from "@/lib/content";
+import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { reportOptions } from "@/lib/races/report-options";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,11 @@ export default async function NewRaceReportPage({
   const params = await searchParams;
 
   const now = new Date();
-  const options = reportOptions(await getFinishedRaces(now), now);
+  const [finishedRaces, catalogueEvents] = await Promise.all([
+    getFinishedRaces(now),
+    getRaceCatalogueEvents(),
+  ]);
+  const options = reportOptions(catalogueMap(catalogueEvents), finishedRaces, now);
 
   const raw = Array.isArray(params.race) ? params.race[0] : params.race;
   const requested = raw ? Number(raw) : NaN;
@@ -71,6 +76,7 @@ export default async function NewRaceReportPage({
         </div>
       ) : (
         <StartRaceReport
+          catalogueEvents={catalogueEvents}
           options={options}
           ownerId={user.id}
           preselected={preselected}

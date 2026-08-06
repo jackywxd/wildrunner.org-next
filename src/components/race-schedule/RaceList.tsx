@@ -1,4 +1,5 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
 import { isRegistrationOpen } from "@/lib/races/registration";
 
 import { RaceEntryRow } from "./RaceEntryRow";
@@ -16,10 +17,12 @@ import { RaceEntryRow } from "./RaceEntryRow";
  */
 export function RaceList({
   canWriteReport = false,
+  catalogue,
   entries,
   now,
 }: {
   canWriteReport?: boolean;
+  catalogue: RaceCatalogueMap;
   entries: SiteRaceScheduleEntry[];
   now: Date;
 }) {
@@ -50,6 +53,7 @@ export function RaceList({
               {sorted.map((entry) => (
                 <RaceEntryRow
                   canWriteReport={canWriteReport}
+                  catalogue={catalogue}
                   entry={entry}
                   key={entry.id}
                   now={now}

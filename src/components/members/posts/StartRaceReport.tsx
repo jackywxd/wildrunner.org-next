@@ -8,6 +8,7 @@ import { RaceChoice } from "@/components/members/posts/RaceChoice";
 import { emptyContent } from "@/lib/editor/empty";
 import { ensureRaceRecord } from "@/lib/members/race-records";
 import { createPost } from "@/lib/members/posts";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import type { RaceReportOption } from "@/lib/races/report-options";
 
 /**
@@ -24,10 +25,12 @@ import type { RaceReportOption } from "@/lib/races/report-options";
  * writing about it.
  */
 export function StartRaceReport({
+  catalogueEvents,
   options,
   ownerId,
   preselected,
 }: {
+  catalogueEvents: CatalogueEvent[];
   options: RaceReportOption[];
   ownerId: number;
   preselected?: number;
@@ -107,6 +110,7 @@ export function StartRaceReport({
     <div className="space-y-4 border border-border p-4">
       <RaceChoice
         busy={busy}
+        catalogueEvents={catalogueEvents}
         distanceId={distanceId}
         onDistance={setDistanceId}
         onRace={chooseRace}

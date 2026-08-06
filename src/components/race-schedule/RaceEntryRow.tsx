@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
 import { canReport } from "@/lib/races/report-options";
 import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
@@ -44,8 +45,11 @@ function formatRange(entry: SiteRaceScheduleEntry): string {
   return `${formatDay(entry.startDate)}–${end}`;
 }
 
+const EMPTY_CATALOGUE: RaceCatalogueMap = new Map();
+
 export function RaceEntryRow({
   canWriteReport = false,
+  catalogue = EMPTY_CATALOGUE,
   entry,
   now,
 }: {
@@ -59,6 +63,12 @@ export function RaceEntryRow({
    * control that only ever leads to a login screen is noise on a schedule.
    */
   canWriteReport?: boolean;
+  /**
+   * Optional: only consulted when `canWriteReport` is true. The homepage
+   * teaser renders this row with `canWriteReport` always false and has no
+   * reason to fetch 100 events for a button it never shows.
+   */
+  catalogue?: RaceCatalogueMap;
   entry: SiteRaceScheduleEntry;
   now: Date;
 }) {
@@ -79,7 +89,7 @@ export function RaceEntryRow({
   // produce no badge, so the button would lead to a page that cannot
   // complete. `race-schedule` requires an eventId now, so this only
   // excludes rows written before that rule.
-  const reportable = canWriteReport && canReport(entry, now);
+  const reportable = canWriteReport && canReport(catalogue, entry, now);
   const site = externalHref(entry.url);
 
   return (

@@ -233,7 +233,18 @@ test.describe("R what a member does with a race report", () => {
     // selector fails as "element not found" — indistinguishable from a
     // regression.
     await page.goto(href, { waitUntil: "domcontentloaded" });
-    await page.getByTestId("race-report-distance").selectOption(category);
+    // Wait for hydration, not just for HTML. `domcontentloaded` fires once the
+    // parser is done, which on a hard reload can be before React attaches
+    // `<select>`'s listeners — Playwright's `selectOption` then sets the native
+    // DOM value and dispatches a `change` event nobody is listening for yet.
+    // The browser keeps showing the option selected; React's `distanceId`
+    // state never moves, so the button — gated on that state, not the DOM —
+    // stays disabled forever. The distance select is disabled until `chosen`
+    // resolves, so waiting for it to become enabled is waiting for the exact
+    // condition this component needs, not an arbitrary pause.
+    const distanceSelect = page.getByTestId("race-report-distance");
+    await expect(distanceSelect).toBeEnabled({ timeout: 15_000 });
+    await distanceSelect.selectOption(category);
     await page.getByTestId("race-report-start").click();
     await expect(page.getByTestId("race-report-error")).toContainText(
       "已經寫過",
