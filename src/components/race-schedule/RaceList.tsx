@@ -15,9 +15,11 @@ import { RaceEntryRow } from "./RaceEntryRow";
  * break the one thing a schedule has to get right.
  */
 export function RaceList({
+  canWriteReport = false,
   entries,
   now,
 }: {
+  canWriteReport?: boolean;
   entries: SiteRaceScheduleEntry[];
   now: Date;
 }) {
@@ -46,7 +48,12 @@ export function RaceList({
             </h2>
             <ul className="mt-3 space-y-3">
               {sorted.map((entry) => (
-                <RaceEntryRow entry={entry} key={entry.id} now={now} />
+                <RaceEntryRow
+                  canWriteReport={canWriteReport}
+                  entry={entry}
+                  key={entry.id}
+                  now={now}
+                />
               ))}
             </ul>
           </section>

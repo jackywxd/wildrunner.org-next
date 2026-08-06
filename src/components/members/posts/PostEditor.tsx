@@ -8,22 +8,33 @@ import {
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
 import { AIAssistPanel } from "@/components/members/editor/AIAssistPanel";
+import {
+  RaceRecordField,
+  type LinkedRace,
+} from "@/components/members/posts/RaceRecordField";
 import { savePost, unpublishPost } from "@/lib/members/posts";
 import type { PayloadContent } from "@/lib/editor/serialize";
+import type { RaceReportOption } from "@/lib/races/report-options";
 
 type Status = "draft" | "published";
 
 export function PostEditor({
   initial,
+  ownerId,
+  raceOptions,
 }: {
   initial: {
     content: PayloadContent;
     description: string;
     id: number;
+    race: LinkedRace | null;
     slug: string;
     status: Status;
     title: string;
   };
+  ownerId: number;
+  /** Finished races only — see lib/races/report-options.ts. */
+  raceOptions: RaceReportOption[];
 }) {
   const router = useRouter();
   const editorRef = useRef<ContentEditorHandle | null>(null);
@@ -32,6 +43,7 @@ export function PostEditor({
   const [slug, setSlug] = useState(initial.slug);
   const [description, setDescription] = useState(initial.description);
   const [status, setStatus] = useState<Status>(initial.status);
+  const [race, setRace] = useState<LinkedRace | null>(initial.race);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -65,7 +77,16 @@ export function PostEditor({
 
     const result = await savePost(
       initial.id,
-      { title, slug, description, content },
+      {
+        title,
+        slug,
+        description,
+        content,
+        // Always sent, including as `null`. Omitting it when nothing is
+        // linked would make "remove" impossible to express — the field
+        // would simply keep whatever was already stored. See PostPayload.
+        raceRecord: race ? race.recordId : null,
+      },
       { publish },
     );
     setBusy(false);
@@ -197,6 +218,16 @@ export function PostEditor({
           {status === "published" ? "更新已發布內容" : "發布"}
         </Button>
       </div>
+
+      <RaceRecordField
+        linked={race}
+        onChange={(value) => {
+          setRace(value);
+          setDirty(true);
+        }}
+        options={raceOptions}
+        ownerId={ownerId}
+      />
 
       <AIAssistPanel
         title={title}

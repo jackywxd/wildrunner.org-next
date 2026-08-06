@@ -81,6 +81,41 @@ export const Posts: CollectionConfig = {
       },
     },
     {
+      /**
+       * What makes a post a race report rather than an ordinary post.
+       *
+       * Points at a `race-records` document, NOT at a `race-schedule` row.
+       * A schedule row says an event ran on given dates; it has no distance,
+       * because one row covers a race offering 20K through 100M. A badge
+       * asserts "this member finished this event, at this distance, in this
+       * year" — which is precisely what a race record is. Linking to the
+       * schedule instead would leave the badge with no distance to show.
+       *
+       * The relationship runs one way, and only one way: a record can exist
+       * with no post (a badge earned but never written about), a post can
+       * exist with no record (any post that isn't a race report). Only the
+       * pairing is stored here.
+       *
+       * `filterOptions` scopes the picker to the member's own records so the
+       * admin panel cannot be used to claim someone else's finish. It is a
+       * query constraint, so it is enforced on write, not just in the UI.
+       */
+      name: 'raceRecord',
+      type: 'relationship',
+      relationTo: 'race-records',
+      label: { en: 'Race record', 'zh-TW': '比賽紀錄' },
+      index: true,
+      admin: {
+        position: 'sidebar',
+        description: '這篇文章記錄的比賽。只有已結束的比賽可以寫賽記。',
+      },
+      filterOptions: ({ user }) => {
+        if (!user) return false
+        if ((user as { role?: string }).role === 'admin') return true
+        return { owner: { equals: user.id } }
+      },
+    },
+    {
       name: 'featured',
       type: 'checkbox',
       label: { en: 'Featured', 'zh-TW': '精選' },

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import PageHeader from "@/components/page-header";
+import { getCurrentUser } from "@/lib/auth";
 import { RaceCalendar } from "@/components/race-schedule/RaceCalendar";
 import { RaceList } from "@/components/race-schedule/RaceList";
 import {
@@ -124,9 +125,17 @@ export default async function RacesPage({
   // would let a race straddling midnight be evaluated against two different
   // days within the same page.
   const now = new Date();
-  const [all, bounds] = await Promise.all([
+  // Resolved once for the whole page rather than per row. `getCurrentUser`
+  // is React-cached, but the intent matters more than the call count: every
+  // row must agree about who is looking.
+  //
+  // 「紀錄比賽」 is for members only. A signed-out visitor gets no button —
+  // it leads into the members area, and a control whose only outcome is a
+  // login screen does not belong on a public schedule.
+  const [all, bounds, user] = await Promise.all([
     getUpcomingRaces({ anchor, now }),
     getRaceScheduleBounds(),
+    getCurrentUser(),
   ]);
 
   const windowAnchor = anchor ?? currentAnchor(now);
@@ -169,7 +178,11 @@ export default async function RacesPage({
         ) : filters.view === "calendar" ? (
           <RaceCalendar anchor={anchor} entries={entries} now={now} />
         ) : (
-          <RaceList entries={entries} now={now} />
+          <RaceList
+            canWriteReport={Boolean(user)}
+            entries={entries}
+            now={now}
+          />
         )}
       </div>
 

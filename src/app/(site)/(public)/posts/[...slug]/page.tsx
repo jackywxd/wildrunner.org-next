@@ -15,6 +15,9 @@ import {
   getPublishedPostSlugs,
 } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
+import { RaceBadge } from "@/lib/races/badge";
+import { resolveBadge } from "@/lib/races/badge-source";
+import { findRaceDistance, findRaceEvent } from "@/lib/races/catalogue";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -107,6 +110,40 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               <p className="font-medium">{blog.author}</p>
               <p className="text-[12px] text-muted-foreground">
                 @{blog.author}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* The badge sits above the cover image, not below the body: it is
+            part of what this post *is* — a race report — rather than a
+            footnote to it. Present only when the author linked a race
+            record, which is the only thing that can supply the distance a
+            badge needs. */}
+        {blog.race && (
+          <div
+            className="mt-6 flex items-center gap-3 border border-border bg-secondary p-3"
+            data-testid="post-race-badge"
+          >
+            <RaceBadge
+              {...resolveBadge(blog.race.eventId, blog.race.distanceId)}
+              size={56}
+              year={blog.race.year}
+            />
+            <div className="min-w-0 text-sm">
+              <p className="truncate font-semibold">
+                {findRaceEvent(blog.race.eventId)?.name ?? blog.race.eventId}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {blog.race.year}
+                {" · "}
+                {(() => {
+                  const event = findRaceEvent(blog.race!.eventId);
+                  const distance = event
+                    ? findRaceDistance(event, blog.race!.distanceId)
+                    : undefined;
+                  return distance?.label ?? blog.race!.distanceId.toUpperCase();
+                })()}
               </p>
             </div>
           </div>
