@@ -111,6 +111,86 @@ reason — so no real email or hash was ever there, and staging's
   fixture that is harmless in a disposable database is a public login the
   moment the target is public.
 
+### The two environment variables
+
+Read this before running anything that touches a deployed database. Every
+statement below is from the source named beside it, not from inference — this
+pair has caused repeated production-adjacent mistakes, including a migration
+applied to production by a command that looked read-only.
+
+**They answer different questions and neither can replace the other.**
+
+| | question it answers | defined by |
+|---|---|---|
+| `NODE_ENV` | build/runtime mode | Node/Next |
+| `CLOUDFLARE_ENV` | **which Cloudflare resources to bind** | wrangler itself — it is the env-var form of `-e/--env` (three references in `node_modules/wrangler/wrangler-dist/cli.js`) |
+
+`wrangler.jsonc` defines:
+
+```
+top level    → D1 wildrunner-org-next           ← production
+env.staging  → D1 wildrunner-org-next-staging
+```
+
+Both are `NODE_ENV=production` builds. They are the same code in the same
+mode, differing only in which database they bind, so `NODE_ENV` cannot express
+"production build against staging's data". That is what the second variable is
+for.
+
+#### `CLOUDFLARE_ENV=production` is invalid, and always has been
+
+**wrangler names the top-level environment by its absence.** There is exactly
+one `env` section — `staging` — so `production` resolves to nothing:
+
+```
+UserError: No environment found in configuration with name "production".
+  The available configured environment names are: ["staging"]
+```
+
+- staging → `CLOUDFLARE_ENV=staging`
+- production → **unset**
+
+Nobody chose this asymmetry. `payload.config.ts` reads the variable because
+the scaffold commit copied the pattern from the OpenNext adapter's own source
+(`e30726d`, and the "Adapted from" link is still in the file); `env.staging`
+arrived three days later (`f22717f`) and made "production has no name" a fact
+nobody wrote down.
+
+`.env.production` **must not set it.** It did, and because
+`scripts/with-env.mjs` deliberately overrides pre-existing `process.env`
+entries, unsetting it in the shell does not help. Two scripts translate
+`production` to absent on purpose — `seed-race-schedule.ts` and (since this
+was found) `migrate-velite-to-payload.ts` — so `pnpm seed:races:prod` is
+correct even though it *sets* the invalid value.
+
+#### `NODE_ENV=production` applies migrations. On connect. To whatever it is bound to.
+
+`node_modules/@payloadcms/db-d1-sqlite/dist/connect.js:52`:
+
+```js
+if (process.env.NODE_ENV === 'production' && this.prodMigrations) {
+    await this.migrate({ migrations: this.prodMigrations });
+}
+```
+
+So **booting Payload with `NODE_ENV=production` runs every pending migration**,
+whatever subcommand followed. `payload migrate:status` is not a read: it
+connects first, and connecting is the write.
+
+That is how `20260805_153543_add_race_domain_model` reached production —
+a status check, run to *confirm* what was pending.
+
+**There is no way to inspect a deployed database's migrations by booting
+Payload.** Query it instead, which touches nothing:
+
+```bash
+npx wrangler d1 execute wildrunner-org-next --remote \
+  --command "SELECT name, batch FROM payload_migrations ORDER BY id DESC LIMIT 5;"
+```
+
+`scripts/preflight-production.ts` already works this way, and says why in its
+header.
+
 ### PII in public queries
 
 `posts.owner`, `galleries.owner`, `media.owner` and `authors.owner` are all

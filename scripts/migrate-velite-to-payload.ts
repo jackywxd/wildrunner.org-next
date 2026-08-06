@@ -397,10 +397,29 @@ async function main() {
     // a perfect migration while writing every row to the local database and
     // leaving the remote one untouched. Default to staging, but respect an
     // explicit CLOUDFLARE_ENV so this can target production at cutover.
-    Object.assign(process.env, {
-      NODE_ENV: "production",
-      CLOUDFLARE_ENV: process.env.CLOUDFLARE_ENV ?? "staging",
-    });
+    //
+    // "production" has to become *absent*, not be passed through. wrangler
+    // names the top-level environment by its absence — `wrangler.jsonc` has
+    // exactly one `env` section, `staging` — so `environment: "production"`
+    // resolves to nothing and dies with "No environment found in
+    // configuration with name production". The previous version passed it
+    // straight through, which meant the production path this very comment
+    // advertises failed on its first line. See AGENTS.md, "The two
+    // environment variables".
+    const target = process.env.CLOUDFLARE_ENV ?? "staging";
+    if (target !== "staging" && target !== "production") {
+      console.error(
+        `CLOUDFLARE_ENV must be "staging" or "production", got "${target}".`,
+      );
+      process.exit(1);
+    }
+    Object.assign(process.env, { NODE_ENV: "production" });
+    if (target === "production") {
+      delete process.env.CLOUDFLARE_ENV;
+    } else {
+      process.env.CLOUDFLARE_ENV = target;
+    }
+    console.log(`[migrate:velite] target: ${target} (remote)`);
   }
   const { default: config } = await import("@payload-config");
   const payload = await getPayload({ config });
