@@ -57,15 +57,10 @@ test.describe("M6 member AI access", () => {
   test("M6-T3: switching IP/User-Agent does not reset a member's limit", async ({
     baseURL,
   }) => {
-    // Same constraint as P4-T5 (e2e/ai/expand-post.spec.ts): real Workers AI
-    // latency (~10s/call) means 11 sequential calls span longer than the 60s
-    // rate-limit window, so the window resets mid-loop and no 429 is ever
-    // observed against a real deployment — not specific to this test, a
-    // property of wall-clock rate limiting vs real inference latency.
-    test.skip(
-      !baseURL || !baseURL.includes("localhost"),
-      "60s rate-limit window is shorter than 11 sequential real Workers AI calls",
-    );
+    // Runs against a deployed origin too — see P4-T5 for why it used not to.
+    // The endpoint counted after validating, so reaching the limiter required
+    // paying for real inference; it counts before parsing now, so an empty
+    // body is enough.
     // A fresh member so this test's count starts at zero regardless of
     // M6-T2 or anything else that ran before it.
     const email = `m6-ratelimit-${stamp}@wildrunner.test`;
@@ -89,14 +84,16 @@ test.describe("M6 member AI access", () => {
     for (let index = 0; index < 11; index += 1) {
       const response = await limited.post("/api/ai/expand-post", {
         headers: spoofedHeaders[index % spoofedHeaders.length],
-        data: { outline: `换 IP 测试 ${index}` },
+        // Empty on purpose: refused at validation, counted before it. What
+        // this test is about is the *key* the limiter uses, not the payload.
+        data: {},
       });
       statuses.push(response.status());
     }
 
     expect(
-      statuses.slice(0, 10).every((status) => status === 200),
-      `expected the first 10 to succeed, got: ${statuses.join(",")}`,
+      statuses.slice(0, 10).every((status) => status === 400),
+      `expected the first 10 refused as invalid, got: ${statuses.join(",")}`,
     ).toBeTruthy();
     expect(
       statuses[10],

@@ -38,19 +38,22 @@ test.describe("P4 AI expand post", () => {
   });
 
   test("P4-T5: rapid requests are rate limited", async ({ baseURL }) => {
-    // The 60s rate-limit window can't be validated against a real deployment:
-    // real Workers AI takes ~10s/call, so 11 sequential calls span ~110s —
-    // by request 6 or 7 the window has already expired and the limiter
-    // resets, so the 11th call never gets a 429 no matter what. This is a
-    // property of testing wall-clock rate limiting against real inference
-    // latency, not a bug — confirmed by direct measurement (curl, ~10.6s per
-    // call) and reproducible every time. Only meaningful against the local
-    // dev server's deterministic stub (NEXTJS_ENV=test), where 11 calls
-    // complete in milliseconds, safely inside the window.
-    test.skip(
-      !baseURL || !baseURL.includes("localhost"),
-      "60s rate-limit window is shorter than 11 sequential real Workers AI calls",
-    );
+    // Runs everywhere now, including against a deployed origin.
+    //
+    // It used to skip off localhost, with a long and internally correct
+    // explanation: reaching the counter needed a valid request, a valid
+    // request runs real Workers AI at ~10s, and eleven of those outlast the
+    // 60s window — so the limiter reset mid-loop and no 429 was ever
+    // observable. The conclusion drawn was that wall-clock rate limiting
+    // cannot be tested against real inference, and the limit ended up asserted
+    // nowhere that ships.
+    //
+    // The premise was the endpoint's, not the universe's. `checkRateLimit` ran
+    // *after* body validation, so reaching it required paying for inference —
+    // and, separately, an invalid body was refused without ever being counted,
+    // meaning the endpoint could be hammered indefinitely. Moving the check to
+    // before parsing fixed that and made the limiter reachable by a request
+    // that costs nothing. Eleven empty bodies take milliseconds anywhere.
     // A dedicated throwaway member, not the shared admin fixture: the limit
     // is keyed per-user (M6), so reusing an account other tests in this
     // file already called AI on would make the first-ten-succeed count
@@ -66,15 +69,22 @@ test.describe("P4 AI expand post", () => {
       password: "WildRunnerRateLimit1!",
     });
 
+    // Empty bodies: refused at validation, but counted before it. That is what
+    // makes this cheap — and asserting 400 rather than 200 for the first ten
+    // is what proves the counting happens before the refusal, which is the
+    // property that closes the hammering gap.
     const statuses: number[] = [];
     for (let index = 0; index < 11; index += 1) {
       const response = await rateLimited.post("/api/ai/expand-post", {
-        data: { outline: `限流测试 ${index}` },
+        data: {},
       });
       statuses.push(response.status());
     }
-    expect(statuses.slice(0, 10).every((status) => status === 200)).toBeTruthy();
-    expect(statuses[10]).toBe(429);
+    expect(
+      statuses.slice(0, 10).every((status) => status === 400),
+      `expected the first ten refused as invalid, got: ${statuses.join(",")}`,
+    ).toBeTruthy();
+    expect(statuses[10], "the eleventh is refused by the limiter").toBe(429);
 
     await admin.dispose();
     await rateLimited.dispose();
