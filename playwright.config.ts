@@ -35,6 +35,15 @@ const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.tes
  *
  * Not lower: N-T5 spent weeks looking flaky because a 5s budget met a 5.2s
  * cold route. 20s clears the measured p99 by a wide margin.
+ *
+ * Two caveats, because the numbers above are now history. They were measured
+ * on the 275-test suite that #36 deleted, so treat them as the reason 20s was
+ * chosen rather than as a description of what runs today. And the `max 26.4s`
+ * in that distribution was real: `P0-T6` blew this budget on a cold CI runner,
+ * not because the page was slow but because the first `goto` of a shard paid
+ * `next dev`'s on-demand compile — `/admin` alone measured 13.3s there. That
+ * cost now belongs to `globalSetup` (e2e/helpers/warmup.ts), which is what
+ * makes 20s a budget about the test rather than about the compiler.
  */
 const TIMEOUT = isLocalTarget ? 20_000 : 300_000;
 
