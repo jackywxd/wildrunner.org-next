@@ -97,65 +97,31 @@ test.describe("R what a member does with a race report", () => {
     // place that runs through the form a member uses.
     await page.getByTestId("post-slug").fill("");
 
-    // Attach a race the member has not already reported on.
+    // The first race and its first category, chosen without looking.
     //
-    // One report per (member, race, category): a second is refused with
-    // 這場比賽的賽記已經寫過了. Picking the first option blind makes the test's
-    // own history decide whether it passes — and it did, on the combination a
-    // walkthrough had used minutes earlier. The refusal is correct behaviour,
-    // so the fix is to choose, not to relax the constraint.
+    // `db:reset:local` and CI build the same known corpus: three completion
+    // records seeded across three members, none of them a *report*, and none
+    // on this race. So there is nothing to scan for. An earlier version read
+    // the member's existing records and hunted for a free combination — that
+    // logic was not caution, it was compensation for an environment nobody
+    // prepared, and it made the run depend on the history of the last one.
     await page.getByTestId("post-race-attach").click();
     const raceSelect = page.getByTestId("race-report-race");
     await expect(raceSelect).toBeVisible({ timeout: 15_000 });
-
-    const taken = new Set<string>();
-    const mine = await page.request.get(
-      "/api/race-records?limit=200&depth=0&where[owner][exists]=true",
-    );
-    if (mine.ok()) {
-      const { docs } = (await mine.json()) as {
-        docs: { eventId?: string; distanceId?: string; year?: number }[];
-      };
-      for (const r of docs) taken.add(`${r.eventId}:${r.distanceId}:${r.year}`);
-    }
-
-    const raceValues = await raceSelect
+    const raceValue = await raceSelect
       .locator("option:not([value=''])")
-      .evaluateAll((options) =>
-        options.map((o) => ({
-          value: (o as HTMLOptionElement).value,
-          label: (o as HTMLOptionElement).textContent ?? "",
-        })),
-      );
-    if (raceValues.length === 0) throw new Error("no completed race to report on");
+      .first()
+      .getAttribute("value");
+    if (!raceValue) throw new Error("no finished race in the seeded corpus");
+    await raceSelect.selectOption(raceValue);
 
-    let chosen: { race: string; distance: string } | null = null;
-    for (const race of raceValues) {
-      await raceSelect.selectOption(race.value);
-      const distanceSelect = page.getByTestId("race-report-distance");
-      const distances = await distanceSelect
-        .locator("option:not([value=''])")
-        .evaluateAll((options) =>
-          options.map((o) => (o as HTMLOptionElement).value),
-        );
-      // The label carries the year the record will use, e.g. "2026　Canadian…".
-      const year = race.label.trim().slice(0, 4);
-      const free = distances.find((d) => {
-        for (const key of taken) {
-          const [, category, recordYear] = key.split(":");
-          if (category === d && recordYear === year) return false;
-        }
-        return true;
-      });
-      if (free) {
-        await distanceSelect.selectOption(free);
-        chosen = { race: race.value, distance: free };
-        break;
-      }
-    }
-    if (!chosen) {
-      throw new Error("every race and category is already reported on");
-    }
+    const distanceSelect = page.getByTestId("race-report-distance");
+    const distanceValue = await distanceSelect
+      .locator("option:not([value=''])")
+      .first()
+      .getAttribute("value");
+    if (!distanceValue) throw new Error("the seeded race offers no category");
+    await distanceSelect.selectOption(distanceValue);
 
     await page.getByTestId("post-race-confirm").click();
 
@@ -166,9 +132,9 @@ test.describe("R what a member does with a race report", () => {
     // a distinction that cost an afternoon when the wrong element was read.
     await expect(page.getByTestId("post-race-error")).toHaveCount(0);
 
-    // Save the draft first, which is what the recorded walkthrough did. Not a
-    // superstition: the editor tracks unsaved changes (`post-dirty`), and the
-    // recording is the only verified account of this flow anybody has.
+    // Save the draft first, as the recorded walkthrough did. The editor tracks
+    // unsaved changes, and the recording is the only verified account of this
+    // flow anybody has.
     await page.getByTestId("post-save-draft").click();
     await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
       timeout: 20_000,
@@ -205,4 +171,5 @@ test.describe("R what a member does with a race report", () => {
 
     raceRecordId = String(body.raceRecord);
   });
+
 });

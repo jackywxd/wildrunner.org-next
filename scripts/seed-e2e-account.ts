@@ -39,8 +39,44 @@ function fromEnv(name: string, fallback: string): string {
   return value !== undefined && value.trim() !== "" ? value : fallback;
 }
 
-const EMAIL = fromEnv("E2E_ADMIN_EMAIL", "admin@wildrunner.test");
-const PASSWORD = fromEnv("E2E_ADMIN_PASSWORD", "WildRunnerAdmin1!");
+/**
+ * Three accounts, not one, and that is the point of this file now.
+ *
+ * A single-member database cannot express the questions worth asking. Can a
+ * member edit somebody else's post? Does a public page leak *another*
+ * member's email? What does `/riders` look like with more than one card — the
+ * responsive duplicate that made a badge count read 2 instead of 1 hid behind
+ * a directory with exactly one rider in it. Every one of those is unwritable
+ * against `users=1`, not merely unwritten.
+ *
+ * The identities are the ones `e2e/helpers/members.ts` already declares, so
+ * specs and seed cannot drift apart. Passwords come from the same env-or-
+ * fallback pair, and the fallback is published — which is fine here and is
+ * refused against a deployed origin by the guard in `e2e/helpers/auth.ts`.
+ */
+const ACCOUNTS = [
+  {
+    email: fromEnv("E2E_ADMIN_EMAIL", "admin@wildrunner.test"),
+    password: fromEnv("E2E_ADMIN_PASSWORD", "WildRunnerAdmin1!"),
+    role: "admin" as const,
+    author: { name: "Admin", slug: "admin" },
+  },
+  {
+    email: fromEnv("E2E_MEMBER_EMAIL", "member@wildrunner.test"),
+    password: fromEnv("E2E_MEMBER_PASSWORD", "WildRunnerMember1!"),
+    role: "member" as const,
+    author: { name: "測試會員", slug: "test-member" },
+  },
+  {
+    email: fromEnv("E2E_MEMBER2_EMAIL", "member2@wildrunner.test"),
+    password: fromEnv("E2E_MEMBER2_PASSWORD", "WildRunnerMember2!"),
+    role: "member" as const,
+    author: { name: "測試會員二", slug: "test-member-two" },
+  },
+];
+
+const EMAIL = ACCOUNTS[0].email;
+const PASSWORD = ACCOUNTS[0].password;
 
 /** Everything `migrate:velite` creates that carries an owner. */
 const OWNED = ["authors", "posts", "galleries", "media"] as const;
@@ -48,22 +84,69 @@ const OWNED = ["authors", "posts", "galleries", "media"] as const;
 async function main() {
   const payload = await getPayload({ config });
 
-  const existing = await payload.find({
-    collection: "users",
-    where: { email: { equals: EMAIL } },
-    limit: 1,
-  });
+  /**
+   * Each account gets an author, linked in both directions.
+   *
+   * `authors.owner` is what `getRiders()` filters on, and `users.author` is
+   * what maps a race record back to a rider — they are different edges and
+   * both are needed. Setting only the first leaves a rider in the directory
+   * whose badges never appear; only the second leaves the badges resolvable
+   * but the rider absent. Both were observed.
+   */
+  const users: { id: number; email: string; authorId: number }[] = [];
 
-  const user =
-    existing.docs[0] ??
-    (await payload.create({
+  for (const account of ACCOUNTS) {
+    const found = await payload.find({
       collection: "users",
-      data: { email: EMAIL, password: PASSWORD, role: "admin" },
-    }));
+      where: { email: { equals: account.email } },
+      limit: 1,
+    });
+    const user =
+      found.docs[0] ??
+      (await payload.create({
+        collection: "users",
+        data: {
+          email: account.email,
+          password: account.password,
+          role: account.role,
+        },
+      }));
 
-  console.log(
-    `[seed:e2e] ${existing.docs[0] ? "found" : "created"} ${EMAIL} (id ${user.id})`,
-  );
+    const foundAuthor = await payload.find({
+      collection: "authors",
+      where: { slug: { equals: account.author.slug } },
+      limit: 1,
+      overrideAccess: true,
+    });
+    const author =
+      foundAuthor.docs[0] ??
+      (await payload.create({
+        collection: "authors",
+        data: { name: account.author.name, slug: account.author.slug },
+        overrideAccess: true,
+      }));
+
+    await payload.update({
+      collection: "authors",
+      id: author.id,
+      data: { owner: user.id },
+      overrideAccess: true,
+    });
+    await payload.update({
+      collection: "users",
+      id: user.id,
+      data: { author: author.id },
+      overrideAccess: true,
+    });
+
+    users.push({ id: user.id, email: account.email, authorId: author.id });
+    console.log(
+      `[seed:e2e] ${found.docs[0] ? "found" : "created"} ${account.email} ` +
+        `(user ${user.id}, author ${author.id}, ${account.role})`,
+    );
+  }
+
+  const user = { id: users[0].id };
 
   for (const collection of OWNED) {
     // `overrideAccess` because there is no request context to authorise
@@ -77,13 +160,19 @@ async function main() {
       overrideAccess: true,
     });
 
+    // Round-robin, not all to the first account. One member owning everything
+    // is the shape that made "can A edit B's post?" unaskable, and left
+    // `/riders` with a single card — which is where a responsive duplicate hid
+    // long enough to cost an afternoon.
+    let next = 0;
     for (const doc of unowned.docs) {
       await payload.update({
         collection,
         id: doc.id,
-        data: { owner: user.id },
+        data: { owner: users[next % users.length].id },
         overrideAccess: true,
       });
+      next += 1;
     }
 
     // Counted after the writes rather than trusting the loop: this is the
@@ -97,6 +186,57 @@ async function main() {
       `[seed:e2e] ${collection}: assigned ${unowned.docs.length}, ${remaining} still unowned`,
     );
   }
+
+  await seedRaceRecords(payload, users);
+}
+
+async function seedRaceRecords(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  users: { id: number; email: string }[],
+) {
+  /**
+   * Distinct completions, one per member, so the directory shows badges that
+   * belong to different people. Chosen from the seeded catalogue rather than
+   * invented: an eventId with no matching event resolves to nothing and the
+   * badge silently disappears.
+   *
+   * `race-records` is left empty by `db:reset:local` otherwise, which is why
+   * the race-report journey has a free race to claim — these deliberately use
+   * events that journey does not pick first.
+   */
+  const RECORDS = [
+    { eventId: "other-hardrock", distanceId: "100m", year: 2023 },
+    { eventId: "utmb-mont-blanc", distanceId: "ccc", year: 2025 },
+    { eventId: "wtm-hk100", distanceId: "ultra", year: 2025 },
+  ];
+
+  let created = 0;
+  for (const [index, owner] of users.entries()) {
+    const record = RECORDS[index % RECORDS.length];
+    const existing = await payload.count({
+      collection: "race-records",
+      where: {
+        and: [
+          { owner: { equals: owner.id } },
+          { eventId: { equals: record.eventId } },
+          { year: { equals: record.year } },
+        ],
+      },
+      overrideAccess: true,
+    });
+    if (existing.totalDocs > 0) continue;
+    await payload.create({
+      collection: "race-records",
+      data: { ...record, owner: owner.id },
+      overrideAccess: true,
+    });
+    created += 1;
+  }
+  const { totalDocs } = await payload.count({
+    collection: "race-records",
+    overrideAccess: true,
+  });
+  console.log(`[seed:e2e] race records: created ${created}, ${totalDocs} total`);
 }
 
 main()

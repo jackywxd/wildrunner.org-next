@@ -84,3 +84,26 @@ succeed; nothing asserts that a refused publish explains itself.
   a run left behind, list their ids and hand the list over — a person runs the
   delete. A cleanup written in the moment destroyed twenty unrelated rows here
   by matching `like: "PROBE"` against `"P2 PII Probe"`.
+
+## Not covered yet: the duplicate refusal
+
+One report per member per race. A second attempt is refused on the start page
+with 這場比賽的賽記已經寫過了, in `race-report-error` — behaviour worth its own
+test, and the case an earlier draft threw away by hunting for an unused race
+instead of asserting the constraint.
+
+It is not written yet, and the reason is worth recording rather than
+retrying blind: after `db:reset:local`, `/races` renders **no visible**
+`race-write-report` control, where the same page offered one before the reset.
+Something about which races the seeded corpus makes eligible has changed, and
+that question comes before the test does.
+
+Two things learned while finding that out, both already fixed in
+`race-report.spec.ts`:
+
+- The control's testid is `race-report-error`, not the `race-report-start-error`
+  a guess produced. Read the component.
+- `/races` renders `race-write-report` **twice** — once at zero size for the
+  other breakpoint — so `.first()` selects a control that can never be clicked.
+  This is almost certainly the same duplication behind the badge count that
+  read 2 where one record existed (docs/testing-plan.md, "Open, not closed").
