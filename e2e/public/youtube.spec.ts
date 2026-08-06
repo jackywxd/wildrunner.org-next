@@ -91,6 +91,20 @@ function document(children: unknown[]) {
   };
 }
 
+/**
+ * `waitUntil: "domcontentloaded"` on every navigation in this file.
+ *
+ * The default waits for `load`, which waits for every subresource — including
+ * the YouTube iframe, from youtube-nocookie.com. That made a test about *our*
+ * rendering depend on a third party answering, from a CI runner, under load.
+ * Y-T3 timed out at 30s on all three attempts on one run and passed on the
+ * next, with no change to the application between them.
+ *
+ * Nothing here needs YouTube to respond: the assertions are that the embed is
+ * in the DOM, carries the right video id, points at the no-cookie host, and
+ * leaves the surrounding prose alone. All of that is settled at
+ * domcontentloaded.
+ */
 test.describe("Y YouTube embeds", () => {
   let admin: APIRequestContext;
   let member: APIRequestContext;
@@ -176,7 +190,7 @@ test.describe("Y YouTube embeds", () => {
       ]),
     );
 
-    await page.goto(`/posts/${post.slug}?t=${Date.now()}`);
+    await page.goto(`/posts/${post.slug}?t=${Date.now()}`, { waitUntil: "domcontentloaded" });
     const embed = page.getByTestId("youtube-embed");
     await expect(embed).toBeVisible();
     await expect(embed).toHaveAttribute("data-video-id", VIDEO);
@@ -199,7 +213,7 @@ test.describe("Y YouTube embeds", () => {
       document([linkParagraph(`https://youtu.be/${VIDEO}`, "看影片")]),
     );
 
-    await page.goto(`/posts/${post.slug}?t=${Date.now()}`);
+    await page.goto(`/posts/${post.slug}?t=${Date.now()}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("youtube-embed")).toHaveAttribute(
       "data-video-id",
       VIDEO,
@@ -221,7 +235,7 @@ test.describe("Y YouTube embeds", () => {
       ]),
     );
 
-    await page.goto(`/posts/${post.slug}?t=${Date.now()}`);
+    await page.goto(`/posts/${post.slug}?t=${Date.now()}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("youtube-embed")).toHaveCount(0);
 
     const body = page.locator("article, main").first();
