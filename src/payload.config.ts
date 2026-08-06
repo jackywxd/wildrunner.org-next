@@ -22,6 +22,9 @@ import { Media } from './collections/Media'
 import { Authors } from './collections/Authors'
 import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
+import { RaceCategories } from './collections/RaceCategories'
+import { RaceEditions } from './collections/RaceEditions'
+import { RaceEvents } from './collections/RaceEvents'
 import { RaceRecords } from './collections/RaceRecords'
 import { RaceSchedule } from './collections/RaceSchedule'
 import { Site } from './globals/Site'
@@ -156,7 +159,22 @@ export default buildConfig({
     // not the fallback failing. Tests must pin their locale to see zh-TW.
     fallbackLanguage: 'zh-TW',
   },
-  collections: [Users, Media, Authors, Posts, Galleries, RaceRecords, RaceSchedule],
+  // RaceSchedule is still here and still what /races reads. The three new
+  // collections are populated but unread — see the migration. Switching the
+  // read path is a separate change, so that "the new tables are right" and
+  // "the pages still work" are two claims that fail independently.
+  collections: [
+    Users,
+    Media,
+    Authors,
+    Posts,
+    Galleries,
+    RaceEvents,
+    RaceCategories,
+    RaceEditions,
+    RaceRecords,
+    RaceSchedule,
+  ],
   globals: [Site],
   endpoints: [
     aiExpandPostEndpoint,
