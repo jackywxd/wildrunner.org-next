@@ -213,6 +213,10 @@ export interface Media {
   owner?: (number | null) | User;
   alt: string;
   /**
+   * Optional. Which race this photo is from — shown on that race’s public photo wall.
+   */
+  raceEdition?: (number | null) | RaceEdition;
+  /**
    * Cloudflare Stream UID after video ingest (Phase 5+)
    */
   streamId?: string | null;
@@ -230,6 +234,91 @@ export interface Media {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
+}
+/**
+ * One row per running of a race. A row with no start date is a historical edition somebody has a record for — that is expected, not missing data.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-editions".
+ */
+export interface RaceEdition {
+  id: number;
+  event: number | RaceEvent;
+  year: number;
+  /**
+   * Empty for a historical edition nobody recorded the dates of. It will not appear on /races, which is correct — it exists so a record can point at it.
+   */
+  startDate?: string | null;
+  /**
+   * Multi-day events only. Leave empty for a single day.
+   */
+  endDate?: string | null;
+  /**
+   * Only when this edition was published under a different name than the event carries now. Otherwise leave empty and the event name is used.
+   */
+  nameOverride?: string | null;
+  location?: string | null;
+  /**
+   * Only if this edition has its own page. The event's own website lives on the event.
+   */
+  url?: string | null;
+  /**
+   * Leave empty if not announced. Never guess — a wrong date makes people miss entry.
+   */
+  registrationOpensAt?: string | null;
+  registrationClosesAt?: string | null;
+  registrationUrl?: string | null;
+  registrationType?: ('first-come' | 'lottery' | 'qualifier' | 'invitational') | null;
+  /**
+   * Only for what dates cannot express. Clear it once the race has run — the daily maintenance job clears stale ones.
+   */
+  registrationStatusOverride?: ('full' | 'waitlist' | 'cancelled' | 'tba') | null;
+  sourceUrl?: string | null;
+  verifiedAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The race itself. Dates live on editions. Renaming is fine; changing the key is not — a member badge points at it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-events".
+ */
+export interface RaceEvent {
+  id: number;
+  /**
+   * Stable identifier, e.g. utmb-mont-blanc. Immutable — the badge colour is derived from it and member records point at it.
+   */
+  key: string;
+  name: string;
+  /**
+   * Only where Chinese runners actually use one. The site shows this instead of the name, so a transliteration nobody uses would hide the race.
+   */
+  nameZh?: string | null;
+  /**
+   * Changes between seasons — races join and leave. Re-check it when the next calendar is published.
+   */
+  series: 'utmb' | 'wtm' | 'others';
+  /**
+   * ISO 3166-1 alpha-3, e.g. FRA.
+   */
+  country?: string | null;
+  /**
+   * Empty is allowed only when there genuinely is none — the Barkley has no site at all. Say so in Source.
+   */
+  website?: string | null;
+  /**
+   * itra.run/Races/RaceDetails/<id>. The race pages are plain HTML; the calendar is not, so use the race page.
+   */
+  itraUrl?: string | null;
+  source?: string | null;
+  /**
+   * The day somebody read the source. Empty means never. Do not bump it for rows you did not actually re-read.
+   */
+  verifiedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -308,47 +397,6 @@ export interface Gallery {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * The race itself. Dates live on editions. Renaming is fine; changing the key is not — a member badge points at it.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "race-events".
- */
-export interface RaceEvent {
-  id: number;
-  /**
-   * Stable identifier, e.g. utmb-mont-blanc. Immutable — the badge colour is derived from it and member records point at it.
-   */
-  key: string;
-  name: string;
-  /**
-   * Only where Chinese runners actually use one. The site shows this instead of the name, so a transliteration nobody uses would hide the race.
-   */
-  nameZh?: string | null;
-  /**
-   * Changes between seasons — races join and leave. Re-check it when the next calendar is published.
-   */
-  series: 'utmb' | 'wtm' | 'others';
-  /**
-   * ISO 3166-1 alpha-3, e.g. FRA.
-   */
-  country?: string | null;
-  /**
-   * Empty is allowed only when there genuinely is none — the Barkley has no site at all. Say so in Source.
-   */
-  website?: string | null;
-  /**
-   * itra.run/Races/RaceDetails/<id>. The race pages are plain HTML; the calendar is not, so use the race page.
-   */
-  itraUrl?: string | null;
-  source?: string | null;
-  /**
-   * The day somebody read the source. Empty means never. Do not bump it for rows you did not actually re-read.
-   */
-  verifiedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "race-categories".
  */
@@ -378,50 +426,6 @@ export interface RaceCategory {
   verified?: boolean | null;
   source?: string | null;
   verifiedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * One row per running of a race. A row with no start date is a historical edition somebody has a record for — that is expected, not missing data.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "race-editions".
- */
-export interface RaceEdition {
-  id: number;
-  event: number | RaceEvent;
-  year: number;
-  /**
-   * Empty for a historical edition nobody recorded the dates of. It will not appear on /races, which is correct — it exists so a record can point at it.
-   */
-  startDate?: string | null;
-  /**
-   * Multi-day events only. Leave empty for a single day.
-   */
-  endDate?: string | null;
-  /**
-   * Only when this edition was published under a different name than the event carries now. Otherwise leave empty and the event name is used.
-   */
-  nameOverride?: string | null;
-  location?: string | null;
-  /**
-   * Only if this edition has its own page. The event's own website lives on the event.
-   */
-  url?: string | null;
-  /**
-   * Leave empty if not announced. Never guess — a wrong date makes people miss entry.
-   */
-  registrationOpensAt?: string | null;
-  registrationClosesAt?: string | null;
-  registrationUrl?: string | null;
-  registrationType?: ('first-come' | 'lottery' | 'qualifier' | 'invitational') | null;
-  /**
-   * Only for what dates cannot express. Clear it once the race has run — the daily maintenance job clears stale ones.
-   */
-  registrationStatusOverride?: ('full' | 'waitlist' | 'cancelled' | 'tba') | null;
-  sourceUrl?: string | null;
-  verifiedAt?: string | null;
-  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -648,6 +652,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   owner?: T;
   alt?: T;
+  raceEdition?: T;
   streamId?: T;
   streamReady?: T;
   blurDataURL?: T;

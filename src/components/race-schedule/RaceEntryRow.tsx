@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
 import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
@@ -127,6 +129,22 @@ export function RaceEntryRow({
 
         {entry.notes && (
           <p className="text-xs text-muted-foreground">{entry.notes}</p>
+        )}
+
+        {/* `eventId` is the string key `race-events` uses (RaceEvents.ts);
+            not every `race-schedule` row necessarily has one filled in — see
+            docs/plan. `finished || ongoing`, not just `finished`: a race
+            already underway can have photos too, and that is the same
+            "already started" bound the upload picker uses
+            (getRaceEditionOptions). */}
+        {entry.eventId && (finished || ongoing) && (
+          <Link
+            className="text-xs text-primary hover:underline"
+            data-testid="race-photo-wall-link"
+            href={`/races/${entry.eventId}/${entry.startDate.slice(0, 4)}`}
+          >
+            查看相片 →
+          </Link>
         )}
       </div>
 

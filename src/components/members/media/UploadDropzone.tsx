@@ -16,6 +16,7 @@ import {
 } from "@/lib/direct-upload";
 import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
 import { Button } from "@/components/ui/button";
+import type { SiteRaceEditionOption } from "@/lib/content-types";
 
 type Phase = "idle" | "uploading" | "saving" | "done" | "error";
 
@@ -37,9 +38,17 @@ async function parseError(response: Response, fallback: string) {
  * document is created from metadata alone, exactly as LargeUploadPanel does
  * for admins.
  */
-export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
+export function UploadDropzone({
+  onUploaded,
+  raceEditions,
+}: {
+  onUploaded: (id: number) => void;
+  /** Server-computed options only — see MediaLibrary.tsx on why this is a prop, not a client fetch. */
+  raceEditions: SiteRaceEditionOption[];
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [alt, setAlt] = useState("");
+  const [raceEditionId, setRaceEditionId] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [percent, setPercent] = useState(0);
   const [sent, setSent] = useState(0);
@@ -53,6 +62,7 @@ export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
   const choose = (chosen: File | null) => {
     setFile(chosen);
     setAlt(chosen ? defaultAltFor(chosen.name) : "");
+    setRaceEditionId("");
     setPercent(0);
     setSent(0);
     setMessage("");
@@ -77,7 +87,13 @@ export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
   async function uploadSmall(chosen: File) {
     const body = new FormData();
     body.set("file", chosen);
-    body.set("_payload", JSON.stringify({ alt: alt || defaultAltFor(chosen.name) }));
+    body.set(
+      "_payload",
+      JSON.stringify({
+        alt: alt || defaultAltFor(chosen.name),
+        ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
+      }),
+    );
 
     const response = await fetch("/api/media", {
       method: "POST",
@@ -112,6 +128,7 @@ export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
       filename: session.filename,
       mimeType: session.mimeType,
       alt: alt || defaultAltFor(chosen.name),
+      ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
     });
   }
 
@@ -120,14 +137,13 @@ export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
     setPhase("uploading");
     setMessage("");
     try {
-      if (file.size > DIRECT_UPLOAD_THRESHOLD) {
-        await uploadLarge(file, resume);
-      } else {
-        await uploadSmall(file);
-      }
+      const doc =
+        file.size > DIRECT_UPLOAD_THRESHOLD
+          ? await uploadLarge(file, resume)
+          : await uploadSmall(file);
       setPercent(100);
       setPhase("done");
-      onUploaded();
+      onUploaded(doc.id);
     } catch (error) {
       if ((error as Error)?.name === "AbortError") {
         setMessage("已暫停，可繼續上傳");
@@ -202,6 +218,26 @@ export function UploadDropzone({ onUploaded }: { onUploaded: () => void }) {
               className="block w-full border border-input bg-background px-3 py-2 text-sm"
             />
           </label>
+
+          {raceEditions.length > 0 && (
+            <label className="block space-y-1">
+              <span className="text-sm">這張照片是哪一場比賽的（選填）</span>
+              <select
+                data-testid="media-upload-race-edition"
+                value={raceEditionId}
+                disabled={busy}
+                onChange={(event) => setRaceEditionId(event.target.value)}
+                className="block w-full border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">不連結比賽</option>
+                {raceEditions.map((edition) => (
+                  <option key={edition.id} value={edition.id}>
+                    {edition.year}　{edition.nameZh || edition.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </>
       )}
 
