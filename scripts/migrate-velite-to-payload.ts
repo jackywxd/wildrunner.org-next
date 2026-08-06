@@ -383,8 +383,27 @@ async function main() {
     globals: 1,
   };
 
+  // Before the dry-run return, deliberately. `--dry-run --remote` reports what
+  // it *would* do to a remote database, and until this moved up it never
+  // checked that the remote it named was real — so the one combination a
+  // person runs to be careful was the one that validated nothing. It also made
+  // the check below unreachable from any command that does not write.
+  const remoteTarget = remote ? (process.env.CLOUDFLARE_ENV ?? "staging") : null;
+  if (remoteTarget !== null && remoteTarget !== "staging" && remoteTarget !== "production") {
+    console.error(
+      `CLOUDFLARE_ENV must be "staging" or "production", got "${remoteTarget}".`,
+    );
+    process.exit(1);
+  }
+
   if (dryRun) {
-    console.log(JSON.stringify({ dryRun: true, source: sourceCounts }, null, 2));
+    console.log(
+      JSON.stringify(
+        { dryRun: true, source: sourceCounts, target: remoteTarget ?? "local" },
+        null,
+        2,
+      ),
+    );
     assertThresholds(sourceCounts);
     return;
   }
@@ -406,13 +425,7 @@ async function main() {
     // straight through, which meant the production path this very comment
     // advertises failed on its first line. See AGENTS.md, "The two
     // environment variables".
-    const target = process.env.CLOUDFLARE_ENV ?? "staging";
-    if (target !== "staging" && target !== "production") {
-      console.error(
-        `CLOUDFLARE_ENV must be "staging" or "production", got "${target}".`,
-      );
-      process.exit(1);
-    }
+    const target = remoteTarget!;
     Object.assign(process.env, { NODE_ENV: "production" });
     if (target === "production") {
       delete process.env.CLOUDFLARE_ENV;
