@@ -50,7 +50,8 @@
     "seed:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/csv-to-seed.ts",
     "validate:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/validate-catalogue.ts",
     "capture:badges": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/capture-badges.ts",
-    "seed:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/derive-race-editions.ts"
+    "seed:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/derive-race-editions.ts",
+    "assert:schema-screen": "node scripts/assert-schema-screen.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
