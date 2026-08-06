@@ -254,9 +254,17 @@ Then approve the `production` environment gate. See
 | `e2e/races/schedule-maintenance.spec.ts` | endpoint auth, stale-override clearing, report contents |
 | `e2e/public/race-schedule.spec.ts` | the twelve-month window, calendar cell placement, registration rendering, filters, homepage link |
 
-`scripts/cleanup-staging-test-data.ts` deletes schedule rows whose name
-starts with `E2E ` — the specs also clean up after themselves, but that only
-runs when they finish.
+`scripts/cleanup-staging-test-data.ts` selects schedule rows whose name
+starts with `E2E ` and then deletes **by id**, after printing a report and
+honouring `--dry-run`.
+
+> **Flagged, not changed.** A prefix still *decides* which rows are destroyed,
+> which is the shape a later rule forbids outright ("never `like`, a prefix, or
+> any pattern"). This one predates the rule, is deliberate, runs only against
+> staging, and shows what it will take before taking it — so it is left alone
+> pending a decision rather than rewritten unilaterally. The alternative is for
+> specs to record the ids they create and for cleanup to read that list.
+
 
 > Running the full suite locally can produce `SQLITE_BUSY` failures in
 > unrelated specs. The dev server accumulates a `workerd` process per

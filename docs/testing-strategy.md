@@ -274,8 +274,14 @@ duplicate. That second failure described something that was not wrong.
 Rules:
 
 - Teardown goes in `afterEach`, so it runs on pass, fail and throw.
-- Delete **by id, what this test created**. Never clear a collection: local D1
-  holds real rows, and that teardown eventually removes something wanted.
+- Delete **by id, what this test created. Never with `like`, a prefix, or any
+  pattern — treat this as absolute.** A fuzzy match in a query returns the
+  wrong rows; in a delete it destroys them. A cleanup written to remove one
+  probe row used `like: "PROBE"` and took twenty rows titled `"P2 PII Probe"`
+  with it, none of them its own. Never clear a collection either: local D1
+  holds real rows.
+- If an id was not captured at creation, the row is not the test's to delete.
+  **Report it and let a person run the delete** — see docs/member-publish-flow.md.
 - Capture the id as soon as the object exists, before the assertions that
   might fail.
 - Teardown may use the API even where the test drives the UI. It is not the

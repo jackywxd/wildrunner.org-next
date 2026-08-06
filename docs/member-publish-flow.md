@@ -77,5 +77,10 @@ succeed; nothing asserts that a refused publish explains itself.
   `/members/posts` → `posts-new` starts blank and attaches the race later.
 - Assert the race record's *creation*, not just the link: the count going up
   by one is the part that would break silently if attaching stopped creating.
-- Clean up both the post and the race record it created. Deleting the post
-  does not remove the record.
+- The journey's own `afterEach` deletes **by the ids it captured**, never by a
+  title or prefix. Deleting the post does not remove the race record, so both
+  ids have to be captured.
+- **Anything beyond that is proposed, not performed.** If rows are found that
+  a run left behind, list their ids and hand the list over — a person runs the
+  delete. A cleanup written in the moment destroyed twenty unrelated rows here
+  by matching `like: "PROBE"` against `"P2 PII Probe"`.

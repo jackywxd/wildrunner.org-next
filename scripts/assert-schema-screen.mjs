@@ -42,9 +42,22 @@ import { existsSync, readFileSync } from "node:fs";
  * collection does not belong: Payload generates that UI from the same schema,
  * so the pairing cannot drift.
  */
+/**
+ * `mode` matters, and getting it wrong in either direction makes this check
+ * lie. A **create** screen must offer every required field: the row does not
+ * exist yet, so anything missing cannot already be satisfied. An **update**
+ * screen need not, because the value was set when the row was created —
+ * `authors.slug` is required and the profile form has no control for it, and
+ * that is correct: the form only PATCHes an author the invite flow already
+ * made. Marking that screen `create` would demand a control nobody should
+ * have; marking a create screen `update` would silence the very failure this
+ * exists to catch. Exemptions are listed with their reason so the next reader
+ * does not have to re-derive it.
+ */
 const MAPPINGS = [
   {
     collection: "src/collections/Posts.ts",
+    mode: "create",
     screens: [
       "src/components/members/posts/PostEditor.tsx",
       "src/components/members/posts/RaceRecordField.tsx",
@@ -60,6 +73,34 @@ const MAPPINGS = [
       // Lexical, in its own component — the pair a name-based guess misses.
       content: "editor-content",
     },
+  },
+  {
+    // The manager creates a record from three selects, so all three must be
+    // there — this is the screen behind the M-RACES journey.
+    collection: "src/collections/RaceRecords.ts",
+    mode: "create",
+    screens: ["src/components/members/races/RaceRecordManager.tsx"],
+    fields: {
+      eventId: "race-event-select",
+      distanceId: "race-distance-select",
+      year: "race-year-select",
+    },
+  },
+  {
+    collection: "src/collections/Authors.ts",
+    mode: "update",
+    screens: ["src/components/members/profile/ProfileForm.tsx"],
+    fields: { name: "profile-author-name" },
+    exempt: {
+      slug: "Set when the invite flow creates the author. The profile form " +
+        "only PATCHes /api/authors/<id>, so a member never supplies it.",
+    },
+  },
+  {
+    collection: "src/collections/Media.ts",
+    mode: "update",
+    screens: ["src/components/members/media/MediaDetailDialog.tsx"],
+    fields: { alt: "media-detail-alt" },
   },
 ];
 
@@ -107,7 +148,22 @@ for (const entry of MAPPINGS) {
   }
 
   for (const field of required) {
+    if (entry.exempt && field in entry.exempt) {
+      report(`  --  ${field} exempt (${entry.mode}): ${entry.exempt[field]}`);
+      continue;
+    }
     const testid = entry.fields[field];
+    if (!testid && entry.mode === "update") {
+      // An update screen that does not submit this field is fine; saying so
+      // out loud is not, unless the reason is written down.
+      failures += 1;
+      report(
+        `FAIL ${entry.collection}: '${field}' is required and this screen is ` +
+          `mode "update" with no mapping and no exempt entry. Add the control, ` +
+          `or record why a member never supplies it.`,
+      );
+      continue;
+    }
     if (!testid) {
       failures += 1;
       report(
