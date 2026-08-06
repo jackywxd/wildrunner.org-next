@@ -20,7 +20,7 @@
  */
 
 import type { RaceSeries } from "./catalogue";
-import { findRaceDistance, findRaceEvent } from "./catalogue";
+import { RACE_SERIES, findRaceDistance, findRaceEvent } from "./catalogue";
 
 export type BadgeEvent = {
   id: string;
@@ -60,5 +60,36 @@ export function resolveBadge(
   return {
     distance: resolveBadgeDistance(eventId, distanceId),
     event: resolveBadgeEvent(eventId),
+  };
+}
+
+/**
+ * Split a member's records into the series groups a profile page shows.
+ *
+ * Extracted from `RiderBadgeWall` so it can be checked without a browser. The
+ * grouping is the only real logic on that page — which record lands in which
+ * section, and what happens to a record whose event has left the catalogue —
+ * and verifying it used to mean booting a server, creating an account, posting
+ * two records and navigating twice, to read three data attributes back out of
+ * rendered HTML.
+ *
+ * Iterates `RACE_SERIES` rather than the records, so a new series appears here
+ * without a second edit; empty groups are dropped. `unknown` is returned
+ * rather than discarded because those records still belong to the member — the
+ * page renders a neutral placeholder for them.
+ */
+export function groupRecordsBySeries<T extends { eventId: string }>(
+  records: T[],
+): { groups: { series: RaceSeries; records: T[] }[]; unknown: T[] } {
+  const groups = RACE_SERIES.map((series) => ({
+    records: records.filter(
+      (record) => findRaceEvent(record.eventId)?.series === series,
+    ),
+    series,
+  })).filter((group) => group.records.length > 0);
+
+  return {
+    groups,
+    unknown: records.filter((record) => !findRaceEvent(record.eventId)),
   };
 }

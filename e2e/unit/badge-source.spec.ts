@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { resolveBadgeDistance, resolveBadgeEvent } from "@/lib/races/badge-source";
+import {
+  groupRecordsBySeries,
+  resolveBadgeDistance,
+  resolveBadgeEvent,
+} from "@/lib/races/badge-source";
 
 /**
  * U-BADGE — the seam between a stored race record and a rendered badge.
@@ -52,5 +56,57 @@ test.describe("U-BADGE badge source", () => {
     // distance — take the same path.
     expect(resolveBadgeDistance("nope", "100k").label).toBe("100K");
     expect(resolveBadgeDistance("other-hardrock", "50k").label).toBe("50K");
+  });
+});
+
+/**
+ * U-GROUP — which badge lands in which section of a rider's profile.
+ *
+ * This is the only real logic on that page, and verifying it used to cost a
+ * dev server, a Payload instance, an emulated D1, an account created over
+ * HTTP, two race records and two browser navigations — to read three data
+ * attributes back out of rendered HTML. It is a pure function of an array.
+ */
+test.describe("U-GROUP records grouped by series", () => {
+  const rec = (eventId: string) => ({ eventId });
+
+  test("U-GROUP-1: each record lands in its own series and no other", () => {
+    const { groups } = groupRecordsBySeries([
+      rec("utmb-lavaredo"),
+      rec("wtm-hk100"),
+    ]);
+    const bySeries = Object.fromEntries(
+      groups.map((g) => [g.series, g.records.map((r) => r.eventId)]),
+    );
+    expect(bySeries.utmb).toEqual(["utmb-lavaredo"]);
+    expect(bySeries.wtm).toEqual(["wtm-hk100"]);
+  });
+
+  test("U-GROUP-2: a series with no records produces no empty section", () => {
+    // An empty heading with nothing under it reads as a broken page.
+    const { groups } = groupRecordsBySeries([rec("utmb-lavaredo")]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].series).toBe("utmb");
+  });
+
+  test("U-GROUP-3: a record whose event left the catalogue is kept, not dropped", () => {
+    // It still belongs to the member. Silently discarding it would make a
+    // badge vanish from someone's profile because a CSV changed.
+    const { groups, unknown } = groupRecordsBySeries([
+      rec("utmb-lavaredo"),
+      rec("an-event-that-left-the-catalogue"),
+    ]);
+    expect(unknown.map((r) => r.eventId)).toEqual([
+      "an-event-that-left-the-catalogue",
+    ]);
+    expect(groups.flatMap((g) => g.records.map((r) => r.eventId))).toEqual([
+      "utmb-lavaredo",
+    ]);
+  });
+
+  test("U-GROUP-4: no records at all is empty, not a crash", () => {
+    const { groups, unknown } = groupRecordsBySeries([]);
+    expect(groups).toEqual([]);
+    expect(unknown).toEqual([]);
   });
 });
