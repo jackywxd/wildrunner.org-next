@@ -105,6 +105,37 @@ jobs:
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
           pnpm payload migrate
+      # A migrated database is an empty one, and the journeys are about a
+      # visitor reading things. Without this, `V1` (article), `V2` (gallery)
+      # and `V6` (rider) found nothing to click and *skipped*, while `V4/V5`
+      # failed on an empty race calendar — four of six journeys reporting
+      # something other than whether the site works, under a run that would
+      # otherwise have gone green.
+      #
+      # Both scripts are the documented local-D1 seeds (AGENTS.md), and both
+      # read from the repo: `migrate:velite` creates authors, posts and
+      # galleries from the velite content, `seed:races` the race schedule.
+      # So CI now exercises the same corpus a developer has locally, rather
+      # than an empty shell that every data-dependent assertion steps around.
+      - name: Seed the corpus the journeys read
+        # Bounded on purpose: these scripts boot Payload, and one that fails
+        # to exit would otherwise burn the job's full 30 minutes before
+        # anybody learned the seed was the problem.
+        timeout-minutes: 8
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm migrate:velite
+          pnpm seed:races
+          # Last, because it owns whatever the two above created. Without it
+          # `/riders` is empty: the directory selects authors with an owner,
+          # and `setOwner` stamps that from the authenticated user, which a
+          # CLI script does not have.
+          pnpm seed:e2e:account
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
