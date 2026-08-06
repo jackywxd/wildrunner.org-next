@@ -32,7 +32,7 @@
  * `editor-content`, which lives in a different component entirely. Writing
  * them down is the point — it is the artefact that was missing.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 
 /**
  * collection file → { screens: [files that render its editor],
@@ -127,6 +127,73 @@ function requiredFields(source) {
 
 let failures = 0;
 const report = (line) => console.log(line);
+
+/**
+ * Every `getByTestId` a test uses must name something the app renders.
+ *
+ * A guessed selector is a contradiction: a test asserts a definite outcome,
+ * and a locator nobody verified asserts whatever the guess happened to be.
+ * One was written today — `race-report-start-error`, where the component says
+ * `race-report-error` — and it failed as "element not found", which reads
+ * exactly like a broken feature. That is the expensive part: a wrong selector
+ * and a real regression are indistinguishable from the output.
+ *
+ * Constructed ids cannot be found by reading, so they are listed with the
+ * expression that builds them. The list is the evidence that somebody looked.
+ */
+const CONSTRUCTED = {
+  "member-nav-posts":
+    'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+  "member-nav-races":
+    'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+  "member-nav-media":
+    'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+  "member-nav-profile":
+    'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+  "member-nav-members":
+    'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+};
+
+function checkTestIds() {
+  const specs = readdirSync("e2e", { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".ts"))
+    .map((f) => `e2e/${f}`)
+    .filter((f) => existsSync(f) && statSync(f).isFile());
+
+  const referenced = new Set();
+  for (const file of specs) {
+    const text = readFileSync(file, "utf8");
+    for (const m of text.matchAll(/getByTestId\("([^"]+)"\)/g)) {
+      referenced.add(m[1]);
+    }
+    for (const m of text.matchAll(/data-testid="([^"]+)"/g)) {
+      referenced.add(m[1]);
+    }
+  }
+
+  const rendered = readdirSync("src", { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"))
+    .map((f) => `src/${f}`)
+    .filter((f) => existsSync(f) && statSync(f).isFile())
+    .map((f) => readFileSync(f, "utf8"))
+    .join("\n");
+
+  for (const id of [...referenced].sort()) {
+    if (rendered.includes(`data-testid="${id}"`)) continue;
+    if (CONSTRUCTED[id]) {
+      report(`  --  ${id} built at runtime — ${CONSTRUCTED[id]}`);
+      continue;
+    }
+    failures += 1;
+    report(
+      `FAIL a test asks for data-testid="${id}", which nothing in src/ ` +
+        `renders. Read the component; do not guess a selector.`,
+    );
+  }
+  report(`  ok  ${referenced.size} testid(s) referenced by tests all exist`);
+}
+
+checkTestIds();
 
 for (const entry of MAPPINGS) {
   const source = readFileSync(entry.collection, "utf8");
