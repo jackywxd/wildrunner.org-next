@@ -28,10 +28,13 @@ test.describe("V what a visitor can do", () => {
   }) => {
     await open(page, "/posts");
     const first = page.locator('a[href^="/posts/"]').first();
-    test.skip(
-      (await first.count()) === 0,
-      "no published post in this environment — nothing for a visitor to read",
-    );
+    // No skip-if-absent guard, deliberately. An earlier version had one, and
+    // on CI — where the database starts empty — this journey and two others
+    // quietly *skipped* while the run reported green. A site with nothing to
+    // read is not a reason to stop testing; it is the most serious thing this
+    // journey could discover. CI seeds the corpus (.github/workflows/e2e.yml),
+    // so absence here means the seed broke or the page stopped listing.
+    await expect(first).toBeVisible();
 
     const href = await first.getAttribute("href");
     await first.click();
@@ -62,7 +65,7 @@ test.describe("V what a visitor can do", () => {
     const first = page
       .locator('a[href^="/gallery/"]:not([href*="/v/"])')
       .last();
-    test.skip((await first.count()) === 0, "no gallery in this environment");
+    await expect(first).toBeVisible();
 
     const href = await first.getAttribute("href");
     await first.click();
@@ -117,7 +120,7 @@ test.describe("V what a visitor can do", () => {
   test("V6: opens a rider and sees their page", async ({ page }) => {
     await open(page, "/riders");
     const first = page.locator('a[href^="/riders/"]').first();
-    test.skip((await first.count()) === 0, "no rider in this environment");
+    await expect(first).toBeVisible();
 
     const href = await first.getAttribute("href");
     await first.click();

@@ -601,8 +601,17 @@ function printChecklist(rows: SeedRow[]): void {
 // reusable — and would have made a stray import in a test connect to
 // whatever CLOUDFLARE_ENV happened to be set to.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+  main()
+    .then(() => {
+      // Booting Payload from the CLI leaves something on the event loop, so a
+      // script that has finished its work still never returns — it prints its
+      // success line and sits there, which looks exactly like a hang. AGENTS.md
+      // records the ten minutes that cost. Now that CI runs this as a step, a
+      // missing exit would burn the job's whole timeout instead.
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
 }
