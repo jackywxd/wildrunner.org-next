@@ -25,6 +25,23 @@ import { BASE_URL } from "../../playwright.config";
  * meets a *remote* origin makes the unsafe combination impossible to
  * reintroduce quietly, and leaves local runs exactly as convenient as before.
  */
+/**
+ * `??` is wrong for these, and the difference is not cosmetic.
+ *
+ * GitHub Actions substitutes a **missing secret as an empty string**, not as
+ * an absent variable. `process.env.X ?? fallback` therefore yields `""` — and
+ * `""` is not the published constant, so the guard below would decide the
+ * password was safely overridden and wave a deploy through with no credential
+ * at all. It also fed `email: ""` to the seed script, which is what turned all
+ * three CI shards red the first time this was pushed.
+ *
+ * So: blank means unset.
+ */
+function fromEnv(name: string, fallback: string): string {
+  const value = process.env[name];
+  return value !== undefined && value.trim() !== "" ? value : fallback;
+}
+
 const PUBLISHED_FALLBACK = "WildRunnerAdmin1!";
 
 const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
@@ -32,8 +49,8 @@ const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.tes
 );
 
 export const TEST_ADMIN = {
-  email: process.env.E2E_ADMIN_EMAIL ?? "admin@wildrunner.test",
-  password: process.env.E2E_ADMIN_PASSWORD ?? PUBLISHED_FALLBACK,
+  email: fromEnv("E2E_ADMIN_EMAIL", "admin@wildrunner.test"),
+  password: fromEnv("E2E_ADMIN_PASSWORD", PUBLISHED_FALLBACK),
 };
 
 if (!isLocalTarget && TEST_ADMIN.password === PUBLISHED_FALLBACK) {
