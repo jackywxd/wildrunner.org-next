@@ -72,6 +72,9 @@ export interface Config {
     authors: Author;
     posts: Post;
     galleries: Gallery;
+    'race-events': RaceEvent;
+    'race-categories': RaceCategory;
+    'race-editions': RaceEdition;
     'race-records': RaceRecord;
     'race-schedule': RaceSchedule;
     'payload-kv': PayloadKv;
@@ -86,6 +89,9 @@ export interface Config {
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     galleries: GalleriesSelect<false> | GalleriesSelect<true>;
+    'race-events': RaceEventsSelect<false> | RaceEventsSelect<true>;
+    'race-categories': RaceCategoriesSelect<false> | RaceCategoriesSelect<true>;
+    'race-editions': RaceEditionsSelect<false> | RaceEditionsSelect<true>;
     'race-records': RaceRecordsSelect<false> | RaceRecordsSelect<true>;
     'race-schedule': RaceScheduleSelect<false> | RaceScheduleSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -302,6 +308,124 @@ export interface Gallery {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * The race itself. Dates live on editions. Renaming is fine; changing the key is not — a member badge points at it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-events".
+ */
+export interface RaceEvent {
+  id: number;
+  /**
+   * Stable identifier, e.g. utmb-mont-blanc. Immutable — the badge colour is derived from it and member records point at it.
+   */
+  key: string;
+  name: string;
+  /**
+   * Only where Chinese runners actually use one. The site shows this instead of the name, so a transliteration nobody uses would hide the race.
+   */
+  nameZh?: string | null;
+  /**
+   * Changes between seasons — races join and leave. Re-check it when the next calendar is published.
+   */
+  series: 'utmb' | 'wtm' | 'others';
+  /**
+   * ISO 3166-1 alpha-3, e.g. FRA.
+   */
+  country?: string | null;
+  /**
+   * Empty is allowed only when there genuinely is none — the Barkley has no site at all. Say so in Source.
+   */
+  website?: string | null;
+  /**
+   * itra.run/Races/RaceDetails/<id>. The race pages are plain HTML; the calendar is not, so use the race page.
+   */
+  itraUrl?: string | null;
+  source?: string | null;
+  /**
+   * The day somebody read the source. Empty means never. Do not bump it for rows you did not actually re-read.
+   */
+  verifiedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-categories".
+ */
+export interface RaceCategory {
+  id: number;
+  event: number | RaceEvent;
+  /**
+   * Stable within the event, e.g. ccc, 100m, relay. Member records point at it — rename the label, not this.
+   */
+  key: string;
+  /**
+   * What the race calls it, shown on the badge band: "CCC", "TMiler", "接力".
+   */
+  label: string;
+  /**
+   * The real distance, which often differs from the name — Kaçkar's "100K" is 82 km. Leave empty rather than deriving it from the label.
+   */
+  distanceKm?: number | null;
+  elevationGainM?: number | null;
+  /**
+   * Longest first, matching how events list their own races.
+   */
+  order?: number | null;
+  /**
+   * Ticked only if somebody read the event's own site. Unticked means assumed, and assumed has been wrong every time it was checked.
+   */
+  verified?: boolean | null;
+  source?: string | null;
+  verifiedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * One row per running of a race. A row with no start date is a historical edition somebody has a record for — that is expected, not missing data.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-editions".
+ */
+export interface RaceEdition {
+  id: number;
+  event: number | RaceEvent;
+  year: number;
+  /**
+   * Empty for a historical edition nobody recorded the dates of. It will not appear on /races, which is correct — it exists so a record can point at it.
+   */
+  startDate?: string | null;
+  /**
+   * Multi-day events only. Leave empty for a single day.
+   */
+  endDate?: string | null;
+  /**
+   * Only when this edition was published under a different name than the event carries now. Otherwise leave empty and the event name is used.
+   */
+  nameOverride?: string | null;
+  location?: string | null;
+  /**
+   * Only if this edition has its own page. The event's own website lives on the event.
+   */
+  url?: string | null;
+  /**
+   * Leave empty if not announced. Never guess — a wrong date makes people miss entry.
+   */
+  registrationOpensAt?: string | null;
+  registrationClosesAt?: string | null;
+  registrationUrl?: string | null;
+  registrationType?: ('first-come' | 'lottery' | 'qualifier' | 'invitational') | null;
+  /**
+   * Only for what dates cannot express. Clear it once the race has run — the daily maintenance job clears stale ones.
+   */
+  registrationStatusOverride?: ('full' | 'waitlist' | 'cancelled' | 'tba') | null;
+  sourceUrl?: string | null;
+  verifiedAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "race-records".
  */
@@ -425,6 +549,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'galleries';
         value: number | Gallery;
+      } | null)
+    | ({
+        relationTo: 'race-events';
+        value: number | RaceEvent;
+      } | null)
+    | ({
+        relationTo: 'race-categories';
+        value: number | RaceCategory;
+      } | null)
+    | ({
+        relationTo: 'race-editions';
+        value: number | RaceEdition;
       } | null)
     | ({
         relationTo: 'race-records';
@@ -585,6 +721,63 @@ export interface GalleriesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-events_select".
+ */
+export interface RaceEventsSelect<T extends boolean = true> {
+  key?: T;
+  name?: T;
+  nameZh?: T;
+  series?: T;
+  country?: T;
+  website?: T;
+  itraUrl?: T;
+  source?: T;
+  verifiedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-categories_select".
+ */
+export interface RaceCategoriesSelect<T extends boolean = true> {
+  event?: T;
+  key?: T;
+  label?: T;
+  distanceKm?: T;
+  elevationGainM?: T;
+  order?: T;
+  verified?: T;
+  source?: T;
+  verifiedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-editions_select".
+ */
+export interface RaceEditionsSelect<T extends boolean = true> {
+  event?: T;
+  year?: T;
+  startDate?: T;
+  endDate?: T;
+  nameOverride?: T;
+  location?: T;
+  url?: T;
+  registrationOpensAt?: T;
+  registrationClosesAt?: T;
+  registrationUrl?: T;
+  registrationType?: T;
+  registrationStatusOverride?: T;
+  sourceUrl?: T;
+  verifiedAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
