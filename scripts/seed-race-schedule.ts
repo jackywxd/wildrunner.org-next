@@ -325,10 +325,15 @@ export const ROWS: SeedRow[] = [
     endDate: "2026-07-04",
     country: "CAN",
     location: "Charlevoix / Côte-de-Beaupré, Québec",
-    distanceSummary: "QMT135 / 80 / 50 / 32 / 25 / 15 / 6 / 1",
+    // The live site had already rolled over to promoting 2027 by the time
+    // this was checked — the 2026 edition is finished — so the schedule page
+    // shown is 2027's, not 2026's. Taken as still representative of what a
+    // QMT weekend offers: it lists TransQMT (18km) as its own timed start
+    // alongside the numbered QMT categories, which the original entry missed.
+    distanceSummary: "QMT135 / 80 / 50 / 32 / 25 / 15 / 6 / 1 / TransQMT18",
     url: "https://ultratrailcanada.com/en/",
     sourceUrl: "https://ultratrailcanada.com/en/",
-    verifiedAt: "2026-08-04",
+    verifiedAt: "2026-08-06",
   },
   {
     name: "Sinister 7 Ultra",
@@ -341,7 +346,7 @@ export const ROWS: SeedRow[] = [
     distanceSummary: "100M / 50M / 50K / 半馬 / 接力",
     url: "https://www.sinistersports.ca/sinister7/",
     sourceUrl: "https://www.sinistersports.ca/sinister7/",
-    verifiedAt: "2026-08-04",
+    verifiedAt: "2026-08-06",
   },
   {
     name: "Canadian Death Race",
@@ -357,14 +362,18 @@ export const ROWS: SeedRow[] = [
     // 2026-07-18", which cannot both describe one edition — it is mixing the
     // finished 2026 race with the 2027 opening. Neither is claimed here.
     sourceUrl: "https://www.sinistersports.ca/deathrace/",
-    verifiedAt: "2026-08-04",
+    verifiedAt: "2026-08-06",
   },
   {
     name: "Ultra Trail Whistler by UTMB",
     nameZh: "威士拿 UTMB",
     series: "utmb",
     eventId: "utmb-whistler",
-    startDate: "2026-08-21",
+    // The original entry started this a day early. The site's own copy says
+    // "two days of racing", and every category confirms it: 100K and 50K
+    // both start the 22nd, 25K and 10K both start the 23rd — nothing runs on
+    // the 21st.
+    startDate: "2026-08-22",
     endDate: "2026-08-23",
     country: "CAN",
     location: "Whistler, British Columbia",
@@ -375,7 +384,7 @@ export const ROWS: SeedRow[] = [
     // is the usual UTMB pattern — but it is not stated as such, so it is
     // left off rather than attached to the wrong year.
     sourceUrl: "https://whistler.utmb.world/",
-    verifiedAt: "2026-08-04",
+    verifiedAt: "2026-08-06",
   },
 ];
 
