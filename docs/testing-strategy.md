@@ -258,3 +258,35 @@ files and surfaces any latent dependency between them.
 
 Slow feedback is not just annoying: an 18-minute red is one nobody reads
 carefully, and this whole document is about failures nobody read carefully.
+
+## Setup and teardown
+
+A test prepares the data it needs and removes what it created, **including
+when it fails**. Teardown on the happy path only is not teardown.
+
+`e2e/journeys/member-races.spec.ts` is the worked example. It creates a race
+record through the form and deletes it through the form, because removing one
+is part of what a member does — and it *also* deletes by id in `afterEach`,
+because the two times it failed at the public-badge assertion it never reached
+the delete step, and the record it left behind made the next run fail as a
+duplicate. That second failure described something that was not wrong.
+
+Rules:
+
+- Teardown goes in `afterEach`, so it runs on pass, fail and throw.
+- Delete **by id, what this test created**. Never clear a collection: local D1
+  holds real rows, and that teardown eventually removes something wanted.
+- Capture the id as soon as the object exists, before the assertions that
+  might fail.
+- Teardown may use the API even where the test drives the UI. It is not the
+  subject of the test.
+- **Verify teardown by forcing a failure and checking the database.** It was
+  verified that way here: the mapping was broken deliberately, the journey
+  failed after creating its record, and the member owned zero records
+  afterwards.
+
+Preparation has the same standard. A spec that leans on whatever the
+environment happens to hold passes locally and fails in CI — see the seed step
+in `.github/workflows/e2e.yml`, added after three journeys silently skipped
+against an empty database. Either seed what the test needs, or assert on a
+delta that ambient data cannot move.
