@@ -383,8 +383,27 @@ async function main() {
     globals: 1,
   };
 
+  // Before the dry-run return, deliberately. `--dry-run --remote` reports what
+  // it *would* do to a remote database, and until this moved up it never
+  // checked that the remote it named was real — so the one combination a
+  // person runs to be careful was the one that validated nothing. It also made
+  // the check below unreachable from any command that does not write.
+  const remoteTarget = remote ? (process.env.CLOUDFLARE_ENV ?? "staging") : null;
+  if (remoteTarget !== null && remoteTarget !== "staging" && remoteTarget !== "production") {
+    console.error(
+      `CLOUDFLARE_ENV must be "staging" or "production", got "${remoteTarget}".`,
+    );
+    process.exit(1);
+  }
+
   if (dryRun) {
-    console.log(JSON.stringify({ dryRun: true, source: sourceCounts }, null, 2));
+    console.log(
+      JSON.stringify(
+        { dryRun: true, source: sourceCounts, target: remoteTarget ?? "local" },
+        null,
+        2,
+      ),
+    );
     assertThresholds(sourceCounts);
     return;
   }
@@ -397,10 +416,23 @@ async function main() {
     // a perfect migration while writing every row to the local database and
     // leaving the remote one untouched. Default to staging, but respect an
     // explicit CLOUDFLARE_ENV so this can target production at cutover.
-    Object.assign(process.env, {
-      NODE_ENV: "production",
-      CLOUDFLARE_ENV: process.env.CLOUDFLARE_ENV ?? "staging",
-    });
+    //
+    // "production" has to become *absent*, not be passed through. wrangler
+    // names the top-level environment by its absence — `wrangler.jsonc` has
+    // exactly one `env` section, `staging` — so `environment: "production"`
+    // resolves to nothing and dies with "No environment found in
+    // configuration with name production". The previous version passed it
+    // straight through, which meant the production path this very comment
+    // advertises failed on its first line. See AGENTS.md, "The two
+    // environment variables".
+    const target = remoteTarget!;
+    Object.assign(process.env, { NODE_ENV: "production" });
+    if (target === "production") {
+      delete process.env.CLOUDFLARE_ENV;
+    } else {
+      process.env.CLOUDFLARE_ENV = target;
+    }
+    console.log(`[migrate:velite] target: ${target} (remote)`);
   }
   const { default: config } = await import("@payload-config");
   const payload = await getPayload({ config });
