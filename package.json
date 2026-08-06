@@ -45,7 +45,8 @@
     "deploy:staging": "pnpm run build:staging && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging opennextjs-cloudflare deploy --env staging",
     "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.production scripts/preflight-production.ts",
     "build:prod": "node scripts/with-env.mjs .env.production opennextjs-cloudflare build",
-    "deploy:prod": "pnpm run build:prod && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare deploy"
+    "deploy:prod": "pnpm run build:prod && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && opennextjs-cloudflare deploy",
+    "seed:e2e:account": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/seed-e2e-account.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",

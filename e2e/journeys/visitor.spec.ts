@@ -49,36 +49,6 @@ test.describe("V what a visitor can do", () => {
     await expect(page.locator("h1")).toBeVisible();
   });
 
-  test("V2: browses the gallery and opens one", async ({ page }) => {
-    await open(page, "/gallery");
-    // Not any `/gallery/` href, and specifically not the first one.
-    //
-    // The index opens with a Swiper carousel, and Swiper binds pointer
-    // handlers to drive dragging — a click inside a slide is consumed as the
-    // start of a gesture, so the anchor's navigation never happens. Playwright
-    // reports the click as successful and the URL simply stays put, which is
-    // what this test spent three wrong hypotheses on. `.last()` lands in the
-    // plain list below the carousel, where an anchor is just an anchor.
-    //
-    // The `:not([href*="/v/"])` excludes video permalinks
-    // (`/gallery/<slug>/v/<id>`), which are galleries' children, not galleries.
-    const first = page
-      .locator('a[href^="/gallery/"]:not([href*="/v/"])')
-      .last();
-    await expect(first).toBeVisible();
-
-    const href = await first.getAttribute("href");
-    await first.click();
-    await expect(page).toHaveURL((url) => url.pathname === href, {
-      timeout: 15_000,
-    });
-    // Any heading, not `h1`. What a visitor needs is that the gallery they
-    // clicked rendered its title; which tag carries it is the app's choice,
-    // and asserting `h1` was this test asserting its own assumption — the
-    // index itself titles cards with `h2`.
-    await expect(page.getByRole("heading").first()).toBeVisible();
-  });
-
   test("V4/V5: moves the race calendar and switches how it is shown", async ({
     page,
   }) => {

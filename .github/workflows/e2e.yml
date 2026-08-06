@@ -131,6 +131,11 @@ jobs:
           fi
           pnpm migrate:velite
           pnpm seed:races
+          # Last, because it owns whatever the two above created. Without it
+          # `/riders` is empty: the directory selects authors with an owner,
+          # and `setOwner` stamps that from the authenticated user, which a
+          # CLI script does not have.
+          pnpm seed:e2e:account
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
