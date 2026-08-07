@@ -19,9 +19,14 @@ import { TEST_ADMIN } from "../helpers/auth";
 
 test.describe("P a member tags a photo with a race", () => {
   /**
-   * Deletes by id, not by any pattern — the fixture image is
-   * `public/static/cover.png`, which is also used by the site itself, so a
-   * cleanup keyed on filename or alt text would risk the actual asset.
+   * Deletes by id, not by any pattern. The fixture image is
+   * `public/static/brand/lockup-horizontal.png` — tracked (unlike the rest
+   * of `public/static/`, gitignored per `.gitignore`'s `/public/static/*`
+   * with only `brand/` excepted; a first attempt at this used
+   * `public/static/cover.png`, which exists locally but not in the
+   * repository, and passed here while failing in CI on a fresh checkout),
+   * real content the site itself renders (the header lockup), and 130
+   * bytes — small enough that re-uploading it in a test costs nothing.
    * Captured the moment the upload response is seen, before any assertion
    * that could fail and skip the delete.
    */
@@ -66,7 +71,7 @@ test.describe("P a member tags a photo with a race", () => {
     // worth failing loudly on rather than silently skipping the tag.
     await page
       .getByTestId("media-upload-input")
-      .setInputFiles("public/static/cover.png");
+      .setInputFiles("public/static/brand/lockup-horizontal.png");
 
     await expect(raceSelect).toBeVisible({ timeout: 5_000 });
     const editionId = await raceSelect
