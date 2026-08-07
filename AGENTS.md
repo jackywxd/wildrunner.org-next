@@ -281,6 +281,14 @@ SQL. `docs/race-data-sources.md` is the full account; the short version:
 - Refresh tooling **reports differences for a human to accept**. Never
   scrape-and-write: no organiser publishes an API, every page differs, and a
   silently-broken scraper writes wrong dates — worse than having none.
+- `data/race-editions.csv` is the third reviewed CSV, and the only one meant
+  to be refreshed regularly rather than reviewed once. `pnpm seed:editions`
+  (`scripts/import-race-editions.ts`) upserts it into `race-editions` by
+  `(event, year)` directly — never through a migration, because editions
+  change weekly (dates confirmed, registration windows opening and closing)
+  and a migration only ever runs once per environment. It never overwrites a
+  row the database has verified more recently than the CSV, so an admin's own
+  edit in `/admin` survives the next import untouched.
 
 ---
 

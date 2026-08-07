@@ -78,9 +78,15 @@ Where to look:
 
 ### Editions
 
-Each event's own site, recorded per row in `sourceUrl`. Never a third-party
+Each event's own site, recorded per row in `source_url`. Never a third-party
 aggregator for dates — they lag, and a wrong date here sends somebody to a
 closed entry form.
+
+Rows live in `data/race-editions.csv`, the third reviewed CSV, imported into
+`race-editions` with `pnpm seed:editions`
+(`scripts/import-race-editions.ts`) — see AGENTS.md's "Race data" section for
+why this one is upserted, not migrated, and never overwrites a row the
+database has verified more recently than the CSV.
 
 ---
 
@@ -128,14 +134,22 @@ Trail Majors similarly. Independent races announce through the winter.
    `data/race-events.csv`: additions, removals, and **series changes**.
 2. For every event with a schedule row in the coming year, re-read its own
    site and diff the categories.
-3. Add the new season's editions to `scripts/seed-race-schedule.ts` with
-   fresh `sourceUrl` and `verifiedAt`, and run it. It is idempotent on
-   `(eventId, startDate)`, so last season's rows stay untouched — which is
-   required, because members' race reports point at the edition they ran.
+3. Add or update the new season's rows in `data/race-editions.csv` with
+   fresh `source_url` and `verified_at`, then `pnpm tsx
+   scripts/validate-race-editions.ts` and `pnpm seed:editions`
+   (`scripts/import-race-editions.ts`). It upserts by `(event_key, year)`,
+   so last season's row for the same event stays untouched as long as the
+   year differs — required, because a member's race record points at the
+   edition they ran.
 4. Bump `verified_at` on every row actually re-read. **Only those** — a
    blanket bump makes the staleness report worthless, which is the same
    reason `VERIFIED_AT` in the seed is not raised for rows nobody checked.
 5. `pnpm tsx scripts/validate-catalogue.ts` and review every warning.
+
+`scripts/seed-race-schedule.ts` and `race_schedule` still exist —
+`getFinishedRaces` (`src/lib/content.ts`) still reads that table for past
+races. Retiring it is a separate, deliberate change (docs/plan's PR 5), not
+something this procedure needs to touch.
 
 ### Per-row provenance
 

@@ -67,16 +67,24 @@ if (r2Before && !existsSync(R2_DIR)) {
 
 /**
  * The same steps, in the same order, as `.github/workflows/e2e.yml`. Ordering
- * is load-bearing: `seed:e2e:account` owns whatever the two before it made,
- * and `seed:editions` derives editions from a schedule that must already
- * exist — the migration's own derivation runs against an empty table here.
+ * is load-bearing: `seed:e2e:account` owns whatever the two before it made.
+ *
+ * `seed:editions` runs LAST on purpose, not just by inheritance from an old
+ * dependency. It upserts `data/race-editions.csv` directly (see
+ * import-race-editions.ts) — it no longer needs `race_schedule` to exist
+ * first — but `seed:e2e:account` creates race-records, and a record naming
+ * an (event, year) with no edition yet gets a *minimal* one auto-created as
+ * a side effect (populateRaceRecordRefs, RaceRecords.ts). Running the CSV
+ * import afterward means any such stub is upgraded with real data whenever
+ * the CSV happens to cover that exact (event, year) — it treats "no
+ * verified_at yet" the same as "nothing to protect".
  */
 const STEPS = [
   ["pnpm payload migrate", "schema"],
   ["pnpm migrate:velite", "authors, posts, galleries"],
   ["pnpm seed:races", "race schedule"],
   ["pnpm seed:e2e:account", "the test account, and ownership"],
-  ["pnpm seed:editions", "editions derived from the schedule"],
+  ["pnpm seed:editions", "editions imported from the reviewed CSV"],
 ];
 
 for (const [command, what] of STEPS) {
