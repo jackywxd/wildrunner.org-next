@@ -79,11 +79,15 @@ test.describe("M what a member does with race records", () => {
    * the failure left it in.
    */
   let createdRecordId: string | null = null;
+  // Set only by M-CLAIM-EDITION, below — the edition that test's claim
+  // auto-created. Without deleting this too, the second run of that test
+  // finds `event/2010` already claimed (by the first run) and correctly
+  // refuses to proceed, which looks like a test bug but is really a missing
+  // teardown: the guard is doing exactly what it is there to do.
+  let createdEditionId: string | null = null;
 
   test.afterEach(async ({ request }) => {
-    if (!createdRecordId) return;
-    const id = createdRecordId;
-    createdRecordId = null;
+    if (!createdRecordId && !createdEditionId) return;
 
     const login = await request.post("/api/users/login", {
       data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
@@ -92,14 +96,29 @@ test.describe("M what a member does with race records", () => {
       throw new Error(`teardown could not sign in: ${login.status()}`);
     }
 
-    const deleted = await request.delete(`/api/race-records/${id}`);
-    // 404 is fine — the test's own step 6 got there first. Anything else
-    // means a row is still sitting in the database, and saying so here is
-    // cheaper than the next run failing for a reason it cannot explain.
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(
-        `teardown failed to delete race record ${id}: ${deleted.status()} ${await deleted.text()}`,
-      );
+    if (createdRecordId) {
+      const id = createdRecordId;
+      createdRecordId = null;
+      const deleted = await request.delete(`/api/race-records/${id}`);
+      // 404 is fine — the test's own step 6 got there first. Anything else
+      // means a row is still sitting in the database, and saying so here is
+      // cheaper than the next run failing for a reason it cannot explain.
+      if (!deleted.ok() && deleted.status() !== 404) {
+        throw new Error(
+          `teardown failed to delete race record ${id}: ${deleted.status()} ${await deleted.text()}`,
+        );
+      }
+    }
+
+    if (createdEditionId) {
+      const id = createdEditionId;
+      createdEditionId = null;
+      const deleted = await request.delete(`/api/race-editions/${id}`);
+      if (!deleted.ok() && deleted.status() !== 404) {
+        throw new Error(
+          `teardown failed to delete race edition ${id}: ${deleted.status()} ${await deleted.text()}`,
+        );
+      }
     }
   });
 
@@ -217,5 +236,116 @@ test.describe("M what a member does with race records", () => {
     ).toHaveCount(0, { timeout: 15_000 });
 
     expect(await badgeCount(page, eventId, distanceId, year)).toBe(before);
+  });
+
+  /**
+   * S1 (docs/plan): a member's claim can name a race and a year, never
+   * dictate what the public schedule says about it. `race-editions.create`
+   * is admin-only (RaceEditions.ts) — the only way a member's write reaches
+   * it is `populateRaceRecordRefs` (RaceRecords.ts, hooks.beforeChange)
+   * find-or-creating one with `overrideAccess`, restricted to exactly
+   * `event` and `year`. This is the test that would fail if that
+   * restriction were ever loosened — every other field on the created row
+   * asserted empty, not just the two that should be set.
+   *
+   * API-level, not a UI journey: the property under test is what a write
+   * persists, not how a page renders it — TESTING.md's "cheapest level
+   * that can observe the failure".
+   *
+   * Year 2010 (`EARLIEST_RACE_YEAR`), deliberately the oldest allowed value:
+   * `race_editions` only otherwise holds near-term schedule-derived rows,
+   * and `raceYearOptions` (catalogue.ts) offers years newest-first, so
+   * M-RACES above — which claims the first available year — can never reach
+   * this far down the list and collide with it.
+   */
+  test("M-CLAIM-EDITION: claiming a race+year with no edition creates one restricted to event+year (S1)", async ({
+    request,
+  }) => {
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "sign-in").toBeTruthy();
+
+    // A real event and category this environment's catalogue actually has —
+    // not hardcoded, so this does not depend on which rows data/*.csv
+    // happens to carry.
+    const eventsRes = await request.get("/api/race-events?limit=1&depth=0");
+    expect(eventsRes.ok()).toBeTruthy();
+    const event = ((await eventsRes.json()) as { docs: { id: number; key: string }[] })
+      .docs[0];
+    if (!event) throw new Error("no race event in this environment's catalogue");
+
+    const categoriesRes = await request.get(
+      `/api/race-categories?limit=1&depth=0&where[event][equals]=${event.id}`,
+    );
+    expect(categoriesRes.ok()).toBeTruthy();
+    const category = ((await categoriesRes.json()) as { docs: { key: string }[] }).docs[0];
+    if (!category) throw new Error(`event ${event.key} has no category to claim`);
+
+    const year = 2010;
+    const preexisting = await request.get(
+      `/api/race-editions?limit=1&depth=0&where[and][0][event][equals]=${event.id}&where[and][1][year][equals]=${year}`,
+    );
+    expect(preexisting.ok()).toBeTruthy();
+    if (((await preexisting.json()) as { docs: unknown[] }).docs.length > 0) {
+      throw new Error(
+        `${event.key}/${year} already has an edition — this test needs a genuinely unclaimed combination`,
+      );
+    }
+
+    // depth=0: Payload's default (2) would populate `edition` into a full
+    // object, and this needs the raw id to fetch it again below.
+    const created = await request.post("/api/race-records?depth=0", {
+      data: { eventId: event.key, distanceId: category.key, year },
+    });
+    expect(created.ok(), await created.text()).toBeTruthy();
+    const record = ((await created.json()) as { doc: { id: number; edition?: number } }).doc;
+    createdRecordId = String(record.id);
+    recordCreated({
+      collection: "race-records",
+      id: createdRecordId,
+      note: `M-CLAIM-EDITION ${event.key} ${year}`,
+    });
+
+    expect(record.edition, "the record should resolve an edition").toBeTruthy();
+    // Captured before the next await, so a failure below still lets
+    // afterEach find it. Safe to always delete: the precondition check above
+    // guarantees no edition existed for this (event, year) before this
+    // test's own POST just above, so whatever it resolved to was created by
+    // this request, never merely found.
+    createdEditionId = String(record.edition);
+    recordCreated({
+      collection: "race-editions",
+      id: createdEditionId,
+      note: `M-CLAIM-EDITION ${event.key} ${year}`,
+    });
+
+    const editionRes = await request.get(`/api/race-editions/${record.edition}?depth=0`);
+    expect(editionRes.ok()).toBeTruthy();
+    const edition = (await editionRes.json()) as Record<string, unknown>;
+
+    expect(edition.event).toBe(event.id);
+    expect(edition.year).toBe(year);
+    // Everything else stays exactly what the schema defaults to — none of
+    // it came from this request. `registrationType` has a schema default
+    // (`first-come`), so it is asserted present rather than empty like the
+    // rest.
+    for (const field of [
+      "startDate",
+      "endDate",
+      "nameOverride",
+      "location",
+      "url",
+      "registrationOpensAt",
+      "registrationClosesAt",
+      "registrationUrl",
+      "registrationStatusOverride",
+      "sourceUrl",
+      "verifiedAt",
+      "notes",
+    ]) {
+      expect(edition[field], `edition.${field} should be empty`).toBeFalsy();
+    }
+    expect(edition.registrationType).toBe("first-come");
   });
 });

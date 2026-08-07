@@ -57,8 +57,10 @@ export const RaceEditions: CollectionConfig = {
     // Admin only, including create — and that is load-bearing. `/races` is
     // a public page reading this collection, so member write access would
     // let anyone put arbitrary rows on it. Members reach it only through
-    // the claim endpoint, which accepts three identifiers and writes an
-    // event and a year, nothing a member can choose the content of.
+    // `populateRaceRecordRefs` (RaceRecords.ts, hooks.beforeChange), which
+    // writes an event and a year via overrideAccess when a claim names a
+    // combination with no existing edition — nothing else on the row is
+    // ever set from member input.
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,

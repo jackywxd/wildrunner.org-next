@@ -376,6 +376,47 @@ export interface RaceRecord {
   eventId: string;
   distanceId: string;
   year: number;
+  /**
+   * Resolved automatically from Event + Year. May point at an edition created just for this record.
+   */
+  edition?: (number | null) | RaceEdition;
+  /**
+   * Resolved automatically from Event + Distance.
+   */
+  category?: (number | null) | RaceCategory;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-categories".
+ */
+export interface RaceCategory {
+  id: number;
+  event: number | RaceEvent;
+  /**
+   * Stable within the event, e.g. ccc, 100m, relay. Member records point at it — rename the label, not this.
+   */
+  key: string;
+  /**
+   * What the race calls it, shown on the badge band: "CCC", "TMiler", "接力".
+   */
+  label: string;
+  /**
+   * The real distance, which often differs from the name — Kaçkar's "100K" is 82 km. Leave empty rather than deriving it from the label.
+   */
+  distanceKm?: number | null;
+  elevationGainM?: number | null;
+  /**
+   * Longest first, matching how events list their own races.
+   */
+  order?: number | null;
+  /**
+   * Ticked only if somebody read the event's own site. Unticked means assumed, and assumed has been wrong every time it was checked.
+   */
+  verified?: boolean | null;
+  source?: string | null;
+  verifiedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -415,39 +456,6 @@ export interface Gallery {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "race-categories".
- */
-export interface RaceCategory {
-  id: number;
-  event: number | RaceEvent;
-  /**
-   * Stable within the event, e.g. ccc, 100m, relay. Member records point at it — rename the label, not this.
-   */
-  key: string;
-  /**
-   * What the race calls it, shown on the badge band: "CCC", "TMiler", "接力".
-   */
-  label: string;
-  /**
-   * The real distance, which often differs from the name — Kaçkar's "100K" is 82 km. Leave empty rather than deriving it from the label.
-   */
-  distanceKm?: number | null;
-  elevationGainM?: number | null;
-  /**
-   * Longest first, matching how events list their own races.
-   */
-  order?: number | null;
-  /**
-   * Ticked only if somebody read the event's own site. Unticked means assumed, and assumed has been wrong every time it was checked.
-   */
-  verified?: boolean | null;
-  source?: string | null;
-  verifiedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Upcoming races shown on /races. Dates and registration windows change often — leave a field empty rather than guessing, and update "Verified on" whenever you check a row against the official site.
@@ -798,6 +806,8 @@ export interface RaceRecordsSelect<T extends boolean = true> {
   eventId?: T;
   distanceId?: T;
   year?: T;
+  edition?: T;
+  category?: T;
   updatedAt?: T;
   createdAt?: T;
 }

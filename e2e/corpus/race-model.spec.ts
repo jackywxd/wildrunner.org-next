@@ -56,6 +56,7 @@ test.describe("X race model corpus", () => {
   let categories: Doc[];
   let editions: Doc[];
   let schedule: Doc[];
+  let records: Doc[];
 
   test.beforeAll(async ({ baseURL }) => {
     // Anonymous on purpose: these are public reference tables, and reading
@@ -66,6 +67,7 @@ test.describe("X race model corpus", () => {
     categories = await all(api, "race-categories");
     editions = await all(api, "race-editions");
     schedule = await all(api, "race-schedule");
+    records = await all(api, "race-records");
   });
 
   test.afterAll(async () => {
@@ -137,5 +139,70 @@ test.describe("X race model corpus", () => {
       seen.add(key);
     }
     expect(duplicates).toEqual([]);
+  });
+
+  test("X-T7: every race record resolves an edition", () => {
+    // Unlike category (below), nothing about edition resolution depends on
+    // the catalogue changing shape after a record was written — event+year
+    // are validated at write time and never renamed out from under a record
+    // the way a category key can be. So this one has no legitimate exception:
+    // a record with no edition means `populateRaceRecordRefs`
+    // (RaceRecords.ts, hooks.beforeChange) or
+    // `scripts/backfill-race-record-refs.ts` stopped doing its job.
+    const noEdition = records
+      .filter((r) => !r.edition)
+      .map((r) => `id=${r.id} eventId=${r.eventId} year=${r.year}`);
+    expect(noEdition).toEqual([]);
+  });
+
+  test("X-T7b: a record's category resolves whenever its distance still exists", () => {
+    // NOT "every record resolves a category" — found the hard way, rehearsing
+    // this migration on staging. `wtm-quebec-mega-trail`'s categories are
+    // qmt135/qmt15/qmt25/qmt32/qmt50/qmt6/qmt80; a pre-existing record there
+    // carries `distanceId: "short"`, which matches none of them — the
+    // catalogue was edited after that record was written. That is not a bug:
+    // validateRaceCatalogueRef's own header documents this exact contract
+    // ("records already stored are never re-validated... a category renamed
+    // or removed does not retroactively break that record; the badge
+    // degrades to a neutral placeholder instead"). A hard "every record"
+    // assertion here would fail on legitimate, already-designed-for history.
+    //
+    // What should never happen: a distanceId that DOES match one of its
+    // event's current categories, yet resolved to no category anyway — that
+    // combination can only mean populateRaceRecordRefs itself is broken.
+    const eventIdByKey = new Map(events.map((e) => [e.key, e.id]));
+    const categoryKeysByEvent = new Map<number, Set<string>>();
+    for (const category of categories) {
+      const eventId = category.event as number;
+      const keys = categoryKeysByEvent.get(eventId) ?? new Set<string>();
+      keys.add(category.key as string);
+      categoryKeysByEvent.set(eventId, keys);
+    }
+
+    const shouldHaveResolved = records
+      .filter((r) => !r.category)
+      .filter((r) => {
+        const eventId = eventIdByKey.get(r.eventId as string);
+        if (eventId === undefined) return false;
+        return categoryKeysByEvent.get(eventId)?.has(r.distanceId as string) ?? false;
+      })
+      .map((r) => `id=${r.id} eventId=${r.eventId} distanceId=${r.distanceId}`);
+    expect(shouldHaveResolved).toEqual([]);
+  });
+
+  test("X-T8: a record's category belongs to the same event as its edition", () => {
+    // The easiest thing to get wrong in this exact class of migration: two
+    // foreign keys derived independently from the same eventId can each
+    // resolve to a real row while still disagreeing with each other, if one
+    // of them is resolved against the wrong event. Direct ids, not names —
+    // `populateRaceRecordRefs` resolves both from the same `race-events` row
+    // in one pass specifically to make that impossible.
+    const editionEvent = new Map(editions.map((e) => [e.id, e.event]));
+    const categoryEvent = new Map(categories.map((c) => [c.id, c.event]));
+    const disagreements = records
+      .filter((r) => r.edition && r.category)
+      .filter((r) => editionEvent.get(r.edition as number) !== categoryEvent.get(r.category as number))
+      .map((r) => `id=${r.id} edition=${r.edition} category=${r.category}`);
+    expect(disagreements).toEqual([]);
   });
 });
