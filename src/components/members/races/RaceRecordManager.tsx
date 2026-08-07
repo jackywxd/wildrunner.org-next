@@ -8,11 +8,14 @@ import { resolveBadge } from "@/lib/races/badge-source";
 import {
   RACE_SERIES,
   RACE_SERIES_LABELS,
-  findRaceEvent,
-  raceEventsBySeries,
   raceYearOptions,
 } from "@/lib/races/catalogue";
 import type { RaceSeries } from "@/lib/races/catalogue";
+import {
+  catalogueMap,
+  eventsBySeries as eventsInSeries,
+} from "@/lib/races/catalogue-shape";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 
 export type MemberRaceRecord = {
   distanceId: string;
@@ -25,8 +28,10 @@ const selectClass =
   "block w-full border border-input bg-background px-3 py-2 text-sm";
 
 export function RaceRecordManager({
+  catalogueEvents,
   records: initial,
 }: {
+  catalogueEvents: CatalogueEvent[];
   records: MemberRaceRecord[];
 }) {
   const [records, setRecords] = useState(initial);
@@ -37,8 +42,18 @@ export function RaceRecordManager({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const events = useMemo(() => raceEventsBySeries(series), [series]);
-  const event = eventId ? findRaceEvent(eventId) : undefined;
+  const catalogue = useMemo(
+    () => catalogueMap(catalogueEvents),
+    [catalogueEvents],
+  );
+  const events = useMemo(
+    () =>
+      [...eventsInSeries(catalogueEvents, series)].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [catalogueEvents, series],
+  );
+  const event = eventId ? catalogue.get(eventId) : undefined;
 
   // The year list is built once per mount rather than per render: it only
   // changes at a year boundary, and rebuilding it would reset nothing but
@@ -55,7 +70,7 @@ export function RaceRecordManager({
 
   function chooseEvent(next: string) {
     setEventId(next);
-    const chosen = findRaceEvent(next);
+    const chosen = catalogue.get(next);
     // Auto-pick when there is no choice to make (Western States runs 100M
     // and nothing else), otherwise force a deliberate pick.
     setDistanceId(
@@ -150,7 +165,8 @@ export function RaceRecordManager({
               <option value="">選擇賽事…</option>
               {events.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.name}（{option.country}）
+                  {option.name}
+                  {option.country ? `（${option.country}）` : ""}
                 </option>
               ))}
             </select>
@@ -221,7 +237,7 @@ export function RaceRecordManager({
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2" data-testid="race-record-list">
             {records.map((record) => {
-              const recordEvent = findRaceEvent(record.eventId);
+              const recordEvent = catalogue.get(record.eventId);
               return (
                 <li
                   key={record.id}
@@ -230,7 +246,7 @@ export function RaceRecordManager({
                   data-testid="race-record-row"
                 >
                   <RaceBadge
-                    {...resolveBadge(record.eventId, record.distanceId)}
+                    {...resolveBadge(catalogue, record.eventId, record.distanceId)}
                     size={56}
                     year={record.year}
                   />

@@ -16,6 +16,8 @@
  *   pnpm cleanup:staging             # actually delete
  */
 import 'dotenv/config'
+import { readFileSync } from 'node:fs'
+
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -23,6 +25,55 @@ import galleriesSource from '../.velite/galleries.json'
 import postsSource from '../.velite/posts.json'
 
 const dryRun = process.argv.includes('--dry-run')
+/**
+ * Delete rows the heuristics found but no run claimed.
+ *
+ * Off by default, and that is the change. This script used to choose what to
+ * destroy by shape — schedule rows whose name starts with `E2E `, posts whose
+ * slug is missing from production. A keep-list built from prod's live API kept
+ * that *mostly* safe, and mostly is the wrong property for a delete against a
+ * shared database anyone on the internet can reach: a genuine post titled
+ * `E2E 訓練心得` matches the same rule as a fixture.
+ *
+ * Now the run's own ledger decides (e2e/helpers/created.ts). Anything the
+ * heuristics flag but the ledger does not claim is *reported* and left alone.
+ * `--sweep` deletes it anyway, for a person who has read that report and
+ * accepts it — which is the only circumstance in which a pattern should be
+ * allowed to remove data.
+ */
+const sweep = process.argv.includes('--sweep')
+
+/**
+ * `collection:id` for every row this run recorded creating. Missing file means
+ * an empty ledger, which means nothing is claimed and — without `--sweep` —
+ * nothing is deleted. Failing safe is the point: a cleanup that cannot tell
+ * what it made should remove nothing.
+ */
+function loadLedger(): Set<string> {
+  const path = process.env.E2E_CREATED_LEDGER ?? 'test-results/created-on-staging.jsonl'
+  const claimed = new Set<string>()
+  let raw: string
+  try {
+    raw = readFileSync(path, 'utf8')
+  } catch {
+    console.log(`[cleanup] no ledger at ${path} — nothing is claimed`)
+    return claimed
+  }
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue
+    try {
+      const row = JSON.parse(line) as { collection?: string; id?: string | number }
+      if (row.collection && row.id !== undefined) {
+        claimed.add(`${row.collection}:${row.id}`)
+      }
+    } catch {
+      // One truncated line from a crashed spec must not discard the rest.
+      console.log(`[cleanup] ledger line unparsable, skipping: ${line.slice(0, 80)}`)
+    }
+  }
+  console.log(`[cleanup] ledger claims ${claimed.size} row(s)`)
+  return claimed
+}
 
 type VelitePost = { slug: string }
 type VeliteGallery = {
@@ -268,10 +319,40 @@ async function main() {
     }
   }
 
+  // Split every heuristic finding into what this run claims and what it does
+  // not. Claimed rows are deleted in the order below; unclaimed ones are
+  // reported so drift stays visible without a pattern deciding a delete.
+  const claimed = loadLedger()
+  const unclaimed: Record<string, string[]> = {}
+  for (const [key, collection] of [
+    ['posts', 'posts'],
+    ['galleries', 'galleries'],
+    ['media', 'media'],
+    ['users', 'users'],
+    ['authors', 'authors'],
+    ['raceSchedule', 'race-schedule'],
+    ['raceRecords', 'race-records'],
+  ] as const) {
+    const entries = report[key] as string[]
+    const keep = entries.filter((e) => claimed.has(`${collection}:${e.split(':')[0]}`))
+    unclaimed[key] = entries.filter((e) => !keep.includes(e))
+    if (!sweep) {
+      report[key] = keep as never
+    }
+  }
+
   console.log(
     JSON.stringify(
       {
-        mode: dryRun ? 'dry-run' : 'delete',
+        mode: dryRun ? 'dry-run' : sweep ? 'delete (sweep)' : 'delete (claimed only)',
+        unclaimedLeftAlone: sweep
+          ? 'none — --sweep deletes these too'
+          : Object.fromEntries(
+              Object.entries(unclaimed).map(([k, v]) => [k, v.length]),
+            ),
+        unclaimedSamples: Object.fromEntries(
+          Object.entries(unclaimed).map(([k, v]) => [k, v.slice(0, 5)]),
+        ),
         wouldDelete: {
           posts: report.posts.length,
           galleries: report.galleries.length,

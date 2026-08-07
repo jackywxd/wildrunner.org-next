@@ -6,6 +6,7 @@ import type {
   Media,
   Post,
   PostsSelect,
+  RaceRecord,
   RaceSchedule,
   RaceScheduleSelect,
   Site as SiteGlobal,
@@ -23,7 +24,8 @@ import type {
 } from "@/lib/content-types";
 import { postSlugParams } from "@/lib/content-paths";
 import { getPayloadClient } from "@/lib/payload";
-import { scheduleWindow } from "@/lib/races/calendar";
+import { scheduleWindow, toDateString } from "@/lib/races/calendar";
+import { isFinished } from "@/lib/races/race-state";
 import { videoIdFromFilename } from "@/lib/videoId";
 
 /**
@@ -59,9 +61,15 @@ const POST_CARD_SELECT = {
   _status: true,
 } as const satisfies PostsSelect<true>;
 
+/**
+ * `raceRecord` is on the detail query only. A card grid shows no badge, and
+ * populating the relationship on 500 cards to render nothing is the same
+ * waste `content` is kept out of POST_CARD_SELECT for.
+ */
 const POST_DETAIL_SELECT = {
   ...POST_CARD_SELECT,
   content: true,
+  raceRecord: true,
 } as const satisfies PostsSelect<true>;
 
 const GALLERY_SELECT = {
@@ -94,7 +102,7 @@ type PostCardDoc = Pick<
   | "slug"
   | "title"
   | "_status"
-> & { content?: Post["content"] };
+> & { content?: Post["content"]; raceRecord?: Post["raceRecord"] };
 
 /** Exactly what GALLERY_SELECT returns — notably no `owner`. */
 type GalleryDoc = Pick<
@@ -116,6 +124,17 @@ function isMedia(value: unknown): value is Media {
 
 function isAuthor(value: unknown): value is Author {
   return Boolean(value && typeof value === "object" && "name" in value);
+}
+
+/**
+ * Populated relationship, or the bare id Payload leaves at depth 0.
+ *
+ * Keyed on `eventId` rather than on `typeof value === "object"`: the badge
+ * needs event, distance and year together, and a shape missing any of them
+ * would render a badge asserting something the record does not say.
+ */
+function isRaceRecord(value: unknown): value is RaceRecord {
+  return Boolean(value && typeof value === "object" && "eventId" in value);
 }
 
 export function mapMediaToSiteImage(media: Media | null | undefined) {
@@ -226,6 +245,12 @@ export function mapPayloadPost(doc: PostCardDoc): SitePost {
     author: author?.name,
     authorSlug: author?.slug,
     image: imageMedia ? mapMediaToSiteImage(imageMedia) : undefined,
+    // A bare number here means the query ran at depth 0 or without
+    // `raceRecord` selected — a card query. That is not a post with no
+    // race, it is a question this query did not ask, so it maps to
+    // undefined either way and no caller can tell them apart. Only the
+    // detail page renders the badge, and it asks.
+    race: isRaceRecord(doc.raceRecord) ? mapRaceRecord(doc.raceRecord) : undefined,
     content: doc.content,
   };
 }
@@ -539,6 +564,50 @@ export async function getUpcomingRaces(opts?: {
   });
 
   return result.docs.map((doc) => mapRaceScheduleEntry(doc as RaceSchedule));
+}
+
+/**
+ * Every race that has already been run — the set a member may write a
+ * report about.
+ *
+ * Only finished races, because that is the rule the feature exists to
+ * express: 只有過去的比賽可以寫賽記. A report on a race that has not happened
+ * is not a report.
+ *
+ * NOT windowed by the pager's anchor, unlike `getUpcomingRaces`. The picker
+ * is answering "which race is this post about", and the answer may be three
+ * years back; paging it would hide older races behind a control the editor
+ * does not have. The schedule is small enough (tens of rows) that fetching
+ * all past ones is cheaper than the query that would avoid it.
+ *
+ * The bound is `startDate < today`, one day looser than `raceState`'s
+ * `finished`. A race that started yesterday and ends tomorrow comes back
+ * here and is filtered out by `isFinished` at the call site. Doing the exact
+ * comparison in SQL would need `COALESCE(end_date, start_date)`, which
+ * Payload's `where` cannot express — so the loose bound narrows the rows and
+ * the shared helper decides, rather than the two disagreeing.
+ */
+export async function getFinishedRaces(
+  now: Date,
+): Promise<SiteRaceScheduleEntry[]> {
+  const payload = await getPayloadClient();
+  const today = toDateString(now);
+
+  const result = await payload.find({
+    collection: "race-schedule",
+    depth: 0,
+    select: RACE_SCHEDULE_SELECT,
+    limit: 0,
+    pagination: false,
+    // Most recent first: the race somebody is writing about is far more
+    // often last month's than one from 2019.
+    sort: "-startDate",
+    where: { startDate: { less_than: `${today}T00:00:00.000Z` } },
+  });
+
+  return result.docs
+    .map((doc) => mapRaceScheduleEntry(doc as RaceSchedule))
+    .filter((entry) => isFinished(entry, now));
 }
 
 /**

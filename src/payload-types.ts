@@ -249,6 +249,10 @@ export interface Post {
   description: string;
   image?: (number | null) | Media;
   author?: (number | null) | Author;
+  /**
+   * 這篇文章記錄的比賽。只有已結束的比賽可以寫賽記。
+   */
+  raceRecord?: (number | null) | RaceRecord;
   featured?: boolean | null;
   publishedAt?: string | null;
   content: {
@@ -269,6 +273,22 @@ export interface Post {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-records".
+ */
+export interface RaceRecord {
+  id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
+  eventId: string;
+  distanceId: string;
+  year: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -426,22 +446,6 @@ export interface RaceEdition {
   createdAt: string;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "race-records".
- */
-export interface RaceRecord {
-  id: number;
-  /**
-   * Whoever created this. Only admins can reassign it.
-   */
-  owner?: (number | null) | User;
-  eventId: string;
-  distanceId: string;
-  year: number;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * Upcoming races shown on /races. Dates and registration windows change often — leave a field empty rather than guessing, and update "Verified on" whenever you check a row against the official site.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -461,7 +465,7 @@ export interface RaceSchedule {
    */
   endDate?: string | null;
   /**
-   * Optional. An id from the race catalogue (e.g. utmb-mont-blanc). Only controls whether a badge is shown next to this race.
+   * Required. An id from the race catalogue (e.g. utmb-mont-blanc). Without it this race can carry no badge and no member can write a report about it. If the race is not in the catalogue yet, add it to src/lib/races/catalogue.ts first.
    */
   eventId?: string | null;
   /**
@@ -685,6 +689,7 @@ export interface PostsSelect<T extends boolean = true> {
   description?: T;
   image?: T;
   author?: T;
+  raceRecord?: T;
   featured?: T;
   publishedAt?: T;
   content?: T;

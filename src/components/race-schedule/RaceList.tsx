@@ -1,4 +1,5 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
 import { isRegistrationOpen } from "@/lib/races/registration";
 
 import { RaceEntryRow } from "./RaceEntryRow";
@@ -15,9 +16,13 @@ import { RaceEntryRow } from "./RaceEntryRow";
  * break the one thing a schedule has to get right.
  */
 export function RaceList({
+  canWriteReport = false,
+  catalogue,
   entries,
   now,
 }: {
+  canWriteReport?: boolean;
+  catalogue: RaceCatalogueMap;
   entries: SiteRaceScheduleEntry[];
   now: Date;
 }) {
@@ -46,7 +51,13 @@ export function RaceList({
             </h2>
             <ul className="mt-3 space-y-3">
               {sorted.map((entry) => (
-                <RaceEntryRow entry={entry} key={entry.id} now={now} />
+                <RaceEntryRow
+                  canWriteReport={canWriteReport}
+                  catalogue={catalogue}
+                  entry={entry}
+                  key={entry.id}
+                  now={now}
+                />
               ))}
             </ul>
           </section>
