@@ -75,6 +75,15 @@ async function main() {
 
   const updates: { id: number | string; editionId?: number; categoryId?: number }[] = []
   const unresolved: string[] = []
+  // Edition and category can each independently fail to resolve — reported
+  // separately rather than folded into "resolved", the mistake this script
+  // made on its first run: a record with edition set but category still
+  // null counted as "resolved" and the gap wasn't visible until a direct
+  // database query found it. A category can legitimately stay unresolved
+  // (a distanceId the catalogue has since renamed or removed —
+  // validateRaceCatalogueRef's header documents this as expected, not a
+  // bug), so this is a report to read, not a failure to fix.
+  const partial: string[] = []
 
   for (const doc of pending) {
     const eventId = doc.eventId
@@ -89,10 +98,17 @@ async function main() {
       unresolved.push(`id=${doc.id} eventId=${eventId} distanceId=${distanceId ?? ''} year=${year}`)
       continue
     }
+    if (editionId === undefined || categoryId === undefined) {
+      partial.push(
+        `id=${doc.id} eventId=${eventId} distanceId=${distanceId ?? ''} year=${year} ` +
+          `(edition=${editionId ?? 'unresolved'} category=${categoryId ?? 'unresolved'})`,
+      )
+    }
     updates.push({ id: doc.id, editionId, categoryId })
   }
 
-  console.log(`resolved=${updates.length} unresolved=${unresolved.length}`)
+  console.log(`resolved=${updates.length} partial=${partial.length} unresolved=${unresolved.length}`)
+  for (const row of partial) console.log(`  partial: ${row}`)
   for (const row of unresolved) console.log(`  unresolved: ${row}`)
 
   if (!shouldWrite) {
