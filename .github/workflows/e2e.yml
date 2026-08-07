@@ -74,6 +74,13 @@ jobs:
       # test written the wrong way fails in 40 seconds instead of 7 minutes.
       - name: Assert the test strategy
         run: pnpm assert:tests
+      # Pairs every `required` field with the control a member fills it in.
+      # Here rather than in a browser spec because a requirement with no
+      # control is visible in the source: the member would be asked for
+      # something the interface never offers, and clicking would never find
+      # it. Seconds, no database, no browser.
+      - name: Assert every required field has a control
+        run: pnpm assert:schema-screen
 
   e2e:
     runs-on: ubuntu-latest

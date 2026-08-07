@@ -92,6 +92,17 @@ export type SitePost = {
   author?: string;
   authorSlug?: string;
   image?: SiteImage;
+  /**
+   * Set when this post is a race report. Absent on an ordinary post.
+   *
+   * The relationship is one-way and optional in both directions: a member
+   * can hold a badge with no post behind it (a race they ran but never
+   * wrote up), and most posts are not race reports at all. What is NOT
+   * possible is a race report with no badge — the report is defined by
+   * pointing at a record, and a record always has an event, a distance and
+   * a year, which is exactly what a badge needs.
+   */
+  race?: SiteRaceRecord;
   /** Only the detail query selects the body; card queries leave it undefined. */
   content?: import("@/payload-types").Post["content"];
 };

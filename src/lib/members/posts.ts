@@ -15,6 +15,17 @@ export type PostPayload = {
   content?: PayloadContent;
   description?: string;
   image?: number | null;
+  /**
+   * The race record this post reports on, or `null` to detach it.
+   *
+   * `null` and "absent" mean different things here and the distinction is
+   * load-bearing: omitting the key leaves whatever is stored alone (an
+   * autosave must not silently unlink the race), while `null` is the
+   * member explicitly saying this is no longer a race report. `undefined`
+   * disappears through JSON.stringify, which is exactly the behaviour the
+   * first case wants.
+   */
+  raceRecord?: number | null;
   slug?: string;
   title?: string;
 };
@@ -135,6 +146,8 @@ export async function loadPost(id: number) {
     content?: PayloadContent;
     description?: string;
     id: number;
+    // depth: 0, so this is the bare id rather than a populated document.
+    raceRecord?: number | null;
     slug?: string;
     title?: string;
   };

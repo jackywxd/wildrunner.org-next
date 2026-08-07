@@ -204,6 +204,40 @@ header there explains it at length. `posts.raceRecord` adds a second hop
 
 ---
 
+## Rules that override convenience
+
+Four, learned the expensive way on 2026-08-06. Each is also enforced or
+documented somewhere concrete, because a rule only in prose is a rule that
+decays.
+
+**Destructive work is proposed, never performed.** Deletes and drops on any
+database *including local*, migrations against a deployed environment,
+`git reset --hard`, force-push, branch deletion, stopping a server somebody is
+using. Produce the commands in order, name the irreversible step, hand them
+over. If a task cannot continue without one, stop and report the state — an
+unfinished task is recoverable, a destroyed one is not.
+
+**Never delete by `like`, prefix, or any pattern.** Only by ids captured when
+the rows were created. A fuzzy match in a query returns wrong rows; in a delete
+it destroys them. Twenty rows titled `"P2 PII Probe"` were lost here to a
+cleanup meant to remove one. If an id was not captured, the row is not yours to
+delete — say so.
+
+**Read the schema before testing a form.** Pair every required field with the
+control that fills it, *before* clicking anything. A required field with no
+control is a bug by construction, and no UI-driving test can see it because the
+test cannot do what the user cannot. `pnpm assert:schema-screen` enforces this
+for every member-facing form; `docs/member-publish-flow.md` shows what the
+pairing found.
+
+**Do not write new code to diagnose.** Every probe, guard and cleanup written
+to investigate something that day was wrong on its first version, and a broken
+probe fails silently — silence then reads as "no problem". Read what already
+decides the behaviour: the collection, the vendor source in `node_modules`, the
+config, the migration. When reading is not enough, use tools that already work
+— `wrangler d1 execute --remote`, the server log, `payload_versions`, git,
+Playwright codegen. Not something written five minutes ago.
+
 ## Commands
 
 ```bash
