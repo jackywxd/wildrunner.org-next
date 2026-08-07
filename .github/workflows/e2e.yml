@@ -148,12 +148,14 @@ jobs:
           # and `setOwner` stamps that from the authenticated user, which a
           # CLI script does not have.
           pnpm seed:e2e:account
-          # After seed:races, and this ordering is the whole point. The domain
-          # migration derives editions from `race_schedule` with a JOIN, and on
-          # CI it runs against an empty database — zero editions, while the
-          # schedule it would have read arrives one step later. Two corpus
-          # tests skipped rather than failed, and the run went green having
-          # asserted nothing about editions.
+          # Last, and deliberately after seed:e2e:account now too: this
+          # upserts data/race-editions.csv directly (import-race-editions.ts)
+          # rather than deriving from race_schedule, but a race-record above
+          # can auto-create a *minimal* edition as a side effect
+          # (populateRaceRecordRefs) if its (event, year) has none yet.
+          # Running the CSV import afterward upgrades any such stub whenever
+          # the CSV covers that exact (event, year) — see
+          # scripts/reset-local-db.mjs, which mirrors this same ordering.
           pnpm seed:editions
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
