@@ -20,13 +20,28 @@ import { TEST_ADMIN } from "../helpers/auth";
 test.describe("P a member tags a photo with a race", () => {
   /**
    * Deletes by id, not by any pattern. The fixture image is
-   * `public/static/brand/lockup-horizontal.png` — tracked (unlike the rest
-   * of `public/static/`, gitignored per `.gitignore`'s `/public/static/*`
-   * with only `brand/` excepted; a first attempt at this used
-   * `public/static/cover.png`, which exists locally but not in the
-   * repository, and passed here while failing in CI on a fresh checkout),
-   * real content the site itself renders (the header lockup), and 130
-   * bytes — small enough that re-uploading it in a test costs nothing.
+   * `public/static/brand/mark-purple.svg` — real content the site itself
+   * renders (the member-nav mark), tracked, and small (496 bytes).
+   *
+   * Two wrong choices before this one, both invisible locally and only
+   * failing in CI, for different reasons:
+   *
+   * `public/static/cover.png` exists on disk here but was never
+   * `git add`ed — `.gitignore`'s `/public/static/*` excludes everything
+   * under this directory except `brand/`. Passed on every local run because
+   * the untracked file was simply sitting there; CI's fresh checkout had no
+   * such file at all.
+   *
+   * `public/static/brand/lockup-horizontal.png` fixed that — tracked,
+   * `brand/` is the exception — but `.gitattributes` routes every
+   * `*.png`/`*.jpg`/`*.webp` through Git LFS, and this repo's CI checks out
+   * with `lfs: false` deliberately (`.github/workflows/e2e.yml`,
+   * `scripts/assert-no-lfs-in-builds.mjs` — the same reason Workers Builds
+   * skips LFS smudge). Locally the real bytes are already smudged in place,
+   * so the upload succeeds; in CI the file is the raw LFS pointer text, and
+   * Payload correctly refuses it as an invalid image. `.gitattributes`
+   * doesn't route `*.svg` through LFS, which is what makes this one safe.
+   *
    * Captured the moment the upload response is seen, before any assertion
    * that could fail and skip the delete.
    */
@@ -71,7 +86,7 @@ test.describe("P a member tags a photo with a race", () => {
     // worth failing loudly on rather than silently skipping the tag.
     await page
       .getByTestId("media-upload-input")
-      .setInputFiles("public/static/brand/lockup-horizontal.png");
+      .setInputFiles("public/static/brand/mark-purple.svg");
 
     await expect(raceSelect).toBeVisible({ timeout: 5_000 });
     const editionId = await raceSelect
