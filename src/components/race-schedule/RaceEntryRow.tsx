@@ -196,7 +196,16 @@ export function RaceEntryRow({
         <Link
           className="shrink-0 self-start border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
           data-testid="race-write-report"
-          href={`/members/posts/new?race=${entry.id}`}
+          // `eventId` + year, not `entry.id`. `entry` here comes from
+          // getUpcomingRaces (race-editions), but the report picker's
+          // options come from getFinishedRaces (still race-schedule,
+          // #41) — two different tables' row ids, never meaningfully
+          // comparable. eventId is the one identifier both sides agree
+          // on (SiteRaceScheduleEntry is produced by either source), and
+          // year plus it is exactly what report-options.ts's
+          // RaceReportOption already carries. `canReport` above already
+          // guarantees `entry.eventId` is set here.
+          href={`/members/posts/new?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
         >
           紀錄比賽
         </Link>

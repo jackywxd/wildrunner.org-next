@@ -8,6 +8,7 @@ import type {
   PostsSelect,
   RaceCategory,
   RaceEdition,
+  RaceEditionsSelect,
   RaceEvent,
   RaceRecord,
   RaceSchedule,
@@ -452,6 +453,38 @@ function mapRaceRecord(doc: {
 }
 
 /**
+ * `race-editions` has no `owner` field, so there is no PII to omit — the
+ * select is here anyway to keep the convention uniform. If a relationship
+ * to `users` is ever added to this collection, the default would otherwise
+ * be to leak it, and that default is exactly what the note at the top of
+ * this file exists to prevent.
+ *
+ * `sourceUrl` and `verifiedAt` are omitted on purpose: maintenance
+ * metadata, of no use to any visitor-facing component. `event` stays a bare
+ * id (depth 0) — `raceEventCatalogue()` resolves it, so this select never
+ * grows into the populate `RACE_RECORD_SELECT` at the top of this file
+ * warns against.
+ */
+const RACE_EDITIONS_SELECT = {
+  endDate: true,
+  event: true,
+  location: true,
+  nameOverride: true,
+  notes: true,
+  registrationClosesAt: true,
+  registrationOpensAt: true,
+  registrationStatusOverride: true,
+  registrationType: true,
+  registrationUrl: true,
+  startDate: true,
+  url: true,
+} as const satisfies RaceEditionsSelect<true>;
+
+/** Payload gives back `null` for an empty field; the site type wants `undefined`. */
+const orUndefined = <T>(value: T | null | undefined): T | undefined =>
+  value ?? undefined;
+
+/**
  * `race-schedule` has no `owner` field, so there is no PII to omit — the
  * select is here anyway to keep the convention uniform. If a relationship
  * to `users` is ever added to this collection, the default would otherwise
@@ -460,6 +493,16 @@ function mapRaceRecord(doc: {
  *
  * `sourceUrl` and `verifiedAt` are omitted on purpose: maintenance
  * metadata, of no use to any visitor-facing component.
+ *
+ * STILL HERE, ALONGSIDE `RACE_EDITIONS_SELECT`. `getUpcomingRaces` and
+ * `getRaceScheduleBounds` below no longer use this — they read
+ * `race-editions` now — but `getFinishedRaces` still reads `race-schedule`,
+ * because it was written for the race-report picker (#41) against the
+ * schedule this file read at the time. Migrating it to `race-editions` too
+ * is real, separate work: `race_records` still stores a plain `eventId`
+ * string rather than an edition foreign key, so that picker's identity
+ * model would need to change with it, not as an incidental side effect of
+ * resolving a merge conflict between the two.
  */
 const RACE_SCHEDULE_SELECT = {
   country: true,
@@ -480,24 +523,7 @@ const RACE_SCHEDULE_SELECT = {
   url: true,
 } as const satisfies RaceScheduleSelect<true>;
 
-/** Payload gives back `null` for an empty field; the site type wants `undefined`. */
-const orUndefined = <T>(value: T | null | undefined): T | undefined =>
-  value ?? undefined;
-
-/**
- * THE TIMEZONE SEAM. Payload stores a `date` field as a full ISO UTC string
- * (`2026-08-28T00:00:00.000Z`). Everything downstream — the calendar grid,
- * the registration-window comparison, the month headings — works on
- * `"YYYY-MM-DD"` calendar strings, so the conversion happens exactly here
- * and a `Date` is never constructed from these values again.
- *
- * The alternative, passing the ISO string through and letting components
- * call `new Date(...)`, renders in the visitor's local timezone: a race on
- * 8/28 UTC lands in the 8/27 cell for anyone west of Greenwich. Two
- * visitors would see the same race on different days. The day-only picker
- * on the field keeps the stored value at midnight so this truncation is
- * lossless.
- */
+/** See `mapRaceEditionEntry` below for the `race-editions` equivalent. */
 function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
   const day = (value: string | null | undefined): string | undefined =>
     value ? value.slice(0, 10) : undefined;
@@ -525,6 +551,122 @@ function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
 }
 
 /**
+ * `race-events` joined with `race-categories`, loaded once per request.
+ *
+ * An edition carries only its own dates and registration window — name,
+ * series, country live on the event, and the distance list lives on the
+ * event's categories. Rendering a page of editions needs both for every
+ * row, so this batches them the same way `raceRecordsByAuthorId` batches
+ * accounts and records: two queries total, not two per edition. Both
+ * collections are public reference data with no `owner` field (see the
+ * headers of RaceEvents.ts / RaceCategories.ts), so there is no depth/PII
+ * concern here the way there is for `posts.raceRecord`.
+ */
+async function raceEventCatalogue(): Promise<{
+  events: Map<number, RaceEvent>;
+  categoriesByEvent: Map<number, RaceCategory[]>;
+}> {
+  const payload = await getPayloadClient();
+
+  const [eventsResult, categoriesResult] = await Promise.all([
+    payload.find({
+      collection: "race-events",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+    }),
+    payload.find({
+      collection: "race-categories",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      // Longest first, matching the event's own listing — carried straight
+      // into `distanceSummaryFor`, which does not re-sort.
+      sort: "order",
+    }),
+  ]);
+
+  const events = new Map(eventsResult.docs.map((event) => [event.id, event]));
+
+  const categoriesByEvent = new Map<number, RaceCategory[]>();
+  for (const category of categoriesResult.docs) {
+    const eventId =
+      typeof category.event === "number" ? category.event : category.event.id;
+    const list = categoriesByEvent.get(eventId) ?? [];
+    list.push(category);
+    categoriesByEvent.set(eventId, list);
+  }
+
+  return { events, categoriesByEvent };
+}
+
+/** "UTMB / CCC / OCC / TDS", in the order `race-categories.order` gives them. */
+function distanceSummaryFor(categories: RaceCategory[] | undefined): string | undefined {
+  if (!categories || categories.length === 0) return undefined;
+  return categories.map((category) => category.label).join(" / ");
+}
+
+/**
+ * THE TIMEZONE SEAM. Payload stores a `date` field as a full ISO UTC string
+ * (`2026-08-28T00:00:00.000Z`). Everything downstream — the calendar grid,
+ * the registration-window comparison, the month headings — works on
+ * `"YYYY-MM-DD"` calendar strings, so the conversion happens exactly here
+ * and a `Date` is never constructed from these values again.
+ *
+ * The alternative, passing the ISO string through and letting components
+ * call `new Date(...)`, renders in the visitor's local timezone: a race on
+ * 8/28 UTC lands in the 8/27 cell for anyone west of Greenwich. Two
+ * visitors would see the same race on different days. The day-only picker
+ * on the field keeps the stored value at midnight so this truncation is
+ * lossless.
+ *
+ * Returns `undefined`, not a throw, for an edition whose event cannot be
+ * resolved. `race-events`/`race-categories` both require the relationship
+ * at the schema level, so this should not happen — but a stale row from a
+ * deleted event taking the whole page down for every other, healthy row
+ * would be a worse failure than that one row silently not appearing.
+ */
+function mapRaceEditionEntry(
+  doc: RaceEdition,
+  events: Map<number, RaceEvent>,
+  categoriesByEvent: Map<number, RaceCategory[]>,
+): SiteRaceScheduleEntry | undefined {
+  const eventId = typeof doc.event === "number" ? doc.event : doc.event.id;
+  const event = events.get(eventId);
+  if (!event) return undefined;
+
+  const day = (value: string | null | undefined): string | undefined =>
+    value ? value.slice(0, 10) : undefined;
+
+  return {
+    country: orUndefined(event.country),
+    distanceSummary: distanceSummaryFor(categoriesByEvent.get(eventId)),
+    endDate: day(doc.endDate),
+    eventId: event.key,
+    id: doc.id,
+    location: orUndefined(doc.location),
+    // Only where the published name differed from what the event is called
+    // now — see RaceEditions.ts on `nameOverride`.
+    name: orUndefined(doc.nameOverride) ?? event.name,
+    nameZh: orUndefined(event.nameZh),
+    notes: orUndefined(doc.notes),
+    registrationClosesAt: day(doc.registrationClosesAt),
+    registrationOpensAt: day(doc.registrationOpensAt),
+    registrationStatusOverride: orUndefined(doc.registrationStatusOverride),
+    registrationType: doc.registrationType ?? "first-come",
+    registrationUrl: orUndefined(doc.registrationUrl),
+    series: event.series,
+    // `startDate` is filtered to `exists: true` at both call sites, so this
+    // branch always produces a value for a row that reaches here.
+    startDate: day(doc.startDate) ?? "",
+    // The edition's own page, if it published one; otherwise the event's
+    // standing site. RaceEditions.ts: "Only if this edition has its own
+    // page. The event's own website lives on the event."
+    url: orUndefined(doc.url) ?? orUndefined(event.website),
+  };
+}
+
+/**
  * The races `/races` and the homepage teaser show: one `months`-long window,
  * starting at the anchor month or, with no anchor, at the current one.
  *
@@ -541,6 +683,10 @@ function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
  * The bounds are ISO `Z` strings, which order lexicographically in exactly
  * date order — that is why a text column indexes and compares correctly
  * here without any casting.
+ *
+ * `startDate: { exists: true }` excludes a historical edition nobody has
+ * dates for (RaceEditions.ts) — it exists only so a member's record can
+ * point at it, and has no date to fall inside any window.
  */
 export async function getUpcomingRaces(opts?: {
   now?: Date;
@@ -554,22 +700,28 @@ export async function getUpcomingRaces(opts?: {
   );
   const payload = await getPayloadClient();
 
-  const result = await payload.find({
-    collection: "race-schedule",
-    depth: 0,
-    select: RACE_SCHEDULE_SELECT,
-    limit: 0,
-    pagination: false,
-    sort: "startDate",
-    where: {
-      and: [
-        { startDate: { greater_than_equal: `${from}T00:00:00.000Z` } },
-        { startDate: { less_than: `${to}T00:00:00.000Z` } },
-      ],
-    },
-  });
+  const [result, { events, categoriesByEvent }] = await Promise.all([
+    payload.find({
+      collection: "race-editions",
+      depth: 0,
+      select: RACE_EDITIONS_SELECT,
+      limit: 0,
+      pagination: false,
+      sort: "startDate",
+      where: {
+        and: [
+          { startDate: { exists: true } },
+          { startDate: { greater_than_equal: `${from}T00:00:00.000Z` } },
+          { startDate: { less_than: `${to}T00:00:00.000Z` } },
+        ],
+      },
+    }),
+    raceEventCatalogue(),
+  ]);
 
-  return result.docs.map((doc) => mapRaceScheduleEntry(doc as RaceSchedule));
+  return result.docs
+    .map((doc) => mapRaceEditionEntry(doc as RaceEdition, events, categoriesByEvent))
+    .filter((entry): entry is SiteRaceScheduleEntry => entry !== undefined);
 }
 
 /**
@@ -627,7 +779,11 @@ export async function getFinishedRaces(
  * space. Bounding it is what keeps `?from=` a finite set.
  *
  * Two ordered single-row reads rather than a full scan — the whole point is
- * to avoid loading the schedule twice per render.
+ * to avoid loading the schedule twice per render. Both filtered to
+ * `startDate: { exists: true }` for the same reason `getUpcomingRaces` is:
+ * a dateless historical edition is not part of what this bounds, and
+ * without the filter a `sort: "-startDate"` read has no guarantee a NULL
+ * does not sort first.
  */
 export async function getRaceScheduleBounds(): Promise<
   { first: string; last: string } | undefined
@@ -636,24 +792,26 @@ export async function getRaceScheduleBounds(): Promise<
 
   const [earliest, latest] = await Promise.all([
     payload.find({
-      collection: "race-schedule",
+      collection: "race-editions",
       depth: 0,
       limit: 1,
       select: { startDate: true },
       sort: "startDate",
+      where: { startDate: { exists: true } },
     }),
     payload.find({
-      collection: "race-schedule",
+      collection: "race-editions",
       depth: 0,
       limit: 1,
       select: { startDate: true },
       sort: "-startDate",
+      where: { startDate: { exists: true } },
     }),
   ]);
 
-  const first = earliest.docs[0] as RaceSchedule | undefined;
-  const last = latest.docs[0] as RaceSchedule | undefined;
-  if (!first || !last) return undefined;
+  const first = earliest.docs[0] as Pick<RaceEdition, "startDate"> | undefined;
+  const last = latest.docs[0] as Pick<RaceEdition, "startDate"> | undefined;
+  if (!first?.startDate || !last?.startDate) return undefined;
 
   // Month precision only. Payload stores these as full ISO UTC timestamps
   // and the picker is dayOnly, so the leading "YYYY-MM" is the stored month

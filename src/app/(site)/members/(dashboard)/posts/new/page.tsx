@@ -23,10 +23,10 @@ export const dynamic = "force-dynamic";
  * arrive in the editor with no chance to notice they clicked the wrong
  * race.
  *
- * `?race=` is a hint, not a requirement. Arriving without one — or with a
- * stale id — shows the same list the picker in the editor shows, which is
- * the second of the two entry points and the reason this page takes the
- * full set rather than one row.
+ * `?race=&year=` is a hint, not a requirement. Arriving without either — or
+ * with a pair that matches nothing — shows the same list the picker in the
+ * editor shows, which is the second of the two entry points and the reason
+ * this page takes the full set rather than one row.
  */
 export default async function NewRaceReportPage({
   searchParams,
@@ -43,14 +43,22 @@ export default async function NewRaceReportPage({
   ]);
   const options = reportOptions(catalogueMap(catalogueEvents), finishedRaces, now);
 
-  const raw = Array.isArray(params.race) ? params.race[0] : params.race;
-  const requested = raw ? Number(raw) : NaN;
-  // An id that matches nothing simply preselects nothing. It is a stale
+  // `race` + `year`, not a raw row id: RaceEntryRow.tsx links here from
+  // `/races`, which reads `race-editions` — a different table, and a
+  // different id space, than `options` below (`getFinishedRaces`, still
+  // `race-schedule`, #41). eventId is the identifier both agree on.
+  const rawRace = Array.isArray(params.race) ? params.race[0] : params.race;
+  const rawYear = Array.isArray(params.year) ? params.year[0] : params.year;
+  const requestedYear = rawYear ? Number(rawYear) : NaN;
+  // A pair that matches nothing simply preselects nothing. It is a stale
   // bookmark or a deleted row, not an error worth a 404 — the list below
   // still lets the member pick.
-  const preselected = options.some((option) => option.scheduleId === requested)
-    ? requested
+  const match = rawRace
+    ? options.find(
+        (option) => option.eventId === rawRace && option.year === requestedYear,
+      )
     : undefined;
+  const preselected = match?.scheduleId;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
