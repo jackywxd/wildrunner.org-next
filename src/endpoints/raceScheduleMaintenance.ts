@@ -27,6 +27,13 @@ import { revalidateForRaceSchedule } from '../lib/revalidate-public'
  *      every row is hand-curated and drifts. The report is the owner's
  *      actual to-do list; it never edits data.
  *
+ * `eventsWithNoEdition` AND `dateless` ARE THE WEEKLY REFRESH'S INPUT, not
+ * just this endpoint's own report. `scripts/refresh-race-editions.ts`
+ * (docs/race-data-sources.md, "Weekly — the reviewed-CSV refresh") reads
+ * this same shape to decide what to re-check, rather than every event in
+ * the catalogue every week — the daily job already computed it, so the
+ * weekly one doesn't have to.
+ *
  * TRIGGERED BY GitHub Actions (.github/workflows/race-schedule-maintenance.yml)
  * rather than a Cloudflare Cron Trigger. A cron trigger needs a `scheduled`
  * handler exported from the Worker, and the Worker entrypoint here is
@@ -91,20 +98,51 @@ export const raceScheduleMaintenanceEndpoint: Endpoint = {
     // path with a query budget, and `race-events` carries no PII (unlike
     // `posts.raceRecord`, which stays at depth 0 for exactly that reason —
     // see lib/content.ts).
-    const all = await req.payload.find({
-      collection: 'race-editions',
-      depth: 1,
-      limit: 0,
-      pagination: false,
-      sort: 'startDate',
-      overrideAccess: true,
-      req,
-    })
+    const [all, events] = await Promise.all([
+      req.payload.find({
+        collection: 'race-editions',
+        depth: 1,
+        limit: 0,
+        pagination: false,
+        sort: 'startDate',
+        overrideAccess: true,
+        req,
+      }),
+      req.payload.find({
+        collection: 'race-events',
+        depth: 0,
+        limit: 0,
+        pagination: false,
+        select: { key: true, name: true },
+        overrideAccess: true,
+        req,
+      }),
+    ])
+
+    // What data/race-editions.csv's weekly refresh (docs/race-data-sources.md)
+    // actually needs to know: which events it has never covered at all. Not
+    // itself a data-quality problem — a genuinely unannounced next edition is
+    // a normal state (see the PR that first bulk-populated this CSV) — but
+    // the count is the input to "did the last refresh make progress",
+    // because a growing number here with no corresponding growth in dateless
+    // above would mean the refresh stopped running, not that races stopped
+    // announcing dates.
+    const eventIdsWithEdition = new Set(
+      all.docs
+        .map((doc) => (typeof doc.event === 'object' ? doc.event?.id : doc.event))
+        .filter((id): id is number => typeof id === 'number'),
+    )
+    const eventsWithNoEdition = events.docs
+      .filter((event) => !eventIdsWithEdition.has(event.id))
+      .map((event) => ({ id: event.id, key: event.key as string, name: event.name as string }))
 
     const clearedOverrides: ReportRow[] = []
     const staleVerification: ReportRow[] = []
     const missingRegistration: ReportRow[] = []
     const closingSoon: ReportRow[] = []
+    // Every dateless edition, not just the count — see dateless below for
+    // why the count alone isn't the signal.
+    const dateless: ReportRow[] = []
 
     const staleBefore = shift(now, -STALE_VERIFICATION_DAYS)
     const registrationHorizon = shift(now, MISSING_REGISTRATION_HORIZON_DAYS)
@@ -115,7 +153,20 @@ export const raceScheduleMaintenanceEndpoint: Endpoint = {
       // exists only so a member's record can point at it (RaceEditions.ts)
       // — so it has nothing here to be stale, missing or closing soon.
       const startDate = day(doc.startDate)
-      if (!startDate) continue
+      if (!startDate) {
+        // Expected in small numbers: a member claiming a historical race
+        // with no known date (RaceEditions.ts's own reason `startDate` is
+        // optional at all). Not expected in large or fast-growing numbers —
+        // that would mean the auto-create path in populateRaceRecordRefs
+        // (RaceRecords.ts) is being hit for events the weekly refresh
+        // hasn't caught up to yet, or is being abused. The list itself,
+        // not just a count, is what makes either case checkable without a
+        // direct database query.
+        const event = typeof doc.event === 'object' ? doc.event : undefined
+        const name = (doc.nameOverride as string | undefined) || event?.name || `edition ${doc.id}`
+        dateless.push({ id: doc.id as number, name, startDate: '' })
+        continue
+      }
 
       const event = typeof doc.event === 'object' ? doc.event : undefined
       const name = (doc.nameOverride as string | undefined) || event?.name || `edition ${doc.id}`
@@ -159,6 +210,8 @@ export const raceScheduleMaintenanceEndpoint: Endpoint = {
       staleVerification,
       missingRegistration,
       closingSoon,
+      dateless,
+      eventsWithNoEdition,
     })
   },
 }

@@ -50,6 +50,7 @@
     "seed:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/csv-to-seed.ts",
     "validate:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/validate-catalogue.ts",
     "validate:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/validate-race-editions.ts",
+    "refresh:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/refresh-race-editions.ts",
     "capture:badges": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/capture-badges.ts",
     "seed:editions:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts",
     "seed:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --write",

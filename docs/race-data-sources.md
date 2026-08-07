@@ -114,14 +114,39 @@ a correct row with garbage.
 - registration overrides left set on a race that has already run
 - future races with no registration information
 - registration windows closing soon
+- `eventsWithNoEdition` — events in `race-events` with zero rows in
+  `race-editions` at all
+- `dateless` — every edition with no `startDate`, not just a count. Expected
+  in small numbers (a member claiming a historical race with no known date —
+  RaceEditions.ts's own reason `startDate` is optional). A spike, or one that
+  keeps growing week over week with no corresponding shrink in
+  `eventsWithNoEdition`, means the weekly refresh below has stopped running,
+  or the member-facing claim path is being abused — not that races stopped
+  announcing dates.
 
-**To extend** when the catalogue moves into the database:
+**Still to extend**, this time for `race-events`/`race-categories` rather
+than editions:
 
 - events and categories whose `verified_at` is more than **12 months** old
 - events with no categories at all — nobody can record a finish in those
 - categories still marked `verified=no`, counted by event
-- editions with no `start_date` beyond the expected few historical ones
-  (a spike means the member-facing `claim` endpoint is being abused)
+
+### Weekly — the reviewed-CSV refresh
+
+`scripts/refresh-race-editions.ts` reads the same shape the daily job
+computes — `eventsWithNoEdition`, plus rows that are stale, finished with no
+next edition, or have a registration window closing within 30 days — and
+prints a worklist. It never fetches an organiser's page itself and never
+writes to the CSV; deciding what a page actually says is judgment, the same
+reason `export-catalogue.ts`'s pair never became a scraper (see "Why this is
+not scraped" above).
+
+A scheduled cloud agent (`race-editions-weekly-refresh`, Sundays) reads that
+worklist, re-visits each row's own site, and opens a PR with whatever
+changed — reviewed and merged by a human, same as every other change to
+these CSVs. It never merges its own PR and never runs
+`seed:editions:staging`/`:prod`; pushing researched data to a live database
+stays a deliberate, separate step.
 
 ### Annual — the season refresh
 
