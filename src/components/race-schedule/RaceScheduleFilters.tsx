@@ -63,16 +63,31 @@ function Chip({
 export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
   return (
     <div className="flex flex-col gap-3" data-testid="race-schedule-filter">
-      <div className="flex flex-wrap gap-2" data-testid="race-schedule-toggle">
-        <Chip active={filters.view === "list"} target={href(filters, { view: "list" })}>
-          列表
-        </Chip>
-        <Chip
-          active={filters.view === "calendar"}
-          target={href(filters, { view: "calendar" })}
+      <div
+        className="flex flex-wrap items-center justify-between gap-2"
+        data-testid="race-schedule-toggle"
+      >
+        <div className="flex flex-wrap gap-2">
+          <Chip active={filters.view === "list"} target={href(filters, { view: "list" })}>
+            列表
+          </Chip>
+          <Chip
+            active={filters.view === "calendar"}
+            target={href(filters, { view: "calendar" })}
+          >
+            月曆
+          </Chip>
+        </div>
+
+        <a
+          className="border border-primary bg-primary px-3 py-1 text-xs font-medium leading-tight text-primary-foreground transition-colors hover:bg-primary/90"
+          data-testid="race-reminder-link"
+          href="https://racereminder.run/"
+          rel="noopener noreferrer"
+          target="_blank"
         >
-          月曆
-        </Chip>
+          預約提醒
+        </a>
       </div>
 
       <div className="flex flex-wrap gap-2">
