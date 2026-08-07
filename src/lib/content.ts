@@ -169,6 +169,7 @@ function mapMediaToPhoto(
     blurDataURL: media.blurDataURL ?? undefined,
     blurWidth: 20,
     blurHeight: Math.max(1, Math.round((height / width) * 20)),
+    createdAt: media.createdAt,
   };
 }
 
