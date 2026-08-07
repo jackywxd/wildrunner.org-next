@@ -6,6 +6,7 @@ import { EARLIEST_RACE_YEAR } from '../lib/races/catalogue'
 import { setOwner } from './hooks/owner'
 import { uniqueRaceRecord } from './hooks/unique-race-record'
 import { validateRaceCatalogueRef } from './hooks/validate-race-catalogue-ref'
+import { populateRaceRecordRefs } from './hooks/populate-race-record-refs'
 import { revalidateRaceRecord } from './hooks/revalidate'
 
 /**
@@ -16,6 +17,9 @@ import { revalidateRaceRecord } from './hooks/revalidate'
  * stores only the member's own claims: `eventId` and `distanceId` are keys
  * into those collections, checked against them on every write by
  * `validateRaceCatalogueRef`, not free text.
+ *
+ * `edition`/`category` are the real foreign keys derived from those strings
+ * — see `populateRaceRecordRefs` for why both forms exist side by side.
  */
 export const RaceRecords: CollectionConfig = {
   slug: 'race-records',
@@ -58,7 +62,7 @@ export const RaceRecords: CollectionConfig = {
     // duplicate check on values that are not even real is the wrong
     // complaint first.
     beforeValidate: [validateRaceCatalogueRef, uniqueRaceRecord],
-    beforeChange: [setOwner],
+    beforeChange: [setOwner, populateRaceRecordRefs],
     afterChange: [revalidateRaceRecord.afterChange],
     afterDelete: [revalidateRaceRecord.afterDelete],
   },
@@ -106,6 +110,40 @@ export const RaceRecords: CollectionConfig = {
           return `Year must be between ${EARLIEST_RACE_YEAR} and ${latest}.`
         }
         return true
+      },
+    },
+    {
+      name: 'edition',
+      type: 'relationship',
+      relationTo: 'race-editions',
+      label: { en: 'Edition', 'zh-TW': '屆次' },
+      index: true,
+      // System-derived, not member-settable: `populateRaceRecordRefs`
+      // (hooks.beforeChange) resolves this from eventId/year on every
+      // write, find-or-creating the edition when this is the first record
+      // to claim it. See that hook for why the strings above stay
+      // authoritative and this is additive, not a replacement.
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'Resolved automatically from Event + Year. May point at an edition created just for this record.',
+          'zh-TW': '由賽事＋年份自動解析。可能指向一個因這筆紀錄才建立的屆次。',
+        },
+      },
+    },
+    {
+      name: 'category',
+      type: 'relationship',
+      relationTo: 'race-categories',
+      label: { en: 'Category', 'zh-TW': '分項' },
+      index: true,
+      // Same derivation as `edition`, from eventId/distanceId.
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'Resolved automatically from Event + Distance.',
+          'zh-TW': '由賽事＋距離自動解析。',
+        },
       },
     },
   ],

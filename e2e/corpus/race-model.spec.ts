@@ -56,6 +56,7 @@ test.describe("X race model corpus", () => {
   let categories: Doc[];
   let editions: Doc[];
   let schedule: Doc[];
+  let records: Doc[];
 
   test.beforeAll(async ({ baseURL }) => {
     // Anonymous on purpose: these are public reference tables, and reading
@@ -66,6 +67,7 @@ test.describe("X race model corpus", () => {
     categories = await all(api, "race-categories");
     editions = await all(api, "race-editions");
     schedule = await all(api, "race-schedule");
+    records = await all(api, "race-records");
   });
 
   test.afterAll(async () => {
@@ -137,5 +139,33 @@ test.describe("X race model corpus", () => {
       seen.add(key);
     }
     expect(duplicates).toEqual([]);
+  });
+
+  test("X-T7: every race record resolves an edition and a category", () => {
+    // `populateRaceRecordRefs` (RaceRecords.ts, hooks.beforeChange) sets both
+    // on every write, `eventId`/`distanceId` are validated before it runs, and
+    // `scripts/backfill-race-record-refs.ts` covers rows written before that
+    // hook existed. A record with either missing means one of those three
+    // stopped happening — not a data gap this file should stay quiet about.
+    const unresolved = records
+      .filter((r) => !r.edition || !r.category)
+      .map((r) => `id=${r.id} eventId=${r.eventId} distanceId=${r.distanceId}`);
+    expect(unresolved).toEqual([]);
+  });
+
+  test("X-T8: a record's category belongs to the same event as its edition", () => {
+    // The easiest thing to get wrong in this exact class of migration: two
+    // foreign keys derived independently from the same eventId can each
+    // resolve to a real row while still disagreeing with each other, if one
+    // of them is resolved against the wrong event. Direct ids, not names —
+    // `populateRaceRecordRefs` resolves both from the same `race-events` row
+    // in one pass specifically to make that impossible.
+    const editionEvent = new Map(editions.map((e) => [e.id, e.event]));
+    const categoryEvent = new Map(categories.map((c) => [c.id, c.event]));
+    const disagreements = records
+      .filter((r) => r.edition && r.category)
+      .filter((r) => editionEvent.get(r.edition as number) !== categoryEvent.get(r.category as number))
+      .map((r) => `id=${r.id} edition=${r.edition} category=${r.category}`);
+    expect(disagreements).toEqual([]);
   });
 });
