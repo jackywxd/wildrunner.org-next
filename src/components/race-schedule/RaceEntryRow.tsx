@@ -1,4 +1,8 @@
+import Link from "next/link";
+
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
+import { canReport } from "@/lib/races/report-options";
 import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
@@ -17,6 +21,10 @@ import { RegistrationStatus } from "./RegistrationStatus";
  * options were to invent a distance or leave the badge out, and inventing
  * one would put a claim on the page the data does not support. The series
  * tag carries the same grouping information without the fabrication.
+ *
+ * That missing distance is also why 「紀錄比賽」 is a link out to a page that
+ * asks for it, rather than an action taken here. This row cannot know which
+ * race the member ran.
  */
 
 /** "2026-08-28" -> "8月28日". */
@@ -37,10 +45,30 @@ function formatRange(entry: SiteRaceScheduleEntry): string {
   return `${formatDay(entry.startDate)}–${end}`;
 }
 
+const EMPTY_CATALOGUE: RaceCatalogueMap = new Map();
+
 export function RaceEntryRow({
+  canWriteReport = false,
+  catalogue = EMPTY_CATALOGUE,
   entry,
   now,
 }: {
+  /**
+   * Whether to offer 「紀錄比賽」 on this row.
+   *
+   * Passed in rather than derived, because it depends on who is looking and
+   * this component renders on a public page. The page resolves the session
+   * once and hands down the answer; a signed-out visitor never sees the
+   * button, which is deliberate — it goes to the members area, and a
+   * control that only ever leads to a login screen is noise on a schedule.
+   */
+  canWriteReport?: boolean;
+  /**
+   * Optional: only consulted when `canWriteReport` is true. The homepage
+   * teaser renders this row with `canWriteReport` always false and has no
+   * reason to fetch 100 events for a button it never shows.
+   */
+  catalogue?: RaceCatalogueMap;
   entry: SiteRaceScheduleEntry;
   now: Date;
 }) {
@@ -57,6 +85,11 @@ export function RaceEntryRow({
   // taking entries today.
   const open = !finished && isRegistrationOpen(entry, now);
   const place = [entry.location, entry.country].filter(Boolean).join(" · ");
+  // `canReport` and not just `finished`: a row with no catalogue entry can
+  // produce no badge, so the button would lead to a page that cannot
+  // complete. `race-schedule` requires an eventId now, so this only
+  // excludes rows written before that rule.
+  const reportable = canWriteReport && canReport(catalogue, entry, now);
   const site = externalHref(entry.url);
 
   return (
@@ -141,6 +174,25 @@ export function RaceEntryRow({
           entry={entry}
           now={now}
         />
+      )}
+
+      {reportable && (
+        <Link
+          className="shrink-0 self-start border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+          data-testid="race-write-report"
+          // `eventId` + year, not `entry.id`. `entry` here comes from
+          // getUpcomingRaces (race-editions), but the report picker's
+          // options come from getFinishedRaces (still race-schedule,
+          // #41) — two different tables' row ids, never meaningfully
+          // comparable. eventId is the one identifier both sides agree
+          // on (SiteRaceScheduleEntry is produced by either source), and
+          // year plus it is exactly what report-options.ts's
+          // RaceReportOption already carries. `canReport` above already
+          // guarantees `entry.eventId` is set here.
+          href={`/members/posts/new?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
+        >
+          紀錄比賽
+        </Link>
       )}
     </li>
   );

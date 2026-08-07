@@ -1,11 +1,8 @@
 import type { SiteRaceRecord } from "@/lib/content-types";
 import { RaceBadge } from "@/lib/races/badge";
 import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
-import {
-  RACE_SERIES,
-  RACE_SERIES_LABELS,
-  findRaceEvent,
-} from "@/lib/races/catalogue";
+import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import { RACE_SERIES_LABELS } from "@/lib/races/catalogue";
 
 /**
  * One badge per event, showing the most recent year.
@@ -26,8 +23,16 @@ function latestPerEvent(records: SiteRaceRecord[]): SiteRaceRecord[] {
   );
 }
 
+/**
+ * Async, and deliberately so: it fetches the catalogue itself rather than
+ * taking it as a prop. `getRaceCatalogueEvents()` is `React.cache`'d, so a
+ * directory page rendering one of these per rider card still issues the
+ * query once per request — the same guarantee `React.cache` already gives
+ * `getCurrentUser()` elsewhere in this codebase.
+ */
+
 /** Compact row for a directory card. */
-export function RiderBadgeRow({
+export async function RiderBadgeRow({
   limit = 5,
   records,
 }: {
@@ -38,6 +43,7 @@ export function RiderBadgeRow({
   // under half the cards reads as a broken layout (D-T6).
   if (records.length === 0) return null;
 
+  const catalogue = catalogueMap(await getRaceCatalogueEvents());
   const collapsed = latestPerEvent(records);
   const shown = collapsed.slice(0, limit);
   const overflow = collapsed.length - shown.length;
@@ -47,7 +53,7 @@ export function RiderBadgeRow({
       {shown.map((record) => (
         <RaceBadge
           key={record.id}
-          {...resolveBadge(record.eventId, record.distanceId)}
+          {...resolveBadge(catalogue, record.eventId, record.distanceId)}
           size={32}
           year={record.year}
         />
@@ -65,12 +71,14 @@ export function RiderBadgeRow({
 }
 
 /** Full history for a profile page, grouped by series. */
-export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
+export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
   if (records.length === 0) return null;
+
+  const catalogue = catalogueMap(await getRaceCatalogueEvents());
 
   // The grouping lives in badge-source.ts so it can be checked without a
   // browser — see U-GROUP in e2e/unit/badge-source.spec.ts.
-  const { groups, unknown } = groupRecordsBySeries(records);
+  const { groups, unknown } = groupRecordsBySeries(catalogue, records);
 
   return (
     <section className="space-y-6" data-testid="rider-badge-wall">
@@ -87,7 +95,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
             {group.records.map((record) => (
               <RaceBadge
                 key={record.id}
-                {...resolveBadge(record.eventId, record.distanceId)}
+                {...resolveBadge(catalogue, record.eventId, record.distanceId)}
                 size={72}
                 year={record.year}
               />
@@ -101,7 +109,7 @@ export function RiderBadgeWall({ records }: { records: SiteRaceRecord[] }) {
           {unknown.map((record) => (
             <RaceBadge
               key={record.id}
-              {...resolveBadge(record.eventId, record.distanceId)}
+              {...resolveBadge(catalogue, record.eventId, record.distanceId)}
               size={72}
               year={record.year}
             />

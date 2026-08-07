@@ -20,13 +20,68 @@
  * Idempotent by construction — an edition already present for an
  * (event, year) is left alone, which is also what the unique index on that
  * pair would enforce. Safe to run on a database that is already correct, and
- * useful on any environment whose editions have fallen behind its schedule.
+ * useful on any environment whose editions have fallen behind its schedule —
+ * which `seed-race-schedule.ts` alone does not keep true, because that script
+ * writes `race_schedule` only and nothing derives `race_editions` from a new
+ * row automatically. Run this after it, every time.
+ *
+ * THE REMOTE TARGET, EXPLICIT. First written with none of this — a plain
+ * `getPayload({ config })` at module scope. `scripts/` scripts count as CLI
+ * for `payload.config.ts`'s purposes, so a stray `CLOUDFLARE_ENV` left in a
+ * shell would have been enough to point this at a real database with no
+ * check at all. `seed-race-schedule.ts` requires an explicit target for
+ * exactly this reason; this now does too, the same way — and for the same
+ * reason `migrate-velite-to-payload.ts` imports `payload.config` dynamically
+ * rather than statically: a static `import config from "../src/payload.config"`
+ * is hoisted and evaluated before any of this file's own code runs, which
+ * means setting `CLOUDFLARE_ENV`/`NODE_ENV` textually "above" it would still
+ * be too late — `payload.config.ts`'s `isProduction`/`isCLI` module-level
+ * constants would already have read the *previous* values. So the config
+ * import happens inside `main()`, after the target is resolved.
+ *
+ * `production` becomes *absent*, never passed through: wrangler names the
+ * top-level environment by its absence, and `CLOUDFLARE_ENV=production`
+ * resolves to nothing (AGENTS.md, "The two environment variables"). Getting
+ * this wrong is not hypothetical — a status check that passed it through
+ * literally applied a migration to production earlier the same day this file
+ * was written.
  */
 import { getPayload } from "payload";
 
-import config from "../src/payload.config";
+const remote = process.argv.includes("--remote");
+
+if (remote) {
+  const target = process.env.CLOUDFLARE_ENV ?? "staging";
+  if (target !== "staging" && target !== "production") {
+    console.error(
+      `CLOUDFLARE_ENV must be "staging" or "production", got "${target}".`,
+    );
+    process.exit(1);
+  }
+  Object.assign(process.env, { NODE_ENV: "production" });
+  if (target === "production") {
+    delete process.env.CLOUDFLARE_ENV;
+  } else {
+    process.env.CLOUDFLARE_ENV = target;
+  }
+  console.log(`[editions] target: ${target} (remote)`);
+} else if (process.env.CLOUDFLARE_ENV || process.env.NODE_ENV === "production") {
+  // Ambient env vars left over from a previous remote command in the same
+  // shell are exactly the failure mode `--remote` guards against elsewhere
+  // in this repo. Refuse rather than silently honour them.
+  console.error(
+    "CLOUDFLARE_ENV or NODE_ENV=production is set but --remote was not " +
+      "passed. Refusing to guess whether this run means the local database " +
+      "or a real one — pass --remote to target CLOUDFLARE_ENV explicitly, " +
+      "or unset it to run locally.",
+  );
+  process.exit(1);
+}
 
 async function main() {
+  // Dynamic, and deliberately after the target is resolved above — see the
+  // file header for why a static import here would read the wrong env vars.
+  const { default: config } = await import("../src/payload.config");
   const payload = await getPayload({ config });
 
   const [schedule, events, editions] = await Promise.all([

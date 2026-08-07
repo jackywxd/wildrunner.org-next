@@ -254,9 +254,22 @@ Then approve the `production` environment gate. See
 | `e2e/races/schedule-maintenance.spec.ts` | endpoint auth, stale-override clearing, report contents |
 | `e2e/public/race-schedule.spec.ts` | the twelve-month window, calendar cell placement, registration rendering, filters, homepage link |
 
-`scripts/cleanup-staging-test-data.ts` deletes schedule rows whose name
-starts with `E2E ` — the specs also clean up after themselves, but that only
-runs when they finish.
+`scripts/cleanup-staging-test-data.ts` selects schedule rows whose name
+starts with `E2E ` and then deletes **by id**, after printing a report and
+honouring `--dry-run`.
+
+> **Changed.** A prefix no longer decides what is destroyed. Specs record every
+> row they create (`e2e/helpers/created.ts`), and cleanup deletes only what the
+> run claims. The heuristics remain, but they now *report* — anything they flag
+> and the ledger does not claim is left alone and printed, so drift stays
+> visible without a pattern removing data. `--sweep` deletes the unclaimed
+> rows, for a person who has read that report; it is the only circumstance in
+> which a pattern may take something.
+>
+> Failing safe is deliberate: no ledger means nothing is claimed, which means
+> nothing is deleted. A cleanup that cannot tell what it made should remove
+> nothing.
+
 
 > Running the full suite locally can produce `SQLITE_BUSY` failures in
 > unrelated specs. The dev server accumulates a `workerd` process per

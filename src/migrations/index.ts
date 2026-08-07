@@ -8,6 +8,7 @@ import * as migration_20260728_050120_add_user_author from './20260728_050120_ad
 import * as migration_20260728_051251_add_storage_quota from './20260728_051251_add_storage_quota';
 import * as migration_20260731_094323_add_race_records from './20260731_094323_add_race_records';
 import * as migration_20260801_030616_add_race_schedule from './20260801_030616_add_race_schedule';
+import * as migration_20260804_213708_add_post_race_record from './20260804_213708_add_post_race_record';
 import * as migration_20260805_153543_add_race_domain_model from './20260805_153543_add_race_domain_model';
 
 export const migrations = [
@@ -60,6 +61,11 @@ export const migrations = [
     up: migration_20260801_030616_add_race_schedule.up,
     down: migration_20260801_030616_add_race_schedule.down,
     name: '20260801_030616_add_race_schedule',
+  },
+  {
+    up: migration_20260804_213708_add_post_race_record.up,
+    down: migration_20260804_213708_add_post_race_record.down,
+    name: '20260804_213708_add_post_race_record'
   },
   {
     up: migration_20260805_153543_add_race_domain_model.up,

@@ -246,3 +246,30 @@ Noticed while writing `member-races.spec.ts`: `goBack()` after visiting
 before the add. The journey navigates explicitly instead, because that
 question is a different test's subject. Whether it is a bug worth fixing has
 not been decided.
+
+### The catalogue and the database disagree, and the code believes the catalogue
+
+`race_categories` came from the reviewed CSVs. `RaceRecords` still validates
+through `findRaceEvent` in `src/lib/races/catalogue.ts`. For `wtm-hk100` the
+database says `100k` and the code does not, so a record the database would
+accept is rejected on write with 以下欄位無效： 距離.
+
+Found by a seed that checked the CSV — the wrong authority — and then failed.
+
+Two consequences, and the second is the reason this is written down rather
+than worked around:
+
+- Any seed or fixture must satisfy **both** sources until one of them is
+  retired. Checking one is checking nothing.
+- Production carried two member records whose categories the reviewed
+  catalogue no longer has: `utmb-puerto-vallarta/100m` (that race has Hikuri
+  81K, Nakawé 53K, Haramara 37K, Ereno 20K, Pata Salada 5K — no 100M) and
+  `wtm-mt-fuji/ultra` (`ultra` is a World Trail Majors ranking tier, not
+  something anyone enters). Those were not member mistakes: the catalogue
+  offered fabricated options. Deleted on 2026-08-06 with the owner's
+  agreement, contents recorded first.
+
+Retiring `catalogue.ts` as a runtime authority — docs/plan PR 2's remaining
+half — is what makes the fabricated option impossible rather than merely
+corrected. A category that is a foreign key cannot point at something that
+does not exist; a category that is a string can, and did, twice.

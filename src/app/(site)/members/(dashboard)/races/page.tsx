@@ -1,5 +1,6 @@
 import { memberFind } from "@/lib/members/data";
 import { RaceRecordManager } from "@/components/members/races/RaceRecordManager";
+import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceRecord } from "@/payload-types";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,14 @@ export const dynamic = "force-dynamic";
  * cheerfully return every member's records.
  */
 export default async function MemberRacesPage() {
-  const result = await memberFind("race-records", {
-    depth: 0,
-    limit: 500,
-    sort: "-year",
-  });
+  const [result, catalogueEvents] = await Promise.all([
+    memberFind("race-records", {
+      depth: 0,
+      limit: 500,
+      sort: "-year",
+    }),
+    getRaceCatalogueEvents(),
+  ]);
 
   const records = (result.docs as RaceRecord[]).map((doc) => ({
     distanceId: doc.distanceId,
@@ -32,7 +36,7 @@ export default async function MemberRacesPage() {
         登錄你完賽過的 UTMB World Series、World Trail Majors
         與其他獨立賽事，徽章會出現在成員名錄和你的個人頁上。
       </p>
-      <RaceRecordManager records={records} />
+      <RaceRecordManager catalogueEvents={catalogueEvents} records={records} />
     </div>
   );
 }

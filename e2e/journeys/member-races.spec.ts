@@ -19,6 +19,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { recordCreated } from "../helpers/created";
 
 /**
  * The public directory is where a record stops being private bookkeeping and
@@ -113,7 +114,11 @@ test.describe("M what a member does with race records", () => {
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
-    await expect(page).toHaveURL(/\/members(\/|$)/, { timeout: 15_000 });
+    // Anchored to the end. `/\/members(\/|$)/` also matches `/members/login`,
+    // so a failed sign-in satisfied it and the next page loaded as an
+    // anonymous visitor — which showed up much later as a missing control.
+    // Third time a prefix pattern has passed for a page that never moved.
+    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
 
     // 2. Arrive by clicking. The calendar-toggle bug lived entirely in soft
     //    navigation; anything reachable by a link needs one test that uses it.
@@ -176,6 +181,17 @@ test.describe("M what a member does with race records", () => {
     // Captured the moment it exists, so teardown can find it even if the
     // assertions below are the ones that fail.
     createdRecordId = await newRow.first().getAttribute("data-record-id");
+    // Also recorded for the staging cleanup, which now deletes only what a run
+    // claims. Against localhost and CI the database is rebuilt per run and
+    // nothing reads this file; against staging it is the difference between
+    // removing what this test made and removing whatever matches a pattern.
+    if (createdRecordId) {
+      recordCreated({
+        collection: "race-records",
+        id: createdRecordId,
+        note: `M-RACES ${eventId} ${year}`,
+      });
+    }
 
     // 5. The payoff: it is public now.
     expect(await badgeCount(page, eventId, distanceId, year)).toBe(before + 1);
