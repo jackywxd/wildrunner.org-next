@@ -90,6 +90,10 @@ export function RaceEntryRow({
   // complete. `race-schedule` requires an eventId now, so this only
   // excludes rows written before that rule.
   const reportable = canWriteReport && canReport(catalogue, entry, now);
+  // Same "already started" bound as 查看相片 above (getRaceEditionOptions) —
+  // looser than `reportable`, which also needs a catalogue match. Uploading
+  // a photo makes no claim about distance, so it has nothing to check there.
+  const uploadable = canWriteReport && Boolean(entry.eventId) && (finished || ongoing);
   const site = externalHref(entry.url);
 
   return (
@@ -192,23 +196,39 @@ export function RaceEntryRow({
         />
       )}
 
-      {reportable && (
-        <Link
-          className="shrink-0 self-start border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
-          data-testid="race-write-report"
-          // `eventId` + year, not `entry.id`. `entry` here comes from
-          // getUpcomingRaces (race-editions), but the report picker's
-          // options come from getFinishedRaces (still race-schedule,
-          // #41) — two different tables' row ids, never meaningfully
-          // comparable. eventId is the one identifier both sides agree
-          // on (SiteRaceScheduleEntry is produced by either source), and
-          // year plus it is exactly what report-options.ts's
-          // RaceReportOption already carries. `canReport` above already
-          // guarantees `entry.eventId` is set here.
-          href={`/members/posts/new?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
-        >
-          紀錄比賽
-        </Link>
+      {(reportable || uploadable) && (
+        <div className="flex shrink-0 gap-2 self-start">
+          {reportable && (
+            <Link
+              className="border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+              data-testid="race-write-report"
+              // `eventId` + year, not `entry.id`. `entry` here comes from
+              // getUpcomingRaces (race-editions), but the report picker's
+              // options come from getFinishedRaces (still race-schedule,
+              // #41) — two different tables' row ids, never meaningfully
+              // comparable. eventId is the one identifier both sides agree
+              // on (SiteRaceScheduleEntry is produced by either source), and
+              // year plus it is exactly what report-options.ts's
+              // RaceReportOption already carries. `canReport` above already
+              // guarantees `entry.eventId` is set here.
+              href={`/members/posts/new?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
+            >
+              紀錄比賽
+            </Link>
+          )}
+          {uploadable && (
+            <Link
+              className="border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+              data-testid="race-upload-photo"
+              // Same eventId + year contract as 紀錄比賽 above, resolved
+              // against race-editions instead of race-schedule server-side
+              // (media/page.tsx) — a hint, not a requirement.
+              href={`/members/media?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
+            >
+              上傳相片
+            </Link>
+          )}
+        </div>
       )}
     </li>
   );
