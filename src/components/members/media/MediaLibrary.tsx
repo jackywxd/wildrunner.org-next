@@ -6,10 +6,15 @@ import { UploadDropzone } from "./UploadDropzone";
 import { MediaGrid } from "./MediaGrid";
 import { MediaDetailDialog } from "./MediaDetailDialog";
 import type { Media } from "@/payload-types";
+import type { SiteRaceEditionOption } from "@/lib/content-types";
 
 type Usage = { quotaBytes: number; usedBytes: number };
 
-export function MediaLibrary() {
+export function MediaLibrary({
+  raceEditions,
+}: {
+  raceEditions: SiteRaceEditionOption[];
+}) {
   const [items, setItems] = useState<Media[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [selected, setSelected] = useState<Media | null>(null);
@@ -48,13 +53,14 @@ export function MediaLibrary() {
     <div className="space-y-6">
       {usage && <QuotaBar usedBytes={usage.usedBytes} quotaBytes={usage.quotaBytes} />}
 
-      <UploadDropzone onUploaded={refresh} />
+      <UploadDropzone onUploaded={refresh} raceEditions={raceEditions} />
 
       {!loading && <MediaGrid items={items} onSelect={setSelected} />}
 
       {selected && (
         <MediaDetailDialog
           item={selected}
+          raceEditions={raceEditions}
           onClose={() => setSelected(null)}
           onUpdated={() => {
             setSelected(null);

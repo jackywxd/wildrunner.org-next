@@ -46,6 +46,28 @@ export const Media: CollectionConfig = {
       required: true,
     },
     {
+      name: 'raceEdition',
+      type: 'relationship',
+      relationTo: 'race-editions',
+      label: { en: 'Race', 'zh-TW': '比賽' },
+      // A real foreign key, unlike RaceRecords' `eventId`/`distanceId` text
+      // fields before validateRaceCatalogueRef existed — Payload itself
+      // refuses a value that does not name a real race-editions row, so
+      // there is nothing here for a beforeValidate hook to duplicate.
+      //
+      // Member-settable like `alt`, not owner-only like `owner`: which race
+      // a photo is from is the same kind of claim as its caption, not a
+      // fact about who is making it. Anyone with `update` access — the
+      // uploader or an admin — can also clear it, which is the "解除關聯"
+      // moderation path docs/plan's S5 asks for; nothing further to build.
+      admin: {
+        description: {
+          en: 'Optional. Which race this photo is from — shown on that race’s public photo wall.',
+          'zh-TW': '選填。這張照片是哪一場比賽的——會顯示在該場比賽的公開相片牆。',
+        },
+      },
+    },
+    {
       name: 'streamId',
       type: 'text',
       label: { en: 'Stream ID', 'zh-TW': 'Stream ID' },

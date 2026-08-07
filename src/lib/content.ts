@@ -21,6 +21,9 @@ import type {
   SiteGlobals,
   SitePhoto,
   SitePost,
+  SiteRaceEditionDetail,
+  SiteRaceEditionOption,
+  SiteRaceEditionPhoto,
   SiteRaceRecord,
   SiteRaceScheduleEntry,
   SiteRider,
@@ -1039,4 +1042,202 @@ export function getGalleryVideo(
   );
   if (!video) return undefined;
   return { gallery, video };
+}
+
+/**
+ * Every edition a member can tag a photo with: already started, so a photo
+ * of it can exist. This is deliberately independent of `getUpcomingRaces`
+ * above — that function still reads `race-schedule` (switching `/races`
+ * itself to `race-editions` is a separate change) — but a photo can only
+ * ever point at `race-editions`, the collection `media.raceEdition`
+ * actually has a foreign key into. Depth 1 to get each event's `key` and
+ * name; `race-events` carries no PII (RaceEvents.ts), so this is safe at
+ * that depth the way `posts.raceRecord` is not.
+ */
+export async function getRaceEditionOptions(
+  now: Date,
+): Promise<SiteRaceEditionOption[]> {
+  const payload = await getPayloadClient();
+  const today = toDateString(now);
+
+  const result = await payload.find({
+    collection: "race-editions",
+    depth: 1,
+    limit: 0,
+    pagination: false,
+    sort: "-startDate",
+    where: {
+      and: [
+        { startDate: { exists: true } },
+        { startDate: { less_than_equal: `${today}T23:59:59.999Z` } },
+      ],
+    },
+  });
+
+  const options: SiteRaceEditionOption[] = [];
+  for (const doc of result.docs) {
+    const event = typeof doc.event === "object" ? doc.event : undefined;
+    if (!event) continue;
+    options.push({
+      id: doc.id,
+      eventKey: event.key,
+      name: orUndefined(doc.nameOverride) ?? event.name,
+      nameZh: orUndefined(event.nameZh),
+      year: doc.year,
+    });
+  }
+  return options;
+}
+
+/**
+ * One edition, by the event's stable `key` and its year — the pair
+ * `/races/[key]/[year]` addresses, chosen for the same reason
+ * `RaceEvents.ts` keeps `key` alongside the integer id: it is stable across
+ * environments and immune to a row being recreated, so a shared link stays
+ * correct.
+ */
+export async function getRaceEditionDetail(
+  eventKey: string,
+  year: number,
+): Promise<SiteRaceEditionDetail | null> {
+  const payload = await getPayloadClient();
+
+  const events = await payload.find({
+    collection: "race-events",
+    depth: 0,
+    limit: 1,
+    where: { key: { equals: eventKey } },
+  });
+  const event = events.docs[0] as RaceEvent | undefined;
+  if (!event) return null;
+
+  const [editions, categories] = await Promise.all([
+    payload.find({
+      collection: "race-editions",
+      depth: 0,
+      limit: 1,
+      where: { and: [{ event: { equals: event.id } }, { year: { equals: year } }] },
+    }),
+    payload.find({
+      collection: "race-categories",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      sort: "order",
+      where: { event: { equals: event.id } },
+    }),
+  ]);
+  const edition = editions.docs[0] as RaceEdition | undefined;
+  if (!edition) return null;
+
+  const day = (value: string | null | undefined): string | undefined =>
+    value ? value.slice(0, 10) : undefined;
+  const distanceSummary = categories.docs.length
+    ? (categories.docs as RaceCategory[]).map((category) => category.label).join(" / ")
+    : undefined;
+
+  return {
+    id: edition.id,
+    eventKey: event.key,
+    name: orUndefined(edition.nameOverride) ?? event.name,
+    nameZh: orUndefined(event.nameZh),
+    series: event.series,
+    country: orUndefined(event.country),
+    year: edition.year,
+    startDate: day(edition.startDate),
+    endDate: day(edition.endDate),
+    location: orUndefined(edition.location),
+    url: orUndefined(edition.url) ?? orUndefined(event.website),
+    distanceSummary,
+  };
+}
+
+/**
+ * Every photo tagged with one edition, newest first.
+ *
+ * `owner` is resolved to the uploader's public author identity exactly the
+ * way `raceRecordsByAuthorId` resolves one for badges — never a bare
+ * `users` id past this function, and `media` itself is fetched at depth 0
+ * so `owner` never even reaches Payload's populate step. Read access on
+ * `media` is `ownedOnlyPublicRead` (Media.ts), which is full read for an
+ * anonymous visitor — this is meant to be a public wall.
+ */
+export async function getRaceEditionPhotos(
+  editionId: number,
+): Promise<SiteRaceEditionPhoto[]> {
+  const payload = await getPayloadClient();
+
+  // No `overrideAccess`: `getPayloadClient()` carries no user, so this
+  // already evaluates as an anonymous request, and `ownedOnlyPublicRead`
+  // (Media.ts) gives anonymous full read — exactly "public wall," and
+  // consistent with every other query in this file.
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    sort: "-createdAt",
+    where: {
+      and: [
+        { raceEdition: { equals: editionId } },
+        { mimeType: { like: "image" } },
+      ],
+    },
+  });
+
+  const ownerIds = [
+    ...new Set(
+      result.docs
+        .map((doc) => (typeof doc.owner === "number" ? doc.owner : undefined))
+        .filter((id): id is number => id !== undefined),
+    ),
+  ];
+
+  const authorByOwner = new Map<number, { name: string; slug: string }>();
+  if (ownerIds.length > 0) {
+    const [accounts, authors] = await Promise.all([
+      payload.find({
+        collection: "users",
+        depth: 0,
+        limit: 0,
+        pagination: false,
+        select: { author: true },
+        where: { id: { in: ownerIds } },
+      }),
+      payload.find({
+        collection: "authors",
+        depth: 0,
+        limit: 0,
+        pagination: false,
+        select: { name: true, slug: true },
+      }),
+    ]);
+    const authorById = new Map(authors.docs.map((a) => [a.id, a]));
+    for (const account of accounts.docs) {
+      const authorId =
+        typeof account.author === "number" ? account.author : undefined;
+      const author = authorId !== undefined ? authorById.get(authorId) : undefined;
+      if (author) authorByOwner.set(account.id, author);
+    }
+  }
+
+  const photos: SiteRaceEditionPhoto[] = [];
+  for (const doc of result.docs as Media[]) {
+    const src = mediaImageSrc(doc);
+    if (!src) continue;
+    const { width, height } = mediaDimensions(doc);
+    const ownerId = typeof doc.owner === "number" ? doc.owner : undefined;
+    const author = ownerId !== undefined ? authorByOwner.get(ownerId) : undefined;
+    photos.push({
+      id: doc.id,
+      src,
+      width,
+      height,
+      blurDataURL: doc.blurDataURL ?? undefined,
+      alt: doc.alt,
+      uploaderName: author?.name,
+      uploaderSlug: author?.slug,
+    });
+  }
+  return photos;
 }

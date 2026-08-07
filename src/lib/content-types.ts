@@ -29,6 +29,43 @@ export type SiteVideo = {
   streamReady?: boolean;
 };
 
+/** One race edition a member can tag an upload with — already run, so a photo of it can exist. */
+export type SiteRaceEditionOption = {
+  id: number;
+  eventKey: string;
+  name: string;
+  nameZh?: string;
+  year: number;
+};
+
+/** An edition as its own public page shows it — the event's identity plus this run's dates. */
+export type SiteRaceEditionDetail = {
+  id: number;
+  eventKey: string;
+  name: string;
+  nameZh?: string;
+  series: "utmb" | "wtm" | "others";
+  country?: string;
+  year: number;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  url?: string;
+  distanceSummary?: string;
+};
+
+/**
+ * A photo on a race's public wall. `uploaderName`/`uploaderSlug` are the
+ * author's public identity, never `media.owner` itself — same reason
+ * `SitePost.author` is a name, not a `users` document.
+ */
+export type SiteRaceEditionPhoto = SiteImage & {
+  id: number;
+  alt: string;
+  uploaderName?: string;
+  uploaderSlug?: string;
+};
+
 export type SiteGallery = {
   slug: string;
   name: string;

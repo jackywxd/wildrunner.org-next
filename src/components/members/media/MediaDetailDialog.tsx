@@ -6,19 +6,28 @@ import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { Button } from "@/components/ui/button";
 import type { Media } from "@/payload-types";
+import type { SiteRaceEditionOption } from "@/lib/content-types";
 
 export function MediaDetailDialog({
   item,
+  raceEditions,
   onClose,
   onDeleted,
   onUpdated,
 }: {
   item: Media;
+  /** Server-computed options only — see MediaLibrary.tsx on why this is a prop, not a client fetch. */
+  raceEditions: SiteRaceEditionOption[];
   onClose: () => void;
   onDeleted: () => void;
   onUpdated: () => void;
 }) {
   const [alt, setAlt] = useState(item.alt);
+  // `depth=0` on the list this dialog is opened from (MediaLibrary.tsx), so
+  // `raceEdition` is always a bare id or null here — never a populated doc.
+  const [raceEditionId, setRaceEditionId] = useState(
+    typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
+  );
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">(
     "idle",
@@ -35,7 +44,12 @@ export function MediaDetailDialog({
       method: "PATCH",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ alt }),
+      body: JSON.stringify({
+        alt,
+        // Always sent, and `null` rather than omitted: picking "不連結比賽"
+        // after a race was already set has to clear it, not leave it alone.
+        raceEdition: raceEditionId ? Number(raceEditionId) : null,
+      }),
     });
     if (!res.ok) {
       setError("儲存失敗");
@@ -101,6 +115,25 @@ export function MediaDetailDialog({
             className="block w-full border border-input bg-background px-3 py-2 text-sm"
           />
         </label>
+
+        {raceEditions.length > 0 && (
+          <label className="block space-y-1">
+            <span className="text-sm">這張照片是哪一場比賽的</span>
+            <select
+              data-testid="media-detail-race-edition"
+              value={raceEditionId}
+              onChange={(e) => setRaceEditionId(e.target.value)}
+              className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">不連結比賽</option>
+              {raceEditions.map((edition) => (
+                <option key={edition.id} value={edition.id}>
+                  {edition.year}　{edition.nameZh || edition.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
