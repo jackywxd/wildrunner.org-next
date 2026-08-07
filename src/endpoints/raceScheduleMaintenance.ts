@@ -87,9 +87,13 @@ export const raceScheduleMaintenanceEndpoint: Endpoint = {
     const now = new Date()
     const today = now.toISOString().slice(0, 10)
 
+    // depth 1 to populate `event`: this runs once a day, not on a request
+    // path with a query budget, and `race-events` carries no PII (unlike
+    // `posts.raceRecord`, which stays at depth 0 for exactly that reason —
+    // see lib/content.ts).
     const all = await req.payload.find({
-      collection: 'race-schedule',
-      depth: 0,
+      collection: 'race-editions',
+      depth: 1,
       limit: 0,
       pagination: false,
       sort: 'startDate',
@@ -107,13 +111,19 @@ export const raceScheduleMaintenanceEndpoint: Endpoint = {
     const closingHorizon = shift(now, CLOSING_SOON_DAYS)
 
     for (const doc of all.docs) {
+      // A historical edition with no date is not part of a *schedule* — it
+      // exists only so a member's record can point at it (RaceEditions.ts)
+      // — so it has nothing here to be stale, missing or closing soon.
       const startDate = day(doc.startDate)
       if (!startDate) continue
-      const row: ReportRow = { id: doc.id as number, name: doc.name as string, startDate }
+
+      const event = typeof doc.event === 'object' ? doc.event : undefined
+      const name = (doc.nameOverride as string | undefined) || event?.name || `edition ${doc.id}`
+      const row: ReportRow = { id: doc.id as number, name, startDate }
 
       if (doc.registrationStatusOverride && startDate < today) {
         await req.payload.update({
-          collection: 'race-schedule',
+          collection: 'race-editions',
           id: doc.id,
           data: { registrationStatusOverride: null },
           depth: 0,
