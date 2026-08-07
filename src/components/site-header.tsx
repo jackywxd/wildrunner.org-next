@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { AlignLeft, X } from "lucide-react";
+import { AlignLeft, LogIn, User as UserIcon, X } from "lucide-react";
 
 import HeaderNav from "@/components/header-nav";
 import MobileNav from "@/components/mobile-nav";
@@ -12,7 +12,15 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import type { NavItemData } from "@/lib/nav";
 
-export default function SiteHeader({ navItems }: { navItems: NavItemData[] }) {
+type Member = { displayName: string | null; email: string };
+
+export default function SiteHeader({
+  member,
+  navItems,
+}: {
+  member: Member | null;
+  navItems: NavItemData[];
+}) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b-2 border-b-border bg-background px-2">
@@ -22,6 +30,25 @@ export default function SiteHeader({ navItems }: { navItems: NavItemData[] }) {
         </Link>
         <div className="flex items-center space-x-3 md:space-x-5">
           <HeaderNav items={navItems} />
+          {member ? (
+            <Link
+              className="flex items-center gap-1.5 text-sm text-foreground/80 hover:text-primary"
+              data-testid="header-member-indicator"
+              href="/members"
+            >
+              <UserIcon className="size-4" />
+              <span className="hidden sm:inline">{member.displayName || member.email}</span>
+            </Link>
+          ) : (
+            <Link
+              className="flex items-center gap-1.5 text-sm text-foreground/80 hover:text-primary"
+              data-testid="header-login-link"
+              href="/members/login"
+            >
+              <LogIn className="size-4" />
+              <span className="hidden sm:inline">登入</span>
+            </Link>
+          )}
           <ThemeToggle />
           <Button
             variant="ghost"
