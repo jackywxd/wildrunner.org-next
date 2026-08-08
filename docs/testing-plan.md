@@ -215,29 +215,48 @@ Things that went red once and are not explained. Listed so they are not
 quietly forgotten, and so a recurrence is recognised as a second occurrence
 rather than a first.
 
-### M-RACES read 2 badges where it added 1 record (CI, run 31076762757)
+### M-RACES read 2 badges where it added 1 record — mechanism found (2026-08-08)
 
-`expect(badgeCount).toBe(before + 1)` received 2. It has not reproduced —
-the same commit plus a logging-only change passed, and the probe showed a
-single badge under a single rider card, identical to local.
+`expect(badgeCount).toBe(before + 1)` received 2, recurring across CI runs
+31076762757 and, after the event+year selector narrowing below, three more
+times on three unrelated branches (PRs #50, #53, and one retry each) — none
+of the three PRs touched race records, badges, or `/riders`. The narrowing
+alone did not stop it, which is itself evidence: it ruled out "the selector
+matches more than it should," not the actual cause.
 
-Ruled out, with evidence rather than argument:
+**Mechanism, pinned from a CI failure's own trace (run 31242130929)**: the
+trace's `error-context.md` — Playwright's own accessibility snapshot, taken
+moments *after* the failing `.count()` call returned 2 — showed exactly one
+matching badge. The raw network response captured for that same
+`/riders` navigation shows the same: one real render of the newly created
+badge. `.count()` itself, at the instant it ran, genuinely found two DOM
+nodes matching the selector — real, both confirmed against independent
+evidence (the accessibility tree and the network body agree with each
+other, disagree with `.count()`'s own reading a moment earlier).
 
-- **Residue from an earlier run.** Each CI job builds its own database.
-- **The new editions table.** Nothing in the rider rendering path reads it;
-  `/riders` renders one card per rider.
-- **A second rider.** CI seeds exactly one author, and the probe reported one
-  card.
+So the DOM briefly held two matching nodes and settled back to one before
+anything else looked. `badgeCount()` navigates with
+`waitUntil: "domcontentloaded"`, which fires before React hydration
+finishes — a single `.count()` taken immediately after can land inside
+that settling window. This is the same shape of failure as the
+`race-schedule`/`race-photo-wall` "resolved to 2 elements" flakes recorded
+separately (a testid or attribute selector transiently double-matching
+right after navigation, gone by the next check) — plausibly the same
+underlying hydration-timing mechanism, just caught on a different page.
 
-What changed in response: the assertion matched on event and year only, so it
-counted every category a member entered at that race in that year as the same
-badge. It now matches event, category and year. **That is a narrowing, not a
-diagnosis** — it makes a recurrence say something specific instead of
-something ambiguous.
+**Fix applied**: `badgeCount()` now polls `.count()` until it agrees across
+two consecutive reads (100ms apart, 10 attempts) instead of reading once
+right after `domcontentloaded`. This rides out a transient duplication of
+any length rather than guessing at one, per TESTING.md's "timeouts come
+from the measured distribution, never a feeling" — the loop reacts to an
+observed condition (stability), not a fixed delay.
 
-Per docs/testing-strategy.md §6, "flaky" is not a classification. This is an
-open item with no mechanism, and it stays here until it has one or until it
-has gone a long time without returning.
+Not yet fully closed: the fix has not been *observed* to prevent a
+recurrence (the underlying race never reproduced locally, only on CI), so
+this stays here until it has gone a meaningful stretch of CI runs without
+recurring. If it does recur with the poll in place, that would mean the
+hydration-settle window outlasts 1 second, which would itself be worth
+knowing.
 
 ### A member pressing Back does not see a record they just added
 

@@ -42,20 +42,34 @@ async function badgeCount(
   // A badge is one (event, category, year). Matching on two of the three
   // counts every category a member entered at that race in that year as the
   // same badge, so "one more than before" could be satisfied by a record this
-  // test did not create. That is not a hypothetical tidy-up: this assertion
-  // read 2 where it expected 1 on one CI run and has not done so since, and
-  // an under-specified selector is the only part of it that could be true of
-  // more rows than the test made.
+  // test did not create.
+  const locator = page.locator(
+    `[data-event-id="${eventId}"][data-distance-id="${distanceId}"][data-year="${year}"]`,
+  );
+
+  // Polled rather than read once. This assertion read 2 where it expected 1
+  // on CI more than once (docs/testing-plan.md); a trace captured from one
+  // of those failures pinned the mechanism — Playwright's own
+  // accessibility snapshot, taken moments after `.count()` returned 2,
+  // showed exactly one matching badge, and so did the raw network response
+  // for that same navigation. The DOM briefly held two matching nodes
+  // during hydration and settled back to one before anything else looked.
+  // `domcontentloaded` fires before hydration finishes, so a single count
+  // taken right after it can land inside that window.
   //
-  // Which is not a claim to have found that cause. It did not reproduce, and
-  // there is no mechanism, so it is not closed — see docs/testing-plan.md.
-  // This narrows what the assertion can be answered by, so a recurrence says
-  // something specific instead of something ambiguous.
-  return page
-    .locator(
-      `[data-event-id="${eventId}"][data-distance-id="${distanceId}"][data-year="${year}"]`,
-    )
-    .count();
+  // Waiting for the count to agree across two checks rides out that window
+  // without guessing how long it lasts, which a fixed delay would have to.
+  // 10 attempts * 100ms is generous against a hydration settle that should
+  // take single-digit milliseconds; it only spends more than one iteration
+  // when the race actually fires.
+  let value = await locator.count();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await page.waitForTimeout(100);
+    const next = await locator.count();
+    if (next === value) return value;
+    value = next;
+  }
+  return value;
 }
 
 test.describe("M what a member does with race records", () => {
