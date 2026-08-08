@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import type { SiteGallery, SitePhoto } from "@/lib/content-types";
+import type { SiteGallery, SitePhoto, SiteVideo } from "@/lib/content-types";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import { Icon } from "@iconify-icon/react";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
@@ -13,6 +13,8 @@ type GalleryPageClientProps = {
   galleries: SiteGallery[];
   /** Photos tagged with a race but not necessarily in any album — see getRaceTaggedPhotos. */
   raceTaggedPhotos: SitePhoto[];
+  /** Videos tagged with a race but not necessarily in any album — see getRaceTaggedVideos. */
+  raceTaggedVideos: SiteVideo[];
 };
 
 type GalleryView = "all" | "albums";
@@ -46,6 +48,7 @@ function ViewChip({
 export default function GalleryPageClient({
   galleries,
   raceTaggedPhotos,
+  raceTaggedVideos,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -117,8 +120,15 @@ export default function GalleryPageClient({
           </div>
 
           {view === "all" && (
-            <div className="mt-8" data-testid="gallery-all-photos">
-              <AllPhotosView photos={allPhotos} />
+            <div className="mt-8 space-y-8">
+              {raceTaggedVideos.length > 0 && (
+                <div data-testid="gallery-all-photos-videos">
+                  <GalleryVideos videos={raceTaggedVideos} compact />
+                </div>
+              )}
+              <div data-testid="gallery-all-photos">
+                <AllPhotosView photos={allPhotos} />
+              </div>
             </div>
           )}
         </section>

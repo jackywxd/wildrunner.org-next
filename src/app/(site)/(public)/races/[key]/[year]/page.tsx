@@ -4,8 +4,13 @@ import { notFound } from "next/navigation";
 import PageHeader from "@/components/page-header";
 import { RaceSeriesTag } from "@/components/race-schedule/RaceSeriesTag";
 import { siteConfig } from "@/config/site";
-import { getRaceEditionDetail, getRaceEditionPhotos } from "@/lib/content";
+import {
+  getRaceEditionDetail,
+  getRaceEditionPhotos,
+  getRaceEditionVideos,
+} from "@/lib/content";
 import { externalHref } from "@/lib/races/registration";
+import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 
 import RacePhotoWall from "./_components/RacePhotoWall";
 
@@ -64,7 +69,10 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
   const edition = await loadEdition(params);
   if (!edition) notFound();
 
-  const photos = await getRaceEditionPhotos(edition.id);
+  const [photos, videos] = await Promise.all([
+    getRaceEditionPhotos(edition.id),
+    getRaceEditionVideos(edition.id),
+  ]);
   const range = formatRange(edition.startDate, edition.endDate);
   const place = [edition.location, edition.country].filter(Boolean).join(" · ");
   const site = externalHref(edition.url);
@@ -108,6 +116,13 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
       <p className="mt-1 text-xs text-muted-foreground">
         會員上傳時標記這場比賽，就會出現在這裡。
       </p>
+
+      {videos.length > 0 && (
+        <div className="mt-4" data-testid="race-video-strip">
+          <GalleryVideos videos={videos} compact />
+        </div>
+      )}
+
       <div className="mt-4">
         <RacePhotoWall photos={photos} />
       </div>

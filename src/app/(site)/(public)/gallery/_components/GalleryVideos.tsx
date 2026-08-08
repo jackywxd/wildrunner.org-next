@@ -7,7 +7,11 @@ import { StreamVideoPlayer } from "@/components/stream-video-player";
 
 type GalleryVideosProps = {
   videos: SiteVideo[];
-  gallerySlug: string;
+  // Optional: the share page (/gallery/[slug]/v/[videoId]) only resolves a
+  // video by looking it up inside a specific gallery's own videos[] array —
+  // a video reached only via a race tag (no gallery membership) has no
+  // slug to build that link with, and no share link renders for it.
+  gallerySlug?: string;
   /** Compact strip for gallery index; full width on detail */
   compact?: boolean;
 };
@@ -28,8 +32,7 @@ export function GalleryVideos({
       }
     >
       {videos.map((video, index) => {
-        const videoId = video.id;
-        const shareHref = `/gallery/${gallerySlug}/v/${videoId}`;
+        const shareHref = gallerySlug ? `/gallery/${gallerySlug}/v/${video.id}` : undefined;
 
         return (
           <div
@@ -57,15 +60,17 @@ export function GalleryVideos({
               }
             >
               <p className="truncate text-xs opacity-70">{video.filename}</p>
-              <Link
-                href={shareHref}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
-                aria-label={`分享 ${video.filename}`}
-                title="分享视频"
-              >
-                <Share2 className="size-3.5" />
-                {!compact && <span>分享</span>}
-              </Link>
+              {shareHref && (
+                <Link
+                  href={shareHref}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
+                  aria-label={`分享 ${video.filename}`}
+                  title="分享视频"
+                >
+                  <Share2 className="size-3.5" />
+                  {!compact && <span>分享</span>}
+                </Link>
+              )}
             </div>
           </div>
         );

@@ -5,8 +5,9 @@ import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { Button } from "@/components/ui/button";
+import { StreamVideoPlayer } from "@/components/stream-video-player";
 import type { Media } from "@/payload-types";
-import type { SiteRaceEditionOption } from "@/lib/content-types";
+import type { SiteRaceEditionOption, SiteVideo } from "@/lib/content-types";
 
 export function MediaDetailDialog({
   item,
@@ -36,6 +37,27 @@ export function MediaDetailDialog({
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
   const src = mediaImageSrc(item);
+  // Built inline rather than importing content.ts's mapGalleryVideo: that
+  // file resolves the payload client at module scope, which has no place
+  // in a client bundle. mediaImageSrc is the one part of that mapping this
+  // component already needed anyway.
+  const video: SiteVideo | null =
+    isVideo && src
+      ? {
+          mediaId: item.id,
+          id: item.filename ?? String(item.id),
+          filename: item.filename ?? "video",
+          src,
+          slug: item.filename ?? String(item.id),
+          mimeType: item.mimeType ?? "video/mp4",
+          size: item.filesize ?? undefined,
+          extension: item.filename?.includes(".")
+            ? item.filename.split(".").pop()
+            : undefined,
+          streamId: item.streamId,
+          streamReady: Boolean(item.streamReady),
+        }
+      : null;
 
   async function save() {
     setStatus("saving");
@@ -86,9 +108,11 @@ export function MediaDetailDialog({
         className="w-full max-w-lg space-y-4 border border-border bg-background p-6"
       >
         <div className="relative aspect-video bg-secondary">
-          {isVideo || !src ? (
+          {video ? (
+            <StreamVideoPlayer video={video} className="h-full w-full" />
+          ) : !src ? (
             <div className="flex h-full items-center justify-center text-sm text-foreground/40">
-              {isVideo ? "▶ 影片" : "圖片處理中"}
+              圖片處理中
             </div>
           ) : (
             <Image
@@ -104,6 +128,13 @@ export function MediaDetailDialog({
         <div className="text-xs text-foreground/50">
           {item.filename} · {item.filesize ? formatBytes(item.filesize) : ""}
         </div>
+
+        {isVideo && (
+          <p className="text-xs text-foreground/50" data-testid="media-detail-video-note">
+            部分手機錄製的影片（HEVC 編碼）可能無法在 Chrome/Firefox
+            播放，Safari 或 QuickTime 不受影響。
+          </p>
+        )}
 
         <label className="block space-y-1">
           <span className="text-sm">替代文字</span>
