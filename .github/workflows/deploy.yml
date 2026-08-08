@@ -272,11 +272,46 @@ jobs:
       # the approval gate and then failed on this step, so #26 never reached
       # production at all. Staging needs the variable because staging is not
       # the default; production must not have it because production is.
+      #
+      # Retried on one specific signature, same reasoning as "Apply staging
+      # migrations" above: static generation boots Payload, which opens a
+      # remote D1 binding to check whether `payload_migrations` exists
+      # before it can render any page — a real network call, this time to
+      # `cloudflare-internal:d1-api` rather than the dev-session handshake,
+      # but the same class of edge blip. Run 31157343022 got back a body
+      # its own D1 client couldn't parse as JSON at all
+      # ("D1_ERROR: Failed to parse body as JSON, got: error code: 1031"),
+      # which is what an edge-side hiccup looks like — a genuine D1 error
+      # (bad SQL, missing table) comes back as valid JSON with an error
+      # field, and would fail identically on every attempt. So only that
+      # exact "failed to parse body as JSON" text triggers a retry; anything
+      # else — a TypeScript error, a real migration problem, wrangler
+      # rejecting a bad flag — exits on the first attempt instead of
+      # burning two more build cycles to reach the same failure.
+      #
+      # `pnpm deploy:prod` reruns the build from scratch each time, but
+      # nothing before it is stateful (nothing has been deployed yet), and
+      # the failure happens ~5s into "Collecting page data" — under a
+      # minute into the build — so a blind rerun of the whole command is
+      # cheap enough that isolating just the build step is not worth the
+      # extra moving parts.
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm deploy:prod
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm deploy:prod 2>&1 | tee deploy-prod.log; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ] && grep -q 'D1_ERROR: Failed to parse body as JSON' deploy-prod.log; then
+              echo "::warning::deploy:prod attempt $attempt hit the transient D1 remote-binding error, retrying"
+              sleep 20
+              continue
+            fi
+            echo "::error::deploy:prod failed on attempt $attempt"
+            exit 1
+          done
 
       - name: Smoke-check production
         run: |
