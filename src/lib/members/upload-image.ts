@@ -51,6 +51,19 @@ function timestampedName(file: File): string {
   return `pasted-${Date.now()}${ext}`;
 }
 
+/**
+ * Best-effort: blurDataURL, real dimensions, HEIC→WebP conversion. A
+ * separate request on purpose — see processMediaImage.ts's header for why
+ * this can't run as a hook on the create itself. Never thrown from here:
+ * the upload already succeeded by the time this runs.
+ */
+async function processImage(mediaId: number): Promise<void> {
+  await fetch(`/api/members/media/${mediaId}/process-image`, {
+    method: "POST",
+    credentials: "same-origin",
+  }).catch(() => {});
+}
+
 export async function uploadImageFile(file: File): Promise<number> {
   if (await wouldExceedQuota(file.size)) {
     throw new Error("Storage quota exceeded");
@@ -60,8 +73,9 @@ export async function uploadImageFile(file: File): Promise<number> {
   const alt = defaultAltFor(named.name);
 
   if (named.size <= DIRECT_UPLOAD_THRESHOLD) {
-    // Payload's own path: the server reads the file, so width/height and
-    // blurDataURL get filled in. Every realistic screenshot lands here.
+    // Payload's own path: the server reads the file, so width/height get
+    // filled in immediately. blurDataURL and HEIC conversion still need
+    // processImage below — see its own comment.
     const body = new FormData();
     body.set("file", named);
     body.set("_payload", JSON.stringify({ alt }));
@@ -73,7 +87,9 @@ export async function uploadImageFile(file: File): Promise<number> {
     if (!response.ok) {
       throw new Error((await response.text()).slice(0, 300));
     }
-    return ((await response.json()) as { doc: { id: number } }).doc.id;
+    const id = ((await response.json()) as { doc: { id: number } }).doc.id;
+    await processImage(id);
+    return id;
   }
 
   const session = await startSession(named, await reserveFilename(named));
@@ -101,5 +117,6 @@ export async function uploadImageFile(file: File): Promise<number> {
     /* dimensions are a nicety; the upload itself already succeeded */
   }
 
+  await processImage(doc.id);
   return doc.id;
 }

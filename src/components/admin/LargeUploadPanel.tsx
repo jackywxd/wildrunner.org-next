@@ -177,6 +177,12 @@ export function LargeUploadPanel() {
         file.size > DIRECT_UPLOAD_THRESHOLD
           ? await uploadLarge(file, resume)
           : await uploadSmall(file)
+      // Best-effort: blurDataURL, real dimensions, HEIC→WebP conversion —
+      // see processMediaImage.ts for why this is a separate request.
+      await fetch(`/api/members/media/${doc.id}/process-image`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      }).catch(() => {})
       setDocId(doc.id)
       setPercent(100)
       setPhase('done')

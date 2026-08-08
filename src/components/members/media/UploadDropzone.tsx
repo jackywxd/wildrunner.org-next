@@ -90,6 +90,8 @@ export function UploadDropzone({
     patchItem(index, { status: "uploading", percent: 0, message: "" });
 
     try {
+      let mediaId: number;
+
       if (chosen.size > DIRECT_UPLOAD_THRESHOLD) {
         const resume = await loadSession(chosen);
         const controller = new AbortController();
@@ -109,12 +111,13 @@ export function UploadDropzone({
         await clearSession(chosen);
 
         patchItem(index, { status: "saving" });
-        await createMediaDocument({
+        const created = await createMediaDocument({
           filename: session.filename,
           mimeType: session.mimeType,
           alt: defaultAltFor(chosen.name),
           ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
         });
+        mediaId = created.id;
       } else {
         const body = new FormData();
         body.set("file", chosen);
@@ -131,11 +134,20 @@ export function UploadDropzone({
           body,
         });
         if (!response.ok) throw new Error(await parseError(response, "上傳失敗"));
-        // Drain the body even though the id goes unused here: an
-        // un-consumed fetch response can sit un-flushed to devtools/test
-        // tooling observing the same network event.
-        await response.json();
+        const created = (await response.json()) as { doc: { id: number } };
+        mediaId = created.doc.id;
       }
+
+      // Best-effort: blurDataURL, real dimensions, HEIC→WebP conversion.
+      // A separate request on purpose — see processMediaImage.ts's header
+      // for why this can't be a beforeChange/afterChange hook on the
+      // create itself. Never blocks the upload from being marked done: it
+      // already succeeded by this point.
+      await fetch(`/api/members/media/${mediaId}/process-image`, {
+        method: "POST",
+        credentials: "same-origin",
+      }).catch(() => {});
+
       patchItem(index, { status: "done", percent: 100 });
     } catch (error) {
       if ((error as Error)?.name === "AbortError") {
