@@ -13,6 +13,8 @@ export type SitePhoto = SiteImage & {
   featured: boolean;
   blurWidth?: number;
   blurHeight?: number;
+  /** The underlying media doc's own createdAt — for sorting a flat, cross-gallery photo list by time. */
+  createdAt: string;
 };
 
 export type SiteVideo = {

@@ -1,19 +1,63 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type { SiteGallery, SitePhoto } from "@/lib/content-types";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import { Icon } from "@iconify-icon/react";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
+import { AllPhotosView } from "@/app/(site)/(public)/gallery/_components/AllPhotosView";
+import { cn } from "@/lib/utils";
 
 type GalleryPageClientProps = {
   galleries: SiteGallery[];
 };
 
+type GalleryView = "all" | "albums";
+
+function ViewChip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "border px-3 py-1 text-xs leading-tight transition-colors",
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-muted-foreground hover:text-foreground",
+      )}
+      data-active={active}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function GalleryPageClient({
   galleries,
 }: GalleryPageClientProps) {
+  // Default: every photo across every published gallery, newest first —
+  // "browse everything" is what most visitors want from a link labelled
+  // 相册, not a shelf of albums they have to open one at a time. The
+  // by-album layout (today's old default) is still one click away.
+  const [view, setView] = useState<GalleryView>("all");
+
+  const allPhotos = useMemo(() => {
+    return galleries
+      .flatMap((gallery) => gallery.images)
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+  }, [galleries]);
+
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {
       return acc.concat(gallery.images.filter((image) => image.featured));
@@ -45,63 +89,83 @@ export default function GalleryPageClient({
         <section className="border-t-2 border-border pt-8">
           <h1 className="text-4xl font-extrabold text-foreground">相册</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            精选照片与视频入口
+            {view === "all" ? "所有照片，依时间排序" : "精选照片与视频入口"}
           </p>
-          <div className="mt-8">
-            <h2 className="text-xl font-extrabold">精选照片</h2>
-            <SwiperLightbox
-              images={featuredImages}
-              autoplay={true}
-              featured={true}
-            />
+
+          <div className="mt-4 flex gap-2" data-testid="gallery-view-toggle">
+            <ViewChip active={view === "all"} onClick={() => setView("all")}>
+              全部相片
+            </ViewChip>
+            <ViewChip active={view === "albums"} onClick={() => setView("albums")}>
+              依相簿
+            </ViewChip>
           </div>
+
+          {view === "all" && (
+            <div className="mt-8" data-testid="gallery-all-photos">
+              <AllPhotosView photos={allPhotos} />
+            </div>
+          )}
         </section>
 
-        {gallerySections.map((gallery) => (
-          <section
-            key={gallery.slug}
-            className="border-t-2 border-border pt-8"
-          >
-            <Link
-              href={`/gallery/${gallery.slug}`}
-              className="group flex items-center justify-between gap-4"
-            >
-              <h1 className="text-2xl font-extrabold text-foreground">
-                {gallery.name}
-              </h1>
-              <div className="flex items-center gap-3">
+        {view === "albums" && (
+          <>
+            <section className="border-t-2 border-border pt-8">
+              <h2 className="text-xl font-extrabold">精选照片</h2>
+              <SwiperLightbox
+                images={featuredImages}
+                autoplay={true}
+                featured={true}
+              />
+            </section>
+
+            {gallerySections.map((gallery) => (
+              <section
+                key={gallery.slug}
+                className="border-t-2 border-border pt-8"
+              >
+                <Link
+                  href={`/gallery/${gallery.slug}`}
+                  className="group flex items-center justify-between gap-4"
+                >
+                  <h1 className="text-2xl font-extrabold text-foreground">
+                    {gallery.name}
+                  </h1>
+                  <div className="flex items-center gap-3">
+                    {(gallery.videos?.length ?? 0) > 0 && (
+                      <Icon
+                        className="opacity-70"
+                        icon="heroicons:play-circle"
+                        inline
+                      />
+                    )}
+                    <Icon
+                      className="opacity-70 transition-transform group-hover:translate-x-1/3"
+                      icon="heroicons:chevron-right"
+                      inline
+                    />
+                  </div>
+                </Link>
+
                 {(gallery.videos?.length ?? 0) > 0 && (
-                  <Icon
-                    className="opacity-70"
-                    icon="heroicons:play-circle"
-                    inline
-                  />
+                  <div className="mt-4">
+                    <GalleryVideos
+                      videos={gallery.videos}
+                      gallerySlug={gallery.slug}
+                      compact
+                    />
+                  </div>
                 )}
-                <Icon
-                  className="opacity-70 transition-transform group-hover:translate-x-1/3"
-                  icon="heroicons:chevron-right"
-                  inline
-                />
-              </div>
-            </Link>
 
-            {(gallery.videos?.length ?? 0) > 0 && (
-              <div className="mt-4">
-                <GalleryVideos
-                  videos={gallery.videos}
-                  gallerySlug={gallery.slug}
-                  compact
-                />
-              </div>
-            )}
-
-            {gallery.images.length > 0 && (
-              <div className="mt-4">
-                <SwiperLightbox images={gallery.images} maxHeight={160} />
-              </div>
-            )}
-          </section>
-        ))}
+                {gallery.images.length > 0 && (
+                  <div className="mt-4">
+                    <SwiperLightbox images={gallery.images} maxHeight={160} />
+                  </div>
+                )}
+              </section>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
