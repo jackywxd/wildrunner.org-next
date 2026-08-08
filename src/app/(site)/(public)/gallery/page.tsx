@@ -1,10 +1,15 @@
 import React from "react";
-import { getPublishedGalleries } from "@/lib/content";
+import { getPublishedGalleries, getRaceTaggedPhotos } from "@/lib/content";
 import GalleryPageClient from "./gallery-page-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
-  const galleries = await getPublishedGalleries();
-  return <GalleryPageClient galleries={galleries} />;
+  const [galleries, raceTaggedPhotos] = await Promise.all([
+    getPublishedGalleries(),
+    getRaceTaggedPhotos(),
+  ]);
+  return (
+    <GalleryPageClient galleries={galleries} raceTaggedPhotos={raceTaggedPhotos} />
+  );
 }

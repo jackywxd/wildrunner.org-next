@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 type GalleryPageClientProps = {
   galleries: SiteGallery[];
+  /** Photos tagged with a race but not necessarily in any album — see getRaceTaggedPhotos. */
+  raceTaggedPhotos: SitePhoto[];
 };
 
 type GalleryView = "all" | "albums";
@@ -43,6 +45,7 @@ function ViewChip({
 
 export default function GalleryPageClient({
   galleries,
+  raceTaggedPhotos,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -51,12 +54,24 @@ export default function GalleryPageClient({
   const [view, setView] = useState<GalleryView>("all");
 
   const allPhotos = useMemo(() => {
-    return galleries
-      .flatMap((gallery) => gallery.images)
-      .sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-  }, [galleries]);
+    const seen = new Set<string>();
+    const combined: SitePhoto[] = [];
+    // Gallery-curated photos and race-tagged photos are two different
+    // paths to "this is public" (album membership vs. a member's own race
+    // tag) and can overlap on the same underlying upload — deduped by src,
+    // the one stable identifier both sources carry.
+    for (const photo of [
+      ...galleries.flatMap((gallery) => gallery.images),
+      ...raceTaggedPhotos,
+    ]) {
+      if (seen.has(photo.src)) continue;
+      seen.add(photo.src);
+      combined.push(photo);
+    }
+    return combined.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [galleries, raceTaggedPhotos]);
 
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {
