@@ -1051,6 +1051,63 @@ export async function getRaceTaggedPhotos(): Promise<SitePhoto[]> {
   return photos;
 }
 
+/**
+ * Every video tagged with a specific race edition — the video counterpart
+ * to getRaceEditionPhotos, deliberately smaller in scope: no uploader
+ * attribution (the race wall doesn't credit video uploaders either way
+ * today) and no dedicated share-page id. `mapGalleryVideo`'s `videoId`
+ * fallback (a filename-derived slug) is fine here precisely because
+ * nothing resolves a video by that id outside a gallery's own
+ * `videos[]` array — see /gallery/[slug]/v/[videoId] — so there is no
+ * stable identifier to preserve.
+ */
+export async function getRaceEditionVideos(editionId: number): Promise<SiteVideo[]> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    sort: "-createdAt",
+    where: {
+      and: [
+        { raceEdition: { equals: editionId } },
+        { mimeType: { like: "video" } },
+      ],
+    },
+  });
+  const videos: SiteVideo[] = [];
+  for (const doc of result.docs) {
+    const video = mapGalleryVideo(doc);
+    if (video) videos.push(video);
+  }
+  return videos;
+}
+
+/** Every video a member has tagged with a race — the video counterpart to getRaceTaggedPhotos. */
+export async function getRaceTaggedVideos(): Promise<SiteVideo[]> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    sort: "-createdAt",
+    where: {
+      and: [
+        { raceEdition: { exists: true } },
+        { mimeType: { like: "video" } },
+      ],
+    },
+  });
+  const videos: SiteVideo[] = [];
+  for (const doc of result.docs) {
+    const video = mapGalleryVideo(doc);
+    if (video) videos.push(video);
+  }
+  return videos;
+}
+
 export async function getGalleryBySlug(
   slug: string,
 ): Promise<SiteGallery | null> {
