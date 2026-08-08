@@ -1016,6 +1016,41 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
   return result.docs.map(mapPayloadGallery);
 }
 
+/**
+ * Every image a member has tagged with a race — the same public signal that
+ * puts a photo on that race's own wall (getRaceEditionPhotos), read here as
+ * "this member wants it public" for the site's general photo view too.
+ *
+ * Deliberately not "every media doc": most uploads (post-embedded images,
+ * pasted editor screenshots, avatars) are not public gallery content, and
+ * `media`'s read access being public (ownedOnlyPublicRead) is not the same
+ * claim as belonging in a curated photo view. Tagging a race is a member's
+ * own explicit "show this" — the same bar `galleries.images[]` membership
+ * already sets, just via a different, member-reachable path.
+ */
+export async function getRaceTaggedPhotos(): Promise<SitePhoto[]> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    sort: "-createdAt",
+    where: {
+      and: [
+        { raceEdition: { exists: true } },
+        { mimeType: { like: "image" } },
+      ],
+    },
+  });
+  const photos: SitePhoto[] = [];
+  for (const doc of result.docs) {
+    const photo = mapMediaToPhoto(doc, false);
+    if (photo) photos.push(photo);
+  }
+  return photos;
+}
+
 export async function getGalleryBySlug(
   slug: string,
 ): Promise<SiteGallery | null> {

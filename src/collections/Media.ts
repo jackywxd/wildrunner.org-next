@@ -5,7 +5,6 @@ import { ownerField } from '../fields/owner'
 import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
 import { setOwner } from './hooks/owner'
-import { processImageOnUpload } from './hooks/process-image'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
 import { verifyDirectUpload } from './hooks/verify-direct-upload'
 
@@ -36,7 +35,10 @@ export const Media: CollectionConfig = {
     // the quota check then has to bill against.
     beforeOperation: [verifyDirectUpload, enforceStorageQuota],
     beforeChange: [setOwner, setMediaUrl],
-    afterChange: [streamIngestOnUpload, processImageOnUpload],
+    // Image processing (blurDataURL, dimensions, HEIC→WebP) is NOT here —
+    // see src/endpoints/processMediaImage.ts for why an afterChange hook
+    // doesn't work for it.
+    afterChange: [streamIngestOnUpload],
   },
   fields: [
     ownerField,
