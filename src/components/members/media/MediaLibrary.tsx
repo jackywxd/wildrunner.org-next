@@ -11,8 +11,11 @@ import type { SiteRaceEditionOption } from "@/lib/content-types";
 type Usage = { quotaBytes: number; usedBytes: number };
 
 export function MediaLibrary({
+  preselectedRaceEditionId,
   raceEditions,
 }: {
+  /** From a 上傳相片-style deep link — a hint, not a requirement. */
+  preselectedRaceEditionId?: number;
   raceEditions: SiteRaceEditionOption[];
 }) {
   const [items, setItems] = useState<Media[]>([]);
@@ -53,7 +56,11 @@ export function MediaLibrary({
     <div className="space-y-6">
       {usage && <QuotaBar usedBytes={usage.usedBytes} quotaBytes={usage.quotaBytes} />}
 
-      <UploadDropzone onUploaded={refresh} raceEditions={raceEditions} />
+      <UploadDropzone
+        onUploaded={refresh}
+        preselectedRaceEditionId={preselectedRaceEditionId}
+        raceEditions={raceEditions}
+      />
 
       {!loading && <MediaGrid items={items} onSelect={setSelected} />}
 
