@@ -27,6 +27,7 @@ import { RaceEditions } from './collections/RaceEditions'
 import { RaceEvents } from './collections/RaceEvents'
 import { RaceRecords } from './collections/RaceRecords'
 import { RaceSchedule } from './collections/RaceSchedule'
+import { HtmlEmbedBlock } from './blocks/HtmlEmbedBlock'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
@@ -195,7 +196,7 @@ export default buildConfig({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures,
       EXPERIMENTAL_TableFeature(),
-      BlocksFeature({ blocks: [CodeBlock()] }),
+      BlocksFeature({ blocks: [CodeBlock(), HtmlEmbedBlock] }),
       TextStateFeature(),
       FixedToolbarFeature(),
     ],

@@ -195,6 +195,47 @@ const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
       />
     );
   },
+
+  /**
+   * `Code` blocks (`BlocksFeature({ blocks: [CodeBlock()] })` in
+   * `payload.config.ts`), which `defaultConverters` has no entry for at
+   * all — verified against
+   * `node_modules/@payloadcms/richtext-lexical/dist/features/converters/
+   * lexicalToJsx/converter/defaultConverters.js`. Without this, the
+   * dispatcher (`converter/index.js`) logs a `console.error` and renders
+   * the literal text "unknown node" for any post containing one. No
+   * migrated post ever exercised this — 0 of 15 in `.velite/posts.json`
+   * contain a fenced code block — which is why it went unnoticed until the
+   * MDX importer (`@/lib/mdx-import`) made a code block reachable through
+   * the member editor for the first time.
+   */
+  blocks: {
+    Code: ({ node }: { node: { fields?: { code?: string; language?: string } } }) => {
+      const fields = node.fields ?? {};
+      if (!fields.code) return null;
+      return (
+        <pre className="overflow-x-auto rounded-lg bg-secondary p-4 text-sm">
+          <code
+            className={fields.language ? `language-${fields.language}` : undefined}
+          >
+            {fields.code}
+          </code>
+        </pre>
+      );
+    },
+    /**
+     * Raw HTML/SVG a member embedded via the MDX importer
+     * (`src/lib/mdx-import/html-embed.ts`), already sanitized at import
+     * time — see that file's header for exactly what it allows and why.
+     * This converter trusts that sanitization and does not repeat it; the
+     * only writer of this field is the importer.
+     */
+    HtmlEmbed: ({ node }: { node: { fields?: { html?: string } } }) => {
+      const html = node.fields?.html;
+      if (!html) return null;
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    },
+  },
 });
 
 type PayloadRichTextProps = {

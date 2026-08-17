@@ -87,6 +87,32 @@ const MAPPINGS = [
     },
   },
   {
+    // The second screen that creates a post outright, so mode "create":
+    // nothing exists yet, and anything the schema requires has to be
+    // fillable here. The pairing that is not obvious is `content`. There is
+    // no Lexical editor on this screen — the member supplies the body as
+    // markdown and `src/lib/mdx-import` converts it, so the textarea is the
+    // control `content` is filled from, and `import-file` only writes into
+    // that same textarea. Naming `editor-content` here would point at a
+    // component this route never renders.
+    //
+    // `slug` has a control even though `derivePostSlug` fills a blank one:
+    // an imported Chinese title slugifies to nothing, and a member who
+    // wants a real URL needs somewhere to type it.
+    collection: "src/collections/Posts.ts",
+    mode: "create",
+    screens: [
+      "src/components/members/posts/ImportPost.tsx",
+      "src/components/members/posts/ImportPreview.tsx",
+    ],
+    fields: {
+      title: "import-title",
+      slug: "import-slug",
+      description: "import-description",
+      content: "import-source",
+    },
+  },
+  {
     collection: "src/collections/Authors.ts",
     mode: "update",
     screens: ["src/components/members/profile/ProfileForm.tsx"],

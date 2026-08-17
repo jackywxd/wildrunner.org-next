@@ -54,14 +54,24 @@ export function PostsList({ posts }: { posts: Post[] }) {
     <>
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold">文章</h1>
-        <Button
-          data-testid="posts-new"
-          className="justify-center"
-          disabled={creating}
-          onClick={create}
-        >
-          {creating ? "建立中…" : "新增文章"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            data-testid="posts-import"
+            variant="outline"
+            className="justify-center"
+            asChild
+          >
+            <Link href="/members/posts/import">匯入文章</Link>
+          </Button>
+          <Button
+            data-testid="posts-new"
+            className="justify-center"
+            disabled={creating}
+            onClick={create}
+          >
+            {creating ? "建立中…" : "新增文章"}
+          </Button>
+        </div>
       </div>
 
       {error && (
