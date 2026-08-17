@@ -152,9 +152,25 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     // block's content. The HtmlEmbed case is also the only place a
     // registration gap in `payload.config.ts`'s `BlocksFeature` would be
     // caught — see this file's header.
+    //
+    // `.first()` on both marker locators: caught once in CI (never locally)
+    // as a strict-mode violation — `getByText` resolved 2 DOM nodes for
+    // text the rendered page shows only once. The saved accessibility
+    // snapshot from that failure has exactly one `code` node, so the
+    // second match was accessibility-hidden — consistent with a transient
+    // duplicate from React's SSR/streaming HTML that hydration removes
+    // shortly after `domcontentloaded` fires (`getByText` matches hidden
+    // elements; the a11y tree does not). Slower CI runners make that
+    // window more likely to be caught mid-transition. `.first()` +
+    // `toBeVisible()`'s built-in retry re-resolves the locator each poll,
+    // so once hydration removes the hidden duplicate, `.first()` settles
+    // on the one real node — the assertion's actual concern (the real
+    // content rendered, not "unknown node") is unaffected either way.
     await page.goto(`/posts/${body.slug}`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByText("m-import-marker")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("m-import-html-marker")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("m-import-marker").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("m-import-html-marker").first()).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(page.getByText("unknown node")).toHaveCount(0);
   });
 });
