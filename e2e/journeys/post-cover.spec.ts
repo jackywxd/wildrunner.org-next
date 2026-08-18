@@ -21,8 +21,19 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 
-/** A real raster already in the repo — see race-photos.spec.ts, same idea. */
-const COVER_FILE = "public/static/brand/lockup-horizontal.png";
+/**
+ * The same fixture race-photos.spec.ts uploads, and for a reason worth
+ * stating: it MUST NOT be a raster.
+ *
+ * `.gitattributes` tracks every `*.png/jpg/webp/...` through Git LFS, and
+ * the e2e job checks out with `lfs: false` and `GIT_LFS_SKIP_SMUDGE: "1"`.
+ * So in CI a PNG on disk is a ~130-byte text pointer, not an image — the
+ * upload "succeeds", the media document has nothing usable behind it, and
+ * the thumbnail never appears. Measured: this test passed locally and
+ * failed in CI at exactly that assertion with `lockup-horizontal.png`.
+ * SVG is not LFS-tracked, so it is the same bytes in both places.
+ */
+const COVER_FILE = "public/static/brand/mark-purple.svg";
 
 const SOURCE = ["# M-COVER 封面測試文章", "", "一段內文，讓這篇文章有東西可讀。"].join("\n");
 
