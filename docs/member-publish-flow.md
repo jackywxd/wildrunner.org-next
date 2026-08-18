@@ -103,7 +103,12 @@ Two things learned while finding that out, both already fixed in
 
 - The control's testid is `race-report-error`, not the `race-report-start-error`
   a guess produced. Read the component.
-- `/races` renders `race-write-report` **twice** — once at zero size for the
-  other breakpoint — so `.first()` selects a control that can never be clicked.
-  This is almost certainly the same duplication behind the badge count that
-  read 2 where one record existed (docs/testing-plan.md, "Open, not closed").
+- `/races` renders `race-write-report` **twice** — once at zero size — so
+  `.first()` selects a control that can never be clicked. This *was* the same
+  duplication behind the badge count that read 2 where one record existed —
+  but "other breakpoint" was a misdiagnosis, corrected 2026-08-17
+  (docs/testing-plan.md, "Open, not closed"): both copies carry identical
+  markup and classes, neither is Tailwind-hidden, and the zero-size one sits
+  inside a leftover `id="S:0"` — React's own Suspense streaming-replacement
+  slot, from `PageTransitionEffect.tsx` never being confirmed to actually
+  remove it. Fixed at the source; `/races` now ships exactly one copy.
