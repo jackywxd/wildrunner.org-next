@@ -17,18 +17,17 @@ export const dynamic = "force-dynamic";
 /**
  * The stored record, as the editor's badge needs it.
  *
- * Returns null for a bare id, which is what depth 0 would give — but this
- * page fetches the post at depth 1 for exactly this reason. The name comes
- * from the catalogue rather than from the schedule row: the record points
- * at an event, not at an edition, and a catalogue rename should follow the
- * badge rather than be pinned to whatever the schedule said that year.
+ * Takes the record fetched separately by the caller — `post.raceRecord`
+ * itself is a bare id (the post is fetched at depth 0). The name comes from
+ * the catalogue rather than from the schedule row: the record points at an
+ * event, not at an edition, and a catalogue rename should follow the badge
+ * rather than be pinned to whatever the schedule said that year.
  */
 function toLinkedRace(
   catalogue: RaceCatalogueMap,
-  value: Post["raceRecord"],
+  record: RaceRecord | null,
 ): LinkedRace | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as RaceRecord;
+  if (!record) return null;
   return {
     distanceId: record.distanceId,
     eventId: record.eventId,
@@ -48,18 +47,24 @@ export default async function EditPostPage({
 
   let post: Post;
   try {
-    // depth: 1 rather than 0, and the difference is confined to `raceRecord`.
-    //
-    // depth 0 was load-bearing for a reason that has not changed: at any
-    // depth every upload node's `value` inside `content` comes back as a
-    // populated Media object, and saving that would write an object into a
-    // field that must hold a plain id. What makes depth 1 safe here is that
-    // the editor no longer round-trips what it loaded — `ContentEditor`
-    // parses the Lexical tree and re-serializes it on save, and `savePost`
-    // is handed only the fields the form owns. `raceRecord` needs the
-    // populated document to draw the badge without a second request.
+    // depth: 0, not 1. `ebb48d3` switched this to depth: 1 on the theory
+    // that the difference is confined to `raceRecord`, and that the editor
+    // is safe from the populated-object problem because it re-serializes
+    // rather than round-tripping what it loaded. Both halves of that were
+    // wrong: Payload's own `UploadFeature` registers a REST/local-API
+    // `afterRead` node hook (@payloadcms/richtext-lexical/dist/features/
+    // upload/server/index.js) that walks *every* node in `content` and
+    // replaces `value` with the full populated Media document whenever
+    // `depth >= 1` — not just GraphQL, and not just `raceRecord`. That
+    // object then becomes the *initial* Lexical editor state
+    // (`ContentEditor`'s `fromPayloadContent(initialContent)`), so every
+    // image in an existing post's body rendered `UploadPreview` with an
+    // object instead of an id, and its fallback branch stringified that
+    // object into the literal text "媒體 #[object Object]" — reported
+    // 2026-08-18 on a real published post. `raceRecord` is fetched
+    // separately below instead.
     post = (await memberFindByID("posts", Number(id), {
-      depth: 1,
+      depth: 0,
       draft: true,
     })) as Post;
   } catch {
@@ -67,9 +72,16 @@ export default async function EditPostPage({
   }
 
   const now = new Date();
-  const [finishedRaces, catalogueEvents] = await Promise.all([
+  const [finishedRaces, catalogueEvents, raceRecord] = await Promise.all([
     getFinishedRaces(now),
     getRaceCatalogueEvents(),
+    // `raceRecord`'s own fields (`eventId`, `distanceId`, `year`) are plain
+    // scalars, not relationships, so depth 0 already returns everything
+    // `toLinkedRace` needs — this fetch exists only because depth 0 on the
+    // post above leaves `post.raceRecord` as a bare id.
+    typeof post.raceRecord === "number"
+      ? memberFindByID("race-records", post.raceRecord, { depth: 0 })
+      : null,
   ]);
   const catalogue = catalogueMap(catalogueEvents);
   const raceOptions = reportOptions(catalogue, finishedRaces, now);
@@ -84,7 +96,7 @@ export default async function EditPostPage({
         description: post.description ?? "",
         status: post._status === "published" ? "published" : "draft",
         content: (post.content as unknown as PayloadContent) ?? emptyContent(),
-        race: toLinkedRace(catalogue, post.raceRecord),
+        race: toLinkedRace(catalogue, raceRecord as RaceRecord | null),
       }}
       ownerId={user.id}
       raceOptions={raceOptions}
