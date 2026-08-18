@@ -8,6 +8,7 @@ import {
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
 import { AIAssistPanel } from "@/components/members/editor/AIAssistPanel";
+import { CoverImageField } from "@/components/members/posts/CoverImageField";
 import {
   RaceRecordField,
   type LinkedRace,
@@ -28,6 +29,8 @@ export function PostEditor({
   catalogueEvents: CatalogueEvent[];
   initial: {
     content: PayloadContent;
+    /** `posts.image` as a bare media id — see CoverImageField. */
+    cover: number | null;
     description: string;
     id: number;
     race: LinkedRace | null;
@@ -47,6 +50,8 @@ export function PostEditor({
   const [description, setDescription] = useState(initial.description);
   const [status, setStatus] = useState<Status>(initial.status);
   const [race, setRace] = useState<LinkedRace | null>(initial.race);
+  const [cover, setCover] = useState<number | null>(initial.cover);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -85,9 +90,13 @@ export function PostEditor({
         slug,
         description,
         content,
-        // Always sent, including as `null`. Omitting it when nothing is
-        // linked would make "remove" impossible to express — the field
-        // would simply keep whatever was already stored. See PostPayload.
+        // Both always sent, including as `null`. Omitting a key when
+        // nothing is linked would make "remove" impossible to express — the
+        // field would simply keep whatever was already stored. See
+        // PostPayload. `image` was previously never sent at all, which is
+        // why an existing cover survived every save; now that the member can
+        // clear one, the absent-means-keep behaviour is no longer enough.
+        image: cover,
         raceRecord: race ? race.recordId : null,
       },
       { publish },
@@ -129,7 +138,7 @@ export function PostEditor({
 
   // An upload still in flight has no media id yet, so the document simply
   // cannot be serialized — block saving rather than let it throw.
-  const uploading = pending > 0;
+  const uploading = pending > 0 || coverUploading;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -221,6 +230,15 @@ export function PostEditor({
           {status === "published" ? "更新已發布內容" : "發布"}
         </Button>
       </div>
+
+      <CoverImageField
+        mediaId={cover}
+        onBusyChange={setCoverUploading}
+        onChange={(value) => {
+          setCover(value);
+          setDirty(true);
+        }}
+      />
 
       <RaceRecordField
         catalogueEvents={catalogueEvents}

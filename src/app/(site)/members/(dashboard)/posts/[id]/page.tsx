@@ -91,6 +91,10 @@ export default async function EditPostPage({
       catalogueEvents={catalogueEvents}
       initial={{
         id: post.id,
+        // A bare id, which is exactly what depth 0 gives and what
+        // `posts.image` stores. CoverImageField resolves it to a picture
+        // itself rather than being handed a populated document.
+        cover: typeof post.image === "number" ? post.image : null,
         title: post.title ?? "",
         slug: post.slug ?? "",
         description: post.description ?? "",
