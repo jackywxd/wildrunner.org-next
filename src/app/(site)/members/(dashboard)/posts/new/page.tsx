@@ -44,9 +44,10 @@ export default async function NewRaceReportPage({
   const options = reportOptions(catalogueMap(catalogueEvents), finishedRaces, now);
 
   // `race` + `year`, not a raw row id: RaceEntryRow.tsx links here from
-  // `/races`, which reads `race-editions` — a different table, and a
-  // different id space, than `options` below (`getFinishedRaces`, still
-  // `race-schedule`, #41). eventId is the identifier both agree on.
+  // `/races`, and `options` below is a *different* fetch of `race-editions`
+  // (getFinishedRaces) — both now read the same table, but a fresh query is
+  // still a new set of row ids, so matching on the identifier both agree on
+  // (eventId + year) is what makes the preselect robust either way.
   const rawRace = Array.isArray(params.race) ? params.race[0] : params.race;
   const rawYear = Array.isArray(params.year) ? params.year[0] : params.year;
   const requestedYear = rawYear ? Number(rawYear) : NaN;

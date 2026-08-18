@@ -194,9 +194,12 @@ test.describe("R what a member does with a race report", () => {
     // Third time a prefix pattern has passed for a page that never moved.
     await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
 
-    // Arrive from the race itself. `:visible` because the page renders this
-    // control twice — once at zero size for the other breakpoint — so
-    // `.first()` selects one that can never be clicked.
+    // Arrive from the race itself. `:visible` was needed because `/races`
+    // used to render this control twice — once at zero size, a
+    // PageTransitionEffect.tsx Suspense defect, not a responsive breakpoint
+    // (docs/testing-plan.md, "Open, not closed", 2026-08-17) — so `.first()`
+    // could select a copy that could never be clicked. Fixed at the source;
+    // kept here anyway as a cheap guard against the same shape recurring.
     await page.goto("/races", { waitUntil: "domcontentloaded" });
     const write = page
       .locator('[data-testid="race-write-report"]:visible')

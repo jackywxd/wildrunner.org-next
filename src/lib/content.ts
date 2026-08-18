@@ -11,8 +11,6 @@ import type {
   RaceEditionsSelect,
   RaceEvent,
   RaceRecord,
-  RaceSchedule,
-  RaceScheduleSelect,
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
@@ -486,72 +484,6 @@ const orUndefined = <T>(value: T | null | undefined): T | undefined =>
   value ?? undefined;
 
 /**
- * `race-schedule` has no `owner` field, so there is no PII to omit — the
- * select is here anyway to keep the convention uniform. If a relationship
- * to `users` is ever added to this collection, the default would otherwise
- * be to leak it, and that default is exactly what the note at the top of
- * this file exists to prevent.
- *
- * `sourceUrl` and `verifiedAt` are omitted on purpose: maintenance
- * metadata, of no use to any visitor-facing component.
- *
- * STILL HERE, ALONGSIDE `RACE_EDITIONS_SELECT`. `getUpcomingRaces` and
- * `getRaceScheduleBounds` below no longer use this — they read
- * `race-editions` now — but `getFinishedRaces` still reads `race-schedule`,
- * because it was written for the race-report picker (#41) against the
- * schedule this file read at the time. Migrating it to `race-editions` too
- * is real, separate work: `race_records` still stores a plain `eventId`
- * string rather than an edition foreign key, so that picker's identity
- * model would need to change with it, not as an incidental side effect of
- * resolving a merge conflict between the two.
- */
-const RACE_SCHEDULE_SELECT = {
-  country: true,
-  distanceSummary: true,
-  endDate: true,
-  eventId: true,
-  location: true,
-  name: true,
-  nameZh: true,
-  notes: true,
-  registrationClosesAt: true,
-  registrationOpensAt: true,
-  registrationStatusOverride: true,
-  registrationType: true,
-  registrationUrl: true,
-  series: true,
-  startDate: true,
-  url: true,
-} as const satisfies RaceScheduleSelect<true>;
-
-/** See `mapRaceEditionEntry` below for the `race-editions` equivalent. */
-function mapRaceScheduleEntry(doc: RaceSchedule): SiteRaceScheduleEntry {
-  const day = (value: string | null | undefined): string | undefined =>
-    value ? value.slice(0, 10) : undefined;
-
-  return {
-    country: orUndefined(doc.country),
-    distanceSummary: orUndefined(doc.distanceSummary),
-    endDate: day(doc.endDate),
-    eventId: orUndefined(doc.eventId),
-    id: doc.id,
-    location: orUndefined(doc.location),
-    name: doc.name,
-    nameZh: orUndefined(doc.nameZh),
-    notes: orUndefined(doc.notes),
-    registrationClosesAt: day(doc.registrationClosesAt),
-    registrationOpensAt: day(doc.registrationOpensAt),
-    registrationStatusOverride: orUndefined(doc.registrationStatusOverride),
-    registrationType: doc.registrationType ?? "first-come",
-    registrationUrl: orUndefined(doc.registrationUrl),
-    series: doc.series,
-    // `startDate` is required, so this branch always produces a value.
-    startDate: day(doc.startDate) ?? "",
-    url: orUndefined(doc.url),
-  };
-}
-
-/**
  * `race-events` joined with `race-categories`, loaded once per request.
  *
  * An edition carries only its own dates and registration window — name,
@@ -745,27 +677,58 @@ export async function getUpcomingRaces(opts?: {
  * comparison in SQL would need `COALESCE(end_date, start_date)`, which
  * Payload's `where` cannot express — so the loose bound narrows the rows and
  * the shared helper decides, rather than the two disagreeing.
+ *
+ * READS `race-editions`, NOT `race-schedule`. It used to read the latter,
+ * and the two had quietly diverged: `race-schedule` is 18 hand-typed rows
+ * from `seed-race-schedule.ts` that nothing keeps in sync, while
+ * `race-editions` is the CSV AGENTS.md calls "the only one meant to be
+ * refreshed regularly" (77+ rows in the seeded corpus). `getUpcomingRaces`
+ * — what decides whether `/races` even offers 「紀錄比賽」 for a race — already
+ * reads `race-editions`. Reading a different, smaller table here meant the
+ * button could invite a member to report a race (e.g. `other-fat-dog/2026`)
+ * that this picker then had no option for at all: `NewRaceReportPage`'s
+ * `(eventId, year)` preselect match came back empty against `race-schedule`,
+ * and the member landed on a picker whose list didn't contain the race the
+ * button promised — a broken link dressed as a "graceful" empty preselect.
+ * R-DUPLICATE (e2e/journeys/race-report.spec.ts) caught this as a timeout
+ * waiting for a distance option that was never going to appear, because no
+ * race — not even the requested one — had been chosen.
+ *
+ * Safe to read the same table `getUpcomingRaces` does: `scheduleId` below
+ * (see `RaceReportOption`/`StartRaceReport.tsx`) is only ever used as an
+ * opaque client-side selection key, matched back to `options` by array
+ * search — never sent to the server. What a report actually persists is
+ * `eventId` + `year` + `distanceId` (`ensureRaceRecord`), so which table's
+ * row id fills this field has no bearing on what gets written.
  */
 export async function getFinishedRaces(
   now: Date,
 ): Promise<SiteRaceScheduleEntry[]> {
-  const payload = await getPayloadClient();
   const today = toDateString(now);
 
-  const result = await payload.find({
-    collection: "race-schedule",
-    depth: 0,
-    select: RACE_SCHEDULE_SELECT,
-    limit: 0,
-    pagination: false,
-    // Most recent first: the race somebody is writing about is far more
-    // often last month's than one from 2019.
-    sort: "-startDate",
-    where: { startDate: { less_than: `${today}T00:00:00.000Z` } },
-  });
+  const [result, { events, categoriesByEvent }] = await Promise.all([
+    (await getPayloadClient()).find({
+      collection: "race-editions",
+      depth: 0,
+      select: RACE_EDITIONS_SELECT,
+      limit: 0,
+      pagination: false,
+      // Most recent first: the race somebody is writing about is far more
+      // often last month's than one from 2019.
+      sort: "-startDate",
+      where: {
+        and: [
+          { startDate: { exists: true } },
+          { startDate: { less_than: `${today}T00:00:00.000Z` } },
+        ],
+      },
+    }),
+    raceEventCatalogue(),
+  ]);
 
   return result.docs
-    .map((doc) => mapRaceScheduleEntry(doc as RaceSchedule))
+    .map((doc) => mapRaceEditionEntry(doc as RaceEdition, events, categoriesByEvent))
+    .filter((entry): entry is SiteRaceScheduleEntry => entry !== undefined)
     .filter((entry) => isFinished(entry, now));
 }
 

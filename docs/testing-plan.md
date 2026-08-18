@@ -215,48 +215,85 @@ Things that went red once and are not explained. Listed so they are not
 quietly forgotten, and so a recurrence is recognised as a second occurrence
 rather than a first.
 
-### M-RACES read 2 badges where it added 1 record — mechanism found (2026-08-08)
+### M-RACES read 2 badges where it added 1 record — actually closed (2026-08-17)
 
-`expect(badgeCount).toBe(before + 1)` received 2, recurring across CI runs
-31076762757 and, after the event+year selector narrowing below, three more
-times on three unrelated branches (PRs #50, #53, and one retry each) — none
-of the three PRs touched race records, badges, or `/riders`. The narrowing
-alone did not stop it, which is itself evidence: it ruled out "the selector
-matches more than it should," not the actual cause.
+Recurred after the poll-based `badgeCount()` fix below (`#54`) shipped:
+CI shard 1/3 read 2 for 1 again, same assertion, same shape. That recurrence
+is what settled which of two remaining explanations — "the settle window
+outlasts 1 second" versus "this was never a settling race" — was true. It
+was the second one.
 
-**Mechanism, pinned from a CI failure's own trace (run 31242130929)**: the
-trace's `error-context.md` — Playwright's own accessibility snapshot, taken
-moments *after* the failing `.count()` call returned 2 — showed exactly one
-matching badge. The raw network response captured for that same
-`/riders` navigation shows the same: one real render of the newly created
-badge. `.count()` itself, at the instant it ran, genuinely found two DOM
-nodes matching the selector — real, both confirmed against independent
-evidence (the accessibility tree and the network body agree with each
-other, disagree with `.count()`'s own reading a moment earlier).
+**The real mechanism, reproduced deterministically outside CI (no Playwright
+timing involved at all): `curl`ing `/riders` returns 12 `rider-card` nodes
+for 6 riders, every single time.** `/races` ships every `race-write-report`
+link twice. Even a fully static page, `/about`, ships `<h3>追雲逐雪</h3>`
+twice. This is `PageTransitionEffect.tsx`'s `<Suspense
+fallback={<>{children}</>}>` — `children` is the page's own, already-resolved
+RSC output, not a preview component safe to render a second time, and the
+swap that is supposed to replace the fallback's copy with the primary one,
+once the primary resolves, was not removing the fallback's copy from the
+DOM. One copy lands as a normal, laid-out node; the other lands inside a
+zero-size `id="S:0"` — React's own leftover streaming-replacement slot,
+still present, never cleaned up.
 
-So the DOM briefly held two matching nodes and settled back to one before
-anything else looked. `badgeCount()` navigates with
-`waitUntil: "domcontentloaded"`, which fires before React hydration
-finishes — a single `.count()` taken immediately after can land inside
-that settling window. This is the same shape of failure as the
-`race-schedule`/`race-photo-wall` "resolved to 2 elements" flakes recorded
-separately (a testid or attribute selector transiently double-matching
-right after navigation, gone by the next check) — plausibly the same
-underlying hydration-timing mechanism, just caught on a different page.
+**Why the 2026-08-08 diagnosis read it as a transient hydration window**:
+the *duplicate content itself* is permanent (baked into the raw HTTP
+response, confirmed with no browser involved), but *when the second, S:0
+copy finishes streaming in* is not — it is a separate, later chunk of the
+same response. `badgeCount()`'s poll reads `.count()` immediately after
+`domcontentloaded`, which can land before that second chunk has arrived, so
+the poll's own "two consecutive equal reads" stability check can lock onto
+1 *before* the duplicate shows up, or land on 2 if it is already there, or
+even on 0 if an unrelated record shadows the new one in the meantime
+(`latestPerEvent()` — see below). All three were observed locally, on the
+same unmodified assertion, purely by re-running it. Nothing about that
+variance made the underlying defect intermittent; it only made *catching it
+inside a ~1-second polling window* intermittent. This is also, incidentally,
+why local reproduction had failed before (2026-08-08's note, and every
+attempt today until raw `curl` bypassed the browser-timing question
+entirely): a plain browser navigation is exactly as likely to miss the
+window as CI is.
 
-**Fix applied**: `badgeCount()` now polls `.count()` until it agrees across
-two consecutive reads (100ms apart, 10 attempts) instead of reading once
-right after `domcontentloaded`. This rides out a transient duplication of
-any length rather than guessing at one, per TESTING.md's "timeouts come
-from the measured distribution, never a feeling" — the loop reacts to an
-observed condition (stability), not a fixed delay.
+*(A second, unrelated false lead the same session: a manually-created race
+record, left over from reproducing this locally, made `latestPerEvent()` -
+"one badge per event, most recent year wins" - keep showing that leftover's
+year instead of a freshly-created one whenever the newly claimed year came
+out lower. That produced `Received: 0` on an already-fixed build. Not a
+regression; a `docs/testing-strategy.md` "delete by id, immediately" lapse
+during investigation, corrected once noticed. If `Received: 0` (not 2) shows
+up again, check for exactly this before assuming a new mechanism.)*
 
-Not yet fully closed: the fix has not been *observed* to prevent a
-recurrence (the underlying race never reproduced locally, only on CI), so
-this stays here until it has gone a meaningful stretch of CI runs without
-recurring. If it does recur with the poll in place, that would mean the
-hydration-settle window outlasts 1 second, which would itself be worth
-knowing.
+**Fix**: `PageTransitionEffect.tsx` no longer lets any Suspense boundary
+wrap `children` at all, in either branch. `useSearchParams()` — the reason a
+boundary exists in the first place — is now read by an isolated,
+content-free `SyncQueryString` component (`fallback={null}`, and that is
+free: there is nothing under it to duplicate) that hands the query string to
+`Transition` via plain client state. `children` renders in exactly one
+place, unconditionally, same as it always should have.
+
+Tried and rejected first: `fallback={null}` on the *original* structure
+(still wrapping `children`) does stop the duplication, but it also stops
+`notFound()` from working — a route that should 404 started answering 200
+with the not-found page's body instead (`e2e/journeys/visitor.spec.ts` V8,
+which had been silently passing this whole time only because nothing had
+exercised a 404 route with `fallback={children}}` broken in this specific
+way). Whatever made the fallback's direct, no-client-wrapper copy of
+`children` necessary for `notFound()` to propagate correctly, it is not safe
+to just stop rendering `children` there without also making sure nothing
+else needed that path — hence isolating `useSearchParams()` away from
+`children` entirely, rather than picking one of the two existing branches.
+
+Verified: `curl`'d `/riders`, `/races` and `/about` each show exactly one
+copy of their content (no `S:0`, no duplicate nodes) with the fix in place,
+and the original duplication with it reverted — deterministic in both
+directions, no Playwright timing involved. `notFound()` on
+`/posts/definitely-not-a-post` answers 404 with the fix in place, and 200
+with the original `fallback={<>{children}</>}` reverted (V8 seen failing
+for that reason, then passing). Full suite (51 tests) green, including V4/V5
+(the calendar-toggle regression `useSearchParams()`'s query-keyed
+`AnimatePresence` exists to prevent) and V8. `badgeCount()`'s poll is left
+as it is — harmless, and no longer load-bearing, but simplifying a
+now-redundant safety net was not part of this fix.
 
 ### A member pressing Back does not see a record they just added
 
@@ -266,12 +303,22 @@ before the add. The journey navigates explicitly instead, because that
 question is a different test's subject. Whether it is a bug worth fixing has
 not been decided.
 
-### The catalogue and the database disagree, and the code believes the catalogue
+### The catalogue and the database disagree, and the code believes the catalogue — resolved (2026-08-06, "Retire catalogue.ts as the runtime authority")
 
-`race_categories` came from the reviewed CSVs. `RaceRecords` still validates
+Left here for the incident it caused, not as an open item: `RaceRecords`
+validates through `validateRaceCatalogueRef` now (`src/collections/hooks/
+validate-race-catalogue-ref.ts`), which queries `race-events`/
+`race-categories` directly — the database, not `src/lib/races/catalogue.ts`.
+Found stale on 2026-08-17 while looking for the *same shape* of problem
+elsewhere (two live sources of "what races exist" quietly disagreeing) —
+which is exactly what was found, just for `race-schedule` vs `race-editions`
+instead of `catalogue.ts` vs `race_categories`. See the M-RACES/R-DUPLICATE
+entry above.
+
+`race_categories` came from the reviewed CSVs. `RaceRecords` used to validate
 through `findRaceEvent` in `src/lib/races/catalogue.ts`. For `wtm-hk100` the
-database says `100k` and the code does not, so a record the database would
-accept is rejected on write with 以下欄位無效： 距離.
+database said `100k` and the code did not, so a record the database would
+accept was rejected on write with 以下欄位無效： 距離.
 
 Found by a seed that checked the CSV — the wrong authority — and then failed.
 
