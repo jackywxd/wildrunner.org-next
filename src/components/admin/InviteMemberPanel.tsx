@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@payloadcms/ui'
+import { Button, useRouteCache } from '@payloadcms/ui'
 import { useState } from 'react'
 
 import { useDict } from './i18n'
@@ -53,6 +53,19 @@ const dict = {
 
 export function InviteMemberPanel() {
   const t = useDict(dict)
+  /**
+   * Payload's own way of getting fresh list data after a mutation:
+   * `clearRouteCache` is a `router.refresh()`, and the list view uses exactly
+   * that (`views/List/index.js` sets `onSuccess` to `router.refresh`).
+   *
+   * NOT `useListQuery().refineListData`, which looks like the obvious choice
+   * and silently does nothing here: it merges the incoming query into the
+   * current one and only navigates `if (window.location.search !== search)`.
+   * Re-running the *same* query produces the same search string, so there is
+   * no navigation and no refetch — the invited member would still be missing
+   * from the table.
+   */
+  const { clearRouteCache } = useRouteCache()
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [result, setResult] = useState<InviteResult | null>(null)
@@ -87,6 +100,9 @@ export function InviteMemberPanel() {
       setResult(body)
       setEmail('')
       setDisplayName('')
+      // The invite created a user row, and the table below is server-rendered
+      // — without this it keeps showing the list as it was before the invite.
+      clearRouteCache()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t.inviteFailed)
     } finally {
@@ -131,9 +147,15 @@ export function InviteMemberPanel() {
             placeholder={t.displayNamePlaceholder}
           />
         </label>
+        {/* `margin={false}` is what makes this line up with the two inputs.
+            Payload's `.btn` carries `margin-block: calc(var(--base) * 1.2)`
+            and the component defaults the prop to `true`, so inside a
+            `align-items: flex-end` row that bottom margin lifts the button
+            clear of the fields it belongs with. */}
         <Button
           buttonStyle="secondary"
           disabled={isLoading}
+          margin={false}
           onClick={invite}
           type="button"
         >
