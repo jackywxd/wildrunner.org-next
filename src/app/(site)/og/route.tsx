@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
+import { resolveBackgroundImage } from "@/lib/ogPhoto";
 
 /**
  * Share cards, in three treatments that share one layout.
@@ -29,18 +30,6 @@ async function loadFont(request: Request): Promise<ArrayBuffer | null> {
     return res.arrayBuffer();
   } catch (error) {
     console.warn("OG font load error:", error);
-    return null;
-  }
-}
-
-function resolveBackgroundImage(imageParam: string | null): string | null {
-  if (!imageParam) return null;
-  try {
-    const imageUrl = decodeURIComponent(imageParam);
-    if (!/^https?:\/\//i.test(imageUrl)) return null;
-    // ImageResponse fetches remote URLs; avoid inlining large R2 assets as base64.
-    return imageUrl;
-  } catch {
     return null;
   }
 }
