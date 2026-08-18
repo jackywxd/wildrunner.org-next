@@ -43,14 +43,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: false
-      # No `version:` here on purpose — action-setup@v4 errors out when a
+      # No `version:` here on purpose — action-setup errors out when a
       # version is given here *and* in package.json's `packageManager`.
-      # package.json is the single source of truth (pnpm@10.12.4).
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      # package.json is the single source of truth (pnpm@10.12.4). Confirmed
+      # against pnpm/action-setup@v6's own docs that this still holds for
+      # pnpm 10.x — the "omit version only for pnpm v11+" note in its
+      # migration guide is about the *different*, newer `pnpm/setup` action,
+      # not this one.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -85,6 +89,25 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Browsers and their OS-level deps (libasound2, libatk, …) come baked
+    # into this image instead of being installed by a step below. Measured
+    # directly on a real red run (shard 3, 2026-08-18): "Install Playwright
+    # browsers" (`playwright install --with-deps chromium`) spent its whole
+    # budget stuck inside the `apt-get` half of `--with-deps` — the log shows
+    # a clean fetch of `noble-security`'s package index at 02:53:02, then
+    # zero output of any kind until GitHub's own infra cancelled the job at
+    # 03:02:16, ~9m15s later. The other two shards installed in 18s and 27s
+    # the same run — this was a stalled connection to an Ubuntu apt mirror,
+    # not a slow Playwright browser download, and re-running against a
+    # different runner fixed it immediately. The container removes the class
+    # of failure rather than papering over one instance of it: nothing in
+    # this job touches `apt-get` or a browser download at all anymore.
+    # Version pinned to match `@playwright/test` in package.json exactly
+    # (1.56.1) — a mismatch between the npm package and the image's bundled
+    # browser build is its own failure mode. Bump both together.
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --user 1001
     strategy:
       # Every shard reports. One failing shard telling the other two to stop
       # would hide whichever failures they were about to find, and re-running
@@ -93,11 +116,11 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -157,8 +180,6 @@ jobs:
           # the CSV covers that exact (event, year) — see
           # scripts/reset-local-db.mjs, which mirrors this same ordering.
           pnpm seed:editions
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
@@ -177,7 +198,7 @@ jobs:
           # No `--` before the flag: `pnpm test:e2e -- --shard=1/3` exits 1
           # under pnpm 10, while passing it directly works. Checked both.
           pnpm test:e2e --shard=${{ matrix.shard }}/3
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report-shard-${{ matrix.shard }}
@@ -193,11 +214,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
