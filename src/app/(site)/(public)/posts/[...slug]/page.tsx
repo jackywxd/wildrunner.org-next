@@ -15,6 +15,7 @@ import {
   getPublishedPostSlugs,
 } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
+import { resolvePostOgImage } from "@/lib/postOg";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   resolveBadge,
@@ -40,12 +41,14 @@ export async function generateMetadata({
     return {};
   }
 
-  const { title, description, image, author } = post;
+  const { title, description, author } = post;
 
   const newTitle = `${title} | ${author ?? siteConfig.author}`;
-  const ogImage = image?.src
-    ? image.src
-    : `${baseURL}/og?title=${encodeURIComponent(`${title}|${author ?? ""}`)}`;
+  // Cover image, else the first picture in the body, else a generated card.
+  // The middle step matters because nothing in the members area sets the
+  // cover field — see src/lib/postOg.ts, which also explains why this cannot
+  // live in `mapPayloadPost`.
+  const ogImage = resolvePostOgImage(post, baseURL);
 
   return {
     title: newTitle,
