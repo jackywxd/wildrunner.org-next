@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 import { APIError } from 'payload'
 
 import { publicMediaUrl } from '@/lib/media-url'
+import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 
 /**
  * Where the transcoder reports back.
@@ -57,13 +58,29 @@ export const transcodeResultEndpoint: Endpoint = {
     // Touching the row is the point: `updatedAt` moves, which is what the
     // sweep measures staleness against.
     if (status !== 'done') {
-      await req.payload.update({
+      const updated = await req.payload.update({
         collection: 'media',
         id,
         data: { transcodeStatus: status },
         overrideAccess: true,
         req,
       })
+
+      // The member is not waiting on this page — the upload finished
+      // minutes ago — so a failure nobody is told about is a video that
+      // silently never works. `notifyTranscodeFailed` never throws: a mail
+      // server's bad day must not make this endpoint answer 500, which the
+      // container would read as "the report did not land", leaving the row
+      // `running` for the sweep to reclaim and re-run.
+      if (status === 'failed') {
+        if (body?.message) {
+          req.payload.logger.error(
+            `transcode failed for media ${id}: ${body.message}`,
+          )
+        }
+        await notifyTranscodeFailed({ media: updated, payload: req.payload, req })
+      }
+
       return Response.json({ ok: true, status })
     }
 

@@ -3,6 +3,7 @@ import { APIError } from 'payload'
 
 import { isAdminUser } from '@/access'
 import { startTranscode } from '@/lib/media/transcode-dispatch'
+import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 import {
   LEASE_TIMEOUT_MS,
   MAX_TRANSCODE_ATTEMPTS,
@@ -104,6 +105,11 @@ export const transcodeSweepEndpoint: Endpoint = {
         })
 
         if (next.status === 'failed') {
+          // The other way a transcode ends up failed, and the quieter one:
+          // the container died without reporting, so nothing has told the
+          // member anything at all. Same notice as the reported failure —
+          // from where they sit the outcome is identical.
+          await notifyTranscodeFailed({ media: doc, payload: req.payload, req })
           failed.push(doc.id)
           continue
         }
