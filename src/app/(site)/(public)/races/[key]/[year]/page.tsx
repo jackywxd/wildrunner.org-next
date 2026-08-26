@@ -11,6 +11,7 @@ import {
 } from "@/lib/content";
 import { externalHref } from "@/lib/races/registration";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
+import { raceGallerySlug } from "@/lib/race-gallery";
 
 import RacePhotoWall from "./_components/RacePhotoWall";
 
@@ -119,7 +120,11 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
 
       {videos.length > 0 && (
         <div className="mt-4" data-testid="race-video-strip">
-          <GalleryVideos videos={videos} compact />
+          <GalleryVideos
+            videos={videos.map((video) => ({ ...video, id: String(video.mediaId) }))}
+            gallerySlug={raceGallerySlug(edition.eventKey, edition.year)}
+            compact
+          />
         </div>
       )}
 
