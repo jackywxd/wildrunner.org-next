@@ -1,5 +1,7 @@
 /** Public-site shapes decoupled from Velite and Payload document types. */
 
+import type { RaceQualifiers } from "./races/qualifiers";
+
 export type SiteImage = {
   src: string;
   width: number;
@@ -155,6 +157,15 @@ export type SiteRaceScheduleEntry = {
   registrationType: "first-come" | "lottery" | "qualifier" | "invitational";
   registrationStatusOverride?: "full" | "waitlist" | "cancelled" | "tba";
   notes?: string;
+  /**
+   * Which lottery this race's entries qualify for, by category label.
+   *
+   * Labels rather than booleans because the tag has to name *which* entry
+   * qualifies: at Mont-Blanc the UTMB and CCC do and the OCC does not, and
+   * a bare `wser: true` on the row would tell a visitor the OCC counts.
+   * Absent, not `{}`, when the race is on neither list.
+   */
+  qualifiers?: RaceQualifiers;
 };
 
 export type SiteRider = {

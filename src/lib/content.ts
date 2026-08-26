@@ -30,6 +30,7 @@ import type {
 import { postSlugParams } from "@/lib/content-paths";
 import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
+import { qualifiersFor } from "@/lib/races/qualifiers";
 import { isFinished } from "@/lib/races/race-state";
 import { videoIdFromFilename } from "@/lib/videoId";
 
@@ -571,9 +572,11 @@ function mapRaceEditionEntry(
   const day = (value: string | null | undefined): string | undefined =>
     value ? value.slice(0, 10) : undefined;
 
+  const categories = categoriesByEvent.get(eventId);
+
   return {
     country: orUndefined(event.country),
-    distanceSummary: distanceSummaryFor(categoriesByEvent.get(eventId)),
+    distanceSummary: distanceSummaryFor(categories),
     endDate: day(doc.endDate),
     eventId: event.key,
     id: doc.id,
@@ -583,6 +586,10 @@ function mapRaceEditionEntry(
     name: orUndefined(doc.nameOverride) ?? event.name,
     nameZh: orUndefined(event.nameZh),
     notes: orUndefined(doc.notes),
+    // Free: `raceEventCatalogue` already loaded every category, and
+    // `distanceSummaryFor` above already walks this same list. No extra
+    // query, no `select` to widen, no second round-trip.
+    qualifiers: qualifiersFor(categories),
     registrationClosesAt: day(doc.registrationClosesAt),
     registrationOpensAt: day(doc.registrationOpensAt),
     registrationStatusOverride: orUndefined(doc.registrationStatusOverride),

@@ -2,11 +2,13 @@ import Link from "next/link";
 
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
+import { RACE_QUALIFIERS } from "@/lib/races/qualifiers";
 import { canReport } from "@/lib/races/report-options";
 import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
 
+import { RaceQualifierTag } from "./RaceQualifierTag";
 import { RaceSeriesTag } from "./RaceSeriesTag";
 import { RegistrationStatus } from "./RegistrationStatus";
 
@@ -119,6 +121,18 @@ export function RaceEntryRow({
             {formatRange(entry)}
           </span>
           <RaceSeriesTag series={entry.series} />
+          {/* Fixed order, not Object.keys: the tag order must not depend on
+              which lottery happened to be written into the row first. */}
+          {RACE_QUALIFIERS.map((qualifier) => {
+            const categories = entry.qualifiers?.[qualifier];
+            return categories?.length ? (
+              <RaceQualifierTag
+                categories={categories}
+                key={qualifier}
+                qualifier={qualifier}
+              />
+            ) : null;
+          })}
           {ongoing && (
             <span
               className="border border-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-foreground"

@@ -143,5 +143,92 @@ export const RaceCategories: CollectionConfig = {
         date: { pickerAppearance: 'dayOnly', displayFormat: 'yyyy-MM-dd' },
       },
     },
+    /**
+     * WHETHER THIS ENTRY IS ON A LOTTERY QUALIFIER LIST.
+     *
+     * Western States and Hardrock each publish their own list of races a
+     * finish counts from, and both list *entries*, not events: at
+     * Mont-Blanc the UTMB and the CCC qualify for Western States and the
+     * OCC does not. That is why these live here and not on `race-events`
+     * — a flag on the event would tell somebody a 20K qualifies them for
+     * a 100-mile lottery.
+     *
+     * SEPARATE FROM `verified`/`source`/`verifiedAt` ABOVE, deliberately.
+     * Those record whether anybody read the *event's own site* to confirm
+     * this entry exists at all. A qualifier list is a different document,
+     * from a different publisher, on a different clock — and `verified=no`
+     * with a qualifier flag set is a real, common state: the line-up was
+     * assumed, but the list names the event. Folding them together makes
+     * that unrepresentable and lets a qualifier re-read pass itself off as
+     * a line-up re-read.
+     *
+     * ONE DATE PER LIST, not one for both. The two lists republish on
+     * their own schedules and get re-read at different times, so a shared
+     * date would stamp "checked" onto a flag nobody looked at — the exact
+     * thing AGENTS.md forbids, because a staleness report is worth nothing
+     * if the dates are not true.
+     *
+     * NOT INDEXED, unlike `verified` and `verifiedAt` above. SQLite
+     * refuses `DROP COLUMN` on an indexed column, so an index here would
+     * force this migration's `down()` to rebuild the whole table and
+     * re-declare the `(event, key)` unique constraint by hand. Nothing
+     * would use the index anyway: the schedule filter is an in-memory
+     * `Array.filter` over categories the page has already loaded.
+     */
+    {
+      name: 'qualifiesWser',
+      type: 'checkbox',
+      label: { en: 'Western States qualifier', 'zh-TW': '西部100 資格賽' },
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'On the published Western States qualifying-race list (wser.org/qualifying-races). Tick only against the list itself.',
+          'zh-TW':
+            '在西部100 官方公布的資格賽名單上（wser.org/qualifying-races）。只有對照名單本身才勾。',
+        },
+      },
+    },
+    {
+      name: 'wserVerifiedAt',
+      type: 'date',
+      label: { en: 'WS list checked on', 'zh-TW': '西部100 名單查證日期' },
+      admin: {
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'yyyy-MM-dd' },
+        description: {
+          en: 'The day somebody read the WS list. EMPTY MEANS NEVER — without it, "not a qualifier" and "nobody has looked" are the same row.',
+          'zh-TW':
+            '真的去讀過西部100 名單的那一天。留空代表從沒查過 —— 沒有它，「不是資格賽」和「沒人查過」長得一模一樣。',
+        },
+      },
+    },
+    {
+      name: 'qualifiesHardrock',
+      type: 'checkbox',
+      label: { en: 'Hardrock qualifier', 'zh-TW': 'Hardrock 資格賽' },
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'On the published Hardrock qualifying-race list (hardrock100.com/qualifying-races.php). Far shorter than the WS list, and not a subset of it.',
+          'zh-TW':
+            '在 Hardrock 官方公布的資格賽名單上（hardrock100.com/qualifying-races.php）。比西部100 名單短很多，而且不是它的子集。',
+        },
+      },
+    },
+    {
+      name: 'hardrockVerifiedAt',
+      type: 'date',
+      label: { en: 'Hardrock list checked on', 'zh-TW': 'Hardrock 名單查證日期' },
+      admin: {
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'yyyy-MM-dd' },
+        description: {
+          en: 'The day somebody read the Hardrock list. Empty means never — the same rule as the WS date above.',
+          'zh-TW': '真的去讀過 Hardrock 名單的那一天。留空代表從沒查過，規則同上。',
+        },
+      },
+    },
   ],
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { RACE_SERIES, RACE_SERIES_LABELS_ZH } from "@/lib/races/catalogue";
-import type { RaceSeries } from "@/lib/races/catalogue";
+import { raceFiltersHref } from "@/lib/races/race-filters";
+import type { RaceFilters } from "@/lib/races/race-filters";
+import { RACE_QUALIFIERS, RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,34 +17,19 @@ import { cn } from "@/lib/utils";
  * component, in a codebase whose only vendored shadcn primitive is a button.
  */
 
-export type RaceView = "list" | "calendar";
-
-export type RaceFilters = {
-  view: RaceView;
-  series?: RaceSeries;
-  registration?: "open";
-};
-
-function href(filters: RaceFilters, patch: Partial<RaceFilters>): string {
-  const next = { ...filters, ...patch };
-  const params = new URLSearchParams();
-  // `list` and "no filter" are the defaults, so leaving them out keeps the
-  // canonical URL clean — /races, not /races?view=list&series=all.
-  if (next.view !== "list") params.set("view", next.view);
-  if (next.series) params.set("series", next.series);
-  if (next.registration) params.set("registration", next.registration);
-  const query = params.toString();
-  return query ? `/races?${query}` : "/races";
-}
+const href = (filters: RaceFilters, patch: Partial<RaceFilters>): string =>
+  raceFiltersHref({ ...filters, ...patch });
 
 function Chip({
   active,
   children,
   target,
+  testId,
 }: {
   active: boolean;
   children: React.ReactNode;
   target: string;
+  testId?: string;
 }) {
   return (
     <Link
@@ -53,6 +40,7 @@ function Chip({
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",
       )}
+      data-testid={testId}
       href={target}
     >
       {children}
@@ -112,6 +100,25 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
         >
           只看報名中
         </Chip>
+      </div>
+
+      {/* Single-valued, not combinable. A race on both lists is a handful
+          worldwide, and two chips that could be on at once leave "and" vs
+          "or" for the visitor to guess — beside chips that plainly mean
+          "and". One value per URL keeps each one meaning one thing. */}
+      <div className="flex flex-wrap gap-2">
+        {RACE_QUALIFIERS.map((qualifier) => (
+          <Chip
+            active={filters.qualifier === qualifier}
+            key={qualifier}
+            target={href(filters, {
+              qualifier: filters.qualifier === qualifier ? undefined : qualifier,
+            })}
+            testId={`race-filter-${qualifier}`}
+          >
+            {RACE_QUALIFIER_LABELS_ZH[qualifier]}
+          </Chip>
+        ))}
       </div>
     </div>
   );

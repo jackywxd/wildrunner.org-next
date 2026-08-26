@@ -250,6 +250,7 @@ pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
 
 pnpm seed:races              # local D1
+pnpm seed:qualifiers         # WS/Hardrock qualifier flags from the CSV (:staging, :prod)
 pnpm validate:catalogue      # gates the race CSVs before import
 pnpm seed:catalogue          # regenerate src/lib/races/seed-data.ts from data/*.csv
 pnpm capture:badges          # every badge the site renders, as JSON, for diffing

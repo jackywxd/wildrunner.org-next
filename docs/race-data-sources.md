@@ -19,6 +19,7 @@ decays, and the mechanism for noticing.
 | **Series membership** — utmb / wtm / others | `race_events` | **Yearly.** Races join and leave. | A race is filed under the wrong series and a filter hides it |
 | **Categories** — which races you can enter | `race_categories` | Every year or two. Distances get added, dropped, renamed. | **A member records a finish in a category the race never ran** |
 | **Editions** — dates, registration windows | `race_editions` | **Every year, and registration far more often than that.** | Somebody misses an entry window, which is the worst thing this feature can do |
+| **Qualifier lists** — Western States / Hardrock | `race_categories` | **Yearly.** Both lotteries re-cut their list each season. | Somebody enters a race believing it counts toward a lottery it no longer does |
 
 The bottom two rows are why `verified_at` exists on both the CSVs and the
 schedule rows: a date is the only thing that distinguishes "checked and
@@ -75,6 +76,57 @@ Where to look:
   [ScrapITRA](https://github.com/ricfog/ScrapITRA) (Python, open source,
   the practical option) and [sportic/itra-client](https://github.com/sportic/itra-client)
   (PHP). ITRA publishes no documented API.
+
+### Qualifier lists
+
+Two lotteries publish a list of races a finish counts from, and **both list
+entries, not events**:
+
+- **Western States** — `https://www.wser.org/qualifying-races/`. Long (~250
+  entries), and identifies each one by race name *and distance*.
+- **Hardrock** — `https://hardrock100.com/qualifying-races.php`. Far shorter
+  (~36 entries), and **not a subset of the WS list**. Published as a
+  two-year grid: which year's finish qualifies you for which running.
+
+**This is why the flags live on `race_categories` and not on `race_events`.**
+At Mont-Blanc the UTMB and the CCC are on the Western States list and the OCC
+is not. An event-level flag would tell somebody a 60K entry qualifies them for
+a 100-mile lottery. Every cheaper shortcut gets this wrong — "the longest
+category qualifies", "a UTMB World Series race qualifies" — and gets it wrong
+invisibly, because the page still renders.
+
+**Read the notes column; it disqualifies as well as qualifies.** The WS list
+carries per-row remarks, and two kinds must not be confused:
+
+- *"not a qualifying race for 2027"*, *"NOT eligible for lottery entry"* —
+  the entry does **not** qualify. `Zugspitz 106km` is ours: it is on the page
+  but explicitly excluded, so `utmb-zugspitz/zut100` is `no`.
+- *"cancelled due to weather"*, *"canceled due to wildfires"* — that year's
+  running did not happen. **The race is still on the list.** Fat Dog,
+  Tenerife, Valhöll and Sierras del Bandolero all read this way.
+
+**What a static flag cannot express.** Each lottery has its own qualifying
+*window*, and Hardrock's grid drops races between years — `other-bigfoot-200`
+and `other-tor-des-geants` qualify only via their 2025 running. The flag
+means **"on the most recently read list"**, nothing finer. Per-edition
+modelling would mean moving these columns to `race_editions`; `/races` says
+so in its own footer rather than implying a precision the data lacks.
+
+**Pairs that could not be settled**, left with no checked-on date so they read
+as unresolved rather than as "checked, does not qualify":
+
+| List entry | Our catalogue | Why it is unresolved |
+|---|---|---|
+| WS "Monte Rosa WalserWaeg by UTMB - LSV 122km" | `utmb-mrww/sdv`, 120 km | Abbreviation disagrees (LSV vs SDV) |
+| WS "Mount Yun by UTMB - UMY 159.6km" | `utmb-mut/miler`, 168 km | MUT and UMY are probably different events |
+| WS "DL 100 106km" (China) | `other-dali-100/100k` | Plausible, unconfirmed |
+| Hardrock "Ultra-Trail Cape Town" | `wtm-cape-town`, six categories | The Hardrock row names no distance |
+
+Also noted, needing no decision here: the WS list carries `TOR100` and
+`TOR130`, which our `other-tor-des-geants` does not have as categories, and
+`Endurance Trail des Templiers 105km`, which is a different race from the
+76 km `other-templiers/76k` we carry. Both are catalogue gaps, not qualifier
+questions.
 
 ### Editions
 
@@ -148,6 +200,28 @@ these CSVs. It never merges its own PR and never runs
 `seed:editions:staging`/`:prod`; pushing researched data to a live database
 stays a deliberate, separate step.
 
+### Annual — the qualifier lists
+
+Both lists are re-cut each season, so this is a yearly pass, not a one-off.
+It never goes through a migration: a migration runs once per environment, and
+staging and production already have their categories.
+
+1. Read both pages and update `qualifies_wser` / `qualifies_hardrock` and the
+   matching `*_verified_at` in `data/race-categories.csv`.
+   **Only bump a date for a row actually re-read.**
+2. `pnpm validate:catalogue` — refuses a flag set with no date, and prints the
+   qualifier counts so a silent zero cannot pass for "checked, none qualify".
+3. `pnpm seed:qualifiers:dry` — shows the diff without writing.
+4. `pnpm seed:qualifiers` (local), then `:staging`, then `:prod`.
+
+`scripts/import-race-qualifiers.ts` only ever **updates**, never creates a
+category — a category is a foreign key a member's badge points at. It owns
+four cells per row and touches nothing else, and it skips any row the
+database has checked more recently than the CSV, so an admin's own edit in
+`/admin` survives the next run. The staleness check runs **per list**, which
+is why the two dates are separate columns: refreshing WS must not stamp a
+Hardrock flag nobody looked at.
+
 ### Annual — the season refresh
 
 **When**: UTMB publishes the next season around October–November; World
@@ -187,6 +261,21 @@ Every row in both CSVs carries:
 | `verified_at` | the day they read it. Empty means never. |
 | `website` | the event's own site. Empty is allowed **only** when `source` says why |
 | `itra_url` | `itra.run/Races/RaceDetails/<id>`, for next year's cross-check |
+
+`race-categories.csv` carries four more, one pair per lottery. They are
+deliberately **not** folded into `verified`/`verified_at` above: those record
+whether a human read the *event's own site* to confirm the line-up, which is
+a different document on a different clock. `verified=no` with a qualifier
+flag set is a real state — the line-up was assumed, but the list names the
+event — and conflating the two would make it unrepresentable.
+
+| column | meaning |
+|---|---|
+| `qualifies_wser` / `qualifies_hardrock` | `yes` = on that lottery's most recently read list |
+| `wser_verified_at` / `hardrock_verified_at` | the day somebody read that list. **Empty means never** — which is what separates "read it, this does not qualify" from "nobody has looked". |
+
+One date per list, not one for both: they are re-read at different times, and
+a shared date would stamp "checked" onto a flag nobody looked at.
 
 **Three events genuinely have no website**, and the distinction between that
 and "nobody looked" is what `source` carries:

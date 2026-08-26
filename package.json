@@ -57,7 +57,11 @@
     "assert:schema-screen": "node scripts/assert-schema-screen.mjs",
     "db:reset:local": "node scripts/reset-local-db.mjs",
     "seed:editions:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --remote --write",
-    "seed:editions:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --remote --write"
+    "seed:editions:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --remote --write",
+    "seed:qualifiers:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts",
+    "seed:qualifiers": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --write",
+    "seed:qualifiers:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --remote --write",
+    "seed:qualifiers:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --remote --write"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
