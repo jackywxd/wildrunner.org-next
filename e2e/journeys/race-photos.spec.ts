@@ -16,6 +16,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 
 test.describe("P a member tags a photo with a race", () => {
   /**
@@ -72,12 +73,12 @@ test.describe("P a member tags a photo with a race", () => {
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
-    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 
     // By clicking, not by URL — the calendar-toggle bug lived entirely in
     // soft navigation, invisible to a suite that only ever used `goto`.
     await page.getByTestId("member-nav-media").click();
-    await expect(page).toHaveURL(/\/members\/media/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });
 
     const raceSelect = page.getByTestId("media-upload-race-edition");
     // The picker only renders once a file is chosen — see UploadDropzone.tsx —
@@ -88,7 +89,7 @@ test.describe("P a member tags a photo with a race", () => {
       .getByTestId("media-upload-input")
       .setInputFiles("public/static/brand/mark-purple.svg");
 
-    await expect(raceSelect).toBeVisible({ timeout: 5_000 });
+    await expect(raceSelect).toBeVisible({ timeout: budget(5_000) });
     const editionId = await raceSelect
       .locator("option:not([value=''])")
       .first()
@@ -108,7 +109,7 @@ test.describe("P a member tags a photo with a race", () => {
     createdMediaId = body.doc.id;
 
     await expect(page.getByTestId("media-upload-done")).toBeVisible({
-      timeout: 20_000,
+      timeout: budget(20_000),
     });
 
     // Resolve which race this edition actually is — the select only carries
@@ -130,7 +131,7 @@ test.describe("P a member tags a photo with a race", () => {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByTestId("race-photo-wall-empty")).toHaveCount(0, {
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     await expect(page.getByTestId("race-photo-wall")).toBeVisible();
 

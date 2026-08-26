@@ -23,6 +23,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 
 test.describe("R what a member does with a race report", () => {
   /**
@@ -81,13 +82,13 @@ test.describe("R what a member does with a race report", () => {
     // so a failed sign-in satisfied it and the next page loaded as an
     // anonymous visitor — which showed up much later as a missing control.
     // Third time a prefix pattern has passed for a page that never moved.
-    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 
     // By clicking, not by URL: soft navigation is where the calendar-toggle
     // bug lived, invisible to a suite that only ever used `goto`.
     await page.getByTestId("member-nav-posts").click();
     await page.getByTestId("posts-new").click();
-    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: budget(20_000) });
 
     const created = page.url().match(/\/members\/posts\/(\d+)/);
     if (!created) throw new Error(`no post id in ${page.url()}`);
@@ -111,7 +112,7 @@ test.describe("R what a member does with a race report", () => {
     // prepared, and it made the run depend on the history of the last one.
     await page.getByTestId("post-race-attach").click();
     const raceSelect = page.getByTestId("race-report-race");
-    await expect(raceSelect).toBeVisible({ timeout: 15_000 });
+    await expect(raceSelect).toBeVisible({ timeout: budget(15_000) });
     const raceValue = await raceSelect
       .locator("option:not([value=''])")
       .first()
@@ -130,7 +131,7 @@ test.describe("R what a member does with a race report", () => {
     await page.getByTestId("post-race-confirm").click();
 
     await expect(page.getByTestId("post-race-linked")).toBeVisible({
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     // The attach flow reports its own refusals here, not in `post-message` —
     // a distinction that cost an afternoon when the wrong element was read.
@@ -141,7 +142,7 @@ test.describe("R what a member does with a race report", () => {
     // flow anybody has.
     await page.getByTestId("post-save-draft").click();
     await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
-      timeout: 20_000,
+      timeout: budget(20_000),
     });
 
     await page.getByTestId("post-publish").click();
@@ -155,7 +156,7 @@ test.describe("R what a member does with a race report", () => {
     // The list URL, matched to the end. `/members/posts` is a prefix of
     // `/members/posts/<id>`, so a loose pattern would call a publish that
     // never left the editor a success.
-    await expect(page).toHaveURL(/\/members\/posts$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts$/, { timeout: budget(20_000) });
 
     // `page.request`, not the `request` fixture: the fixture has its own
     // context and no session, so it would read as an anonymous visitor and
@@ -192,7 +193,7 @@ test.describe("R what a member does with a race report", () => {
     // so a failed sign-in satisfied it and the next page loaded as an
     // anonymous visitor — which showed up much later as a missing control.
     // Third time a prefix pattern has passed for a page that never moved.
-    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 
     // Arrive from the race itself. `:visible` was needed because `/races`
     // used to render this control twice — once at zero size, a
@@ -204,11 +205,11 @@ test.describe("R what a member does with a race report", () => {
     const write = page
       .locator('[data-testid="race-write-report"]:visible')
       .first();
-    await expect(write).toBeVisible({ timeout: 15_000 });
+    await expect(write).toBeVisible({ timeout: budget(15_000) });
     const href = await write.getAttribute("href");
     if (!href) throw new Error("the report control has no destination");
     await write.click();
-    await expect(page).toHaveURL(/\/members\/posts\/new/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/new/, { timeout: budget(20_000) });
 
     const distance = page.getByTestId("race-report-distance");
     const category = await distance
@@ -218,7 +219,7 @@ test.describe("R what a member does with a race report", () => {
     if (!category) throw new Error("the finished race offers no category");
     await distance.selectOption(category);
     await page.getByTestId("race-report-start").click();
-    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: budget(20_000) });
 
     const created = page.url().match(/\/members\/posts\/(\d+)/);
     if (!created) throw new Error(`no post id in ${page.url()}`);
@@ -246,12 +247,12 @@ test.describe("R what a member does with a race report", () => {
     // resolves, so waiting for it to become enabled is waiting for the exact
     // condition this component needs, not an arbitrary pause.
     const distanceSelect = page.getByTestId("race-report-distance");
-    await expect(distanceSelect).toBeEnabled({ timeout: 15_000 });
+    await expect(distanceSelect).toBeEnabled({ timeout: budget(15_000) });
     await distanceSelect.selectOption(category);
     await page.getByTestId("race-report-start").click();
     await expect(page.getByTestId("race-report-error")).toContainText(
       "已經寫過",
-      { timeout: 15_000 },
+      { timeout: budget(15_000) },
     );
   });
 });

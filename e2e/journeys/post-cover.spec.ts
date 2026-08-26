@@ -20,6 +20,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 
 /**
  * The same fixture race-photos.spec.ts uploads, and for a reason worth
@@ -42,7 +43,7 @@ async function signIn(page: import("@playwright/test").Page) {
   await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
   await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
   await page.getByTestId("member-login-submit").click();
-  await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 }
 
 test.describe("M-COVER a member manages their post's cover image", () => {
@@ -82,7 +83,7 @@ test.describe("M-COVER a member manages their post's cover image", () => {
   }) => {
     // Signs in, imports, uploads a real file through the direct-upload path,
     // and saves four times over five navigations.
-    test.setTimeout(90_000);
+    test.setTimeout(budget(90_000));
 
     await signIn(page);
 
@@ -90,14 +91,14 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     // by POSTing one into existence.
     await page.getByTestId("member-nav-posts").click();
     await page.getByTestId("posts-import").click();
-    await expect(page).toHaveURL(/\/members\/posts\/import$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/import$/, { timeout: budget(15_000) });
     await page.getByTestId("import-source").fill(SOURCE);
     await page.getByTestId("import-parse").click();
     await expect(page.getByTestId("import-title")).toHaveValue("M-COVER 封面測試文章", {
-      timeout: 10_000,
+      timeout: budget(10_000),
     });
     await page.getByTestId("import-create").click();
-    await expect(page).toHaveURL(/\/members\/posts\/\d+$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/\d+$/, { timeout: budget(20_000) });
 
     const created = page.url().match(/\/members\/posts\/(\d+)/);
     if (!created) throw new Error(`no post id in ${page.url()}`);
@@ -110,10 +111,10 @@ test.describe("M-COVER a member manages their post's cover image", () => {
 
     // Act 2 — set one.
     await page.getByTestId("post-cover-file").setInputFiles(COVER_FILE);
-    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: budget(30_000) });
     await page.getByTestId("post-save-draft").click();
     await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
-      timeout: 20_000,
+      timeout: budget(20_000),
     });
 
     const afterSet = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
@@ -127,11 +128,11 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     // on every save now, so a wrongly-wired `initial.cover` would clear it
     // here, silently.
     await page.goto(postUrl, { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: budget(20_000) });
     await page.getByTestId("post-description").fill("M-COVER 摘要，只改這裡");
     await page.getByTestId("post-save-draft").click();
     await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
-      timeout: 20_000,
+      timeout: budget(20_000),
     });
 
     const afterUntouched = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
@@ -151,7 +152,7 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     await expect(page.getByTestId("post-cover-empty")).toBeVisible();
     await page.getByTestId("post-save-draft").click();
     await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
-      timeout: 20_000,
+      timeout: budget(20_000),
     });
 
     const afterRemove = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
