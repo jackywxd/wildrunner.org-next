@@ -36,6 +36,14 @@ const nextConfig: NextConfig = {
   // dynamic require intact and out of the bundle.
   serverExternalPackages: ["jose", "pg-cloudflare", "drizzle-kit"],
   images: {
+    // Every `<Image>` builds its own URL — see src/lib/image-loader.ts for
+    // why the Worker must not be the thing that resizes. `formats`,
+    // `remotePatterns` and `dangerouslyAllowSVG` below only ever configured
+    // `/_next/image`, which nothing reaches now; they are left in place
+    // because turning the loader off has to be a one-line change, not an
+    // archaeology exercise.
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
     formats: ["image/webp", "image/avif"],
     // Standard Next.js breakpoints so /_next/image width params resolve correctly
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
