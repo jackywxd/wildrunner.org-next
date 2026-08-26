@@ -63,6 +63,15 @@ test.describe("Q race qualifier filters", () => {
     baseURL,
     page,
   }) => {
+    // Declared, not guessed at, and for the reason playwright.config.ts
+    // gives: a test past 15s says so rather than living on the shared 20s
+    // budget. Measured idle, this one runs 16.4s in CI and 17–18s locally
+    // — an admin sign-in, four API round trips, two full page loads and two
+    // soft navigations. So 20s was never margin; under a full-suite run it
+    // simply ran out, with the page snapshot showing the filter had worked
+    // and the assertions had all passed.
+    test.setTimeout(60_000);
+
     const admin = await adminContext(baseURL);
 
     await page.goto("/races", { waitUntil: "domcontentloaded" });

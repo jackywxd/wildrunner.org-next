@@ -3,7 +3,7 @@ import Link from "next/link";
 import { RACE_SERIES, RACE_SERIES_LABELS_ZH } from "@/lib/races/catalogue";
 import { raceFiltersHref } from "@/lib/races/race-filters";
 import type { RaceFilters } from "@/lib/races/race-filters";
-import { RACE_QUALIFIERS, RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
+import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,12 +24,23 @@ function Chip({
   active,
   children,
   target,
-  testId,
+  // Named for the attribute rather than something like `testId` so the
+  // attribute itself appears literally at each call site, which is what
+  // `scripts/assert-schema-screen.mjs` greps for. A renamed prop passes
+  // typecheck and fails that check — correctly, since its whole job is to
+  // prove a selector a test uses really exists. Optional because the view,
+  // series and registration chips below carry none.
+  //
+  // (Deliberately not spelling the attribute out in this comment: the
+  // grep reads every file under src/, comments included, so a comment
+  // naming it would keep the check green after the real attribute was
+  // deleted.)
+  "data-testid": testId,
 }: {
   active: boolean;
   children: React.ReactNode;
   target: string;
-  testId?: string;
+  "data-testid"?: string;
 }) {
   return (
     <Link
@@ -105,20 +116,31 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
       {/* Single-valued, not combinable. A race on both lists is a handful
           worldwide, and two chips that could be on at once leave "and" vs
           "or" for the visitor to guess — beside chips that plainly mean
-          "and". One value per URL keeps each one meaning one thing. */}
+          "and". One value per URL keeps each one meaning one thing.
+
+          Written out rather than mapped over RACE_QUALIFIERS: there are two
+          of them and the const is not going anywhere, and spelling each one
+          here is what puts its selector where a reader — and the check that
+          verifies selectors — can find it. */}
       <div className="flex flex-wrap gap-2">
-        {RACE_QUALIFIERS.map((qualifier) => (
-          <Chip
-            active={filters.qualifier === qualifier}
-            key={qualifier}
-            target={href(filters, {
-              qualifier: filters.qualifier === qualifier ? undefined : qualifier,
-            })}
-            testId={`race-filter-${qualifier}`}
-          >
-            {RACE_QUALIFIER_LABELS_ZH[qualifier]}
-          </Chip>
-        ))}
+        <Chip
+          active={filters.qualifier === "wser"}
+          data-testid="race-filter-wser"
+          target={href(filters, {
+            qualifier: filters.qualifier === "wser" ? undefined : "wser",
+          })}
+        >
+          {RACE_QUALIFIER_LABELS_ZH.wser}
+        </Chip>
+        <Chip
+          active={filters.qualifier === "hardrock"}
+          data-testid="race-filter-hardrock"
+          target={href(filters, {
+            qualifier: filters.qualifier === "hardrock" ? undefined : "hardrock",
+          })}
+        >
+          {RACE_QUALIFIER_LABELS_ZH.hardrock}
+        </Chip>
       </div>
     </div>
   );

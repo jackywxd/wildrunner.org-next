@@ -178,10 +178,6 @@ const CONSTRUCTED = {
     'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
   "member-nav-members":
     'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
-  "race-filter-wser":
-    "RaceScheduleFilters.tsx: testId={`race-filter-${qualifier}`}, mapped over RACE_QUALIFIERS and rendered by Chip as data-testid",
-  "race-filter-hardrock":
-    "RaceScheduleFilters.tsx: testId={`race-filter-${qualifier}`}, mapped over RACE_QUALIFIERS and rendered by Chip as data-testid",
 };
 
 function checkTestIds() {
