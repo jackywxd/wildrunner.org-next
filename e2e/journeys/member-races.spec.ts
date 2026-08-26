@@ -20,6 +20,7 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
+import { budget } from "../helpers/budget";
 
 /**
  * The public directory is where a record stops being private bookkeeping and
@@ -151,12 +152,12 @@ test.describe("M what a member does with race records", () => {
     // so a failed sign-in satisfied it and the next page loaded as an
     // anonymous visitor — which showed up much later as a missing control.
     // Third time a prefix pattern has passed for a page that never moved.
-    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 
     // 2. Arrive by clicking. The calendar-toggle bug lived entirely in soft
     //    navigation; anything reachable by a link needs one test that uses it.
     await page.getByRole("link", { name: /賽事|比賽/ }).first().click();
-    await expect(page).toHaveURL(/\/members\/races/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members\/races/, { timeout: budget(15_000) });
 
     const eventSelect = page.getByTestId("race-event-select");
     const distanceSelect = page.getByTestId("race-distance-select");
@@ -204,7 +205,7 @@ test.describe("M what a member does with race records", () => {
     // something that was already on the page.
     await expect(page.getByTestId("race-record-row")).toHaveCount(
       existing.length + 1,
-      { timeout: 15_000 },
+      { timeout: budget(15_000) },
     );
     await expect(page.getByTestId("race-record-error")).toHaveCount(0);
     const newRow = page
@@ -247,7 +248,7 @@ test.describe("M what a member does with race records", () => {
       .click();
     await expect(
       page.getByTestId("race-record-row").filter({ hasText: year }),
-    ).toHaveCount(0, { timeout: 15_000 });
+    ).toHaveCount(0, { timeout: budget(15_000) });
 
     expect(await badgeCount(page, eventId, distanceId, year)).toBe(before);
   });

@@ -101,6 +101,25 @@ for (const file of specFiles(E2E)) {
     })
   }
 
+  // §7 — a step budget written as a bare number is measured against a dev
+  // server, and the same step against a deployed Worker costs tens of
+  // seconds. `R-REPORT` was killed by a `toHaveURL(..., { timeout: 20_000 })`
+  // while the publish it was waiting for returned 200 in 19,487ms, inside a
+  // test that still had four and a half minutes of its own budget left.
+  // `budget()` (e2e/helpers/budget.ts) scales the local number by target;
+  // this is here because the config already made that distinction once and
+  // 49 call sites quietly did not follow it.
+  const bareBudget = stripComments(source).match(
+    /(?:timeout:\s*|test\.setTimeout\(\s*)\d[\d_]*/g,
+  )
+  if (bareBudget) {
+    problems.push({
+      key: relative,
+      rule: '§7 step budgets go through budget() from e2e/helpers/budget.ts',
+      detail: `${bareBudget.length} bare number(s), e.g. \`${bareBudget[0]}\` — a dev server's clock judging a deployed Worker`,
+    })
+  }
+
   for (const { id, body, raw } of tests(source)) {
     // §3.3 — a test that writes the state it asserts on is watching itself.
     if (/page\.evaluate\((?:[^)]|\)(?!\s*[,;]))*?(setAttribute|classList|innerHTML|document\.\w+\s*=)/s.test(body)) {

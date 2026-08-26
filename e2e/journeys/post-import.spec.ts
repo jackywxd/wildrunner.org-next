@@ -37,6 +37,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 
 const SOURCE = [
   "# M-IMPORT 匯入測試文章",
@@ -88,25 +89,25 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     // creates a post, edits and publishes it, then loads the public post page
     // — five navigations and several writes where most journeys have two or
     // three.
-    test.setTimeout(60_000);
+    test.setTimeout(budget(60_000));
 
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
-    await expect(page).toHaveURL(/\/members$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
 
     // By clicking, not by URL: soft navigation is where a whole class of
     // bugs has lived before (docs/testing-strategy.md §4).
     await page.getByTestId("member-nav-posts").click();
     await page.getByTestId("posts-import").click();
-    await expect(page).toHaveURL(/\/members\/posts\/import$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/import$/, { timeout: budget(15_000) });
 
     await page.getByTestId("import-source").fill(SOURCE);
     await page.getByTestId("import-parse").click();
 
     await expect(page.getByTestId("import-title")).toHaveValue("M-IMPORT 匯入測試文章", {
-      timeout: 10_000,
+      timeout: budget(10_000),
     });
     await expect(page.getByTestId("import-preview")).toBeVisible();
 
@@ -119,7 +120,7 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     expect(Number(warningCount)).toBeGreaterThanOrEqual(3);
 
     await page.getByTestId("import-create").click();
-    await expect(page).toHaveURL(/\/members\/posts\/\d+$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts\/\d+$/, { timeout: budget(20_000) });
 
     // Captured immediately, before any assertion that could fail.
     const created = page.url().match(/\/members\/posts\/(\d+)/);
@@ -138,7 +139,7 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     // `router.push("/members/posts")` on success), so the list URL is the
     // observable success signal — anchored to the end, since
     // `/members/posts` is a prefix of `/members/posts/<id>`.
-    await expect(page).toHaveURL(/\/members\/posts$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/members\/posts$/, { timeout: budget(20_000) });
 
     const doc = await page.request.get(`/api/posts/${postId}?depth=0`);
     expect(doc.ok()).toBe(true);
@@ -167,9 +168,9 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     // on the one real node — the assertion's actual concern (the real
     // content rendered, not "unknown node") is unaffected either way.
     await page.goto(`/posts/${body.slug}`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByText("m-import-marker").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("m-import-marker").first()).toBeVisible({ timeout: budget(10_000) });
     await expect(page.getByText("m-import-html-marker").first()).toBeVisible({
-      timeout: 10_000,
+      timeout: budget(10_000),
     });
     await expect(page.getByText("unknown node")).toHaveCount(0);
   });
