@@ -18,6 +18,7 @@
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 
 const RACE_SLUG_RE = /^race-.+-\d{4}$/;
 
@@ -50,7 +51,7 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     page,
     request,
   }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(budget(90_000));
 
     const login = await request.post("/api/users/login", {
       data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
@@ -118,18 +119,18 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     // `toBeEnabled` waits for the element; `data-active` proves the click
     // actually took effect rather than merely being dispatched.
     const albumsChip = page.getByTestId("gallery-view-albums");
-    await expect(albumsChip).toBeEnabled({ timeout: 15_000 });
+    await expect(albumsChip).toBeEnabled({ timeout: budget(15_000) });
     await expect(async () => {
       await albumsChip.click();
       await expect(albumsChip).toHaveAttribute("data-active", "true", {
-        timeout: 2_000,
+        timeout: budget(2_000),
       });
-    }).toPass({ timeout: 20_000 });
+    }).toPass({ timeout: budget(20_000) });
 
     const albumLink = page.locator(`a[href="/gallery/${slug}"]`).first();
-    await expect(albumLink).toBeVisible({ timeout: 15_000 });
+    await expect(albumLink).toBeVisible({ timeout: budget(15_000) });
     await albumLink.click();
-    await expect(page).toHaveURL(new RegExp(`/gallery/${slug}$`), { timeout: 15_000 });
+    await expect(page).toHaveURL(new RegExp(`/gallery/${slug}$`), { timeout: budget(15_000) });
 
     // Act 3 — the share link, which is the thing that did not exist before.
     // Its id is the media id: stable across a rename, and unique within the
@@ -138,12 +139,12 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
       waitUntil: "domcontentloaded",
     });
     const share = page.locator(`a[href="/gallery/${slug}/v/${video.id}"]`).first();
-    await expect(share).toBeVisible({ timeout: 15_000 });
+    await expect(share).toBeVisible({ timeout: budget(15_000) });
     await share.click();
-    await expect(page).toHaveURL(new RegExp(`/v/${video.id}$`), { timeout: 15_000 });
+    await expect(page).toHaveURL(new RegExp(`/v/${video.id}$`), { timeout: budget(15_000) });
     // The share page renders the video itself, not a 404 shell.
     await expect(page.getByTestId("direct-video").first()).toBeVisible({
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
   });
 });

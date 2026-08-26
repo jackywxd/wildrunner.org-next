@@ -237,6 +237,33 @@ under test, not a tool for making red things green. A test that only passes on
 retry has an unexplained mechanism, and the retry is what stops anyone
 explaining it.
 
+### 7.1 A budget judged against the wrong clock is the same failure
+
+A timeout is a claim about how long the system may take, and the answer
+depends on which system. Locally a Payload write is sub-second; against a
+deployed Worker talking to remote D1 the same write costs seconds. Measured
+on the 2026-08-26 staging deploy, one journey:
+
+    login 3.6s · create draft 4.5s · race record 7.5s
+    save draft 10.2s · publish 19.5s · delete 9.7s
+
+`R-REPORT` failed there on `toHaveURL(..., { timeout: 20_000 })` while the
+publish it was waiting for returned **200 in 19,487ms**. Nothing was broken.
+The test still had four and a half minutes of its own budget left, because
+`playwright.config.ts` already raises the per-test budget from 20s to 300s
+against a deployed origin — and 49 per-step budgets inside the specs did not
+follow.
+
+That red says "the app did not navigate" and means "a dev server's clock was
+used to judge a Worker". It is the retry problem wearing a different hat: the
+mechanism is hidden, and the obvious response — bump this one number — hides
+it again for everyone else.
+
+So per-step budgets go through `budget()` (`e2e/helpers/budget.ts`), which
+takes the number that is right for a dev server and scales it by target.
+`scripts/assert-test-strategy.mjs` refuses a bare number, because this rule
+was already implicit in the config and 49 call sites quietly ignored it.
+
 ## 8. Test IDs are handles, not references
 
 `P2-T8`, `M1-T8`, `A1-T4` look like they point at numbered requirements. **162

@@ -428,6 +428,28 @@ longer see. The bar is "the app cannot cause it and cannot stop it", never
   Routing dev through `getCloudflareContext()` — the single instance
   `initOpenNextCloudflareForDev()` already starts — took it to zero. Raising
   `retries` would have hidden this forever.
+
+  It came back on 2026-08-26, and the reason is worth carrying: that reuse
+  only ever worked in the process `initOpenNextCloudflareForDev` runs in.
+  `next dev` forks a **fresh child process per dynamic route** to ask it for
+  `generateStaticParams` (`next/dist/server/dev/next-dev-server.js`,
+  `getStaticPathsWorker` — "we don't re-use workers so destroy the used one"),
+  and that child's global scope is empty. `getCloudflareContext` then falls
+  back to wrangler itself with *no* options, so it asks for the `remote: true`
+  bindings `wrangler.jsonc` declares; with no credentials that handshake fails
+  after seconds, and the catch in `payload.config.ts` answered with a second
+  miniflare over the same local SQLite file. Two `workerd` per fork, 40 of
+  them in one CI shard, `database is locked` on the `/gallery` media query,
+  and a red `V-RACEALBUM-T1` that passed on re-run. The fix is that outside a
+  production build the config goes straight to local emulated bindings —
+  the remote handshake only ever made sense for `build:staging`/`build:prod`.
+
+  Two things generalise. **A route that is `force-dynamic` must not export
+  `generateStaticParams`**: Next asks for it anyway, in that forked child, and
+  throws the answer away — `/gallery/[slug]` was paying `generate-params: 2.1s`
+  and a whole `getPublishedGalleries()` for nothing. And **the warning that
+  fires forty times a run is not a warning**; it read as expected CI noise for
+  weeks while it was the count of miniflare instances fighting over one file.
 - **Poll the end state, not the process.** Seed and migration scripts finish
   their writes long before they exit; query the rows.
 - **A `scripts/` file must end in `process.exit()`.** Booting Payload from the
