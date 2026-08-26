@@ -45,6 +45,26 @@ const FORBIDDEN_KEYS = [
   'RACE_MAINTENANCE_SECRET',
 ]
 
+/**
+ * What to do about each key, printed when that key is the one found.
+ *
+ * Keyed off the same list rather than written as one fixed paragraph. The
+ * paragraph was the R2 story — "these are R2 write credentials", remedies
+ * for `S3_*` and `PAYLOAD_*` — and it stayed that way while the list above
+ * grew `RESEND_API_KEY` and `RACE_MAINTENANCE_SECRET`. A `RACE_MAINTENANCE_SECRET`
+ * hit then printed advice matching neither the credential nor its fix, and
+ * the reader had to re-derive what the check already knew. A guard that
+ * stops the right thing and points somewhere else costs about as much as
+ * no guard.
+ */
+const REMEDY = {
+  S3_ACCESS_KEY_ID: 'R2 write credentials for the offline Velite pipeline — blank it in the build env file (build:prod already does).',
+  S3_SECRET_ACCESS_KEY: 'R2 write credentials for the offline Velite pipeline — blank it in the build env file (build:prod already does).',
+  PAYLOAD_SECRET: 'Supply as a Worker secret: `wrangler secret put PAYLOAD_SECRET --env <env>`.',
+  RESEND_API_KEY: 'Supply as a Worker secret: `wrangler secret put RESEND_API_KEY --env <env>`.',
+  RACE_MAINTENANCE_SECRET: 'Supply as a Worker secret: `wrangler secret put RACE_MAINTENANCE_SECRET --env <env>`.',
+}
+
 const envLocal = path.join(root, '.env.local')
 const secrets = []
 if (fs.existsSync(envLocal)) {
@@ -96,10 +116,18 @@ if (hits.length > 0) {
     console.error(`  ${key} found in ${file}`)
   }
   console.error(
-    '\nThese are R2 write credentials and would be readable inside the\n' +
-      'deployed Worker.\n\n' +
-      'S3_*        -> must be blank in the build env file\n' +
-      'PAYLOAD_*   -> must come from `wrangler secret put`, not the env file\n',
+    '\nWhatever is exported when `next build` runs is inlined into the\n' +
+      'bundle, so these would be readable inside the deployed Worker.\n',
+  )
+  for (const key of [...new Set(hits.map((hit) => hit.key))]) {
+    console.error(`  ${key}\n    ${REMEDY[key] ?? 'Must not be present at build time.'}`)
+  }
+  // The value is matched against .env.local, so a hit means .env.<mode>
+  // carries the same real value — which is the thing to change, not the
+  // local file the check reads from.
+  console.error(
+    '\nThe real value belongs in `wrangler secret put`; the build env file\n' +
+      '(.env.staging / .env.production) should carry a blank or a placeholder.\n',
   )
   process.exit(1)
 }

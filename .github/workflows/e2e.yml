@@ -180,6 +180,12 @@ jobs:
           # the CSV covers that exact (event, year) — see
           # scripts/reset-local-db.mjs, which mirrors this same ordering.
           pnpm seed:editions
+          # The qualifier flags live on race_categories, which the migrate
+          # step above created — this only fills four columns per row. CI
+          # needs it for the same reason it needs seed:editions: the
+          # /races filters are about data the CSV carries, and a database
+          # without it renders a filter that matches nothing.
+          pnpm seed:qualifiers
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
