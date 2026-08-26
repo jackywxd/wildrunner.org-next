@@ -4,12 +4,17 @@ import { notFound } from "next/navigation";
 import PhotoGallery from "@/app/(site)/(public)/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
 import { resolveGalleryOgImage } from "@/lib/galleryOg";
-import {
-  getGalleryBySlug,
-  getPublishedGalleries,
-  getSiteGlobals,
-} from "@/lib/content";
+import { getGalleryBySlug, getSiteGlobals } from "@/lib/content";
 
+// No `generateStaticParams` here, deliberately. This route is force-dynamic,
+// so nothing it returned could ever be prerendered — but Next asks for it
+// anyway, in a child process it forks per dynamic route (`next dev`'s
+// `getStaticPathsWorker`, and again during a build). That child evaluates
+// payload.config, opens its own miniflare over the same local D1 the dev
+// server is serving from, and then spends a `getPublishedGalleries()` on a
+// list that is thrown away: measured at `generate-params: 2.1s` on one
+// request, and one more process contending for a SQLite file that answers
+// `SQLITE_BUSY` when two of them meet. See payload.config.ts for the rest.
 export const dynamic = "force-dynamic";
 
 interface GalleryDetailPageProps {
@@ -61,13 +66,6 @@ export async function generateMetadata({
       images: [ogImage],
     },
   };
-}
-
-export async function generateStaticParams() {
-  const galleries = await getPublishedGalleries();
-  return galleries.map((gallery) => ({
-    slug: gallery.slug,
-  }));
 }
 
 const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
