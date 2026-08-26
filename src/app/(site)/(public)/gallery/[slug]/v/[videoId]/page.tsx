@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { mediaDisplayName } from "@/lib/media-name";
 import {
   buildVideoOgImageUrl,
   resolveGalleryCoverSrc,
@@ -27,10 +28,6 @@ interface GalleryVideoPageProps {
 
 export const dynamic = "force-dynamic";
 
-function videoTitle(filename: string): string {
-  return filename.replace(/\.[^.]+$/, "");
-}
-
 export async function generateMetadata({
   params,
 }: GalleryVideoPageProps): Promise<Metadata> {
@@ -52,7 +49,7 @@ export async function generateMetadata({
   }
 
   const { gallery: g, video } = result;
-  const videoName = videoTitle(video.filename);
+  const videoName = mediaDisplayName(video);
   const title = `${videoName} · ${g.name}`;
   const description = `${g.name} · ${siteConfig.description}`;
   const pageUrl = `${baseURL}/gallery/${g.slug}/v/${encodeURIComponent(video.id)}`;
@@ -103,7 +100,7 @@ export default async function GalleryVideoPage({
   }
 
   const { gallery: g, video } = result;
-  const title = videoTitle(video.filename);
+  const title = mediaDisplayName(video);
 
   return (
     <div className="container relative max-w-7xl flex flex-col gap-4 py-6 lg:py-10">

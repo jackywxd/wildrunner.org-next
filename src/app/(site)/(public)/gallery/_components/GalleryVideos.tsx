@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Share2 } from "lucide-react";
 import type { SiteVideo } from "@/lib/content-types";
+import { mediaDisplayName } from "@/lib/media-name";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 
 type GalleryVideosProps = {
@@ -33,6 +34,7 @@ export function GalleryVideos({
     >
       {videos.map((video, index) => {
         const shareHref = gallerySlug ? `/gallery/${gallerySlug}/v/${video.id}` : undefined;
+        const label = mediaDisplayName(video);
 
         return (
           <div
@@ -59,12 +61,12 @@ export function GalleryVideos({
                   : "flex items-center justify-between gap-2 px-3 py-2"
               }
             >
-              <p className="truncate text-xs opacity-70">{video.filename}</p>
+              <p className="truncate text-xs opacity-70">{label}</p>
               {shareHref && (
                 <Link
                   href={shareHref}
                   className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
-                  aria-label={`分享 ${video.filename}`}
+                  aria-label={`分享 ${label}`}
                   title="分享视频"
                 >
                   <Share2 className="size-3.5" />
