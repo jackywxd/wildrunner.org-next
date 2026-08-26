@@ -110,7 +110,22 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     // Act 2 — and it is reachable by clicking, from the albums shelf, rather
     // than only by knowing the URL (docs/testing-strategy.md §4).
     await page.goto("/gallery", { waitUntil: "domcontentloaded" });
-    await page.getByTestId("gallery-view-toggle").getByText("依相簿").click();
+    // The chips are server-rendered, so `domcontentloaded` is reached well
+    // before React attaches their onClick. Clicking then is silently
+    // dropped, the shelf never renders, and the album link is "not found"
+    // for a reason that has nothing to do with albums — which is how this
+    // failed in CI while passing locally against a warm dev server.
+    // `toBeEnabled` waits for the element; `data-active` proves the click
+    // actually took effect rather than merely being dispatched.
+    const albumsChip = page.getByTestId("gallery-view-albums");
+    await expect(albumsChip).toBeEnabled({ timeout: 15_000 });
+    await expect(async () => {
+      await albumsChip.click();
+      await expect(albumsChip).toHaveAttribute("data-active", "true", {
+        timeout: 2_000,
+      });
+    }).toPass({ timeout: 20_000 });
+
     const albumLink = page.locator(`a[href="/gallery/${slug}"]`).first();
     await expect(albumLink).toBeVisible({ timeout: 15_000 });
     await albumLink.click();

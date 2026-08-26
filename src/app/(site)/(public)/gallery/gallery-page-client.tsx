@@ -23,14 +23,17 @@ function ViewChip({
   active,
   children,
   onClick,
+  testId,
 }: {
   active: boolean;
   children: React.ReactNode;
   onClick: () => void;
+  testId: string;
 }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       className={cn(
         "border px-3 py-1 text-xs leading-tight transition-colors",
@@ -38,6 +41,11 @@ function ViewChip({
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",
       )}
+      // The only signal that the view has actually switched. These chips
+      // are server-rendered, so a click landing before hydration is
+      // silently dropped and the shelf never appears — which is exactly how
+      // this failed in CI while passing locally, where a warm dev server
+      // hydrates before a test can click.
       data-active={active}
     >
       {children}
@@ -111,10 +119,18 @@ export default function GalleryPageClient({
           </p>
 
           <div className="mt-4 flex gap-2" data-testid="gallery-view-toggle">
-            <ViewChip active={view === "all"} onClick={() => setView("all")}>
+            <ViewChip
+              active={view === "all"}
+              onClick={() => setView("all")}
+              testId="gallery-view-all"
+            >
               全部相片
             </ViewChip>
-            <ViewChip active={view === "albums"} onClick={() => setView("albums")}>
+            <ViewChip
+              active={view === "albums"}
+              onClick={() => setView("albums")}
+              testId="gallery-view-albums"
+            >
               依相簿
             </ViewChip>
           </div>
