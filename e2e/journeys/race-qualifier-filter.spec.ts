@@ -1,5 +1,6 @@
 import type { APIRequestContext } from "@playwright/test";
 
+import { budget } from "../helpers/budget";
 import { adminContext } from "../helpers/members";
 import { expect, test } from "../helpers/test";
 
@@ -65,12 +66,19 @@ test.describe("Q race qualifier filters", () => {
   }) => {
     // Declared, not guessed at, and for the reason playwright.config.ts
     // gives: a test past 15s says so rather than living on the shared 20s
-    // budget. Measured idle, this one runs 16.4s in CI and 17–18s locally
-    // — an admin sign-in, four API round trips, two full page loads and two
-    // soft navigations. So 20s was never margin; under a full-suite run it
-    // simply ran out, with the page snapshot showing the filter had worked
-    // and the assertions had all passed.
-    test.setTimeout(60_000);
+    // budget. This one is an admin sign-in, four API round trips, two full
+    // page loads and two soft navigations — measured at 16.4s in CI, and
+    // between 17s and 39s locally depending on whether the dev server is
+    // warm, since running first after a reset means paying the route
+    // compile. So 20s was never margin: under a full-suite run it simply
+    // ran out, with the page snapshot at failure showing the filter had
+    // worked and every visible row correctly tagged.
+    //
+    // Through budget() because every number here was measured against a dev
+    // server, and this journey is almost all writes — the admin sign-in and
+    // the PATCH are exactly the calls that cost 5x against a deployed
+    // Worker (e2e/helpers/budget.ts).
+    test.setTimeout(budget(60_000));
 
     const admin = await adminContext(baseURL);
 
@@ -99,7 +107,7 @@ test.describe("Q race qualifier filters", () => {
       await page.getByTestId("race-filter-wser").click();
 
       // The URL moved...
-      await expect(page).toHaveURL(/[?&]qualifier=wser/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/[?&]qualifier=wser/, { timeout: budget(15_000) });
 
       // ...and so did the list. The race whose category was just flagged is
       // still here, which is what stops the next assertion being vacuous.
@@ -130,7 +138,7 @@ test.describe("Q race qualifier filters", () => {
       // Clicking the active chip clears it, and the schedule comes back.
       await page.getByTestId("race-filter-wser").click();
       await expect(page).toHaveURL((url) => !url.search.includes("qualifier="), {
-        timeout: 15_000,
+        timeout: budget(15_000),
       });
       // Strictly more rows once the filter is off, which is also the proof
       // that the filter was removing something rather than doing nothing.
