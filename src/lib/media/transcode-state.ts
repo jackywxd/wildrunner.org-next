@@ -112,3 +112,40 @@ export function reclaim(media: MediaRow): {
 export function transcodedKey(mediaId: number | string): string {
   return `transcoded/${mediaId}-1080p.mp4`;
 }
+
+/**
+ * The exact job the transcoder Worker expects, or `null` if this row cannot
+ * produce one.
+ *
+ * This exists as a function rather than an object literal at the call site
+ * because the literal got it wrong. `startTranscode` used to post only
+ * `{ mediaId }`, while the Worker requires `sourceUrl` and `destKey` and
+ * answers 400 without them — so every dispatch failed silently, the row
+ * stayed `queued`, and the sweep re-dispatched into the same 400 until the
+ * attempt ceiling turned it `failed`. Nothing local could see it: the
+ * `TRANSCODER` binding is absent in dev and CI, so the request was never
+ * made at all. A cross-Worker contract that only a deployed run exercises
+ * needs its own side of it pinned down by something that runs here.
+ *
+ * `sourceUrl` must be absolute. The container fetches it itself, with no
+ * request context to resolve against, and `publicMediaUrl` returns a
+ * relative `/<filename>` when `R2_PUBLIC_URL` is unset.
+ */
+export type TranscodeJob = {
+  destKey: string;
+  mediaId: number | string;
+  sourceUrl: string;
+};
+
+export function transcodeJob(media: {
+  id: number | string;
+  url?: string | null;
+}): TranscodeJob | null {
+  if (!media.url || !/^https?:\/\//.test(media.url)) return null;
+
+  return {
+    destKey: transcodedKey(media.id),
+    mediaId: media.id,
+    sourceUrl: media.url,
+  };
+}

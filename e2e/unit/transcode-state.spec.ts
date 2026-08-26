@@ -21,6 +21,7 @@ import {
   needsTranscode,
   nextStatusForRequest,
   reclaim,
+  transcodeJob,
   transcodedKey,
 } from "@/lib/media/transcode-state";
 
@@ -86,6 +87,39 @@ test.describe("U-TRANSCODE the transcode queue's rules", () => {
     });
     // A null count is a first attempt, not a crash.
     expect(reclaim({})).toEqual({ attempts: 1, status: "queued" });
+  });
+
+  test("U-TRANSCODE-7: a dispatched job carries every field the Worker requires", () => {
+    // This is the assertion the feature shipped without, and the defect it
+    // would have caught was total: the dispatcher posted `{ mediaId }` while
+    // workers/transcoder/src/index.ts answers 400 unless `sourceUrl` and
+    // `destKey` are both present. Every video would have failed after three
+    // sweeps. It was invisible everywhere it could have been noticed — the
+    // `TRANSCODER` binding does not exist in dev or in CI, so the request was
+    // never sent and `startTranscode` returned false long before the Worker
+    // could reject it.
+    const job = transcodeJob({ id: 672, url: "https://cdn.example.com/a%20b.m4v" });
+
+    expect(job).toEqual({
+      destKey: "transcoded/672-1080p.mp4",
+      mediaId: 672,
+      sourceUrl: "https://cdn.example.com/a%20b.m4v",
+    });
+    // Named explicitly rather than left to `toEqual`: these three strings are
+    // the other Worker's validation, and a rename on either side has to break
+    // something here rather than in production.
+    expect(Object.keys(job ?? {}).sort()).toEqual(["destKey", "mediaId", "sourceUrl"]);
+  });
+
+  test("U-TRANSCODE-8: a row with no absolute URL produces no job", () => {
+    // The container fetches `sourceUrl` itself, with no request context to
+    // resolve against. `publicMediaUrl` returns a relative `/<filename>`
+    // whenever `R2_PUBLIC_URL` is unset, and dispatching that would spend a
+    // container run to have curl fail on an unresolvable path.
+    expect(transcodeJob({ id: 672, url: "/UTMB-202023.m4v" })).toBeNull();
+    expect(transcodeJob({ id: 672, url: "" })).toBeNull();
+    expect(transcodeJob({ id: 672 })).toBeNull();
+    expect(transcodeJob({ id: 672, url: "http://cdn.example.com/a.m4v" })).not.toBeNull();
   });
 
   test("U-TRANSCODE-6: the output key is stable and derived from the id", () => {

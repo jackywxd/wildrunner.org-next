@@ -83,7 +83,7 @@ export const transcodeMediaEndpoint: Endpoint = {
     // scheduled sweep picks it up. Throwing here would report a *successful*
     // upload as failed, which is the mistake processMediaImage.ts's header
     // warns about.
-    const dispatched = await startTranscode({ mediaId: doc.id, payload: req.payload })
+    const dispatched = await startTranscode(doc)
 
     return Response.json({ queued: true, dispatched, status: 'queued' })
   },

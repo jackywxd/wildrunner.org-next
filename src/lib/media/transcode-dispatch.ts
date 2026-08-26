@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import { transcodeJob } from '@/lib/media/transcode-state'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 /**
@@ -17,15 +17,25 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
  * deploys on its own cadence, its Durable Object migrations never touch this
  * app's D1 migrations, and a broken transcode cannot take the site down.
  *
+ * TAKES THE WHOLE DOCUMENT, not an id, and that is the fix for a defect this
+ * signature caused. It used to accept `{ mediaId, payload }` and post only
+ * `{ mediaId }`, while the Worker requires `sourceUrl` and `destKey` and
+ * answers 400 without them — so every dispatch failed, the row stayed
+ * `queued`, and the sweep re-dispatched it into the same 400 until the
+ * attempt limit turned it `failed`. Nothing caught it because `TRANSCODER`
+ * is absent locally and in CI, so the early return below fires before the
+ * request is ever made; only a deployed run reaches the Worker at all.
+ * Passing the document makes the incomplete call unrepresentable.
+ *
  * Every failure is swallowed into `false`. The upload has already succeeded
  * by the time this runs, so a transcoder that is unreachable must not make
  * the request look failed — the row stays `queued` and the scheduled sweep
  * retries it. That is the same rule `processMediaImage.ts` states for the
  * image path.
  */
-export async function startTranscode(args: {
-  mediaId: number | string
-  payload: Payload
+export async function startTranscode(media: {
+  id: number | string
+  url?: string | null
 }): Promise<boolean> {
   try {
     const { env } = await getCloudflareContext({ async: true })
@@ -38,21 +48,33 @@ export async function startTranscode(args: {
       return false
     }
 
+    // Built by `transcodeJob` rather than inline, so the shape the Worker
+    // requires is stated in one place and unit-tested — see its header for
+    // the 400 that motivated it. `null` means the row has no absolute URL
+    // for the container to fetch, which is a misconfigured environment
+    // rather than a bad row, and worth saying here instead of letting curl
+    // fail inside the container with no context.
+    const job = transcodeJob(media)
+    if (!job) {
+      console.warn(
+        `transcode dispatch for media ${media.id} skipped: url is not absolute (${media.url ?? 'unset'})`,
+      )
+      return false
+    }
+
     const response = await transcoder.fetch('https://transcoder/transcode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mediaId: args.mediaId }),
+      body: JSON.stringify(job),
     })
 
     if (!response.ok) {
-      console.warn(
-        `transcode dispatch for media ${args.mediaId} returned ${response.status}`,
-      )
+      console.warn(`transcode dispatch for media ${media.id} returned ${response.status}`)
       return false
     }
     return true
   } catch (error) {
-    console.warn(`transcode dispatch for media ${args.mediaId} failed`, error)
+    console.warn(`transcode dispatch for media ${media.id} failed`, error)
     return false
   }
 }

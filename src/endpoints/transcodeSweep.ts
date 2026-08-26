@@ -112,7 +112,7 @@ export const transcodeSweepEndpoint: Endpoint = {
 
       // Reaches here for a row that was already `queued`, or one just
       // handed back to `queued` above.
-      if (await startTranscode({ mediaId: doc.id, payload: req.payload })) {
+      if (await startTranscode(doc)) {
         redispatched.push(doc.id)
       }
     }
