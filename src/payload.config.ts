@@ -37,6 +37,7 @@ import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { processMediaImageEndpoint } from './endpoints/processMediaImage'
 import { transcodeMediaEndpoint } from './endpoints/transcodeMedia'
 import { transcodeResultEndpoint } from './endpoints/transcodeResult'
+import { transcodeSweepEndpoint } from './endpoints/transcodeSweep'
 import { raceScheduleMaintenanceEndpoint } from './endpoints/raceScheduleMaintenance'
 import { isEmailConfigured, resendAdapter } from './lib/email'
 
@@ -188,6 +189,7 @@ export default buildConfig({
     processMediaImageEndpoint,
     transcodeMediaEndpoint,
     transcodeResultEndpoint,
+    transcodeSweepEndpoint,
     raceScheduleMaintenanceEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the
