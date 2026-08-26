@@ -1,6 +1,7 @@
 "use client";
 
 import type { SiteVideo } from "@/lib/content-types";
+import { mediaDisplayName } from "@/lib/media-name";
 import { streamIframeSrc } from "@/lib/stream";
 
 type StreamVideoPlayerProps = {
@@ -26,6 +27,7 @@ export function StreamVideoPlayer({
   compact = false,
 }: StreamVideoPlayerProps) {
   const streamSrc = streamIframeSrc(video.streamId);
+  const label = mediaDisplayName(video);
   const sizing = compact
     ? "aspect-video h-[160px] w-full"
     : "aspect-video w-full min-h-[240px]";
@@ -34,7 +36,7 @@ export function StreamVideoPlayer({
     return (
       <iframe
         src={streamSrc}
-        title={video.filename}
+        title={label}
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
         allowFullScreen
         loading={compact ? "lazy" : undefined}
@@ -61,7 +63,7 @@ export function StreamVideoPlayer({
         preload={compact ? "none" : "metadata"}
         className={className ?? sizing}
       >
-        <a href={video.src}>{video.filename}</a>
+        <a href={video.src}>{label}</a>
       </video>
     );
   }
