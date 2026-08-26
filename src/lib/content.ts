@@ -14,6 +14,7 @@ import type {
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
+import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import type {
   SiteGallery,
   SiteGlobals,
@@ -1085,7 +1086,14 @@ export async function getGalleryBySlug(
     },
   });
   const doc = result.docs[0];
-  return doc ? mapPayloadGallery(doc) : null;
+  if (doc) return mapPayloadGallery(doc);
+
+  // A stored gallery always wins, so a real row named `race-…-2026` keeps
+  // working and this can never shadow one. Only when nothing is stored does
+  // the slug get read as a race album — which is what makes both the album
+  // page and the video share page work for race media without either of
+  // them knowing virtual albums exist.
+  return getRaceGalleryBySlug(slug, new Date());
 }
 
 export function getGalleryVideo(
@@ -1098,6 +1106,123 @@ export function getGalleryVideo(
   );
   if (!video) return undefined;
   return { gallery, video };
+}
+
+/**
+ * Every race that has media, as an album a reader can open and share.
+ *
+ * Virtual: nothing is stored. See `src/lib/race-gallery.ts` for why the
+ * album is derived from the tag rather than kept as a `galleries` row.
+ *
+ * Two queries, not two per race. The obvious shape — walk the editions and
+ * ask each one for its photos and videos — is 154 round trips against the
+ * current catalogue to find the two races that actually have anything.
+ * Instead: one pass over the editions for their names, one over the tagged
+ * media, then group in memory.
+ */
+export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
+  const payload = await getPayloadClient();
+  const editions = await getRaceEditionOptions(now);
+  if (editions.length === 0) return [];
+
+  const byId = new Map(editions.map((edition) => [edition.id, edition]));
+
+  // depth 0 keeps `owner` a bare id so it never reaches Payload's populate
+  // step — the rule every other query in this file follows, and the reason
+  // this file carries a header about PII at all.
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    sort: "-createdAt",
+    where: { raceEdition: { exists: true } },
+  });
+
+  const grouped = new Map<number, { photos: SitePhoto[]; videos: SiteVideo[] }>();
+  for (const doc of result.docs) {
+    const editionId =
+      typeof doc.raceEdition === "number"
+        ? doc.raceEdition
+        : doc.raceEdition?.id;
+    if (editionId === undefined || !byId.has(editionId)) continue;
+
+    const bucket = grouped.get(editionId) ?? { photos: [], videos: [] };
+    if (doc.mimeType?.startsWith("video/")) {
+      // The media id as the share id — see buildRaceGallery.
+      const video = mapGalleryVideo(doc, String(doc.id));
+      if (video) bucket.videos.push(video);
+    } else if (doc.mimeType?.startsWith("image/")) {
+      const photo = mapMediaToPhoto(doc, false);
+      if (photo) bucket.photos.push(photo);
+    }
+    grouped.set(editionId, bucket);
+  }
+
+  const galleries: SiteGallery[] = [];
+  for (const [editionId, bucket] of grouped) {
+    if (bucket.photos.length === 0 && bucket.videos.length === 0) continue;
+    galleries.push(
+      buildRaceGallery(byId.get(editionId)!, bucket.photos, bucket.videos),
+    );
+  }
+  return galleries;
+}
+
+/**
+ * One race's album, or null when that race has no media.
+ *
+ * Delegates to `getRaceGalleries` rather than re-querying this one race.
+ * The point is not brevity: it means the album at `/gallery/<slug>` is
+ * built by exactly the code that built the card on `/gallery`, so the two
+ * cannot disagree about what is in it. Re-deriving it here would recreate,
+ * inside one feature, the split-brain this whole design avoids. The set is
+ * small — the query is `raceEdition exists`, which is only the tagged media.
+ */
+export async function getRaceGalleryBySlug(
+  slug: string,
+  now: Date,
+): Promise<SiteGallery | null> {
+  if (!parseRaceGallerySlug(slug)) return null;
+  const galleries = await getRaceGalleries(now);
+  return galleries.find((gallery) => gallery.slug === slug) ?? null;
+}
+
+/**
+ * `videos[].id` is the media id, not the filename-derived slug
+ * `mapGalleryVideo` falls back to.
+ *
+ * That fallback's own comment explains it was safe "precisely because
+ * nothing resolves a video by that id outside a gallery's own videos[]
+ * array". A virtual album breaks that premise — `/gallery/[slug]/v/[videoId]`
+ * now resolves race videos this way — so the id has to be something that
+ * cannot collide between two videos of the same race and does not change
+ * when a file is renamed.
+ */
+function buildRaceGallery(
+  edition: SiteRaceEditionOption,
+  photos: SitePhoto[],
+  videos: SiteVideo[],
+): SiteGallery {
+  // Newest media stands in for the album's date: an edition option carries
+  // no start date, and this only has to place the album in a list sorted on
+  // `created` (gallery-page-client.tsx).
+  const newest = photos[0]?.createdAt ?? new Date(0).toISOString();
+  const first = photos[0];
+
+  return {
+    cover: first
+      ? { src: first.src, width: first.width, height: first.height }
+      : null,
+    created: newest,
+    eventDate: null,
+    featured: [],
+    images: photos,
+    isFeatured: false,
+    name: `${edition.nameZh ?? edition.name} ${edition.year}`,
+    slug: raceGallerySlug(edition.eventKey, edition.year),
+    videos,
+  };
 }
 
 /**
