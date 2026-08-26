@@ -130,9 +130,13 @@ export function MediaDetailDialog({
         </div>
 
         {isVideo && (
-          <p className="text-xs text-foreground/50" data-testid="media-detail-video-note">
-            部分手機錄製的影片（HEVC 編碼）可能無法在 Chrome/Firefox
-            播放，Safari 或 QuickTime 不受影響。
+          <p
+            className={`text-xs ${
+              item.transcodeStatus === "failed" ? "text-destructive" : "text-foreground/50"
+            }`}
+            data-testid="media-detail-transcode"
+          >
+            {transcodeNote(item.transcodeStatus)}
           </p>
         )}
 
@@ -221,4 +225,31 @@ export function MediaDetailDialog({
       </div>
     </div>
   );
+}
+
+/**
+ * The one sentence a member gets about the conversion.
+ *
+ * Spelled out rather than reusing the grid badge because this is the screen
+ * where the member has time to read: the badge answers "is something
+ * happening", this answers "do I need to do anything". For `queued` and
+ * `running` the answer is no, and saying so is the whole point of not
+ * making anyone wait for a minutes-long encode.
+ */
+function transcodeNote(status: string | null | undefined): string {
+  switch (status) {
+    case "queued":
+    case "running":
+      // The HEVC caveat is carried here rather than in a paragraph of its
+      // own: before the transcode lands, the file is still exactly what the
+      // phone recorded, so the warning is as true as ever — and once it
+      // lands, `done` below replaces it rather than contradicting it.
+      return "影片正在轉為 1080p H.264，完成後會自動替換，你不需要等待或重新上傳。在那之前，部分手機錄製的影片（HEVC 編碼）在 Chrome/Firefox 可能無法播放。";
+    case "failed":
+      return "影片轉檔失敗，原始檔案仍然保留。請重新上傳這支影片。";
+    case "done":
+      return "已轉為 1080p H.264，手機與桌面瀏覽器都能播放。";
+    default:
+      return "部分手機錄製的影片（HEVC 編碼）可能無法在 Chrome/Firefox 播放，Safari 或 QuickTime 不受影響。";
+  }
 }

@@ -5,10 +5,19 @@ import { QuotaBar } from "./QuotaBar";
 import { UploadDropzone } from "./UploadDropzone";
 import { MediaGrid } from "./MediaGrid";
 import { MediaDetailDialog } from "./MediaDetailDialog";
+import { transcodeBadge } from "./TranscodeBadge";
 import type { Media } from "@/payload-types";
 import type { SiteRaceEditionOption } from "@/lib/content-types";
 
 type Usage = { quotaBytes: number; usedBytes: number };
+
+/**
+ * Fifteen seconds. A 4K clip measured ~2.6 minutes of encoding plus
+ * transfer, so this is roughly a dozen polls over a whole job — cheap
+ * against a `/api/media` list, and short enough that the badge clearing
+ * still reads as a response to something rather than an unrelated event.
+ */
+const TRANSCODE_POLL_MS = 15_000;
 
 export function MediaLibrary({
   preselectedRaceEditionId,
@@ -51,6 +60,23 @@ export function MediaLibrary({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // A transcode finishes minutes after the upload does, in a container, by
+  // patching the row — nothing pushes that back to this page. Without a poll
+  // the member watches 轉檔中 forever and reloads to find out, which undoes
+  // the reason the encode was made asynchronous in the first place.
+  //
+  // Keyed on the boolean, not on `items`: the effect then re-runs only when
+  // the answer actually flips, and an interval rather than a chained timeout
+  // means one failed request does not silently end the polling — the next
+  // tick still fires. It stops on its own once nothing is in flight.
+  const transcodePending = items.some((item) => transcodeBadge(item)?.tone === "pending");
+
+  useEffect(() => {
+    if (!transcodePending) return;
+    const timer = setInterval(refresh, TRANSCODE_POLL_MS);
+    return () => clearInterval(timer);
+  }, [transcodePending, refresh]);
 
   return (
     <div className="space-y-6">
