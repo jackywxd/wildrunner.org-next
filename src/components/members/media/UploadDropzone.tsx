@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type DragEvent } from "react";
+import { requestTranscode } from "@/lib/members/transcode-video";
 import {
   DIRECT_UPLOAD_THRESHOLD,
   completeSession,
@@ -147,6 +148,15 @@ export function UploadDropzone({
         method: "POST",
         credentials: "same-origin",
       }).catch(() => {});
+
+      // Videos additionally get queued for transcoding to H.264 1080p.
+      // Also best-effort, and also deliberately not awaited to completion:
+      // the endpoint returns as soon as the job is queued, because encoding
+      // a 4K clip measures in minutes. The member sees the upload finish;
+      // the media library shows the transcode state separately.
+      if (chosen.type.startsWith("video/")) {
+        await requestTranscode(mediaId);
+      }
 
       patchItem(index, { status: "done", percent: 100 });
     } catch (error) {

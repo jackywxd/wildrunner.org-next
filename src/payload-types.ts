@@ -224,6 +224,15 @@ export interface Media {
    * Cloudflare Stream has finished processing this video
    */
   streamReady?: boolean | null;
+  /**
+   * Set by the transcoder; never edited by hand.
+   */
+  transcodeStatus?: ('queued' | 'running' | 'done' | 'failed' | 'skipped') | null;
+  transcodeAttempts?: number | null;
+  /**
+   * The pre-transcode file. Kept; never deleted automatically.
+   */
+  originalUrl?: string | null;
   blurDataURL?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -667,6 +676,9 @@ export interface MediaSelect<T extends boolean = true> {
   raceEdition?: T;
   streamId?: T;
   streamReady?: T;
+  transcodeStatus?: T;
+  transcodeAttempts?: T;
+  originalUrl?: T;
   blurDataURL?: T;
   updatedAt?: T;
   createdAt?: T;

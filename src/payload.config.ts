@@ -35,6 +35,8 @@ import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { processMediaImageEndpoint } from './endpoints/processMediaImage'
+import { transcodeMediaEndpoint } from './endpoints/transcodeMedia'
+import { transcodeResultEndpoint } from './endpoints/transcodeResult'
 import { raceScheduleMaintenanceEndpoint } from './endpoints/raceScheduleMaintenance'
 import { isEmailConfigured, resendAdapter } from './lib/email'
 
@@ -184,6 +186,8 @@ export default buildConfig({
     storageUsageEndpoint,
     directUploadInitEndpoint,
     processMediaImageEndpoint,
+    transcodeMediaEndpoint,
+    transcodeResultEndpoint,
     raceScheduleMaintenanceEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the

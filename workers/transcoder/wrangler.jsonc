@@ -1,0 +1,57 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "wildrunner-transcoder",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-14",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": { "enabled": true },
+
+	// standard-4 (4 vCPU / 12 GiB / 20 GB) because CPU is the only thing that
+	// matters here. The 3.11x-realtime figure in PLAN-video-transcode.md was
+	// measured at 4 threads; disk peaks around 2 GB against the largest file
+	// in the corpus, so 20 GB is ten times what is needed.
+	"containers": [
+		{
+			"class_name": "TranscodeContainer",
+			"image": "./container/Dockerfile",
+			"instance_type": "standard-4",
+			// Well under the account ceiling (1,500 concurrent vCPU). This is
+			// a members' club uploading a handful of videos a month; the cap
+			// is here so a runaway retry cannot spend the CPU budget in one
+			// afternoon.
+			"max_instances": 3
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "TRANSCODER", "class_name": "TranscodeContainer" }]
+	},
+	// Container-backed Durable Objects must use new_sqlite_classes.
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["TranscodeContainer"] }],
+
+	"vars": {
+		"APP_ORIGIN": "https://wildrunner.org",
+		"R2_BUCKET": "wildrunner-storage"
+	},
+
+	"env": {
+		"staging": {
+			"name": "wildrunner-transcoder-staging",
+			"containers": [
+				{
+					"class_name": "TranscodeContainer",
+					"image": "./container/Dockerfile",
+					"instance_type": "standard-4",
+					"max_instances": 2
+				}
+			],
+			"durable_objects": {
+				"bindings": [{ "name": "TRANSCODER", "class_name": "TranscodeContainer" }]
+			},
+			"migrations": [{ "tag": "v1", "new_sqlite_classes": ["TranscodeContainer"] }],
+			"vars": {
+				"APP_ORIGIN": "https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev",
+				"R2_BUCKET": "wildrunner-storage-staging"
+			}
+		}
+	}
+}
