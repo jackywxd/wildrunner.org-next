@@ -23,12 +23,19 @@ function ViewChip({
   active,
   children,
   onClick,
-  testId,
+  // Named for the attribute rather than something like `testId` so the
+  // attribute itself appears literally at each call site, which is what
+  // `scripts/assert-schema-screen.mjs` greps for. A renamed prop passes
+  // typecheck and fails that check — correctly, since its whole job is to
+  // prove a selector a test uses really exists. (Deliberately not spelling
+  // the attribute out in this comment: a checker that matches its own
+  // documentation is the false positive VERIFICATION.md warns about.)
+  "data-testid": testId,
 }: {
   active: boolean;
   children: React.ReactNode;
   onClick: () => void;
-  testId: string;
+  "data-testid": string;
 }) {
   return (
     <button
@@ -122,14 +129,14 @@ export default function GalleryPageClient({
             <ViewChip
               active={view === "all"}
               onClick={() => setView("all")}
-              testId="gallery-view-all"
+              data-testid="gallery-view-all"
             >
               全部相片
             </ViewChip>
             <ViewChip
               active={view === "albums"}
               onClick={() => setView("albums")}
-              testId="gallery-view-albums"
+              data-testid="gallery-view-albums"
             >
               依相簿
             </ViewChip>
