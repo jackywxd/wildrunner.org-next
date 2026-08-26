@@ -127,12 +127,18 @@ export function transcodedKey(mediaId: number | string): string {
  * made at all. A cross-Worker contract that only a deployed run exercises
  * needs its own side of it pinned down by something that runs here.
  *
- * `sourceUrl` must be absolute. The container fetches it itself, with no
- * request context to resolve against, and `publicMediaUrl` returns a
- * relative `/<filename>` when `R2_PUBLIC_URL` is unset.
+ * `sourceUrl` must be absolute and https. The container fetches it itself,
+ * with no request context to resolve against, and `publicMediaUrl` returns
+ * a relative `/<filename>` when `R2_PUBLIC_URL` is unset.
+ *
+ * There is deliberately NO `destKey` here. It used to be sent, and the
+ * transcoder used what it was given — which, on a Worker that Cloudflare
+ * had published at a public hostname with no authentication, let anyone
+ * name the object the container would write over. The Worker derives the
+ * key from the media id now, and `transcodedKey` below is this side's copy
+ * of that same rule: what the callback is required to report back.
  */
 export type TranscodeJob = {
-  destKey: string;
   mediaId: number | string;
   sourceUrl: string;
 };
@@ -141,10 +147,9 @@ export function transcodeJob(media: {
   id: number | string;
   url?: string | null;
 }): TranscodeJob | null {
-  if (!media.url || !/^https?:\/\//.test(media.url)) return null;
+  if (!media.url || !/^https:\/\//.test(media.url)) return null;
 
   return {
-    destKey: transcodedKey(media.id),
     mediaId: media.id,
     sourceUrl: media.url,
   };

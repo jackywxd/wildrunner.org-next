@@ -18,7 +18,11 @@ type Env = {
   TRANSCODER: DurableObjectNamespace<TranscodeContainer>
   /** Where to report the result. The site's own origin. */
   APP_ORIGIN: string
-  /** Shared with the site; proves a callback really came from here. */
+  /**
+   * Shared with the site. It proves a callback really came from here, and
+   * — since this Worker answers on a public hostname — that a job request
+   * really came from the site.
+   */
   TRANSCODE_SECRET: string
   R2_S3_ENDPOINT: string
   R2_BUCKET: string
@@ -26,10 +30,13 @@ type Env = {
   AWS_SECRET_ACCESS_KEY: string
 }
 
+/**
+ * What a caller may ask for. `destKey` is NOT part of it, deliberately —
+ * see `destKeyFor` below.
+ */
 type TranscodeJob = {
   mediaId: number | string
   sourceUrl: string
-  destKey: string
 }
 
 type ScriptResult = {
@@ -76,7 +83,7 @@ export class TranscodeContainer extends Container<Env> {
       const process = await this.ctx.container!.exec([
         '/usr/local/bin/transcode.sh',
         job.sourceUrl,
-        job.destKey,
+        destKeyFor(job.mediaId),
       ])
 
       const exitCode = await process.exitCode
@@ -134,6 +141,25 @@ export class TranscodeContainer extends Container<Env> {
   }
 }
 
+/**
+ * Where the transcode is written. Derived from the media id HERE, never
+ * taken from the request.
+ *
+ * It used to be a request field, and that was a hole rather than a
+ * shortcut: this handler had no authentication at all and Cloudflare gave
+ * it a public `workers.dev` hostname, so anyone who knew the URL could post
+ * a key of their choosing and have the container write over any object in
+ * the bucket, using this Worker's own R2 credentials. Deriving it removes
+ * the primitive instead of guarding it.
+ *
+ * Kept in step with `transcodedKey()` in src/lib/media/transcode-state.ts by
+ * hand — a separate Worker cannot import from the app. If one changes, the
+ * transcode lands somewhere the site never looks, so change both.
+ */
+function destKeyFor(mediaId: number | string): string {
+  return `transcoded/${mediaId}-1080p.mp4`
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -141,9 +167,25 @@ export default {
       return new Response('Not found', { status: 404 })
     }
 
+    // The site reaches this over a service binding, which needs no
+    // hostname — but Cloudflare publishes one anyway, so this handler is
+    // on the open internet and has to say who may use it. An unset secret
+    // refuses everything rather than defaulting to open, exactly as the
+    // site's own /transcode-result callback does.
+    if (!env.TRANSCODE_SECRET || request.headers.get('x-transcode-secret') !== env.TRANSCODE_SECRET) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     const job = (await request.json()) as TranscodeJob
-    if (job?.mediaId === undefined || !job.sourceUrl || !job.destKey) {
-      return new Response('mediaId, sourceUrl and destKey are required', { status: 400 })
+    if (job?.mediaId === undefined || !job.sourceUrl) {
+      return new Response('mediaId and sourceUrl are required', { status: 400 })
+    }
+
+    // The container fetches this itself. Requiring https keeps a leaked
+    // secret from turning into a fetch of anything reachable from
+    // Cloudflare's network.
+    if (!job.sourceUrl.startsWith('https://')) {
+      return new Response('sourceUrl must be https', { status: 400 })
     }
 
     // One Durable Object per media id, so two dispatches for the same video

@@ -6,6 +6,14 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"observability": { "enabled": true },
 
+	// The site reaches this over a service binding, which does not use a
+	// hostname at all. Cloudflare publishes a `workers.dev` one regardless
+	// unless told otherwise, and it did: this Worker was briefly answering
+	// anonymous requests on the open internet. The handler now demands the
+	// shared secret too — this is the other half, removing the address
+	// rather than only guarding the door.
+	"workers_dev": false,
+
 	// standard-4 (4 vCPU / 12 GiB / 20 GB) because CPU is the only thing that
 	// matters here. The 3.11x-realtime figure in PLAN-video-transcode.md was
 	// measured at 4 threads; disk peaks around 2 GB against the largest file
@@ -36,6 +44,7 @@
 	"env": {
 		"staging": {
 			"name": "wildrunner-transcoder-staging",
+			"workers_dev": false,
 			"containers": [
 				{
 					"class_name": "TranscodeContainer",

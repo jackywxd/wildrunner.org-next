@@ -101,14 +101,17 @@ test.describe("U-TRANSCODE the transcode queue's rules", () => {
     const job = transcodeJob({ id: 672, url: "https://cdn.example.com/a%20b.m4v" });
 
     expect(job).toEqual({
-      destKey: "transcoded/672-1080p.mp4",
       mediaId: 672,
       sourceUrl: "https://cdn.example.com/a%20b.m4v",
     });
-    // Named explicitly rather than left to `toEqual`: these three strings are
-    // the other Worker's validation, and a rename on either side has to break
+    // Named explicitly rather than left to `toEqual`: these strings are the
+    // other Worker's validation, and a rename on either side has to break
     // something here rather than in production.
-    expect(Object.keys(job ?? {}).sort()).toEqual(["destKey", "mediaId", "sourceUrl"]);
+    expect(Object.keys(job ?? {}).sort()).toEqual(["mediaId", "sourceUrl"]);
+    // And `destKey` must NOT be here. The transcoder derives it from the id;
+    // sending one is what let an unauthenticated caller pick the object the
+    // container would overwrite.
+    expect(job).not.toHaveProperty("destKey");
   });
 
   test("U-TRANSCODE-8: a row with no absolute URL produces no job", () => {
@@ -119,7 +122,11 @@ test.describe("U-TRANSCODE the transcode queue's rules", () => {
     expect(transcodeJob({ id: 672, url: "/UTMB-202023.m4v" })).toBeNull();
     expect(transcodeJob({ id: 672, url: "" })).toBeNull();
     expect(transcodeJob({ id: 672 })).toBeNull();
-    expect(transcodeJob({ id: 672, url: "http://cdn.example.com/a.m4v" })).not.toBeNull();
+    // Plain http is refused too, and the transcoder refuses it again on its
+    // own side: the container fetches this URL itself, so it is the one
+    // request in the system aimed by data rather than by code.
+    expect(transcodeJob({ id: 672, url: "http://cdn.example.com/a.m4v" })).toBeNull();
+    expect(transcodeJob({ id: 672, url: "https://cdn.example.com/a.m4v" })).not.toBeNull();
   });
 
   test("U-TRANSCODE-6: the output key is stable and derived from the id", () => {

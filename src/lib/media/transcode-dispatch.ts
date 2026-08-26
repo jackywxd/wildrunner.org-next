@@ -62,9 +62,26 @@ export async function startTranscode(media: {
       return false
     }
 
+    // The transcoder demands this. It answers on a public hostname as well
+    // as on this service binding, so it cannot tell a caller apart by the
+    // route alone — the same shared secret that authenticates its callback
+    // to us authenticates this request to it. Unset means it will refuse,
+    // which is the correct outcome: better a row that stays `queued` than a
+    // transcoder anyone can drive.
+    const secret = process.env.TRANSCODE_SECRET
+    if (!secret) {
+      console.warn(
+        `transcode dispatch for media ${media.id} skipped: TRANSCODE_SECRET is not set`,
+      )
+      return false
+    }
+
     const response = await transcoder.fetch('https://transcoder/transcode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-transcode-secret': secret,
+      },
       body: JSON.stringify(job),
     })
 

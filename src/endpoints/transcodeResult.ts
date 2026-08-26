@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 import { APIError } from 'payload'
 
 import { publicMediaUrl } from '@/lib/media-url'
+import { transcodedKey } from '@/lib/media/transcode-state'
 import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 
 /**
@@ -86,6 +87,16 @@ export const transcodeResultEndpoint: Endpoint = {
 
     if (!body?.key) {
       throw new APIError('key is required when status is done', 400)
+    }
+
+    // The reported key must be the one this media id is allowed to occupy.
+    // `key` lands in `filename` and `url` a few lines down, so an arbitrary
+    // value here repoints the row at an arbitrary object — a smaller hole
+    // than the transcoder's old caller-supplied `destKey`, since it needs
+    // the shared secret, but the same shape and no reason to leave open.
+    const expectedKey = transcodedKey(id)
+    if (body.key !== expectedKey) {
+      throw new APIError(`key must be ${expectedKey}`, 400)
     }
 
     const existing = await req.payload.findByID({
