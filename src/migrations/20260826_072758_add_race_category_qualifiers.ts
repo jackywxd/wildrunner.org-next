@@ -30,9 +30,33 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-d1-sqlite'
  * `RaceCategories.ts` calls "a real database constraint rather than a
  * beforeValidate hook". Nothing would use the index: `/races` filters in
  * memory over categories the page has already loaded.
+ *
+ * EVERY STATEMENT HERE IS SAFE TO RUN TWICE, and that is a requirement
+ * rather than a nicety. `next build` collects page data in a pool of
+ * worker processes — eleven of them on the machine where this first ran —
+ * and each boots its own Payload, connects, and applies whatever is
+ * pending. Nothing serialises them, because
+ * `@payloadcms/drizzle`'s `runMigrationFile` writes the
+ * `payload_migrations` row *after* `up()` returns:
+ *
+ *     await migration.up({ db, payload, req })
+ *     await payload.create({ collection: 'payload-migrations', ... })
+ *
+ * So two workers both find this migration pending and both enter it. The
+ * first version of this file guarded with `PRAGMA table_info` and added
+ * only the missing columns — a check-then-act that cannot help, since both
+ * reads land before either write. The staging deploy failed on exactly
+ * that: "race_categories has 12 columns" printed twice, both workers
+ * deciding to add all four, and the loser exiting on `duplicate column
+ * name`. D1 has no transactional DDL, so the winner's columns survived
+ * with no ledger row.
+ *
+ * This is not specific to this migration. Any DDL in this repo applied
+ * through a build is entered concurrently, and must be written the same
+ * way. See AGENTS.md.
  */
 
-const QUALIFIER_COLUMNS = {
+const ADD_COLUMNS = {
   qualifies_wser: sql`ALTER TABLE \`race_categories\` ADD \`qualifies_wser\` integer DEFAULT false;`,
   wser_verified_at: sql`ALTER TABLE \`race_categories\` ADD \`wser_verified_at\` text;`,
   qualifies_hardrock: sql`ALTER TABLE \`race_categories\` ADD \`qualifies_hardrock\` integer DEFAULT false;`,
@@ -46,82 +70,101 @@ const DROP_COLUMNS = {
   hardrock_verified_at: sql`ALTER TABLE \`race_categories\` DROP COLUMN \`hardrock_verified_at\`;`,
 } as const
 
-type QualifierColumn = keyof typeof QUALIFIER_COLUMNS
+type QualifierColumn = keyof typeof ADD_COLUMNS
 
 /**
- * Which of the four columns `race_categories` already has.
+ * Run one DDL statement, treating `tolerate` as "already in that state".
  *
- * `db.all`, NOT `db.run`. On D1 the driver types `run` as `D1Response` —
- * an acknowledgement with no rows on it — so reading a PRAGMA through it
- * yields `undefined` and a guard built on that would skip its own check
- * while reporting success. That is not hypothetical: the header of
- * `20260805_153543_add_race_domain_model` records exactly that mistake
- * being made once already, in this same table's migration.
+ * WHY MATCH THE ERROR RATHER THAN CHECK FIRST. Reading `PRAGMA table_info`
+ * and adding only what is missing is the obvious shape, and it is wrong
+ * here — provably, not stylistically. Two processes enter this migration
+ * concurrently (see the header), and both of their reads happen before
+ * either of their writes, so both compute the same "missing" list and the
+ * loser dies on `duplicate column name`. That is exactly how the first
+ * staging deploy of this migration failed, with the log showing the same
+ * "race_categories has 12 columns" line printed twice.
+ *
+ * Attempting the statement and tolerating the one error that means "this
+ * DDL is already applied" has no such window: whichever process loses is
+ * told so by the database itself, after the fact. Every other error —
+ * `no such table`, a permissions or disk failure — still fails the
+ * migration, which is what should happen.
  */
-async function existingColumns(
+async function runTolerating(
   db: MigrateUpArgs['db'],
-  payload: MigrateUpArgs['payload'],
-): Promise<Set<string>> {
-  const rows = await db.all<{ name: string }>(
-    sql`PRAGMA table_info(\`race_categories\`);`,
-  )
-  const names = new Set(rows.map((row) => row.name).filter(Boolean))
-
-  // An empty set means the PRAGMA came back in a shape this does not
-  // understand, or the table is not there. Both are reasons to stop before
-  // any DDL rather than to carry on and "add all four".
-  if (names.size === 0) {
-    throw new Error(
-      'race category qualifiers: PRAGMA table_info(race_categories) returned no ' +
-        'column names. Either the table is missing or the driver result shape changed.',
-    )
+  statement: (typeof ADD_COLUMNS)[QualifierColumn],
+  tolerate: RegExp,
+): Promise<boolean> {
+  try {
+    await db.run(statement)
+    return true
+  } catch (error) {
+    if (tolerate.test(allMessages(error))) return false
+    throw error
   }
-  payload.logger.info(
-    `race category qualifiers: race_categories has ${names.size} columns`,
-  )
-  return names
 }
 
-export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
-  // --- precondition, before any DDL ---------------------------------------
-  //
-  // D1 has no transactional DDL. Four `ADD COLUMN`s are four chances to
-  // half-apply: if the third fails, the first two are live with no
-  // `payload_migrations` row, and the next run dies on "duplicate column
-  // name" — the shape that took production down once. Adding only what is
-  // missing makes the migration re-runnable from exactly that state.
-  const present = await existingColumns(db, payload)
-  const missing = (Object.keys(QUALIFIER_COLUMNS) as QualifierColumn[]).filter(
-    (column) => !present.has(column),
-  )
-
-  payload.logger.info(
-    missing.length === 0
-      ? 'race category qualifiers: all four columns already present, nothing to add'
-      : `race category qualifiers: adding ${missing.join(', ')}`,
-  )
-
-  for (const column of missing) {
-    await db.run(QUALIFIER_COLUMNS[column])
+/**
+ * Every message in an error's cause chain, joined.
+ *
+ * Drizzle does not put the database's complaint on the error it throws.
+ * `.message` is its own summary — "Failed query: ALTER TABLE ... params: ."
+ * — and the D1 text that actually says what went wrong sits one or two
+ * `cause` levels down:
+ *
+ *     Error: Failed query: ALTER TABLE `race_categories` ADD ...
+ *       caused by: Error: D1_ERROR: duplicate column name: qualifies_wser: SQLITE_ERROR
+ *         caused by: Error: duplicate column name: qualifies_wser: SQLITE_ERROR
+ *
+ * A first version of this matched `.message` alone. It let the error
+ * straight through and the migration failed exactly as it had before —
+ * caught only because the fix was run against a table that already had the
+ * columns before being believed.
+ */
+function allMessages(error: unknown): string {
+  const parts: string[] = []
+  let current: unknown = error
+  // Bounded rather than `while (current)`: a cause chain that loops back on
+  // itself would otherwise hang the migration instead of failing it.
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    parts.push(current.message)
+    current = current.cause
   }
+  return parts.join('\n')
+}
+
+const ALREADY_ADDED = /duplicate column name/i
+const ALREADY_DROPPED = /no such column/i
+
+export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
+  const added: string[] = []
+  const skipped: string[] = []
+
+  for (const column of Object.keys(ADD_COLUMNS) as QualifierColumn[]) {
+    const did = await runTolerating(db, ADD_COLUMNS[column], ALREADY_ADDED)
+    ;(did ? added : skipped).push(column)
+  }
+
+  // Reports what happened, not what was intended: with two processes in
+  // here at once, "added" and "skipped" differ between them, and that
+  // difference is the only visible trace of the race.
+  payload.logger.info(
+    `race category qualifiers: added ${added.length ? added.join(', ') : 'none'}` +
+      `${skipped.length ? `; already present: ${skipped.join(', ')}` : ''}`,
+  )
 }
 
 export async function down({ db, payload }: MigrateDownArgs): Promise<void> {
-  // Symmetric with `up()`, for the symmetric reason: a rollback that runs
-  // after a half-applied `up()` would otherwise die on the first column
-  // that was never added.
-  const present = await existingColumns(db, payload)
-  const drop = (Object.keys(DROP_COLUMNS) as QualifierColumn[]).filter((column) =>
-    present.has(column),
-  )
+  const dropped: string[] = []
+  const skipped: string[] = []
+
+  for (const column of Object.keys(DROP_COLUMNS) as QualifierColumn[]) {
+    const did = await runTolerating(db, DROP_COLUMNS[column], ALREADY_DROPPED)
+    ;(did ? dropped : skipped).push(column)
+  }
 
   payload.logger.info(
-    drop.length === 0
-      ? 'race category qualifiers: no qualifier columns to drop'
-      : `race category qualifiers: dropping ${drop.join(', ')}`,
+    `race category qualifiers: dropped ${dropped.length ? dropped.join(', ') : 'none'}` +
+      `${skipped.length ? `; already absent: ${skipped.join(', ')}` : ''}`,
   )
-
-  for (const column of drop) {
-    await db.run(DROP_COLUMNS[column])
-  }
 }

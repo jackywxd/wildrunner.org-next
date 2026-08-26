@@ -54,6 +54,39 @@ That half-applied state took production down once.
   a NOT NULL foreign key, that order is wrong and the rollback fails on its
   own first statement. Check it.
 
+### A migration is entered by several processes at once
+
+`next build` collects page data in a pool of workers — eleven on the machine
+where this first bit — and each boots its own Payload, connects, and applies
+whatever is pending. Nothing serialises them: `@payloadcms/drizzle`'s
+`runMigrationFile` writes the `payload_migrations` row **after** `up()`
+returns, so every worker finds the same migration pending and every one runs
+it.
+
+**So DDL has to be safe to execute twice.** Attempt each statement and
+tolerate the one error meaning "already applied" — `duplicate column name`
+for `ADD COLUMN`, `no such column` for `DROP`. Anything else still fails.
+
+**Checking first cannot work**, however careful the check. Reading
+`PRAGMA table_info` and adding only what is missing is the obvious shape and
+it is wrong: both workers read before either writes, so both compute the
+same missing list and the loser dies. `20260826_072758_add_race_category_qualifiers`
+shipped that way and took the staging deploy down with it — its log shows
+`race_categories has 12 columns` printed twice, both workers deciding to add
+all four columns, and one exiting on `duplicate column name`. D1 has no
+transactional DDL, so the winner's columns survived with no ledger row.
+
+**Two `pnpm payload migrate` processes will not reproduce it.** Their startup
+jitter dwarfs the window; six of them, tried, and only the first ever entered
+the migration. Test the consequence instead — put the columns in place with
+no ledger row, which is exactly the losing worker's state, and run the
+migration against it.
+
+**The database's complaint is not on the error you catch.** Drizzle's
+`.message` is its own summary (`Failed query: ALTER TABLE ...`); the D1 text
+sits one or two `cause` levels down. A matcher reading `.message` alone
+silently tolerates nothing.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
