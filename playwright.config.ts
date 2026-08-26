@@ -13,7 +13,7 @@ export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:300
  * still be built and waited on for up to 180s, and it needs a PAYLOAD_SECRET
  * and local D1 that a deploy-verification job has no reason to provide.
  */
-const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
+export const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(
   BASE_URL,
 );
 

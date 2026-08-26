@@ -54,6 +54,39 @@ That half-applied state took production down once.
   a NOT NULL foreign key, that order is wrong and the rollback fails on its
   own first statement. Check it.
 
+### A migration is entered by several processes at once
+
+`next build` collects page data in a pool of workers — eleven on the machine
+where this first bit — and each boots its own Payload, connects, and applies
+whatever is pending. Nothing serialises them: `@payloadcms/drizzle`'s
+`runMigrationFile` writes the `payload_migrations` row **after** `up()`
+returns, so every worker finds the same migration pending and every one runs
+it.
+
+**So DDL has to be safe to execute twice.** Attempt each statement and
+tolerate the one error meaning "already applied" — `duplicate column name`
+for `ADD COLUMN`, `no such column` for `DROP`. Anything else still fails.
+
+**Checking first cannot work**, however careful the check. Reading
+`PRAGMA table_info` and adding only what is missing is the obvious shape and
+it is wrong: both workers read before either writes, so both compute the
+same missing list and the loser dies. `20260826_072758_add_race_category_qualifiers`
+shipped that way and took the staging deploy down with it — its log shows
+`race_categories has 12 columns` printed twice, both workers deciding to add
+all four columns, and one exiting on `duplicate column name`. D1 has no
+transactional DDL, so the winner's columns survived with no ledger row.
+
+**Two `pnpm payload migrate` processes will not reproduce it.** Their startup
+jitter dwarfs the window; six of them, tried, and only the first ever entered
+the migration. Test the consequence instead — put the columns in place with
+no ledger row, which is exactly the losing worker's state, and run the
+migration against it.
+
+**The database's complaint is not on the error you catch.** Drizzle's
+`.message` is its own summary (`Failed query: ALTER TABLE ...`); the D1 text
+sits one or two `cause` levels down. A matcher reading `.message` alone
+silently tolerates nothing.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
@@ -250,6 +283,7 @@ pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
 
 pnpm seed:races              # local D1
+pnpm seed:qualifiers         # WS/Hardrock qualifier flags from the CSV (:staging, :prod)
 pnpm validate:catalogue      # gates the race CSVs before import
 pnpm seed:catalogue          # regenerate src/lib/races/seed-data.ts from data/*.csv
 pnpm capture:badges          # every badge the site renders, as JSON, for diffing
@@ -394,6 +428,28 @@ longer see. The bar is "the app cannot cause it and cannot stop it", never
   Routing dev through `getCloudflareContext()` — the single instance
   `initOpenNextCloudflareForDev()` already starts — took it to zero. Raising
   `retries` would have hidden this forever.
+
+  It came back on 2026-08-26, and the reason is worth carrying: that reuse
+  only ever worked in the process `initOpenNextCloudflareForDev` runs in.
+  `next dev` forks a **fresh child process per dynamic route** to ask it for
+  `generateStaticParams` (`next/dist/server/dev/next-dev-server.js`,
+  `getStaticPathsWorker` — "we don't re-use workers so destroy the used one"),
+  and that child's global scope is empty. `getCloudflareContext` then falls
+  back to wrangler itself with *no* options, so it asks for the `remote: true`
+  bindings `wrangler.jsonc` declares; with no credentials that handshake fails
+  after seconds, and the catch in `payload.config.ts` answered with a second
+  miniflare over the same local SQLite file. Two `workerd` per fork, 40 of
+  them in one CI shard, `database is locked` on the `/gallery` media query,
+  and a red `V-RACEALBUM-T1` that passed on re-run. The fix is that outside a
+  production build the config goes straight to local emulated bindings —
+  the remote handshake only ever made sense for `build:staging`/`build:prod`.
+
+  Two things generalise. **A route that is `force-dynamic` must not export
+  `generateStaticParams`**: Next asks for it anyway, in that forked child, and
+  throws the answer away — `/gallery/[slug]` was paying `generate-params: 2.1s`
+  and a whole `getPublishedGalleries()` for nothing. And **the warning that
+  fires forty times a run is not a warning**; it read as expected CI noise for
+  weeks while it was the count of miniflare instances fighting over one file.
 - **Poll the end state, not the process.** Seed and migration scripts finish
   their writes long before they exit; query the rows.
 - **A `scripts/` file must end in `process.exit()`.** Booting Payload from the

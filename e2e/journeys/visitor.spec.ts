@@ -1,4 +1,5 @@
 import { expect, test } from "../helpers/test";
+import { budget } from "../helpers/budget";
 
 /**
  * V — what someone who has never signed in can do.
@@ -43,7 +44,7 @@ test.describe("V what a visitor can do", () => {
     // lived, invisible to a suite that only ever used `goto`.
     // See docs/testing-incidents.md.
     await expect(page).toHaveURL((url) => url.pathname === href, {
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toBeVisible();
@@ -69,13 +70,13 @@ test.describe("V what a visitor can do", () => {
     // made this fail on a page where the swap had demonstrably happened.
     await toggle.getByText("月曆", { exact: true }).click();
     await expect(page.getByTestId("race-calendar")).toHaveCount(1, {
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     await expect(page.getByTestId("race-list")).toHaveCount(0);
 
     await toggle.getByText("列表", { exact: true }).click();
     await expect(page.getByTestId("race-list")).toHaveCount(1, {
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     await expect(page.getByTestId("race-calendar")).toHaveCount(0);
 
@@ -95,7 +96,7 @@ test.describe("V what a visitor can do", () => {
     const href = await first.getAttribute("href");
     await first.click();
     await expect(page).toHaveURL((url) => url.pathname === href, {
-      timeout: 15_000,
+      timeout: budget(15_000),
     });
     await expect(page.getByTestId("rider-name")).toBeVisible();
   });

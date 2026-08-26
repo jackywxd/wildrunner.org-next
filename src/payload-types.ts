@@ -426,6 +426,22 @@ export interface RaceCategory {
   verified?: boolean | null;
   source?: string | null;
   verifiedAt?: string | null;
+  /**
+   * On the published Western States qualifying-race list (wser.org/qualifying-races). Tick only against the list itself.
+   */
+  qualifiesWser?: boolean | null;
+  /**
+   * The day somebody read the WS list. EMPTY MEANS NEVER — without it, "not a qualifier" and "nobody has looked" are the same row.
+   */
+  wserVerifiedAt?: string | null;
+  /**
+   * On the published Hardrock qualifying-race list (hardrock100.com/qualifying-races.php). Far shorter than the WS list, and not a subset of it.
+   */
+  qualifiesHardrock?: boolean | null;
+  /**
+   * The day somebody read the Hardrock list. Empty means never — the same rule as the WS date above.
+   */
+  hardrockVerifiedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -783,6 +799,10 @@ export interface RaceCategoriesSelect<T extends boolean = true> {
   verified?: T;
   source?: T;
   verifiedAt?: T;
+  qualifiesWser?: T;
+  wserVerifiedAt?: T;
+  qualifiesHardrock?: T;
+  hardrockVerifiedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

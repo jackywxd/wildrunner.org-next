@@ -85,6 +85,10 @@ const STEPS = [
   ["pnpm seed:races", "race schedule"],
   ["pnpm seed:e2e:account", "the test account, and ownership"],
   ["pnpm seed:editions", "editions imported from the reviewed CSV"],
+  // Order-independent of the two above: it only ever updates qualifier
+  // columns on categories the schema step already created, and touches no
+  // other collection. Last because it is the cheapest to re-run alone.
+  ["pnpm seed:qualifiers", "Western States / Hardrock qualifier flags"],
 ];
 
 for (const [command, what] of STEPS) {

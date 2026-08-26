@@ -319,28 +319,6 @@
           "autoincrement": false,
           "default": false
         },
-        "transcode_status": {
-          "name": "transcode_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "transcode_attempts": {
-          "name": "transcode_attempts",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 0
-        },
-        "original_url": {
-          "name": "original_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "blur_data_u_r_l": {
           "name": "blur_data_u_r_l",
           "type": "text",
@@ -3661,6 +3639,6 @@
   "internal": {
     "indexes": {}
   },
-  "id": "531f7135-e3b6-477f-96c5-0d28277fc755",
+  "id": "7c1eef52-b1cc-4066-87c3-5341a8e85687",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

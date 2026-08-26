@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { RACE_SERIES, RACE_SERIES_LABELS_ZH } from "@/lib/races/catalogue";
-import type { RaceSeries } from "@/lib/races/catalogue";
+import { raceFiltersHref } from "@/lib/races/race-filters";
+import type { RaceFilters } from "@/lib/races/race-filters";
+import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,34 +17,30 @@ import { cn } from "@/lib/utils";
  * component, in a codebase whose only vendored shadcn primitive is a button.
  */
 
-export type RaceView = "list" | "calendar";
-
-export type RaceFilters = {
-  view: RaceView;
-  series?: RaceSeries;
-  registration?: "open";
-};
-
-function href(filters: RaceFilters, patch: Partial<RaceFilters>): string {
-  const next = { ...filters, ...patch };
-  const params = new URLSearchParams();
-  // `list` and "no filter" are the defaults, so leaving them out keeps the
-  // canonical URL clean — /races, not /races?view=list&series=all.
-  if (next.view !== "list") params.set("view", next.view);
-  if (next.series) params.set("series", next.series);
-  if (next.registration) params.set("registration", next.registration);
-  const query = params.toString();
-  return query ? `/races?${query}` : "/races";
-}
+const href = (filters: RaceFilters, patch: Partial<RaceFilters>): string =>
+  raceFiltersHref({ ...filters, ...patch });
 
 function Chip({
   active,
   children,
   target,
+  // Named for the attribute rather than something like `testId` so the
+  // attribute itself appears literally at each call site, which is what
+  // `scripts/assert-schema-screen.mjs` greps for. A renamed prop passes
+  // typecheck and fails that check — correctly, since its whole job is to
+  // prove a selector a test uses really exists. Optional because the view,
+  // series and registration chips below carry none.
+  //
+  // (Deliberately not spelling the attribute out in this comment: the
+  // grep reads every file under src/, comments included, so a comment
+  // naming it would keep the check green after the real attribute was
+  // deleted.)
+  "data-testid": testId,
 }: {
   active: boolean;
   children: React.ReactNode;
   target: string;
+  "data-testid"?: string;
 }) {
   return (
     <Link
@@ -53,6 +51,7 @@ function Chip({
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",
       )}
+      data-testid={testId}
       href={target}
     >
       {children}
@@ -111,6 +110,36 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
           })}
         >
           只看報名中
+        </Chip>
+      </div>
+
+      {/* Single-valued, not combinable. A race on both lists is a handful
+          worldwide, and two chips that could be on at once leave "and" vs
+          "or" for the visitor to guess — beside chips that plainly mean
+          "and". One value per URL keeps each one meaning one thing.
+
+          Written out rather than mapped over RACE_QUALIFIERS: there are two
+          of them and the const is not going anywhere, and spelling each one
+          here is what puts its selector where a reader — and the check that
+          verifies selectors — can find it. */}
+      <div className="flex flex-wrap gap-2">
+        <Chip
+          active={filters.qualifier === "wser"}
+          data-testid="race-filter-wser"
+          target={href(filters, {
+            qualifier: filters.qualifier === "wser" ? undefined : "wser",
+          })}
+        >
+          {RACE_QUALIFIER_LABELS_ZH.wser}
+        </Chip>
+        <Chip
+          active={filters.qualifier === "hardrock"}
+          data-testid="race-filter-hardrock"
+          target={href(filters, {
+            qualifier: filters.qualifier === "hardrock" ? undefined : "hardrock",
+          })}
+        >
+          {RACE_QUALIFIER_LABELS_ZH.hardrock}
         </Chip>
       </div>
     </div>

@@ -152,6 +152,30 @@ for (const category of categories) {
     warn(`categories: ${event}/${key} is verified but names no source`);
   }
 
+  // Qualifier flags carry their own clock, one per list. The pairing is
+  // what makes "read the list, this does not qualify" (no + a date)
+  // distinguishable from "nobody has ever looked" (no + no date) — and a
+  // flag set with no date is a claim with no provenance at all.
+  for (const [flag, date, name] of [
+    ["qualifies_wser", "wser_verified_at", "Western States"],
+    ["qualifies_hardrock", "hardrock_verified_at", "Hardrock"],
+  ] as const) {
+    const value = category[flag] ?? "";
+    if (value !== "yes" && value !== "no" && value !== "") {
+      fail(`categories: ${event}/${key} ${flag} "${value}" must be yes, no or empty`);
+    }
+    const checked = category[date] ?? "";
+    if (checked && !/^\d{4}-\d{2}-\d{2}$/.test(checked)) {
+      fail(`categories: ${event}/${key} ${date} "${checked}" is not YYYY-MM-DD`);
+    }
+    if (value === "yes" && !checked) {
+      fail(
+        `categories: ${event}/${key} claims to be a ${name} qualifier but names ` +
+          `no date the list was read on`,
+      );
+    }
+  }
+
   const list = byEvent.get(event) ?? [];
   list.push(category);
   byEvent.set(event, list);
@@ -221,6 +245,19 @@ if (unverified.length > 0) {
     `${unverified.length} categories across ${unverifiedEvents.size} events are unverified.`,
   );
 }
+
+// Say the qualifier coverage out loud. A silent zero here would read the
+// same as "checked, nothing qualifies" — which is the one confusion these
+// columns exist to prevent.
+const wser = categories.filter((c) => c.qualifies_wser === "yes").length;
+const hardrock = categories.filter((c) => c.qualifies_hardrock === "yes").length;
+const unchecked = categories.filter(
+  (c) => !c.wser_verified_at && !c.hardrock_verified_at,
+).length;
+console.log(
+  `${wser} Western States qualifiers, ${hardrock} Hardrock qualifiers, ` +
+    `${unchecked} categories never checked against either list.`,
+);
 
 for (const message of warnings) console.warn(`warn  ${message}`);
 for (const message of problems) console.error(`FAIL  ${message}`);

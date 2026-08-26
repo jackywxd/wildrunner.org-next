@@ -12,6 +12,7 @@ import * as migration_20260804_213708_add_post_race_record from './20260804_2137
 import * as migration_20260805_153543_add_race_domain_model from './20260805_153543_add_race_domain_model';
 import * as migration_20260806_223655_add_media_race_edition from './20260806_223655_add_media_race_edition';
 import * as migration_20260807_044106_add_race_record_refs from './20260807_044106_add_race_record_refs';
+import * as migration_20260826_072758_add_race_category_qualifiers from './20260826_072758_add_race_category_qualifiers';
 import * as migration_20260826_082505_add_media_transcode_state from './20260826_082505_add_media_transcode_state';
 
 export const migrations = [
@@ -84,6 +85,11 @@ export const migrations = [
     up: migration_20260807_044106_add_race_record_refs.up,
     down: migration_20260807_044106_add_race_record_refs.down,
     name: '20260807_044106_add_race_record_refs',
+  },
+  {
+    up: migration_20260826_072758_add_race_category_qualifiers.up,
+    down: migration_20260826_072758_add_race_category_qualifiers.down,
+    name: '20260826_072758_add_race_category_qualifiers'
   },
   {
     up: migration_20260826_082505_add_media_transcode_state.up,

@@ -4,11 +4,7 @@ import PageHeader from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { RaceCalendar } from "@/components/race-schedule/RaceCalendar";
 import { RaceList } from "@/components/race-schedule/RaceList";
-import {
-  RaceScheduleFilters,
-  type RaceFilters,
-  type RaceView,
-} from "@/components/race-schedule/RaceScheduleFilters";
+import { RaceScheduleFilters } from "@/components/race-schedule/RaceScheduleFilters";
 import { siteConfig } from "@/config/site";
 import { getRaceScheduleBounds, getUpcomingRaces } from "@/lib/content";
 import {
@@ -16,9 +12,10 @@ import {
   parseMonthAnchor,
   shiftAnchor,
 } from "@/lib/races/calendar";
-import { RACE_SERIES } from "@/lib/races/catalogue";
-import type { RaceSeries } from "@/lib/races/catalogue";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import { parseRaceFilters, raceFiltersHref } from "@/lib/races/race-filters";
+import type { RaceFilters } from "@/lib/races/race-filters";
+import { hasQualifier } from "@/lib/races/qualifiers";
 import { isRegistrationOpen } from "@/lib/races/registration";
 
 export const dynamic = "force-dynamic";
@@ -73,42 +70,21 @@ function buildPager(
   };
 }
 
-/** Preserve the current view and filters when paging. */
-function pageHref(filters: RaceFilters, anchor: string | undefined): string {
-  const params = new URLSearchParams();
-  if (filters.view !== "list") params.set("view", filters.view);
-  if (filters.series) params.set("series", filters.series);
-  if (filters.registration) params.set("registration", filters.registration);
-  if (anchor) params.set("from", anchor);
-  const query = params.toString();
-  return query ? `/races?${query}` : "/races";
-}
+/**
+ * Preserve the current view and filters when paging.
+ *
+ * Shares `raceFiltersHref` with the filter chips rather than enumerating
+ * the parameters again. The two used to be separate copies of the same
+ * list, and a filter added to one and missed here drops itself silently the
+ * moment somebody pages — the page still renders, just unfiltered.
+ */
+const pageHref = (filters: RaceFilters, anchor: string | undefined): string =>
+  raceFiltersHref(filters, anchor);
 
 function formatWindow(anchor: string): string {
   const [year, month] = anchor.split("-");
   const end = shiftAnchor(anchor, WINDOW_MONTHS - 1).split("-");
   return `${year} 年 ${Number(month)} 月 – ${end[0]} 年 ${Number(end[1])} 月`;
-}
-
-function parseFilters(
-  params: Record<string, string | string[] | undefined>,
-): RaceFilters {
-  const one = (value: string | string[] | undefined): string | undefined =>
-    Array.isArray(value) ? value[0] : value;
-
-  const view = one(params.view);
-  const series = one(params.series);
-
-  return {
-    registration: one(params.registration) === "open" ? "open" : undefined,
-    // Anything unrecognised falls back to the default rather than erroring:
-    // these come from the query string, so they are attacker-controlled and
-    // also just as often a stale bookmark.
-    series: RACE_SERIES.includes(series as RaceSeries)
-      ? (series as RaceSeries)
-      : undefined,
-    view: (view === "calendar" ? "calendar" : "list") as RaceView,
-  };
 }
 
 export default async function RacesPage({
@@ -117,7 +93,7 @@ export default async function RacesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filters = parseFilters(params);
+  const filters = parseRaceFilters(params);
   const anchor = parseMonthAnchor(
     Array.isArray(params.from) ? params.from[0] : params.from,
   );
@@ -149,6 +125,9 @@ export default async function RacesPage({
     if (filters.registration === "open" && !isRegistrationOpen(entry, now)) {
       return false;
     }
+    if (filters.qualifier && !hasQualifier(entry, filters.qualifier)) {
+      return false;
+    }
     return true;
   });
 
@@ -176,7 +155,7 @@ export default async function RacesPage({
                 while they are looking at an active filter is just wrong. */}
             {all.length === 0
               ? "還沒有公布的賽事日程。"
-              : "這個條件下沒有賽事，試試其他系列或看全部。"}
+              : "這個條件下沒有賽事，試試其他條件或看全部。"}
           </p>
         ) : filters.view === "calendar" ? (
           <RaceCalendar anchor={anchor} entries={entries} now={now} />
@@ -230,9 +209,20 @@ export default async function RacesPage({
       {/* Not boilerplate. Race dates and — far more often — registration
           windows move, and this schedule is hand-maintained from published
           calendars with no official API behind it. Every row links out; this
-          says plainly which source wins. */}
+          says plainly which source wins.
+
+          The qualifier sentence is here for a sharper reason than the dates
+          one. WSER and Hardrock republish their lists every year and each
+          lottery has its own qualifying window, neither of which a flag on
+          a category can express — so the site can say "this is a qualifier"
+          about a race that has since dropped off the list. Stating which
+          document wins is the difference between a useful filter and a
+          claim that sends somebody to a race that will not count. */}
       <p className="mt-12 border-t-2 border-border pt-4 text-xs text-muted-foreground">
         賽事日期與報名資訊以主辦單位官方公告為準。發現有誤請告訴我們。
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。
       </p>
     </div>
   );
