@@ -33,6 +33,7 @@ import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
 import { isFinished } from "@/lib/races/race-state";
 import { videoIdFromFilename } from "@/lib/videoId";
+import { cache } from "react";
 
 /**
  * Fetch only the fields the public pages render.
@@ -992,23 +993,43 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
  * own explicit "show this" — the same bar `galleries.images[]` membership
  * already sets, just via a different, member-reachable path.
  */
-export async function getRaceTaggedPhotos(): Promise<SitePhoto[]> {
+/**
+ * Every race-tagged upload, photos and videos together, once per request.
+ *
+ * `React.cache`'d because /gallery asks three different questions of the same
+ * rows — the albums shelf, the photo view, the video view — and used to run
+ * this scan three times concurrently for them. Payload's drizzle reads are two
+ * statements each (ids, then `... where id IN (<every id>)`), so that was six
+ * statements against the same unbounded set, at the exact moment the page is
+ * doing everything else it does.
+ *
+ * It cannot be bounded by a `limit`: the page renders all of it. It can be
+ * read once, which is what this is. The `IN` list still grows with the
+ * corpus — ~390 ids in CI — and that is the shape to watch if the collection
+ * keeps growing; a paged read would change what the page shows, so it is a
+ * decision rather than a tidy-up.
+ */
+const getRaceTaggedMedia = cache(async () => {
   const payload = await getPayloadClient();
+  // depth 0 keeps `owner` a bare id so it never reaches Payload's populate
+  // step — the rule every other query in this file follows, and the reason
+  // this file carries a header about PII at all.
   const result = await payload.find({
     collection: "media",
     depth: 0,
     limit: 0,
     pagination: false,
     sort: "-createdAt",
-    where: {
-      and: [
-        { raceEdition: { exists: true } },
-        { mimeType: { like: "image" } },
-      ],
-    },
+    where: { raceEdition: { exists: true } },
   });
+  return result.docs;
+});
+
+export async function getRaceTaggedPhotos(): Promise<SitePhoto[]> {
+  const docs = await getRaceTaggedMedia();
   const photos: SitePhoto[] = [];
-  for (const doc of result.docs) {
+  for (const doc of docs) {
+    if (!doc.mimeType?.startsWith("image/")) continue;
     const photo = mapMediaToPhoto(doc, false);
     if (photo) photos.push(photo);
   }
@@ -1050,22 +1071,10 @@ export async function getRaceEditionVideos(editionId: number): Promise<SiteVideo
 
 /** Every video a member has tagged with a race — the video counterpart to getRaceTaggedPhotos. */
 export async function getRaceTaggedVideos(): Promise<SiteVideo[]> {
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "media",
-    depth: 0,
-    limit: 0,
-    pagination: false,
-    sort: "-createdAt",
-    where: {
-      and: [
-        { raceEdition: { exists: true } },
-        { mimeType: { like: "video" } },
-      ],
-    },
-  });
+  const docs = await getRaceTaggedMedia();
   const videos: SiteVideo[] = [];
-  for (const doc of result.docs) {
+  for (const doc of docs) {
+    if (!doc.mimeType?.startsWith("video/")) continue;
     const video = mapGalleryVideo(doc);
     if (video) videos.push(video);
   }
@@ -1121,26 +1130,15 @@ export function getGalleryVideo(
  * media, then group in memory.
  */
 export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
-  const payload = await getPayloadClient();
   const editions = await getRaceEditionOptions(now);
   if (editions.length === 0) return [];
 
   const byId = new Map(editions.map((edition) => [edition.id, edition]));
 
-  // depth 0 keeps `owner` a bare id so it never reaches Payload's populate
-  // step — the rule every other query in this file follows, and the reason
-  // this file carries a header about PII at all.
-  const result = await payload.find({
-    collection: "media",
-    depth: 0,
-    limit: 0,
-    pagination: false,
-    sort: "-createdAt",
-    where: { raceEdition: { exists: true } },
-  });
+  const docs = await getRaceTaggedMedia();
 
   const grouped = new Map<number, { photos: SitePhoto[]; videos: SiteVideo[] }>();
-  for (const doc of result.docs) {
+  for (const doc of docs) {
     const editionId =
       typeof doc.raceEdition === "number"
         ? doc.raceEdition

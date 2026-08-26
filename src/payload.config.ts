@@ -109,20 +109,35 @@ const cloudflareLogger = {
 //
 // `experimental.cpus` does not help: it bounds the *build*'s worker pool
 // and leaves the dev pool untouched (measured — 12 children either way).
-const cloudflare =
-  isCLI
-    ? await getCloudflareContextFromWrangler()
-    : await getCloudflareContext({ async: true }).catch(async (error) => {
-        // Loud on purpose: a deploy build landing here would prerender
-        // against an empty local D1 and ship a contentless site.
-        console.warn(
-          `[payload.config] remote Cloudflare bindings unavailable, falling back to local ` +
-            `emulated bindings. Expected in CI; during a deploy build this means the ` +
-            `prerendered pages will be missing content — check \`wrangler whoami\`. ` +
-            `Cause: ${(error as Error).message?.split('\n')[0]}`,
-        )
-        return getCloudflareContextFromWrangler({ remoteBindings: false })
-      })
+//
+// That reuse, though, only ever held in the process
+// `initOpenNextCloudflareForDev` happens to run in. `next dev` also forks a
+// *fresh child process per dynamic route* to ask it for
+// `generateStaticParams` — see
+// next/dist/server/dev/next-dev-server.js, `getStaticPathsWorker`, whose own
+// comment reads "we don't re-use workers so destroy the used one" — and that
+// child evaluates this module with an empty global scope. getCloudflareContext
+// then falls back to wrangler *itself*, passing no options, so it asks for the
+// remote bindings wrangler.jsonc declares; with no Cloudflare credentials that
+// handshake spends seconds and fails, and we used to answer by building a
+// second miniflare over the same local SQLite file the dev server is serving
+// from. Two workerd processes per fork, for a query the fork does not make.
+//
+// Which is what `SQLITE_BUSY: database is locked` was. Measured on CI run
+// 32990903548 shard 1: 40 of these in one dev server's lifetime, then
+// workerd's own `database is locked` one second before /gallery 500'd and
+// took V-RACEALBUM-T1 with it. Reproduced locally by pointing wrangler at an
+// account that does not exist: `lsof` on .wrangler/state/v3/d1 shows the extra
+// workerd, and its parent is jest-worker's `processChild.js`.
+//
+// So outside a production build, go straight to the local emulated bindings
+// the dev server wants anyway. The remote handshake is kept for exactly the
+// case it exists for — `build:staging` / `build:prod`, which prerender against
+// real content — and so is the warning below, which used to fire 40 times a
+// CI run for a condition that was neither news nor a problem there.
+const cloudflareContextSymbol = Symbol.for('__cloudflare-context__')
+
+const cloudflare = isCLI ? await getCloudflareContextFromWrangler() : await getRuntimeContext()
 
 export default buildConfig({
   admin: {
@@ -247,6 +262,32 @@ export default buildConfig({
     }),
   ],
 })
+
+// The slot the deployed Worker's entrypoint and `initOpenNextCloudflareForDev`
+// both write, and the first thing getCloudflareContext reads — see
+// @opennextjs/cloudflare's cloudflare-context.js. Reading it here is how this
+// tells "there is a context to reuse" apart from "asking for one will open a
+// remote proxy session", which is the whole distinction the comment above is
+// about. A hoisted declaration, because the top-level await that calls it runs
+// before any `const` below it is initialized.
+function getRuntimeContext(): Promise<CloudflareContext> {
+  const parked = (globalThis as { [cloudflareContextSymbol]?: CloudflareContext })[
+    cloudflareContextSymbol
+  ]
+  if (parked) return Promise.resolve(parked)
+  if (!isProduction) return getCloudflareContextFromWrangler({ remoteBindings: false })
+  return getCloudflareContext({ async: true }).catch((error) => {
+    // Loud on purpose: a deploy build landing here would prerender against an
+    // empty local D1 and ship a contentless site.
+    console.warn(
+      `[payload.config] remote Cloudflare bindings unavailable, falling back to local ` +
+        `emulated bindings. During a deploy build this means the prerendered pages ` +
+        `will be missing content — check \`wrangler whoami\`. ` +
+        `Cause: ${(error as Error).message?.split('\n')[0]}`,
+    )
+    return getCloudflareContextFromWrangler({ remoteBindings: false })
+  })
+}
 
 // Adapted from https://github.com/opennextjs/opennextjs-cloudflare/blob/d00b3a13e42e65aad76fba41774815726422cc39/packages/cloudflare/src/api/cloudflare-context.ts#L328C36-L328C46
 function getCloudflareContextFromWrangler(
