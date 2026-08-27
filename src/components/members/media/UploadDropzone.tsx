@@ -2,6 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { requestTranscode } from "@/lib/members/transcode-video";
+import { findDuplicateUpload } from "@/lib/members/duplicate-upload";
 import {
   DIRECT_UPLOAD_THRESHOLD,
   completeSession,
@@ -16,7 +17,7 @@ import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
 import { Button } from "@/components/ui/button";
 import type { SiteRaceEditionOption } from "@/lib/content-types";
 
-type ItemStatus = "queued" | "uploading" | "saving" | "done" | "error";
+type ItemStatus = "queued" | "checking" | "uploading" | "saving" | "done" | "duplicate" | "error";
 
 type QueueItem = {
   file: File;
@@ -88,6 +89,23 @@ export function UploadDropzone({
   }
 
   async function uploadOne(index: number, chosen: File) {
+    patchItem(index, { status: "checking", percent: 0, message: "" });
+
+    // Before any bytes move. A member who picked the same 400 MB clip twice
+    // should learn that now, not after waiting for the second copy to
+    // upload. A file the check cannot fingerprint (no crypto.subtle) or
+    // cannot look up (offline) comes back as "no duplicate" and uploads
+    // normally — losing the check is a far smaller failure than refusing to
+    // add media at all.
+    const duplicate = await findDuplicateUpload(chosen);
+    if (duplicate.existing) {
+      patchItem(index, {
+        status: "duplicate",
+        message: `已經上傳過了：${duplicate.existing.alt}`,
+      });
+      return;
+    }
+
     patchItem(index, { status: "uploading", percent: 0, message: "" });
 
     try {
@@ -116,6 +134,7 @@ export function UploadDropzone({
           filename: session.filename,
           mimeType: session.mimeType,
           alt: defaultAltFor(chosen.name),
+          ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
           ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
         });
         mediaId = created.id;
@@ -126,6 +145,7 @@ export function UploadDropzone({
           "_payload",
           JSON.stringify({
             alt: defaultAltFor(chosen.name),
+            ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
             ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
           }),
         );
@@ -257,7 +277,19 @@ export function UploadDropzone({
                 <span className="min-w-0 flex-1 truncate text-foreground/80">
                   {item.file.name} · {formatBytes(item.file.size)}
                 </span>
-                {item.status === "uploading" || item.status === "saving" ? (
+                {item.status === "checking" ? (
+                  <span className="shrink-0 text-foreground/40">檢查中…</span>
+                ) : item.status === "duplicate" ? (
+                  // Amber rather than destructive: nothing went wrong, and
+                  // the member's file is safe — it is already in the
+                  // library. Naming the existing item is the useful part.
+                  <span
+                    className="shrink-0 text-amber-500"
+                    data-testid="media-upload-duplicate"
+                  >
+                    {item.message}
+                  </span>
+                ) : item.status === "uploading" || item.status === "saving" ? (
                   <span
                     className="shrink-0 text-foreground/60"
                     data-percent={item.percent}

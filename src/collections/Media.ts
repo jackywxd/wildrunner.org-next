@@ -153,6 +153,32 @@ export const Media: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    /**
+     * Identifies a file the member has already uploaded, so the library can
+     * refuse a second copy of the same thing.
+     *
+     * Set by the client at upload time and never recomputed server-side:
+     * the value is derived from bytes the browser already has in hand, and
+     * recomputing it here would mean pulling the whole object back out of R2
+     * for every upload. It is `readOnly` for the same reason every other
+     * derived field here is — nothing but the upload path should write it.
+     *
+     * Indexed because it is only ever queried by equality, once per upload,
+     * and a member with several hundred photos would otherwise scan them
+     * all. See src/lib/media/fingerprint.ts for what the value actually is
+     * and why it is not a whole-file hash.
+     */
+    {
+      name: 'contentFingerprint',
+      type: 'text',
+      index: true,
+      label: { en: 'Content fingerprint', 'zh-TW': '檔案指紋' },
+      admin: {
+        readOnly: true,
+        description: 'Size and edge digest, used to spot a repeat upload.',
+        position: 'sidebar',
+      },
+    },
     {
       name: 'blurDataURL',
       type: 'textarea',

@@ -14,6 +14,7 @@ import * as migration_20260806_223655_add_media_race_edition from './20260806_22
 import * as migration_20260807_044106_add_race_record_refs from './20260807_044106_add_race_record_refs';
 import * as migration_20260826_072758_add_race_category_qualifiers from './20260826_072758_add_race_category_qualifiers';
 import * as migration_20260826_082505_add_media_transcode_state from './20260826_082505_add_media_transcode_state';
+import * as migration_20260827_054539_add_media_content_fingerprint from './20260827_054539_add_media_content_fingerprint';
 
 export const migrations = [
   {
@@ -89,11 +90,16 @@ export const migrations = [
   {
     up: migration_20260826_072758_add_race_category_qualifiers.up,
     down: migration_20260826_072758_add_race_category_qualifiers.down,
-    name: '20260826_072758_add_race_category_qualifiers'
+    name: '20260826_072758_add_race_category_qualifiers',
   },
   {
     up: migration_20260826_082505_add_media_transcode_state.up,
     down: migration_20260826_082505_add_media_transcode_state.down,
-    name: '20260826_082505_add_media_transcode_state'
+    name: '20260826_082505_add_media_transcode_state',
+  },
+  {
+    up: migration_20260827_054539_add_media_content_fingerprint.up,
+    down: migration_20260827_054539_add_media_content_fingerprint.down,
+    name: '20260827_054539_add_media_content_fingerprint'
   },
 ];

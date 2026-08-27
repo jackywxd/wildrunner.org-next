@@ -233,6 +233,10 @@ export interface Media {
    * The pre-transcode file. Kept; never deleted automatically.
    */
   originalUrl?: string | null;
+  /**
+   * Size and edge digest, used to spot a repeat upload.
+   */
+  contentFingerprint?: string | null;
   blurDataURL?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -695,6 +699,7 @@ export interface MediaSelect<T extends boolean = true> {
   transcodeStatus?: T;
   transcodeAttempts?: T;
   originalUrl?: T;
+  contentFingerprint?: T;
   blurDataURL?: T;
   updatedAt?: T;
   createdAt?: T;
