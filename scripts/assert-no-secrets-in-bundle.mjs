@@ -125,9 +125,18 @@ if (hits.length > 0) {
   // The value is matched against .env.local, so a hit means .env.<mode>
   // carries the same real value — which is the thing to change, not the
   // local file the check reads from.
+  //
+  // Spelling out "present and empty" because the obvious reading of "blank
+  // it" is to delete the line, and that is the one fix that puts the
+  // credential back. Next gives .env.local HIGHER precedence than
+  // .env.<mode>, so an absent key is not an empty one — with-env.mjs keeps
+  // empty values for exactly this reason, and says so at its own loop.
   console.error(
     '\nThe real value belongs in `wrangler secret put`; the build env file\n' +
-      '(.env.staging / .env.production) should carry a blank or a placeholder.\n',
+      '(.env.staging / .env.production) should carry a blank or a placeholder.\n' +
+      'The line must be PRESENT AND EMPTY (`KEY=`). Deleting it is not the\n' +
+      "same thing: .env.local outranks .env.<mode>, so a missing line hands\n" +
+      'the real value straight back — silently.\n',
   )
   process.exit(1)
 }
