@@ -1,0 +1,82 @@
+name: Transcode sweep
+
+# Reclaims transcode jobs that stopped without reporting, and re-dispatches
+# ones nobody picked up. src/endpoints/transcodeSweep.ts has the mechanics;
+# what matters here is that WITHOUT this job the queue has no way to heal.
+#
+# That is not theoretical. Cloudflare states plainly that it "does not
+# guarantee that any container instance will run for any set period of time",
+# so a container can vanish mid-encode with no chance to report anything —
+# and dispatch at upload time is best-effort by design, because a transcoder
+# that is down must not make a successful upload look failed. Both leave rows
+# that only something outside the request can rescue. Until this workflow
+# existed, a video in either state simply sat there forever, which is exactly
+# how a `sleepAfter` bug presented itself as "the upload silently did
+# nothing".
+#
+# Every 15 minutes, not daily: the lease is 15 minutes (LEASE_TIMEOUT_MS), so
+# a slower cadence means a member waits hours to learn a transcode died. The
+# job is a single authenticated POST against a query over one indexed column
+# — cheap enough that the frequency is about responsiveness, not cost.
+#
+# Not a Cloudflare Cron Trigger, for the same reason race-schedule-maintenance
+# is not: that needs a `scheduled` handler exported from the Worker, and
+# OpenNext generates the entrypoint.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sweep stalled transcodes
+        env:
+          RACE_MAINTENANCE_SECRET: ${{ secrets.RACE_MAINTENANCE_SECRET }}
+        run: |
+          # Skipped rather than failed when unset, following
+          # race-schedule-maintenance.yml. At four runs an hour a hard
+          # failure would be ~96 red runs a day until somebody configured a
+          # secret — noise that teaches people to ignore this workflow, which
+          # is far worse than no signal, since this is the thing that notices
+          # broken transcodes.
+          if [ -z "$RACE_MAINTENANCE_SECRET" ]; then
+            echo "::warning::RACE_MAINTENANCE_SECRET is not set — skipping. Stalled transcodes will NOT be recovered until it is configured."
+            {
+              echo '## Transcode sweep — skipped'
+              echo
+              echo '`RACE_MAINTENANCE_SECRET` is not configured. Unlike the'
+              echo 'race schedule, this one does not degrade gracefully: a'
+              echo 'transcode whose container died has no other way back.'
+              echo
+              echo 'To enable: `wrangler secret put RACE_MAINTENANCE_SECRET`,'
+              echo 'then add the same value to this repo'"'"'s Actions secrets.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -X POST 'https://wildrunner.org/api/members/media/transcode-sweep' \
+            -H "X-Maintenance-Secret: $RACE_MAINTENANCE_SECRET")
+
+          echo "HTTP $code"
+          cat "$body"
+
+          if [ "$code" != "200" ]; then
+            echo "::error::transcode sweep returned $code"
+            exit 1
+          fi
+
+          # Only summarise a run that did something. At 96 runs a day, a
+          # summary on every quiet one buries the interesting ones.
+          if grep -qE '"(reclaimed|failed|redispatched)":\[[^]]' "$body"; then
+            {
+              echo '## Transcode sweep'
+              echo '```json'
+              cat "$body"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

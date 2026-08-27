@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
+import { TranscodeBadge } from "./TranscodeBadge";
 import type { Media } from "@/payload-types";
 
 export function MediaGrid({
@@ -35,6 +36,7 @@ export function MediaGrid({
             className="group text-left border border-border"
           >
             <div className="relative aspect-video bg-secondary">
+              <TranscodeBadge item={item} />
               {isVideo || !src ? (
                 <div className="flex h-full items-center justify-center text-xs text-foreground/40">
                   {isVideo ? "▶ 影片" : "圖片處理中"}

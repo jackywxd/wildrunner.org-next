@@ -90,6 +90,118 @@ export const Media: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    /**
+     * The transcode job's state, and the queue it is queued in.
+     *
+     * There is no Cloudflare Queue behind this: these three columns *are*
+     * the queue. `queued` is the backlog, `running` is a lease, `attempts`
+     * is the retry count and `failed` is the dead letter. That works
+     * because the thing which can fail is a container that Cloudflare
+     * explicitly does not promise to keep alive ("does not guarantee that
+     * any container instance will run for any set period of time") — so the
+     * state has to live somewhere that outlives it, and the row already
+     * does.
+     *
+     * The lease is swept by the scheduled worker: a row left `running` past
+     * the timeout is handed back to `queued` until `attempts` runs out. See
+     * src/lib/media/transcode-state.ts.
+     */
+    {
+      name: 'transcodeStatus',
+      type: 'select',
+      label: { en: 'Transcode', 'zh-TW': '轉檔狀態' },
+      options: [
+        { label: { en: 'Queued', 'zh-TW': '排隊中' }, value: 'queued' },
+        { label: { en: 'Running', 'zh-TW': '轉檔中' }, value: 'running' },
+        { label: { en: 'Done', 'zh-TW': '已完成' }, value: 'done' },
+        { label: { en: 'Failed', 'zh-TW': '失敗' }, value: 'failed' },
+        { label: { en: 'Skipped', 'zh-TW': '不需轉檔' }, value: 'skipped' },
+      ],
+      admin: {
+        readOnly: true,
+        description: 'Set by the transcoder; never edited by hand.',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'transcodeAttempts',
+      type: 'number',
+      label: { en: 'Transcode attempts', 'zh-TW': '轉檔嘗試次數' },
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    /**
+     * Where the file lived before transcoding, kept forever.
+     *
+     * The transcoder writes its output to a *new* key and repoints `url`;
+     * it never overwrites the source. A container can be `SIGKILL`ed
+     * mid-write, and overwriting would make that a case where neither file
+     * is whole. Deleting the originals once the results have been reviewed
+     * is a separate, human decision — AGENTS.md's rule that destructive work
+     * is proposed rather than performed.
+     */
+    {
+      name: 'originalUrl',
+      type: 'text',
+      label: { en: 'Original URL', 'zh-TW': '原始檔網址' },
+      admin: {
+        readOnly: true,
+        description: 'The pre-transcode file. Kept; never deleted automatically.',
+        position: 'sidebar',
+      },
+    },
+    /**
+     * What the kept original still costs, so the quota can charge for it.
+     *
+     * `filesize` is overwritten with the transcoded size on success, which
+     * is right for display — that is the file being served — but it made the
+     * quota *fall* after a transcode while R2 usage rose, since the original
+     * is deliberately never deleted. A member could upload to the ceiling,
+     * wait for transcodes, watch the number drop, and upload to the ceiling
+     * again; nothing bounded real storage at all.
+     *
+     * Recorded at the same moment as `originalUrl` and never overwritten, so
+     * the pair always describes the same file. `usedBytesFor` adds the two.
+     */
+    {
+      name: 'originalFilesize',
+      type: 'number',
+      label: { en: 'Original size', 'zh-TW': '原始檔大小' },
+      admin: {
+        readOnly: true,
+        description: 'Bytes the pre-transcode file still occupies in R2.',
+        position: 'sidebar',
+      },
+    },
+    /**
+     * Identifies a file the member has already uploaded, so the library can
+     * refuse a second copy of the same thing.
+     *
+     * Set by the client at upload time and never recomputed server-side:
+     * the value is derived from bytes the browser already has in hand, and
+     * recomputing it here would mean pulling the whole object back out of R2
+     * for every upload. It is `readOnly` for the same reason every other
+     * derived field here is — nothing but the upload path should write it.
+     *
+     * Indexed because it is only ever queried by equality, once per upload,
+     * and a member with several hundred photos would otherwise scan them
+     * all. See src/lib/media/fingerprint.ts for what the value actually is
+     * and why it is not a whole-file hash.
+     */
+    {
+      name: 'contentFingerprint',
+      type: 'text',
+      index: true,
+      label: { en: 'Content fingerprint', 'zh-TW': '檔案指紋' },
+      admin: {
+        readOnly: true,
+        description: 'Size and edge digest, used to spot a repeat upload.',
+        position: 'sidebar',
+      },
+    },
     {
       name: 'blurDataURL',
       type: 'textarea',

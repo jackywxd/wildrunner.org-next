@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState, type DragEvent } from "react";
+import { requestTranscode } from "@/lib/members/transcode-video";
+import { findDuplicateUpload } from "@/lib/members/duplicate-upload";
 import {
   DIRECT_UPLOAD_THRESHOLD,
   completeSession,
@@ -15,7 +17,7 @@ import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
 import { Button } from "@/components/ui/button";
 import type { SiteRaceEditionOption } from "@/lib/content-types";
 
-type ItemStatus = "queued" | "uploading" | "saving" | "done" | "error";
+type ItemStatus = "queued" | "checking" | "uploading" | "saving" | "done" | "duplicate" | "error";
 
 type QueueItem = {
   file: File;
@@ -87,6 +89,23 @@ export function UploadDropzone({
   }
 
   async function uploadOne(index: number, chosen: File) {
+    patchItem(index, { status: "checking", percent: 0, message: "" });
+
+    // Before any bytes move. A member who picked the same 400 MB clip twice
+    // should learn that now, not after waiting for the second copy to
+    // upload. A file the check cannot fingerprint (no crypto.subtle) or
+    // cannot look up (offline) comes back as "no duplicate" and uploads
+    // normally — losing the check is a far smaller failure than refusing to
+    // add media at all.
+    const duplicate = await findDuplicateUpload(chosen);
+    if (duplicate.existing) {
+      patchItem(index, {
+        status: "duplicate",
+        message: `已經上傳過了：${duplicate.existing.alt}`,
+      });
+      return;
+    }
+
     patchItem(index, { status: "uploading", percent: 0, message: "" });
 
     try {
@@ -115,6 +134,7 @@ export function UploadDropzone({
           filename: session.filename,
           mimeType: session.mimeType,
           alt: defaultAltFor(chosen.name),
+          ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
           ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
         });
         mediaId = created.id;
@@ -125,6 +145,7 @@ export function UploadDropzone({
           "_payload",
           JSON.stringify({
             alt: defaultAltFor(chosen.name),
+            ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
             ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
           }),
         );
@@ -147,6 +168,15 @@ export function UploadDropzone({
         method: "POST",
         credentials: "same-origin",
       }).catch(() => {});
+
+      // Videos additionally get queued for transcoding to H.264 1080p.
+      // Also best-effort, and also deliberately not awaited to completion:
+      // the endpoint returns as soon as the job is queued, because encoding
+      // a 4K clip measures in minutes. The member sees the upload finish;
+      // the media library shows the transcode state separately.
+      if (chosen.type.startsWith("video/")) {
+        await requestTranscode(mediaId);
+      }
 
       patchItem(index, { status: "done", percent: 100 });
     } catch (error) {
@@ -174,6 +204,12 @@ export function UploadDropzone({
     }
     setRunning(false);
     onUploaded();
+
+    // The picker keeps showing the last filename until it is cleared, which
+    // reads as "this is still queued" next to a finished list. Clearing the
+    // input does not touch `items` — those hold their own File references —
+    // so a failed entry can still be retried from the queue.
+    if (inputRef.current) inputRef.current.value = "";
   }
 
   function cancel() {
@@ -191,6 +227,20 @@ export function UploadDropzone({
   const done = items.filter((item) => item.status === "done").length;
 
   return (
+    <>
+      {/* Blocks the rest of the page while bytes are moving. Everything a
+          member could reach behind this — opening a media dialog, deleting
+          something, navigating away — either interrupts the upload or acts
+          on a library that is about to change under it. The dropzone itself
+          sits above the shield, and since its input, race select and start
+          button are all `disabled` while running, 取消 is the only control
+          left live, which is the point. */}
+      {running && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40"
+          data-testid="media-upload-shield"
+        />
+      )}
     <div
       data-testid="media-upload-dropzone"
       onDragOver={(e) => {
@@ -201,7 +251,7 @@ export function UploadDropzone({
       onDrop={onDrop}
       className={`space-y-3 border border-dashed p-4 transition-colors ${
         dragOver ? "border-primary bg-primary/5" : "border-border"
-      }`}
+      } ${running ? "relative z-50 bg-background" : ""}`}
     >
       <input
         ref={inputRef}
@@ -247,13 +297,42 @@ export function UploadDropzone({
                 <span className="min-w-0 flex-1 truncate text-foreground/80">
                   {item.file.name} · {formatBytes(item.file.size)}
                 </span>
-                {item.status === "uploading" || item.status === "saving" ? (
+                {item.status === "checking" ? (
+                  <span className="shrink-0 text-foreground/40">檢查中…</span>
+                ) : item.status === "duplicate" ? (
+                  // Amber rather than destructive: nothing went wrong, and
+                  // the member's file is safe — it is already in the
+                  // library. Naming the existing item is the useful part.
                   <span
-                    className="shrink-0 text-foreground/60"
+                    className="shrink-0 text-amber-500"
+                    data-testid="media-upload-duplicate"
+                  >
+                    {item.message}
+                  </span>
+                ) : item.status === "uploading" || item.status === "saving" ? (
+                  // A bar rather than a number. A 1 GB upload spends minutes
+                  // here, and "37%" in small grey text next to a filename is
+                  // hard to read as movement at all — the length of a bar is
+                  // legible at a glance and from across a room. The percent
+                  // stays as text beside it, because a bar alone cannot tell
+                  // you 99% from 100%, and stays in `data-percent` so tests
+                  // can assert on a number rather than on a width.
+                  <span
+                    className="flex shrink-0 items-center gap-2"
                     data-percent={item.percent}
                     data-testid="media-upload-progress"
                   >
-                    {item.status === "saving" ? "建立文件…" : `${item.percent}%`}
+                    <span className="h-1.5 w-24 overflow-hidden rounded-full bg-foreground/15">
+                      <span
+                        className={`block h-full rounded-full bg-primary transition-[width] duration-300 ${
+                          item.status === "saving" ? "animate-pulse" : ""
+                        }`}
+                        style={{ width: `${item.status === "saving" ? 100 : item.percent}%` }}
+                      />
+                    </span>
+                    <span className="w-16 text-right text-xs tabular-nums text-foreground/60">
+                      {item.status === "saving" ? "建立文件…" : `${item.percent}%`}
+                    </span>
                   </span>
                 ) : item.status === "done" ? (
                   <span className="shrink-0 text-foreground/60" data-testid="media-upload-done">
@@ -289,11 +368,18 @@ export function UploadDropzone({
           {done > 0 && done < items.length ? "繼續上傳" : "上傳"}
         </Button>
         {running && (
-          <Button type="button" variant="outline" className="justify-center" onClick={cancel}>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="media-upload-cancel"
+            className="justify-center"
+            onClick={cancel}
+          >
             取消
           </Button>
         )}
       </div>
     </div>
+    </>
   );
 }
