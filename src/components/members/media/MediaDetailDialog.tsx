@@ -30,9 +30,9 @@ export function MediaDetailDialog({
     typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
   );
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<
+    "idle" | "saving" | "deleting" | "retrying" | "error"
+  >("idle");
   const [error, setError] = useState("");
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
@@ -95,6 +95,32 @@ export function MediaDetailDialog({
       return;
     }
     onDeleted();
+  }
+
+  // Reuses the same endpoint the upload flow calls — `nextStatusForRequest`
+  // already treats a `failed` row as retryable, returning it to `queued`
+  // (transcode-state.ts, U-TRANSCODE-2). What was missing was a way for a
+  // member to ask for it without re-uploading the same file, which this
+  // session's own repeated manual re-uploads made obvious was needed now
+  // rather than later.
+  //
+  // Unlike `requestTranscode()` (used right after upload), this does NOT
+  // swallow a failed request: the member explicitly asked for this action,
+  // so a transcoder that is unreachable has to say so rather than look like
+  // nothing happened.
+  async function retry() {
+    setStatus("retrying");
+    setError("");
+    const res = await fetch(`/api/members/media/${item.id}/transcode`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
+    if (!res.ok) {
+      setError("重新轉檔失敗，請稍後再試");
+      setStatus("error");
+      return;
+    }
+    onUpdated();
   }
 
   return (
@@ -209,6 +235,17 @@ export function MediaDetailDialog({
             )}
           </div>
           <div className="flex gap-2">
+            {isVideo && item.transcodeStatus === "failed" && (
+              <Button
+                data-testid="media-detail-retry-transcode"
+                variant="outline"
+                className="justify-center"
+                disabled={status === "retrying"}
+                onClick={retry}
+              >
+                {status === "retrying" ? "重新排隊中…" : "重新轉檔"}
+              </Button>
+            )}
             <Button variant="outline" className="justify-center" onClick={onClose}>
               關閉
             </Button>
@@ -246,7 +283,7 @@ function transcodeNote(status: string | null | undefined): string {
       // lands, `done` below replaces it rather than contradicting it.
       return "影片正在轉為 1080p H.264，完成後會自動替換，你不需要等待或重新上傳。在那之前，部分手機錄製的影片（HEVC 編碼）在 Chrome/Firefox 可能無法播放。";
     case "failed":
-      return "影片轉檔失敗，原始檔案仍然保留。請重新上傳這支影片。";
+      return "影片轉檔失敗，原始檔案仍然保留。可以按下方「重新轉檔」再試一次，或重新上傳。";
     case "done":
       return "已轉為 1080p H.264，手機與桌面瀏覽器都能播放。";
     default:
