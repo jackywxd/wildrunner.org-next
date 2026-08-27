@@ -194,7 +194,11 @@ export class TranscodeContainer extends Container<Env> {
 
       if (exitCode !== 0) {
         const stderr = await new Response(process.stderr).text()
-        throw new Error(`ffmpeg exited ${exitCode}: ${stderr.slice(0, 500)}`)
+        // "transcode.sh", not "ffmpeg": this is the SCRIPT's exit code, and
+        // under `set -eu` it can come from curl, ffprobe or the upload just
+        // as easily. Reporting every one of them as an ffmpeg failure sent
+        // members looking at their video for a problem that was not there.
+        throw new Error(`transcode.sh exited ${exitCode}: ${stderr.slice(0, 500)}`)
       }
 
       // The script prints exactly one JSON line, last. Anything ffmpeg
@@ -258,7 +262,25 @@ export class TranscodeContainer extends Container<Env> {
       // precisely because attempts are counted on the reclaim path: a video
       // that keeps landing here does eventually stop, rather than looping
       // forever.
+      // Two kinds of "not this video's fault", both of which used to end a
+      // member's upload permanently with a message they could do nothing
+      // about.
+      //
+      //   - the account was at its container limit
+      //   - the container was signalled away mid-run: 137 is 128+9 (SIGKILL)
+      //     and 143 is 128+15 (SIGTERM), which is exactly the sequence
+      //     Cloudflare documents for stopping an instance — a host restart,
+      //     or an image rollout. Deploying this Worker while a transcode was
+      //     running produced `transcode.sh exited 137` twice in one session,
+      //     and each time it reached the member as a failure email about
+      //     their file.
+      //
+      // Both go back to `queued` for the sweep. Safe because the reclaim
+      // path counts attempts, so a video that genuinely cannot be encoded
+      // still stops rather than looping.
       const busy = /Maximum number of running container instances/i.test(reason)
+      const signalled = /exited (137|143)\b/.test(reason)
+      const transient = busy || signalled
 
       // A failed job used to leave its container running. `max_instances`
       // on this Worker is deliberately low — 2 on staging — specifically to
@@ -275,7 +297,7 @@ export class TranscodeContainer extends Container<Env> {
       // and the lease sweep reclaims it. Nothing is lost either way.
       await this.report(job.mediaId, {
         message: reason,
-        status: busy ? 'queued' : 'failed',
+        status: transient ? 'queued' : 'failed',
       }).catch(() => {})
     }
   }
