@@ -32,6 +32,8 @@
     "migrate:velite:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts --dry-run",
     "migrate:velite:remote": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/migrate-velite-to-payload.ts --remote",
     "seed:races:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/seed-race-schedule.ts --dry-run",
+    "report:originals": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/report-transcode-originals.ts",
+    "report:originals:prod": "cross-env TRANSCODE_ORIGINALS_DB=wildrunner-org-next NODE_OPTIONS=--no-deprecation tsx scripts/report-transcode-originals.ts",
     "seed:races": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/seed-race-schedule.ts",
     "seed:races:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/seed-race-schedule.ts --remote",
     "seed:races:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/seed-race-schedule.ts --remote",
@@ -129,6 +131,7 @@
     "zod-i18n-map": "^2.27.0"
   },
   "devDependencies": {
+    "@cloudflare/containers": "0.3.7",
     "@eslint/eslintrc": "^3",
     "@opennextjs/cloudflare": "^1.20.2",
     "@playwright/test": "1.56.1",

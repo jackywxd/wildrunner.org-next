@@ -30,9 +30,9 @@ export function MediaDetailDialog({
     typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
   );
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [status, setStatus] = useState<"idle" | "saving" | "deleting" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<
+    "idle" | "saving" | "deleting" | "retrying" | "error"
+  >("idle");
   const [error, setError] = useState("");
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
@@ -97,6 +97,32 @@ export function MediaDetailDialog({
     onDeleted();
   }
 
+  // Reuses the same endpoint the upload flow calls — `nextStatusForRequest`
+  // already treats a `failed` row as retryable, returning it to `queued`
+  // (transcode-state.ts, U-TRANSCODE-2). What was missing was a way for a
+  // member to ask for it without re-uploading the same file, which this
+  // session's own repeated manual re-uploads made obvious was needed now
+  // rather than later.
+  //
+  // Unlike `requestTranscode()` (used right after upload), this does NOT
+  // swallow a failed request: the member explicitly asked for this action,
+  // so a transcoder that is unreachable has to say so rather than look like
+  // nothing happened.
+  async function retry() {
+    setStatus("retrying");
+    setError("");
+    const res = await fetch(`/api/members/media/${item.id}/transcode`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
+    if (!res.ok) {
+      setError("重新轉檔失敗，請稍後再試");
+      setStatus("error");
+      return;
+    }
+    onUpdated();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -130,9 +156,13 @@ export function MediaDetailDialog({
         </div>
 
         {isVideo && (
-          <p className="text-xs text-foreground/50" data-testid="media-detail-video-note">
-            部分手機錄製的影片（HEVC 編碼）可能無法在 Chrome/Firefox
-            播放，Safari 或 QuickTime 不受影響。
+          <p
+            className={`text-xs ${
+              item.transcodeStatus === "failed" ? "text-destructive" : "text-foreground/50"
+            }`}
+            data-testid="media-detail-transcode"
+          >
+            {transcodeNote(item.transcodeStatus)}
           </p>
         )}
 
@@ -205,6 +235,17 @@ export function MediaDetailDialog({
             )}
           </div>
           <div className="flex gap-2">
+            {isVideo && item.transcodeStatus === "failed" && (
+              <Button
+                data-testid="media-detail-retry-transcode"
+                variant="outline"
+                className="justify-center"
+                disabled={status === "retrying"}
+                onClick={retry}
+              >
+                {status === "retrying" ? "重新排隊中…" : "重新轉檔"}
+              </Button>
+            )}
             <Button variant="outline" className="justify-center" onClick={onClose}>
               關閉
             </Button>
@@ -221,4 +262,31 @@ export function MediaDetailDialog({
       </div>
     </div>
   );
+}
+
+/**
+ * The one sentence a member gets about the conversion.
+ *
+ * Spelled out rather than reusing the grid badge because this is the screen
+ * where the member has time to read: the badge answers "is something
+ * happening", this answers "do I need to do anything". For `queued` and
+ * `running` the answer is no, and saying so is the whole point of not
+ * making anyone wait for a minutes-long encode.
+ */
+function transcodeNote(status: string | null | undefined): string {
+  switch (status) {
+    case "queued":
+    case "running":
+      // The HEVC caveat is carried here rather than in a paragraph of its
+      // own: before the transcode lands, the file is still exactly what the
+      // phone recorded, so the warning is as true as ever — and once it
+      // lands, `done` below replaces it rather than contradicting it.
+      return "影片正在轉為 1080p H.264，完成後會自動替換，你不需要等待或重新上傳。在那之前，部分手機錄製的影片（HEVC 編碼）在 Chrome/Firefox 可能無法播放。";
+    case "failed":
+      return "影片轉檔失敗，原始檔案仍然保留。可以按下方「重新轉檔」再試一次，或重新上傳。";
+    case "done":
+      return "已轉為 1080p H.264，手機與桌面瀏覽器都能播放。";
+    default:
+      return "部分手機錄製的影片（HEVC 編碼）可能無法在 Chrome/Firefox 播放，Safari 或 QuickTime 不受影響。";
+  }
 }

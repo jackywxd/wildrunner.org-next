@@ -204,6 +204,7 @@ export async function createMediaDocument(input: {
   filename: string
   mimeType: string
   alt?: string
+  contentFingerprint?: string
   raceEdition?: number
 }): Promise<{ id: number }> {
   const response = await fetch('/api/media', {
@@ -214,6 +215,7 @@ export async function createMediaDocument(input: {
       filename: input.filename,
       mimeType: input.mimeType,
       ...(input.alt ? { alt: input.alt } : {}),
+      ...(input.contentFingerprint ? { contentFingerprint: input.contentFingerprint } : {}),
       ...(input.raceEdition ? { raceEdition: input.raceEdition } : {}),
     }),
   })

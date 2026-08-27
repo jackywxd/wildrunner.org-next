@@ -42,6 +42,16 @@
 			// see https://opennext.js.org/cloudflare/caching
 			"binding": "WORKER_SELF_REFERENCE",
 			"service": "wildrunner-org-next"
+		},
+		{
+			// The video transcoder lives in its own Worker (workers/transcoder)
+			// because a Cloudflare Container must be a Durable Object, and the
+			// Worker OpenNext generates for this app exports only its own three
+			// DO classes from a fixed template with no hook for adding more.
+			// Absent binding is handled: startTranscode() returns false and the
+			// row stays queued for the sweep, which is what happens in dev.
+			"binding": "TRANSCODER",
+			"service": "wildrunner-transcoder"
 		}
 	],
 	"r2_buckets": [
@@ -143,6 +153,10 @@
 				{
 					"binding": "WORKER_SELF_REFERENCE",
 					"service": "wildrunner-org-next-staging"
+				},
+				{
+					"binding": "TRANSCODER",
+					"service": "wildrunner-transcoder-staging"
 				}
 			],
 			"r2_buckets": [
