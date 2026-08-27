@@ -310,12 +310,29 @@ export function UploadDropzone({
                     {item.message}
                   </span>
                 ) : item.status === "uploading" || item.status === "saving" ? (
+                  // A bar rather than a number. A 1 GB upload spends minutes
+                  // here, and "37%" in small grey text next to a filename is
+                  // hard to read as movement at all — the length of a bar is
+                  // legible at a glance and from across a room. The percent
+                  // stays as text beside it, because a bar alone cannot tell
+                  // you 99% from 100%, and stays in `data-percent` so tests
+                  // can assert on a number rather than on a width.
                   <span
-                    className="shrink-0 text-foreground/60"
+                    className="flex shrink-0 items-center gap-2"
                     data-percent={item.percent}
                     data-testid="media-upload-progress"
                   >
-                    {item.status === "saving" ? "建立文件…" : `${item.percent}%`}
+                    <span className="h-1.5 w-24 overflow-hidden rounded-full bg-foreground/15">
+                      <span
+                        className={`block h-full rounded-full bg-primary transition-[width] duration-300 ${
+                          item.status === "saving" ? "animate-pulse" : ""
+                        }`}
+                        style={{ width: `${item.status === "saving" ? 100 : item.percent}%` }}
+                      />
+                    </span>
+                    <span className="w-16 text-right text-xs tabular-nums text-foreground/60">
+                      {item.status === "saving" ? "建立文件…" : `${item.percent}%`}
+                    </span>
                   </span>
                 ) : item.status === "done" ? (
                   <span className="shrink-0 text-foreground/60" data-testid="media-upload-done">

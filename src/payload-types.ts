@@ -234,6 +234,10 @@ export interface Media {
    */
   originalUrl?: string | null;
   /**
+   * Bytes the pre-transcode file still occupies in R2.
+   */
+  originalFilesize?: number | null;
+  /**
    * Size and edge digest, used to spot a repeat upload.
    */
   contentFingerprint?: string | null;
@@ -699,6 +703,7 @@ export interface MediaSelect<T extends boolean = true> {
   transcodeStatus?: T;
   transcodeAttempts?: T;
   originalUrl?: T;
+  originalFilesize?: T;
   contentFingerprint?: T;
   blurDataURL?: T;
   updatedAt?: T;

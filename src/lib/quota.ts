@@ -14,7 +14,7 @@ export function quotaBytesFor(user: { storageQuotaMb?: number | null }): number 
 }
 
 /**
- * Sum of `media.filesize` owned by a user.
+ * Sum of what a user's media actually occupies in R2.
  *
  * Deliberately not a running counter: a counter drifts (a failed delete, a
  * migration, a hand-edited row) and the drift is silent — nobody notices
@@ -35,7 +35,7 @@ export async function usedBytesFor(
   const result = await payload.find({
     collection: 'media',
     where: { owner: { equals: userId } },
-    select: { filesize: true },
+    select: { filesize: true, originalFilesize: true },
     limit: 0,
     pagination: false,
     depth: 0,
@@ -43,8 +43,29 @@ export async function usedBytesFor(
     req,
   })
 
-  return result.docs.reduce(
-    (total, doc) => total + (typeof doc.filesize === 'number' ? doc.filesize : 0),
-    0,
-  )
+  return sumStoredBytes(result.docs)
+}
+
+/**
+ * What a set of media rows occupies in R2.
+ *
+ * Both sizes, because a transcoded video is two objects in the bucket.
+ * `filesize` holds the transcoded file once a video converts, and the
+ * original is kept forever by design (see `originalUrl` on Media). Summing
+ * only `filesize` meant the quota FELL after a transcode while real usage
+ * rose — a member could reach the ceiling, wait for their videos to convert,
+ * and upload to it again, with nothing bounding what R2 actually held.
+ *
+ * Separated from the query so the arithmetic can be tested without a
+ * database. It is the half that fails silently: a wrong total still looks
+ * like a perfectly ordinary number on the storage bar.
+ */
+export function sumStoredBytes(
+  docs: { filesize?: number | null; originalFilesize?: number | null }[],
+): number {
+  return docs.reduce((total, doc) => {
+    const served = typeof doc.filesize === 'number' ? doc.filesize : 0
+    const kept = typeof doc.originalFilesize === 'number' ? doc.originalFilesize : 0
+    return total + served + kept
+  }, 0)
 }

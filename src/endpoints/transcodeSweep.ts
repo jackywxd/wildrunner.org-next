@@ -109,7 +109,15 @@ export const transcodeSweepEndpoint: Endpoint = {
           // the container died without reporting, so nothing has told the
           // member anything at all. Same notice as the reported failure —
           // from where they sit the outcome is identical.
-          await notifyTranscodeFailed({ media: doc, payload: req.payload, req })
+          await notifyTranscodeFailed({
+            media: doc,
+            // The container never reported, so there is no message from it
+            // — this is the sweep's own account of what happened, which is
+            // more useful to a member than an empty reason block.
+            message: `轉檔逾時，已重試 ${MAX_TRANSCODE_ATTEMPTS} 次仍未完成。`,
+            payload: req.payload,
+            req,
+          })
           failed.push(doc.id)
           continue
         }

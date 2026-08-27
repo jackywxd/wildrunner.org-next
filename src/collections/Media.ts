@@ -154,6 +154,29 @@ export const Media: CollectionConfig = {
       },
     },
     /**
+     * What the kept original still costs, so the quota can charge for it.
+     *
+     * `filesize` is overwritten with the transcoded size on success, which
+     * is right for display — that is the file being served — but it made the
+     * quota *fall* after a transcode while R2 usage rose, since the original
+     * is deliberately never deleted. A member could upload to the ceiling,
+     * wait for transcodes, watch the number drop, and upload to the ceiling
+     * again; nothing bounded real storage at all.
+     *
+     * Recorded at the same moment as `originalUrl` and never overwritten, so
+     * the pair always describes the same file. `usedBytesFor` adds the two.
+     */
+    {
+      name: 'originalFilesize',
+      type: 'number',
+      label: { en: 'Original size', 'zh-TW': '原始檔大小' },
+      admin: {
+        readOnly: true,
+        description: 'Bytes the pre-transcode file still occupies in R2.',
+        position: 'sidebar',
+      },
+    },
+    /**
      * Identifies a file the member has already uploaded, so the library can
      * refuse a second copy of the same thing.
      *

@@ -79,7 +79,12 @@ export const transcodeResultEndpoint: Endpoint = {
             `transcode failed for media ${id}: ${body.message}`,
           )
         }
-        await notifyTranscodeFailed({ media: updated, payload: req.payload, req })
+        await notifyTranscodeFailed({
+          media: updated,
+          message: body?.message,
+          payload: req.payload,
+          req,
+        })
       }
 
       return Response.json({ ok: true, status })
@@ -115,6 +120,11 @@ export const transcodeResultEndpoint: Endpoint = {
         // Recorded once and never overwritten: a second successful run must
         // not replace the true original with the previous transcode.
         originalUrl: existing.originalUrl ?? existing.url,
+        // Captured with the URL, so the pair always describes the same
+        // file. Without it the quota stops charging for an original that is
+        // still sitting in the bucket — `filesize` below is about to become
+        // the transcoded size. See src/lib/quota.ts.
+        originalFilesize: existing.originalFilesize ?? existing.filesize,
         transcodeStatus: 'done',
         url: publicMediaUrl(body.key),
         ...(typeof body.bytes === 'number' ? { filesize: body.bytes } : {}),

@@ -29,6 +29,9 @@ import { mediaDisplayName } from '@/lib/media-name'
  * environment this has to be a quiet no-op, not an error.
  */
 export async function notifyTranscodeFailed(args: {
+  /** What the container reported, verbatim. Shown to the member — see
+   *  `transcodeFailedEmailHTML` on why the raw text earns its place. */
+  message?: string | null
   media: {
     alt?: string | null
     filename?: string | null
@@ -39,7 +42,7 @@ export async function notifyTranscodeFailed(args: {
   payload: Payload
   req?: PayloadRequest
 }): Promise<boolean> {
-  const { media, payload, req } = args
+  const { media, message, payload, req } = args
 
   try {
     if (!isEmailConfigured()) return false
@@ -74,7 +77,7 @@ export async function notifyTranscodeFailed(args: {
     await payload.sendEmail({
       to: owner.email,
       subject: `影片轉檔失敗：${name || `媒體 ${media.id}`}`,
-      html: transcodeFailedEmailHTML(name || `媒體 ${media.id}`, link),
+      html: transcodeFailedEmailHTML(name || `媒體 ${media.id}`, link, message),
     })
 
     return true
@@ -96,12 +99,39 @@ function escapeHTML(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
-export function transcodeFailedEmailHTML(name: string, link: string): string {
+/**
+ * The reason is included verbatim, and deliberately.
+ *
+ * "轉檔失敗" on its own tells a member nothing they can act on, and the
+ * reasons differ enormously in what they imply: a corrupt file is theirs to
+ * fix by re-exporting, while "Maximum number of running container instances
+ * exceeded" means try again later and says nothing about their video at all.
+ * Hiding that difference turns every failure into the same shrug.
+ *
+ * It is fenced off in its own block rather than woven into a sentence, so it
+ * reads as machine output — which is what it is, and what makes it worth
+ * quoting back if they ask for help. Truncated because ffmpeg's stderr can
+ * run long, and escaped because it is not ours to trust as markup.
+ */
+export function transcodeFailedEmailHTML(
+  name: string,
+  link: string,
+  message?: string | null,
+): string {
   const safeName = escapeHTML(name)
+  const reason = (message ?? '').trim()
+  const detail = reason
+    ? `<p>失敗原因：</p>
+    <pre style="background:#f4f4f5;padding:12px;border-radius:4px;white-space:pre-wrap;word-break:break-word;font-size:13px">${escapeHTML(
+      reason.slice(0, 500),
+    )}</pre>`
+    : ''
+
   return `
     <p>你上傳的影片「${safeName}」轉檔失敗了。</p>
     <p>原始檔案還在，沒有被刪除，但它不會自動轉成 1080p H.264，在部分手機和瀏覽器上可能無法播放。</p>
-    <p>最直接的處理方式是重新上傳一次；如果同一個檔案再次失敗，換一個匯出格式（H.264 的 MP4）通常就可以。</p>
+    ${detail}
+    <p>可以到媒體庫按「重新轉檔」再試一次；如果同一個檔案一再失敗，換一個匯出格式（H.264 的 MP4）通常就可以。</p>
     <p><a href="${escapeHTML(link)}">${escapeHTML(link)}</a></p>
   `
 }

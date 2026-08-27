@@ -50,16 +50,17 @@
 					"class_name": "TranscodeContainer",
 					"image": "./container/Dockerfile",
 					"instance_type": "standard-4",
-					// Back to 2 after a temporary bump to 4. Two containers
-					// from before the destroy-on-failure fix stayed `running`
-					// and held their slots until a fourth job could not
-					// start; raising the cap was how a real transcode got
-					// verified without deleting the application outright.
-					// All three instances read `inactive` once that fix
-					// deployed, so the cap returns to the deliberately low
-					// value — its job is capping what a runaway retry can
-					// spend, not accommodating a leak that is now fixed.
-					"max_instances": 2
+					// 3, matching production above rather than sitting one
+					// below it. The 2 was picked casually when this file was
+					// written, and a staging environment that cannot run as
+					// many containers as production is not a rehearsal of
+					// production — this session hit "Maximum number of
+					// running container instances exceeded" on staging for a
+					// case production would have absorbed. Cost is not the
+					// argument it looks like: containers now stop as soon as
+					// their job ends, so the cap bounds concurrency, not
+					// spend.
+					"max_instances": 3
 				}
 			],
 			"durable_objects": {
