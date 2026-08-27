@@ -204,6 +204,12 @@ export function UploadDropzone({
     }
     setRunning(false);
     onUploaded();
+
+    // The picker keeps showing the last filename until it is cleared, which
+    // reads as "this is still queued" next to a finished list. Clearing the
+    // input does not touch `items` — those hold their own File references —
+    // so a failed entry can still be retried from the queue.
+    if (inputRef.current) inputRef.current.value = "";
   }
 
   function cancel() {
@@ -221,6 +227,20 @@ export function UploadDropzone({
   const done = items.filter((item) => item.status === "done").length;
 
   return (
+    <>
+      {/* Blocks the rest of the page while bytes are moving. Everything a
+          member could reach behind this — opening a media dialog, deleting
+          something, navigating away — either interrupts the upload or acts
+          on a library that is about to change under it. The dropzone itself
+          sits above the shield, and since its input, race select and start
+          button are all `disabled` while running, 取消 is the only control
+          left live, which is the point. */}
+      {running && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40"
+          data-testid="media-upload-shield"
+        />
+      )}
     <div
       data-testid="media-upload-dropzone"
       onDragOver={(e) => {
@@ -231,7 +251,7 @@ export function UploadDropzone({
       onDrop={onDrop}
       className={`space-y-3 border border-dashed p-4 transition-colors ${
         dragOver ? "border-primary bg-primary/5" : "border-border"
-      }`}
+      } ${running ? "relative z-50 bg-background" : ""}`}
     >
       <input
         ref={inputRef}
@@ -331,11 +351,18 @@ export function UploadDropzone({
           {done > 0 && done < items.length ? "繼續上傳" : "上傳"}
         </Button>
         {running && (
-          <Button type="button" variant="outline" className="justify-center" onClick={cancel}>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="media-upload-cancel"
+            className="justify-center"
+            onClick={cancel}
+          >
             取消
           </Button>
         )}
       </div>
     </div>
+    </>
   );
 }
