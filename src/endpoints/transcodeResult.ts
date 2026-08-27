@@ -1,8 +1,10 @@
-import type { Endpoint } from 'payload'
+import type { Endpoint, PayloadRequest } from 'payload'
 import { APIError } from 'payload'
 
+import type { Media } from '@/payload-types'
 import { publicMediaUrl } from '@/lib/media-url'
 import { transcodedKey } from '@/lib/media/transcode-state'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 
 /**
@@ -51,8 +53,21 @@ export const transcodeResultEndpoint: Endpoint = {
       | undefined
 
     const status = body?.status
-    if (status !== 'running' && status !== 'done' && status !== 'failed') {
-      throw new APIError('status must be running, done or failed', 400)
+    // `queued` is a real report, not a leftover: the transcoder sends it when
+    // a job could not start for a reason that has nothing to do with the
+    // video — the account was at its container limit — so the row goes back
+    // to the queue for the sweep rather than dying as `failed`.
+    // `skipped` arrives when the container probed the source and found it
+    // already h264/<=1080p/yuv420p, so nothing was encoded and no second
+    // object exists. The row keeps serving the file it always had.
+    if (
+      status !== 'running' &&
+      status !== 'queued' &&
+      status !== 'skipped' &&
+      status !== 'done' &&
+      status !== 'failed'
+    ) {
+      throw new APIError('status must be running, queued, skipped, done or failed', 400)
     }
 
     // `running` is the lease being taken out, and it carries no results.
@@ -73,6 +88,9 @@ export const transcodeResultEndpoint: Endpoint = {
       // server's bad day must not make this endpoint answer 500, which the
       // container would read as "the report did not land", leaving the row
       // `running` for the sweep to reclaim and re-run.
+      // Deliberately not for `queued`. That state means "try again shortly",
+      // the sweep will, and a member who hears about every busy moment
+      // learns to ignore the notice that matters.
       if (status === 'failed') {
         if (body?.message) {
           req.payload.logger.error(
@@ -104,13 +122,33 @@ export const transcodeResultEndpoint: Endpoint = {
       throw new APIError(`key must be ${expectedKey}`, 400)
     }
 
-    const existing = await req.payload.findByID({
-      collection: 'media',
-      id,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
+    // The row may be gone. A member can delete a video while it is
+    // transcoding — nothing stops them, and nothing should: this session
+    // watched transcodes wedge, and a video you cannot delete because it is
+    // stuck is worse than one that wastes a container run.
+    //
+    // But the container has already written its output by the time it
+    // reports, so without this the transcoded object stays in R2 with
+    // nothing pointing at it and no process that would ever notice. Deleting
+    // it here is the only moment anything knows both that the object exists
+    // and that its row does not.
+    let existing: Media | null = null
+    try {
+      existing = (await req.payload.findByID({
+        collection: 'media',
+        id,
+        depth: 0,
+        overrideAccess: true,
+        req,
+      })) as Media
+    } catch {
+      existing = null
+    }
+
+    if (!existing) {
+      await deleteOrphanedTranscode(body.key, req)
+      return Response.json({ ok: true, orphanDeleted: true, status: 'gone' })
+    }
 
     await req.payload.update({
       collection: 'media',
@@ -137,4 +175,29 @@ export const transcodeResultEndpoint: Endpoint = {
 
     return Response.json({ ok: true, status: 'done' })
   },
+}
+
+/**
+ * Remove a transcode whose media row disappeared while it was being made.
+ *
+ * Never throws. The callback's job is to report an outcome, and failing it
+ * over a cleanup would leave the row `running` for the sweep to reclaim and
+ * re-run — turning one leaked object into a loop that makes more of them.
+ * A leaked object costs storage; a leaked loop costs storage and CPU.
+ */
+async function deleteOrphanedTranscode(key: string, req: PayloadRequest): Promise<void> {
+  try {
+    const { env } = await getCloudflareContext({ async: true })
+    const bucket = (env as unknown as { R2?: R2Bucket }).R2
+    if (!bucket) {
+      req.payload.logger.warn(
+        `transcode for a deleted media row left ${key} in R2: no R2 binding to clean it up`,
+      )
+      return
+    }
+    await bucket.delete(key)
+    req.payload.logger.info(`deleted orphaned transcode ${key}: its media row is gone`)
+  } catch (error) {
+    req.payload.logger.error({ err: error }, `could not delete orphaned transcode ${key}`)
+  }
 }

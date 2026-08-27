@@ -41,10 +41,13 @@ type TranscodeJob = {
 
 type ScriptResult = {
   ok: true
-  key: string
-  bytes: number
-  width: number
-  height: number
+  /** Set when the source already met the target and nothing was encoded. */
+  skipped?: boolean
+  reason?: string
+  key?: string
+  bytes?: number
+  width?: number
+  height?: number
 }
 
 export class TranscodeContainer extends Container<Env> {
@@ -199,16 +202,27 @@ export class TranscodeContainer extends Container<Env> {
       const line = stdout.trim().split('\n').pop() ?? ''
       const result = JSON.parse(line) as ScriptResult
 
-      await this.report(job.mediaId, {
-        bytes: result.bytes,
-        height: result.height,
-        key: result.key,
-        status: 'done',
-        width: result.width,
-      })
-      console.log(
-        `transcoded media ${job.mediaId} in ${Date.now() - started}ms -> ${result.bytes} bytes`,
-      )
+      if (result.skipped) {
+        // No new object exists, so there is nothing to repoint the row at.
+        // `skipped` is the honest state and the media keeps serving the file
+        // it already had — which is why this is the cheapest possible
+        // outcome rather than a special case to work around.
+        await this.report(job.mediaId, { status: 'skipped' })
+        console.log(
+          `media ${job.mediaId} needed no transcode (${result.reason ?? 'already compliant'})`,
+        )
+      } else {
+        await this.report(job.mediaId, {
+          bytes: result.bytes,
+          height: result.height,
+          key: result.key,
+          status: 'done',
+          width: result.width,
+        })
+        console.log(
+          `transcoded media ${job.mediaId} in ${Date.now() - started}ms -> ${result.bytes} bytes`,
+        )
+      }
 
       // Hand the slot back now that the work is done, instead of letting
       // `sleepAfter` get round to it.
@@ -231,6 +245,21 @@ export class TranscodeContainer extends Container<Env> {
     } catch (error) {
       console.error(`transcode failed for media ${job.mediaId}`, error)
 
+      const reason = error instanceof Error ? error.message : String(error)
+
+      // Some failures are about this video; this one is about the moment.
+      // "Maximum number of running container instances exceeded" means the
+      // account was busy, and says nothing at all about the file — it will
+      // very likely succeed on the next attempt. Reporting `failed` for it
+      // made a member's upload terminal for a reason they could neither see
+      // nor influence, and left retrying to them by hand.
+      //
+      // Back to `queued` instead, where the sweep picks it up. That is safe
+      // precisely because attempts are counted on the reclaim path: a video
+      // that keeps landing here does eventually stop, rather than looping
+      // forever.
+      const busy = /Maximum number of running container instances/i.test(reason)
+
       // A failed job used to leave its container running. `max_instances`
       // on this Worker is deliberately low — 2 on staging — specifically to
       // cap what a runaway retry can spend, so three real test uploads
@@ -240,13 +269,13 @@ export class TranscodeContainer extends Container<Env> {
       // capability; this is the one that stops a leak instead. It also
       // means a retry never reuses a container that limped partway through
       // an old failure with stale state.
-      await this.ctx.container?.destroy(error instanceof Error ? error.message : String(error)).catch(() => {})
+      await this.ctx.container?.destroy(reason).catch(() => {})
 
       // Best effort: if this callback also fails, the row stays `running`
       // and the lease sweep reclaims it. Nothing is lost either way.
       await this.report(job.mediaId, {
-        message: error instanceof Error ? error.message : String(error),
-        status: 'failed',
+        message: reason,
+        status: busy ? 'queued' : 'failed',
       }).catch(() => {})
     }
   }

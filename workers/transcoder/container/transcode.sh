@@ -36,6 +36,36 @@ OUT="$WORK/out.mp4"
 # because R2 public URLs can redirect.
 curl --fail --silent --show-error --location --output "$IN" "$SRC_URL"
 
+# Probe before encoding, and skip the encode entirely when the source is
+# already what this script would produce.
+#
+# Re-encoding an H.264 1080p file is worse than useless: it costs container
+# time, it loses a generation of quality, and — because the original is kept
+# forever — it permanently doubles what the video occupies in R2. The trigger
+# upstream is only `mimeType.startsWith("video/")`, which cannot tell an
+# iPhone HEVC clip from a file somebody already exported correctly.
+#
+# The bar is deliberately the three things this feature exists to fix, and
+# nothing more: codec, height, and pixel format. Not `level`, not faststart —
+# a file that is h264/<=1080/yuv420p but has its moov atom at the end still
+# plays everywhere, just with a slower start, and that is not worth a
+# generation of quality to correct.
+CODEC=$(ffprobe -v error -select_streams v:0 \
+  -show_entries stream=codec_name,height,pix_fmt \
+  -of csv=p=0:nk=1 "$IN" </dev/null | tr -d '\n' | tr ',' ' ')
+SRC_CODEC=$(echo "$CODEC" | cut -d' ' -f1)
+SRC_HEIGHT=$(echo "$CODEC" | cut -d' ' -f2)
+SRC_PIXFMT=$(echo "$CODEC" | cut -d' ' -f3)
+
+if [ "$SRC_CODEC" = "h264" ] && [ "$SRC_PIXFMT" = "yuv420p" ] \
+  && [ -n "$SRC_HEIGHT" ] && [ "$SRC_HEIGHT" -le 1080 ] 2>/dev/null; then
+  # Nothing is uploaded and no key is reported: the media row keeps pointing
+  # at the file it already had, which is the correct outcome — there is no
+  # second object, so nothing to charge for or clean up later.
+  printf '{"ok":true,"skipped":true,"reason":"already h264 %sp yuv420p"}\n' "$SRC_HEIGHT"
+  exit 0
+fi
+
 # See PLAN-video-transcode.md for why each flag is here. The two that are
 # easy to lose and expensive to lose:
 #
