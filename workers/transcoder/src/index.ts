@@ -209,6 +209,25 @@ export class TranscodeContainer extends Container<Env> {
       console.log(
         `transcoded media ${job.mediaId} in ${Date.now() - started}ms -> ${result.bytes} bytes`,
       )
+
+      // Hand the slot back now that the work is done, instead of letting
+      // `sleepAfter` get round to it.
+      //
+      // Raising `sleepAfter` to 30m stopped the library killing a container
+      // mid-encode, and immediately caused the opposite failure: two short
+      // videos transcoded successfully, then sat `running` for half an hour
+      // holding both `max_instances` slots, so the next upload — a 1.04 GB
+      // file — could not start at all ("Maximum number of running container
+      // instances exceeded"). The inactivity timer is the wrong instrument
+      // for this: it exists to catch a container nobody told about, and this
+      // code knows exactly when the job finished.
+      //
+      // `stop()` rather than `destroy()`: SIGTERM lets the process exit
+      // cleanly, and there is nothing to race — the output is already in R2
+      // and the callback has already landed. The failure path still uses
+      // `destroy()`, where a stuck process is the likely reason for being
+      // there at all.
+      await this.stop().catch(() => {})
     } catch (error) {
       console.error(`transcode failed for media ${job.mediaId}`, error)
 
