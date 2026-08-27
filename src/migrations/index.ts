@@ -16,6 +16,7 @@ import * as migration_20260826_072758_add_race_category_qualifiers from './20260
 import * as migration_20260826_082505_add_media_transcode_state from './20260826_082505_add_media_transcode_state';
 import * as migration_20260827_054539_add_media_content_fingerprint from './20260827_054539_add_media_content_fingerprint';
 import * as migration_20260827_062932_add_media_original_filesize from './20260827_062932_add_media_original_filesize';
+import * as migration_20260827_233500_add_media_unused_since from './20260827_233500_add_media_unused_since';
 
 export const migrations = [
   {
@@ -107,5 +108,10 @@ export const migrations = [
     up: migration_20260827_062932_add_media_original_filesize.up,
     down: migration_20260827_062932_add_media_original_filesize.down,
     name: '20260827_062932_add_media_original_filesize'
+  },
+  {
+    up: migration_20260827_233500_add_media_unused_since.up,
+    down: migration_20260827_233500_add_media_unused_since.down,
+    name: '20260827_233500_add_media_unused_since',
   },
 ];
