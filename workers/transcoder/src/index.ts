@@ -51,8 +51,53 @@ export class TranscodeContainer extends Container<Env> {
   // 4 vCPU is what the 3.11x-realtime measurement was taken at. Disk is not
   // the constraint — the largest source in the corpus is 1.17 GB and peak
   // usage is around 2 GB against this instance type's 20 GB.
-  defaultPort = 0
+  //
+  // NO `defaultPort`. This container never serves HTTP — everything happens
+  // over `this.ctx.container.exec()` below — and `defaultPort = 0` was tried
+  // first to say so, which broke startup outright. `this.start()` computes
+  // `portToCheck` as `defaultPort ?? fallback`, and 0 is not nullish, so it
+  // was used as a real port: `container.getTcpPort(0)` validates its
+  // argument as an actual TCP port number and throws `Invalid port number: 0`
+  // synchronously, OUTSIDE the library's own retry/catch — every start
+  // failed on its first and only attempt, reported as a transcode failure
+  // with that exact message.
+  //
+  // Leaving this unset lets `getPortsToCheck` fall back to its own constant
+  // (port 33, nothing listens there on purpose). That is deliberate library
+  // behaviour for exactly this shape of container: `doStartContainer` treats
+  // "connection refused but the container process is running" as success —
+  // see `isNotListeningError` in @cloudflare/containers. That graceful path
+  // only exists downstream of a valid port number, which 0 never reached.
   sleepAfter = '2m'
+
+  /**
+   * Accept a job and return immediately.
+   *
+   * The split exists because of a bug that lost every single transcode. The
+   * Worker used to call `void stub.run(job)` — an RPC that was never
+   * awaited — and Cloudflare's rules of Durable Objects say plainly that
+   * "unawaited calls create dangling promises" and that an async call
+   * "neither awaited nor passed to ctx.waitUntil() can be canceled when the
+   * invocation ends". It was: the row stayed `queued`, no Durable Object
+   * invocation was recorded at all, and nothing anywhere logged a reason.
+   *
+   * So the caller awaits THIS, which returns as soon as the job is handed
+   * over. It is named `accept` rather than `start` because `Container`
+   * already defines `start()` — the one that boots the container, called
+   * inside `run` below. The first version of this fix shadowed it, and
+   * typecheck caught the signature clash; at runtime it would have booted
+   * nothing. `run` is deliberately not awaited here — inside a Durable Object
+   * that is the documented way to keep going, because a DO "remains active
+   * as long as there is ongoing work or pending I/O" and `waitUntil` is
+   * explicitly a no-op. Awaiting it would hold an upload request open for
+   * the length of an encode, which is the thing this whole design avoids.
+   *
+   * If the object is evicted mid-encode anyway, that is what the lease and
+   * the sweep are for — the same recovery path a killed container needs.
+   */
+  async accept(job: TranscodeJob): Promise<void> {
+    void this.run(job)
+  }
 
   /**
    * Run one job to completion, then report the result to the site.
@@ -111,6 +156,18 @@ export class TranscodeContainer extends Container<Env> {
       )
     } catch (error) {
       console.error(`transcode failed for media ${job.mediaId}`, error)
+
+      // A failed job used to leave its container running. `max_instances`
+      // on this Worker is deliberately low — 2 on staging — specifically to
+      // cap what a runaway retry can spend, so three real test uploads
+      // (673, 674, 675) each starting their own container was enough to
+      // hit "Maximum number of running container instances exceeded" on the
+      // very next one. Every prior fix in this file added a missing
+      // capability; this is the one that stops a leak instead. It also
+      // means a retry never reuses a container that limped partway through
+      // an old failure with stale state.
+      await this.ctx.container?.destroy(error instanceof Error ? error.message : String(error)).catch(() => {})
+
       // Best effort: if this callback also fails, the row stays `running`
       // and the lease sweep reclaims it. Nothing is lost either way.
       await this.report(job.mediaId, {
@@ -194,9 +251,10 @@ export default {
     const id = env.TRANSCODER.idFromName(String(job.mediaId))
     const stub = env.TRANSCODER.get(id)
 
-    // Not awaited: transcoding a 4K clip measures minutes, and the caller is
-    // an upload request. The result arrives by callback.
-    void stub.run(job)
+    // Awaited, and `accept` is the fast half on purpose — see its header. The
+    // previous version called `run` here without awaiting it and every
+    // transcode was silently dropped.
+    await stub.accept(job)
 
     return Response.json({ accepted: true })
   },
