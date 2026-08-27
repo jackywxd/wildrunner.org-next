@@ -50,6 +50,15 @@
 					"class_name": "TranscodeContainer",
 					"image": "./container/Dockerfile",
 					"instance_type": "standard-4",
+					// Back to 2 after a temporary bump to 4. Two containers
+					// from before the destroy-on-failure fix stayed `running`
+					// and held their slots until a fourth job could not
+					// start; raising the cap was how a real transcode got
+					// verified without deleting the application outright.
+					// All three instances read `inactive` once that fix
+					// deployed, so the cap returns to the deliberately low
+					// value — its job is capping what a runaway retry can
+					// spend, not accommodating a leak that is now fixed.
 					"max_instances": 2
 				}
 			],

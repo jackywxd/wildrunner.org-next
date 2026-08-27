@@ -68,7 +68,23 @@ export class TranscodeContainer extends Container<Env> {
   // "connection refused but the container process is running" as success —
   // see `isNotListeningError` in @cloudflare/containers. That graceful path
   // only exists downstream of a valid port number, which 0 never reached.
-  sleepAfter = '2m'
+  // 30m, not the 2m this started at, and the reason is not "encodes are
+  // slow" — it is that the library cannot see this container working at all.
+  //
+  // `renewActivityTimeout()` is called by the library on exactly three
+  // things: a proxied HTTP request, a WebSocket message, and container
+  // startup. This container serves no HTTP and no WebSockets; every job runs
+  // through `this.ctx.container.exec()`, which is the RAW Durable Object
+  // container API and bypasses the library entirely. So from the library's
+  // point of view a running encode looks like a container nobody has touched
+  // since it booted, and `sleepAfter` stops it mid-work — logged locally as
+  // a stream of "Activity expired, signalling container to stop" while
+  // ffmpeg was still going.
+  //
+  // The heartbeat in `run()` below is the real fix; this larger window is
+  // the belt to its braces, sized past any plausible encode (the corpus's
+  // largest file measured ~4 minutes end to end).
+  sleepAfter = '30m'
 
   /**
    * Accept a job and return immediately.
@@ -114,25 +130,64 @@ export class TranscodeContainer extends Container<Env> {
     try {
       await this.report(job.mediaId, { status: 'running' })
 
-      if (!this.ctx.container?.running) {
-        await this.start({
-          envVars: {
-            AWS_ACCESS_KEY_ID: this.env.AWS_ACCESS_KEY_ID,
-            AWS_SECRET_ACCESS_KEY: this.env.AWS_SECRET_ACCESS_KEY,
-            R2_BUCKET: this.env.R2_BUCKET,
-            R2_S3_ENDPOINT: this.env.R2_S3_ENDPOINT,
-          },
-        })
+      // Passed on BOTH paths, and that redundancy is the fix for four
+      // identical failures in a row.
+      //
+      // `start()` only runs when the container is not already running, and
+      // its `envVars` apply to that start only. But a Container DO restarts
+      // its container on its own — the base class keeps a perpetual alarm
+      // and boots the container from lifecycle paths this code never calls.
+      // When that happened first, `run` found `container.running` already
+      // true, skipped `start()` entirely, and exec'd into a process tree
+      // that had been started with no `env` at all. The container was real
+      // and healthy, ffmpeg ran fine, and the script died on the one line
+      // that needed a variable nobody had set: `R2_S3_ENDPOINT`.
+      //
+      // `exec`'s own `env` does not depend on how the container came up.
+      // Cloudflare's docs: "The process inherits existing Container
+      // variables. Matching keys use the per-execution value." So this is
+      // the authoritative one; the `start()` copy stays because it is
+      // correct for a cold boot and costs nothing.
+      const containerEnv = {
+        AWS_ACCESS_KEY_ID: this.env.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: this.env.AWS_SECRET_ACCESS_KEY,
+        R2_BUCKET: this.env.R2_BUCKET,
+        R2_S3_ENDPOINT: this.env.R2_S3_ENDPOINT,
       }
 
-      const process = await this.ctx.container!.exec([
-        '/usr/local/bin/transcode.sh',
-        job.sourceUrl,
-        destKeyFor(job.mediaId),
-      ])
+      if (!this.ctx.container?.running) {
+        await this.start({ envVars: containerEnv })
+      }
 
-      const exitCode = await process.exitCode
-      const stdout = await new Response(process.stdout).text()
+      const process = await this.ctx.container!.exec(
+        [
+          '/usr/local/bin/transcode.sh',
+          job.sourceUrl,
+          destKeyFor(job.mediaId),
+        ],
+        { env: containerEnv },
+      )
+
+      // Tell the library the container is busy, because nothing else will.
+      // `exec()` is the raw container API and the library never sees it, so
+      // without this its inactivity timer runs down during the encode and
+      // stops the container out from under ffmpeg. Cleared in `finally` so a
+      // finished job goes back to idling and shuts down on schedule.
+      const heartbeat = setInterval(() => this.renewActivityTimeout(), 30_000)
+
+      let exitCode: number
+      let stdout: string
+      try {
+        // stdout is drained BEFORE awaiting the exit code. The script's
+        // output is one short JSON line so the pipe would not fill, but the
+        // documented shape is to read output rather than block on exit
+        // first, and a process that fills its stdout buffer while nobody
+        // reads it never exits at all.
+        stdout = await new Response(process.stdout).text()
+        exitCode = await process.exitCode
+      } finally {
+        clearInterval(heartbeat)
+      }
 
       if (exitCode !== 0) {
         const stderr = await new Response(process.stderr).text()
