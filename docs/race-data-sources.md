@@ -120,7 +120,17 @@ as unresolved rather than as "checked, does not qualify":
 | WS "Monte Rosa WalserWaeg by UTMB - LSV 122km" | `utmb-mrww/sdv`, 120 km | Abbreviation disagrees (LSV vs SDV) |
 | WS "Mount Yun by UTMB - UMY 159.6km" | `utmb-mut/miler`, 168 km | MUT and UMY are probably different events |
 | WS "DL 100 106km" (China) | `other-dali-100/100k` | Plausible, unconfirmed |
-| Hardrock "Ultra-Trail Cape Town" | `wtm-cape-town`, six categories | The Hardrock row names no distance |
+
+**Settled since, by the site owner, not by derivation.** Hardrock
+"Ultra-Trail Cape Town" is `wtm-cape-town/utct` — the 160.9 km / 7516 m
+entry. Note what did *not* decide it: "the longest category qualifies" is
+listed above as a shortcut that gets this wrong. What the distances give is
+a check on the answer rather than the answer — every other entry on the
+Hardrock list is 160 km or longer (UTMB 174, GPT100 Miler 162, Fat Dog 200,
+and the four that publish no distance are all 100-milers or beyond), and
+UTCT is the only Cape Town category in that range. `ut100` is 100 km and
+stays `no`. Dated 2026-08-27, the day it was confirmed — a day later than
+the rest of the Cape Town rows, which is the point of the per-row date.
 
 Also noted, needing no decision here: the WS list carries `TOR100` and
 `TOR130`, which our `other-tor-des-geants` does not have as categories, and
