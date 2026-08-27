@@ -134,6 +134,34 @@ const LISTS = [
   },
 ] as const
 
+/**
+ * Every message in the error's cause chain, outermost first.
+ *
+ * A write that fails here reaches us wrapped: Payload's error, then
+ * drizzle's, and only then the database's. Drizzle's `.message` is its own
+ * summary — `Failed query: update "race_categories" set ... params: ...` —
+ * which names the statement and says nothing about why it was refused. The
+ * D1 text ("UNIQUE constraint failed", "no such column", "SQLITE_ERROR")
+ * sits one or two `cause` levels below it.
+ *
+ * Printing `.message` alone therefore reports a failure while withholding
+ * the failure. That happened: a staging run reported one failed row with
+ * 400 characters of SQL and no reason, and the next step had to be a
+ * hand-written `wrangler d1 execute` to ask the database the same question
+ * it had already answered. The migration next door
+ * (20260826_072758_add_race_category_qualifiers) learned this first and
+ * carries the same walk; AGENTS.md records it as a general rule.
+ */
+function allMessages(error: unknown): string {
+  const parts: string[] = []
+  let current: unknown = error
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    parts.push(current.message)
+    current = current.cause
+  }
+  return parts.join('\n    caused by: ')
+}
+
 async function main() {
   const { default: config } = await import('../src/payload.config')
   const payload = await getPayload({ config })
@@ -243,7 +271,7 @@ async function main() {
       )
       updated += 1
     } catch (error) {
-      failed.push(`${row.event_key}/${row.key}: ${(error as Error).message}`)
+      failed.push(`${row.event_key}/${row.key}: ${allMessages(error)}`)
     }
   }
 
