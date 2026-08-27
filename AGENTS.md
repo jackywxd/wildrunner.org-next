@@ -87,6 +87,29 @@ migration against it.
 sits one or two `cause` levels down. A matcher reading `.message` alone
 silently tolerates nothing.
 
+### A row reported as failed may already be written
+
+Same table, same day, DML instead of DDL. `pnpm seed:qualifiers:staging`
+reported `failed=1` for `wtm-cape-town/utct` with 400 characters of SQL and
+no reason. That run had written it: the row was in the database and correct,
+and querying it is what established that — after the failure had already been
+believed and acted on.
+
+The statement ends `... returning "id", "event_id", ...`. D1 applied the
+update and something on the way back raised; there is **no transaction to
+roll it back**, exactly as with DDL. So the client's verdict describes the
+round trip, not the write.
+
+- **After a failed row, query that row before doing anything else.** Not
+  after re-running — re-running is what makes it unfalsifiable, because a
+  second attempt against already-correct data reports `unchanged` and looks
+  like the first one never happened.
+- The importer's failure line now walks the `cause` chain
+  (`scripts/import-race-qualifiers.ts`), so the next one of these says what
+  the database actually objected to. This one no longer can: the row matches,
+  so no update is issued, and there is no root cause here — only the
+  observation and the rule.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
