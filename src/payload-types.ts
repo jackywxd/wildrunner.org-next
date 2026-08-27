@@ -253,6 +253,7 @@ export interface RaceEdition {
    * Multi-day events only. Leave empty for a single day.
    */
   endDate?: string | null;
+  displayTitle?: string | null;
   /**
    * Only when this edition was published under a different name than the event carries now. Otherwise leave empty and the event name is used.
    */
@@ -803,6 +804,7 @@ export interface RaceEditionsSelect<T extends boolean = true> {
   year?: T;
   startDate?: T;
   endDate?: T;
+  displayTitle?: T;
   nameOverride?: T;
   location?: T;
   url?: T;

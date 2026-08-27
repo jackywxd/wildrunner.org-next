@@ -43,7 +43,7 @@ export const RaceEditions: CollectionConfig = {
   },
   defaultSort: '-year',
   admin: {
-    useAsTitle: 'year',
+    useAsTitle: 'displayTitle',
     defaultColumns: ['event', 'year', 'startDate', 'location', 'verifiedAt'],
     group: { en: 'Races', 'zh-TW': '賽事' },
     description: {
@@ -121,6 +121,39 @@ export const RaceEditions: CollectionConfig = {
           'zh-TW': '只有多日賽事需要填。',
         },
       },
+    },
+    /**
+     * What the admin calls this row.
+     *
+     * `useAsTitle: 'year'` labelled every option in a relationship picker
+     * with a bare year, so choosing a race edition meant picking from a list
+     * reading "2027, 2027, 2027". The name lives on the related event, not
+     * here, so the year alone could never identify a row.
+     *
+     * `virtual: 'event.name'` is the only shape available. Payload refuses a
+     * hook-computed virtual as a title — and refuses it at RUNTIME, with
+     * typecheck green and no migration generated:
+     *
+     *   InvalidConfiguration: The field ... specified in "admin.useAsTitle"
+     *   is virtual. A virtual field can be used as the title only when
+     *   linked to a relationship field.
+     *
+     * So the composite "<name> <year>" is not reachable without storing a
+     * real column, which would need a migration and would go stale whenever
+     * a catalogue entry is renamed — editions do not re-save when their
+     * event does. The event name alone identifies the race; `defaultColumns`
+     * already shows the year beside it in the list view. Editions of the
+     * same race across years still share a label, which is a real remaining
+     * limit rather than a solved problem.
+     *
+     * `virtual` keeps it out of the database entirely: derived on read from
+     * the relationship, nothing to migrate, backfill, or keep in sync.
+     */
+    {
+      name: 'displayTitle',
+      type: 'text',
+      virtual: 'event.name',
+      admin: { readOnly: true, position: 'sidebar' },
     },
     {
       name: 'nameOverride',
