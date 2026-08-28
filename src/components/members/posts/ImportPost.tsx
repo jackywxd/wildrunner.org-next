@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { ImportPreview } from "@/components/members/posts/ImportPreview";
+import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { createPost } from "@/lib/members/posts";
 import type { PayloadContent } from "@/lib/editor/serialize";
 import type { ImportWarning } from "@/lib/mdx-import/types";
@@ -248,7 +248,7 @@ export function ImportPost() {
               data-testid="import-preview"
               className="border border-border p-4"
             >
-              <ImportPreview content={parsed.content} />
+              <ContentPreview content={parsed.content} />
             </div>
           </div>
 

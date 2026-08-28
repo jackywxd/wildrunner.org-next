@@ -27,6 +27,7 @@ import { ImageInsertPlugin } from "./ImageInsertPlugin";
 import { TableToolbarPlugin } from "./TableToolbarPlugin";
 import { DraggableBlockPlugin } from "./DraggableBlockPlugin";
 import { FixedToolbarPlugin } from "./FixedToolbarPlugin";
+import { MarkdownHints } from "./MarkdownHints";
 import { MEMBER_MARKDOWN_TRANSFORMERS } from "@/lib/editor/markdown-transformers";
 
 export type ContentEditorHandle = {
@@ -149,6 +150,11 @@ export function ContentEditor({
         <OnChangePlugin ignoreSelectionChange onChange={handleChange} />
         <EditorRefPlugin editorRef={editorRef} />
       </div>
+      {/* Below the writing surface, not above it. The shortcuts are a thing
+          you reach for mid-sentence, not a thing you read before starting,
+          and anything docked above the first line pushes the document down
+          on every visit for the one visit where it is read. */}
+      <MarkdownHints />
     </LexicalComposer>
   );
 }

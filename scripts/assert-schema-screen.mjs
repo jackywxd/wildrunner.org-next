@@ -103,7 +103,9 @@ const MAPPINGS = [
     mode: "create",
     screens: [
       "src/components/members/posts/ImportPost.tsx",
-      "src/components/members/posts/ImportPreview.tsx",
+      // Moved out of posts/ when the editor's preview needed the same
+      // renderer; the import screen still renders it under the new name.
+      "src/components/members/editor/ContentPreview.tsx",
     ],
     fields: {
       title: "import-title",
