@@ -64,6 +64,29 @@ test.describe("V what a visitor can do", () => {
     // changed and the view did not, because the transition component keyed on
     // pathname alone. See docs/testing-incidents.md.
     const toggle = page.getByTestId("race-schedule-toggle");
+
+    /**
+     * Wait for the page transition to finish before touching the page again.
+     *
+     * `PageTransitionEffect` crossfades routes with `AnimatePresence`, which
+     * keeps the outgoing subtree mounted for the length of the animation —
+     * so for `transitionApple`'s 300ms *both* copies of the schedule are in
+     * the DOM, each with its own toggle. Measured, not assumed: sampling the
+     * DOM every 25ms across a click showed `race-schedule-toggle` at 2 for
+     * ~350ms before settling back to 1.
+     *
+     * A click during that window resolves to two elements and fails on
+     * strict mode, which is exactly how this test went red on staging while
+     * passing here — the window is real everywhere, and only the machine's
+     * speed decides whether a click lands inside it. Asserting the count is
+     * the honest wait: it says what is being waited for, and it would fail
+     * loudly if a transition ever stopped settling.
+     */
+    const settled = async () => {
+      await expect(toggle).toHaveCount(1, { timeout: budget(15_000) });
+    };
+
+    await settled();
     // Counts, not visibility. What this test is about is that the *view
     // swapped* — the calendar arrived and the list left. Whether the container
     // has a non-empty bounding box is a different question, and asserting it
@@ -74,11 +97,14 @@ test.describe("V what a visitor can do", () => {
     });
     await expect(page.getByTestId("race-list")).toHaveCount(0);
 
+    await settled();
     await toggle.getByText("列表", { exact: true }).click();
     await expect(page.getByTestId("race-list")).toHaveCount(1, {
       timeout: budget(15_000),
     });
     await expect(page.getByTestId("race-calendar")).toHaveCount(0);
+
+    await settled();
 
     // And the window moves, without a reload.
     const older = page.getByTestId("race-pager-older");
