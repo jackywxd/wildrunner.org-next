@@ -32,11 +32,19 @@ const FORMAT_CODE = 16;
  * editor needed the same thing, rather than growing a second renderer that
  * would drift from this one: two previews of the same document disagreeing
  * about how it looks is worse than either being imperfect.
+ *
+ * It emits bare tags and hangs no typography on them. Everything below is
+ * styled by `.article-body` in src/styles/globals.css — the same rules the
+ * published page uses — because a preview whose job is "is this what it will
+ * look like published" has to be styled by the thing that styles the
+ * published page, not by a second opinion. Its own classes were that second
+ * opinion: headings came out bold but at body size, which is exactly the
+ * defect M-TYPO was written from.
  */
 function renderText(node: JsonNode, key: number): ReactNode {
   const format = typeof node.format === "number" ? node.format : 0;
   let content: ReactNode = String(node.text ?? "");
-  if (format & FORMAT_CODE) content = <code className="bg-secondary px-1">{content}</code>;
+  if (format & FORMAT_CODE) content = <code>{content}</code>;
   if (format & FORMAT_STRIKETHROUGH) content = <s>{content}</s>;
   if (format & FORMAT_ITALIC) content = <em>{content}</em>;
   if (format & FORMAT_BOLD) content = <strong>{content}</strong>;
@@ -53,11 +61,7 @@ function renderInline(nodes: JsonNode[] | undefined): ReactNode {
       case "link": {
         const fields = node.fields as { url?: string } | undefined;
         return (
-          <a
-            key={index}
-            href={fields?.url ?? "#"}
-            className="text-primary underline"
-          >
+          <a key={index} href={fields?.url ?? "#"}>
             {renderInline(node.children)}
           </a>
         );
@@ -107,27 +111,21 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
           | "h5"
           | "h6";
         return (
-          <Tag key={index} className="font-heading font-semibold">
-            {renderInline(node.children)}
-          </Tag>
+          <Tag key={index}>{renderInline(node.children)}</Tag>
         );
       }
       case "paragraph":
         return <p key={index}>{renderInline(node.children)}</p>;
       case "quote":
         return (
-          <blockquote key={index} className="border-l-2 border-border pl-3 text-foreground/70">
-            {renderInline(node.children)}
-          </blockquote>
+          <blockquote key={index}>{renderInline(node.children)}</blockquote>
         );
       case "horizontalrule":
-        return <hr key={index} className="border-border" />;
+        return <hr key={index} />;
       case "list": {
         const Tag = node.listType === "number" ? "ol" : "ul";
         return (
-          <Tag key={index} className={Tag === "ol" ? "list-decimal pl-5" : "list-disc pl-5"}>
-            {renderBlocks(node.children)}
-          </Tag>
+          <Tag key={index}>{renderBlocks(node.children)}</Tag>
         );
       }
       case "listitem":
@@ -146,7 +144,7 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
         );
       case "table":
         return (
-          <table key={index} className="w-full border-collapse text-left">
+          <table key={index} className="text-left">
             <tbody>{renderBlocks(node.children)}</tbody>
           </table>
         );
@@ -155,9 +153,7 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
       case "tablecell": {
         const Cell = node.headerState ? "th" : "td";
         return (
-          <Cell key={index} className="border border-border px-2 py-1">
-            {renderBlocks(node.children)}
-          </Cell>
+          <Cell key={index}>{renderBlocks(node.children)}</Cell>
         );
       }
       case "upload": {
@@ -175,7 +171,7 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
           | undefined;
         if (fields?.blockType === "Code") {
           return (
-            <pre key={index} className="overflow-x-auto bg-secondary p-3 text-sm">
+            <pre key={index}>
               <code className={fields.language ? `language-${fields.language}` : undefined}>
                 {fields.code}
               </code>
@@ -205,8 +201,6 @@ export function ContentPreview({
 }) {
   const root = content.root as unknown as JsonNode;
   return (
-    <div className={className ?? "prose max-w-none space-y-3"}>
-      {renderBlocks(root.children)}
-    </div>
+    <div className={className ?? "article-body"}>{renderBlocks(root.children)}</div>
   );
 }

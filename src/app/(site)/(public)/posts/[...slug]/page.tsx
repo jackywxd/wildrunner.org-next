@@ -175,10 +175,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           </div>
         )}
         {blog.content && (
-          <PayloadRichText
-            data={blog.content}
-            className="prose prose-neutral dark:prose-invert max-w-none"
-          />
+          <PayloadRichText data={blog.content} className="article-body" />
         )}
         <hr className="mt-12 h-0 border-t-2 border-border" />
         <div className="flex justify-start py-6 lg:py-10">

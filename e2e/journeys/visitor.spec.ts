@@ -46,8 +46,15 @@ test.describe("V what a visitor can do", () => {
     await expect(page).toHaveURL((url) => url.pathname === href, {
       timeout: budget(15_000),
     });
-    await expect(page.locator("h1")).toHaveCount(1);
-    await expect(page.locator("h1")).toBeVisible();
+    // The article's own title, not every h1 on the page. The count is what
+    // matters — a duplicated page subtree renders the title twice — but
+    // `h1` alone counts the *document's* headings too, and a member who
+    // types `# 標題` is following the shortcut list the editor now shows
+    // them. Scoped to the direct child of <article>, which is the title and
+    // nothing else: body headings render inside .article-body.
+    const title = page.locator("article > h1");
+    await expect(title).toHaveCount(1);
+    await expect(title).toBeVisible();
   });
 
   test("V4/V5: moves the race calendar and switches how it is shown", async ({

@@ -4,6 +4,14 @@ import type { EditorThemeClasses } from "@payloadcms/richtext-lexical/lexical";
  * Tailwind classes Lexical hangs on the nodes it renders. Border radius is
  * globally 0 in this design system (tailwind.config.ts), so nothing here
  * uses rounded-*.
+ *
+ * This is the second of two definitions of one scale, and the duplication is
+ * forced: Lexical attaches these to nodes it creates itself, so the editing
+ * surface cannot be styled by the `.article-body` stylesheet that everything
+ * *reading* a document back uses (src/styles/globals.css). Keep the two in
+ * step — M-TYPO-T2 measures a heading in both and fails when they disagree,
+ * which is the shape the member-reported bug took: the editor showed
+ * headings and the published page did not.
  */
 export const editorTheme: EditorThemeClasses = {
   paragraph: "mb-3 leading-relaxed",
