@@ -61,14 +61,30 @@ const MODEL = "@cf/moonshotai/kimi-k2.6";
 const MAX_INPUT_CHARS = 12_000;
 const MAX_OUTPUT_TOKENS = 16_000;
 
+/**
+ * What the model is told.
+ *
+ * Rule 2 replaces 「使用繁體中文」, which was read as an instruction to
+ * translate. A member pasted an English race sheet and got back a Traditional
+ * Chinese one — a faithful, well-written translation of an article they had
+ * not asked to have translated, sitting under a button marked 接受. The
+ * intent was only ever "if it is Chinese, write it in Traditional, not
+ * Simplified", and the rule now says that and nothing more.
+ *
+ * Rule 3 is the same lesson one step down. The same reply turned a run-on
+ * paragraph of race statistics into a tidy list — plausibly better, and
+ * still not what 潤飾 means. A member who wanted their article restructured
+ * would have restructured it.
+ */
 const SYSTEM = [
-  "你是一位中文越野跑與馬拉松專欄編輯。使用者會給你一篇已經寫好的文章，請潤飾它。",
+  "你是一位越野跑與馬拉松專欄編輯。使用者會給你一篇已經寫好的文章，請潤飾它的文字。",
   "規則：",
   "1. 保留作者的原意、事實與語氣，不要新增作者沒有寫過的事實或數字。",
-  "2. 使用繁體中文。",
-  "3. 保留 Markdown 結構：# 標題、> 引用、- 清單。",
-  "4. 凡是形如 [[BLOCK-0]]、[[BLOCK-1]] 的行，必須原封不動輸出，單獨成行，不可翻譯、改寫、刪除或改變順序以外的任何部分。它們代表文章裡的圖片與表格。",
-  "5. 只輸出文章本身，不要加上任何說明、前言或結語。",
+  "2. 不要翻譯。作者用哪一種語言寫，就用哪一種語言回覆；原文是英文就保持英文。原文是中文時一律使用繁體中文，不要改成簡體。",
+  "3. 保留作者的結構：段落怎麼分就怎麼分，不要把段落改寫成清單、不要新增或刪除標題、不要重新編排順序。你潤飾的是句子。",
+  "4. 保留 Markdown 記號：# 標題、> 引用、- 清單，作者原本有的就留著。",
+  "5. 凡是形如 [[BLOCK-0]]、[[BLOCK-1]] 的行，必須原封不動輸出，單獨成行，不可翻譯、改寫、刪除或移動。它們代表文章裡的圖片與表格。",
+  "6. 只輸出文章本身，不要加上任何說明、前言或結語。",
 ].join("\n");
 
 type ImproveBody = { text?: string };
@@ -143,11 +159,44 @@ export const aiImprovePostEndpoint: Endpoint = {
       // member's own text as "the improved version" would put an unchanged
       // document in the accept pane and invite them to approve a change that
       // never happened.
+      //
+      // The reason travels with the message rather than only into
+      // console.warn. A Worker's log is not something the person hitting the
+      // failure can read — reporting one costs a round of "which message did
+      // you see" and often a deploy — and a model call can fail for reasons
+      // that need different fixes: a token limit, a plan that does not serve
+      // the model, a timeout on a long article. Same reasoning as the
+      // qualifier importer's failure line in AGENTS.md, which walks the cause
+      // chain so the next failure says what the database actually objected to.
       console.warn("Workers AI improve failed", error);
-      throw new APIError("AI 服務暫時不可用，請稍後再試。", 502);
+      throw new APIError(
+        `AI 服務暫時不可用，請稍後再試。（${describe(error)}）`,
+        502,
+      );
     }
   },
 };
+
+/**
+ * A short, reportable description of a thrown value.
+ *
+ * Walks `cause`, because the outermost message is often a wrapper — the
+ * shape AGENTS.md records for Drizzle, where `.message` is its own summary
+ * and the real complaint sits one or two levels down. Truncated, because
+ * this ends up in a sentence on screen and nobody needs the stack.
+ */
+function describe(error: unknown): string {
+  const parts: string[] = [];
+  let current = error;
+  for (let depth = 0; depth < 4 && current; depth += 1) {
+    const message =
+      current instanceof Error ? current.message : String(current);
+    if (message && !parts.includes(message)) parts.push(message);
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  const joined = parts.join(" ← ") || "沒有錯誤訊息";
+  return joined.length > 200 ? `${joined.slice(0, 200)}…` : joined;
+}
 
 /** Marker lines verbatim; everything else marked as having been through. */
 function stubImprove(text: string): string {

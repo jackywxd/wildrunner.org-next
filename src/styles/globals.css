@@ -28,8 +28,23 @@
     /* DS: no radius */
     --radius: 0px;
 
-    /* Fonts: next/font/google sets `--font-archivo/--font-noto` on the element. */
-    --font-heading: var(--font-archivo), system-ui, sans-serif;
+    /*
+      Fonts: next/font/google sets `--font-archivo/--font-noto` on the
+      element carrying its generated class — which is why those classes are
+      on <html> and not <body>. A custom property here that referenced one
+      defined only further down the tree would resolve to nothing, and for a
+      long time both of these did.
+
+      Noto is in the heading stack too, and that is a correction rather than
+      a copy-paste. Archivo has no CJK glyphs at all, so a stack of
+      `Archivo, system-ui` renders 「越野跑」 in whatever system-ui happens to
+      be — a different typeface from the body text right beneath it, chosen
+      by the reader's operating system. On a site whose headings are almost
+      entirely Traditional Chinese that is not a design decision anybody
+      made. Latin still resolves to Archivo in both stacks, because it is
+      listed first and does cover latin.
+    */
+    --font-heading: var(--font-archivo), var(--font-noto), system-ui, sans-serif;
     --font-body: var(--font-archivo), var(--font-noto), system-ui, sans-serif;
   }
 
