@@ -149,8 +149,25 @@ test.describe("V what a visitor can do", () => {
     }
   });
 
-  test("V10: the about page renders", async ({ page }) => {
+  test("V10: the about page renders, in the language it is written in", async ({
+    page,
+  }) => {
     await open(page, "/about");
     await expect(page.locator("h1")).toBeVisible();
+
+    // The site is Traditional Chinese and declared itself English for the
+    // life of the repository. `lang` decides the voice a screen reader
+    // picks, what a search engine indexes the page as, and one of the
+    // signals a browser uses to choose a CJK fallback face — a page saying
+    // `en` can be drawn with Japanese or Simplified glyph forms for
+    // characters the scripts share.
+    //
+    // Counted, not sampled. docs/testing-incidents.md records a probe that
+    // grepped the served HTML for `<html lang` and took `head -1`: it
+    // answered `en` under every condition tried, because the page had *two*
+    // `<html>` elements and the one it read was hardcoded. The count is the
+    // assertion that could have caught that, so it is here beside the value.
+    expect(await page.locator("html").count()).toBe(1);
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
   });
 });

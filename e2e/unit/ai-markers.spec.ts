@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { fromAIText, marker, toAIText } from "@/lib/editor/ai-markers";
+import { fromAIText, marker, proseOnly, toAIText } from "@/lib/editor/ai-markers";
 import type { JsonNode, PayloadContent } from "@/lib/editor/serialize";
 
 /**
@@ -154,6 +154,26 @@ test.describe("U-AIMARK marking a document for a language model", () => {
     // One picture existed, so one picture comes back. A second copy would
     // be a photograph the member never placed.
     expect(types(back)).toEqual(["upload", "paragraph"]);
+  });
+
+  test("U-AIMARK-7: summarising sees prose and no markers at all", () => {
+    const document_ = document([
+      block("paragraph", [text("第一段")]),
+      image(7),
+      block("heading", [text("小標")], { tag: "h2" }),
+      { type: "horizontalrule", version: 1 },
+      block("paragraph", [text("第二段")]),
+    ]);
+
+    // The whole point of the difference: `toAIText` marks the picture
+    // because the document has to come back around it; `proseOnly` drops it
+    // because nothing is coming back. A `[[BLOCK-0]]` echoed into a summary
+    // would be printed on the public site as the article's description and
+    // shown in a link preview — invisible in the editor, obvious to
+    // everyone else.
+    expect(toAIText(document_).text).toContain(marker(0));
+    expect(proseOnly(document_)).toBe("第一段\n\n## 小標\n\n第二段");
+    expect(proseOnly(document_)).not.toContain("BLOCK");
   });
 
   test("U-AIMARK-6: everything that is not prose is held back, not just images", () => {

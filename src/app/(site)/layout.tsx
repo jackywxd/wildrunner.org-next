@@ -39,7 +39,22 @@ export default function SiteLayout({
 }>) {
   return (
     <html
-      lang="en"
+      // The site is written in Traditional Chinese and said it was English.
+      // That is not only a metadata detail: `lang` is what a screen reader
+      // picks a voice from, what a search engine indexes the page as, and —
+      // the reason it surfaced here — one of the signals a browser uses to
+      // choose a CJK fallback face, so a page declaring `en` can be rendered
+      // with Japanese or Simplified glyph forms for characters the two
+      // scripts share.
+      //
+      // `zh-Hant` rather than `zh-TW`: the script is what is true of this
+      // site. Its readers are a Vancouver club, not a region.
+      //
+      // The admin panel is not covered here and does not need to be —
+      // Payload's own `RootLayout` renders `<html lang={languageCode}>` for
+      // it (see src/app/(payload)/layout.tsx, where a hand-written wrapper
+      // that pinned it to "en" once broke hydration on every admin page).
+      lang="zh-Hant"
       suppressHydrationWarning
       /*
         The next/font variable classes belong here, not on <body>.
