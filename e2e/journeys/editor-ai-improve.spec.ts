@@ -264,5 +264,29 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     await expect(editor.locator("img")).toHaveCount(1, { timeout: budget(15_000) });
     // And accepting is an edit, so the work is not silently unsaved.
     await expect(page.getByTestId("post-dirty")).toBeVisible();
+
+    // Then wait for the autosave that edit started, rather than ending the
+    // test with a write in flight.
+    //
+    // This is what went red on the staging deploy, and only there. Every
+    // assertion above passed; the browser had logged a 500 and the console
+    // guard failed the test for it, correctly. T1 does the same work and
+    // rejects, so its document stays clean and nothing is ever written —
+    // which is why T1 was green and only this one was not.
+    //
+    // The mechanism is the teardown outliving the timer. Accepting marks
+    // the document dirty; the autosave fires three seconds later. Locally
+    // the test and its cleanup are over long before that. On a deployed
+    // origin the teardown's own requests take seconds each, so the page is
+    // still alive when the timer goes off — and by then the teardown has
+    // deleted the post the save is addressed to.
+    //
+    // Waiting for it is also the better assertion: it says the accepted
+    // version reached the server, not merely that the editor is holding it.
+    // And if a save here ever fails for a real reason, it now fails with
+    // that, instead of arriving as an unattributed console error.
+    await expect(page.getByTestId("post-message")).toContainText("已自動儲存", {
+      timeout: budget(30_000),
+    });
   });
 });

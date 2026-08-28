@@ -3,6 +3,7 @@ import { APIError } from "payload";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
+import { replyText } from "@/lib/ai/reply-text";
 
 /**
  * Improve an article the member has already written, in place.
@@ -21,13 +22,44 @@ import { checkAiRateLimit } from "@/lib/ai/rate-limit";
  */
 
 /**
- * Roughly the point where the 70B model's reply starts getting truncated
- * rather than finished, at `max_tokens` below. Refused rather than silently
- * cut: a member handed back three quarters of their article with the ending
- * missing, in a pane inviting them to press 接受, is the worst outcome this
- * feature can produce.
+ * The model.
+ *
+ * `@cf/meta/llama-3.3-70b-instruct-fp8-fast` was the first choice and it was
+ * the wrong shape for this job. The hard part here is not writing — it is
+ * doing exactly as told: emit `[[BLOCK-3]]` back byte for byte, on its own
+ * line, and add no preamble. That is where a mid-size open model gives way
+ * first, and helpfully: it wants to translate the marker into 「（此處有一
+ * 張圖片）」, which reads like a considerate answer and destroys a
+ * photograph.
+ *
+ * Kimi K2.6 is a 1T-parameter model (32B active) with a 262k context
+ * window, and Chinese is not an afterthought in it. Cloudflare-hosted, so
+ * this stays on the `AI` binding wrangler.jsonc already declares — no
+ * gateway, no provider credentials, nothing new to keep secret.
+ *
+ * It needs the Workers Paid plan (or prepaid AI Gateway credits); the free
+ * tier does not serve it. If the binding starts answering 4xx after a plan
+ * change, that is the first thing to check.
  */
-const MAX_INPUT_CHARS = 8_000;
+const MODEL = "@cf/moonshotai/kimi-k2.6";
+
+/**
+ * How much article the endpoint accepts, and how much reply it allows.
+ *
+ * These two are one decision, not two. The cap exists so that a member is
+ * never handed three quarters of their article with the ending missing, in
+ * a pane inviting them to press 接受 — so the output allowance has to
+ * comfortably exceed anything the input can turn into. A rewrite is about
+ * as long as what it rewrites, and Traditional Chinese runs somewhere near
+ * one token per character, so the allowance is set well above the cap
+ * rather than level with it.
+ *
+ * The old pair (8k in, 4k out) was measured against the 70B model's
+ * truncation point. Neither number means anything now: this model's context
+ * window is 262k, and the limit is the member's patience, not the model's.
+ */
+const MAX_INPUT_CHARS = 12_000;
+const MAX_OUTPUT_TOKENS = 16_000;
 
 const SYSTEM = [
   "你是一位中文越野跑與馬拉松專欄編輯。使用者會給你一篇已經寫好的文章，請潤飾它。",
@@ -92,19 +124,16 @@ export const aiImprovePostEndpoint: Endpoint = {
     }
 
     try {
-      const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      const response = await env.AI.run(MODEL, {
         messages: [
           { role: "system", content: SYSTEM },
           { role: "user", content: text },
         ],
-        max_tokens: 4_000,
+        max_tokens: MAX_OUTPUT_TOKENS,
       });
-      const improved =
-        typeof response === "object" && response && "response" in response
-          ? String((response as { response?: string }).response ?? "")
-          : String(response);
+      const improved = replyText(response).trim();
 
-      if (!improved.trim()) {
+      if (!improved) {
         throw new APIError("AI 沒有回覆內容，請稍後再試。", 502);
       }
       return Response.json({ text: improved.trim() });
