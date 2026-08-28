@@ -2,35 +2,8 @@ import type { Endpoint } from "payload";
 import { APIError } from "payload";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { lexicalParagraph, paragraphsToLexical } from "@/lib/lexical-helpers";
-
-const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 10;
-
-async function checkRateLimit(db: D1Database, key: string): Promise<void> {
-  const now = Date.now();
-  const result = await db
-    .prepare(
-      `INSERT INTO ai_rate_limits (key, count, reset_at)
-       VALUES (?1, 1, ?2)
-       ON CONFLICT(key) DO UPDATE SET
-         count = CASE
-           WHEN ai_rate_limits.reset_at < ?3 THEN 1
-           ELSE ai_rate_limits.count + 1
-         END,
-         reset_at = CASE
-           WHEN ai_rate_limits.reset_at < ?3 THEN ?2
-           ELSE ai_rate_limits.reset_at
-         END
-       RETURNING count`,
-    )
-    .bind(key, now + WINDOW_MS, now)
-    .first<{ count: number }>();
-
-  if ((result?.count ?? 1) > MAX_PER_WINDOW) {
-    throw new APIError("Too many AI requests", 429);
-  }
-}
 
 type ExpandBody = {
   title?: string;
@@ -48,24 +21,10 @@ export const aiExpandPostEndpoint: Endpoint = {
     }
 
     const { env } = await getCloudflareContext({ async: true });
-    // Counted before the body is even parsed, and that ordering is the point.
-    //
-    // It used to sit after validation, so a malformed or empty body was
-    // refused with a 400 without ever being counted — the endpoint could be
-    // hammered indefinitely as long as every request was invalid. The limit is
-    // on *asking*, not on asking correctly.
-    //
-    // That ordering also made the limit untestable anywhere it ships: reaching
-    // the counter needed a valid request, a valid request runs real inference
-    // at roughly ten seconds, and eleven of those outlast the sixty-second
-    // window — so no 429 was ever observed against a deployed origin and both
-    // specs skipped themselves there. Counting first means eleven cheap
-    // invalid requests exercise the limiter on any environment.
-    //
-    // Keyed on the user alone, not user+IP: every member gets their own AI
-    // budget regardless of network, and switching IP or User-Agent cannot
-    // reset it.
-    await checkRateLimit(env.D1, String(req.user.id));
+    // Before the body is even parsed, and shared with /ai/improve-post so a
+    // member has one AI budget rather than one per endpoint. Both reasons in
+    // src/lib/ai/rate-limit.ts.
+    await checkAiRateLimit(env.D1, String(req.user.id));
 
     let body: ExpandBody;
     try {
