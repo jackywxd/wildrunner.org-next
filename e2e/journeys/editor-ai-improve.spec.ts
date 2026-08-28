@@ -14,12 +14,17 @@ import { recordCreated } from "../helpers/created";
  * visible to a member about to press 接受 — asserting the *order* is what
  * separates them.
  *
- * Where there is no Workers AI binding — CI, and `pnpm dev` without
- * AI_IN_DEV — the endpoint answers with a stand-in that obeys the one rule
- * the model is given: marker lines through untouched, every other line
- * marked 「（已潤飾）」. That is what makes an assertion possible at all;
- * asserting on real generated prose would be asserting on something nobody
- * controls.
+ * Nothing here asserts on the improved *prose*. It cannot: against staging
+ * this runs the real model, whose output nobody controls, and locally it
+ * runs a stand-in — an earlier version asserted on the stand-in's marker
+ * and went red on the staging deploy for exactly that reason, having
+ * proved nothing about what ships. So every assertion below is a property
+ * that must hold whatever comes back: the picture is there, it is in the
+ * middle, rejecting changes nothing, and accepting installs the version
+ * that was on screen.
+ *
+ * That makes the staging run the valuable one — it is where the marker
+ * contract meets the actual model.
  */
 
 /** A 1x1 PNG. It only has to resolve and render, not show detail. */
@@ -30,7 +35,6 @@ const PNG = Buffer.from(
 
 const BEFORE = "圖片前面的段落";
 const AFTER = "圖片後面的段落";
-const IMPROVED = "（已潤飾）";
 
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/members/login", { waitUntil: "domcontentloaded" });
@@ -149,13 +153,23 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     // /api/ai/improve-post is compiled on the first click. Measured at 16.9s
     // locally against a 20s budget, which is the shape of the N-T5 flake
     // playwright.config.ts warns about.
-    test.setTimeout(budget(45_000));
+    //
+    // 60s rather than 45s so the scaled figure lands exactly on the deployed
+    // default. Anything smaller would *lower* a deployed run's budget, and
+    // this test really does take 1.6m there — the model is doing real work.
+    test.setTimeout(budget(60_000));
 
     await signIn(page);
     await page.goto(`/members/posts/${postId}`);
-    await expect(page.getByTestId("editor-content")).toContainText(BEFORE, {
-      timeout: budget(20_000),
-    });
+    const editor = page.getByTestId("editor-content");
+    await expect(editor).toContainText(BEFORE, { timeout: budget(20_000) });
+    // Wait for the picture to resolve before reading the editor's text. The
+    // upload node shows 「媒體 #5」 while it is still fetching and an `<img>`
+    // once it is not, so a snapshot taken too early differs from one taken
+    // later by the loading state alone — which read as the document having
+    // changed when nothing had.
+    await expect(editor.locator("img")).toHaveCount(1, { timeout: budget(20_000) });
+    const written = (await editor.innerText()).trim();
 
     // Nothing is compared until it is asked for.
     await expect(page.getByTestId("ai-improve-compare")).toHaveCount(0);
@@ -163,25 +177,38 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     await page.getByTestId("ai-improve-run").click();
 
     const proposal = page.getByTestId("ai-improve-proposal");
-    await expect(proposal).toBeVisible({ timeout: budget(30_000) });
+    await expect(proposal).toBeVisible({ timeout: budget(60_000) });
     // Both versions, so the member can see what changed rather than being
-    // asked to trust it.
+    // asked to trust it. The left one is still theirs, word for word.
     await expect(page.getByTestId("ai-improve-original")).toContainText(BEFORE);
-    await expect(proposal).toContainText(IMPROVED, { timeout: budget(15_000) });
+    await expect(page.getByTestId("ai-improve-original")).toContainText(AFTER);
 
     // The assertion this feature exists for. Not "an image is present" —
     // an image appended at the end is present too, and is the wrong article.
     await expect(proposal.locator("img")).toHaveCount(1, {
       timeout: budget(15_000),
     });
-    expect(await blockTags(proposal)).toEqual(["P", "IMG", "P"]);
+    // Stated as "there is prose on both sides of it" rather than as an exact
+    // block list, because how many paragraphs the model writes is the
+    // model's business and asserting on it would fail on staging for a
+    // reason that is not a defect. Where the picture sits among them is not
+    // the model's business: it is the member's.
+    const tags = await blockTags(proposal);
+    const at = tags.indexOf("IMG");
+    expect(tags.filter((tag) => tag === "IMG")).toHaveLength(1);
+    expect(at, `the picture came back first: ${tags.join(",")}`).toBeGreaterThan(0);
+    expect(
+      at,
+      `the picture came back last, which is where a lost marker puts it: ${tags.join(",")}`,
+    ).toBeLessThan(tags.length - 1);
 
     // Rejecting leaves the document alone. Not restores it — it was never
-    // changed, which is why the editor stayed mounted underneath.
+    // changed, which is why the editor stayed mounted underneath. Compared
+    // against what was on screen before, rather than against a phrase: only
+    // the whole text can tell "untouched" from "touched and put back".
     await page.getByTestId("ai-improve-reject").click();
     await expect(page.getByTestId("ai-improve-compare")).toHaveCount(0);
-    await expect(page.getByTestId("editor-content")).toContainText(BEFORE);
-    await expect(page.getByTestId("editor-content")).not.toContainText(IMPROVED);
+    expect((await editor.innerText()).trim()).toBe(written);
   });
 
   test("M-AIIMPROVE-T2: accepting replaces the document, picture included", async ({
@@ -194,7 +221,11 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     // /api/ai/improve-post is compiled on the first click. Measured at 16.9s
     // locally against a 20s budget, which is the shape of the N-T5 flake
     // playwright.config.ts warns about.
-    test.setTimeout(budget(45_000));
+    //
+    // 60s rather than 45s so the scaled figure lands exactly on the deployed
+    // default. Anything smaller would *lower* a deployed run's budget, and
+    // this test really does take 1.6m there — the model is doing real work.
+    test.setTimeout(budget(60_000));
 
     await signIn(page);
     await page.goto(`/members/posts/${postId}`);
@@ -203,15 +234,21 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     });
 
     await page.getByTestId("ai-improve-run").click();
-    await expect(page.getByTestId("ai-improve-proposal")).toBeVisible({
-      timeout: budget(30_000),
-    });
+    const proposal = page.getByTestId("ai-improve-proposal");
+    await expect(proposal).toBeVisible({ timeout: budget(60_000) });
+
+    // What the member is looking at when they press 接受. Read from the
+    // screen rather than assumed, because the wording is the model's and
+    // differs every run — the first paragraph is enough to tell the
+    // accepted version apart from the one it replaced.
+    const offered = (await proposal.locator(".article-body p").first().innerText()).trim();
+    expect(offered.length, "the AI pane offered nothing to accept").toBeGreaterThan(0);
 
     await page.getByTestId("ai-improve-accept").click();
     await expect(page.getByTestId("ai-improve-compare")).toHaveCount(0);
 
     const editor = page.getByTestId("editor-content");
-    await expect(editor).toContainText(IMPROVED, { timeout: budget(15_000) });
+    await expect(editor).toContainText(offered, { timeout: budget(15_000) });
     // The picture is in the editor, not only in the pane that offered it.
     // An accept that dropped it would look like a success and lose the file
     // on the next save.
