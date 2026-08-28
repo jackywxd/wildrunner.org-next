@@ -155,6 +155,15 @@ export const transcodeResultEndpoint: Endpoint = {
       id,
       data: {
         filename: body.key,
+        // The container always writes H.264/AAC in an .mp4 container, so
+        // after a successful run this row's old type is simply wrong: a
+        // .mov upload stayed `video/quicktime` while `filename` had already
+        // become `transcoded/<id>-1080p.mp4`. Nothing renders it today —
+        // StreamVideoPlayer uses a bare `<video src>` and lets the browser
+        // sniff — but every "is this a video" check in the app keys off
+        // this field, and the first `<source type>` anyone adds would hand
+        // Chrome a type that makes it refuse a file it can actually play.
+        mimeType: 'video/mp4',
         // Recorded once and never overwritten: a second successful run must
         // not replace the true original with the previous transcode.
         originalUrl: existing.originalUrl ?? existing.url,

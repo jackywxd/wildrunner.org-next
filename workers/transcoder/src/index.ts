@@ -258,10 +258,6 @@ export class TranscodeContainer extends Container<Env> {
       // made a member's upload terminal for a reason they could neither see
       // nor influence, and left retrying to them by hand.
       //
-      // Back to `queued` instead, where the sweep picks it up. That is safe
-      // precisely because attempts are counted on the reclaim path: a video
-      // that keeps landing here does eventually stop, rather than looping
-      // forever.
       // Two kinds of "not this video's fault", both of which used to end a
       // member's upload permanently with a message they could do nothing
       // about.
@@ -275,9 +271,26 @@ export class TranscodeContainer extends Container<Env> {
       //     and each time it reached the member as a failure email about
       //     their file.
       //
-      // Both go back to `queued` for the sweep. Safe because the reclaim
-      // path counts attempts, so a video that genuinely cannot be encoded
-      // still stops rather than looping.
+      // Both go back to `queued`, where the sweep re-dispatches them.
+      //
+      // UNBOUNDED, and deliberately stated rather than implied. An earlier
+      // version of this comment claimed the reclaim path counts attempts so
+      // a video landing here "eventually stops"; that was wrong. Reading
+      // transcodeSweep.ts: `transcodeAttempts` is incremented only in the
+      // `running` branch, via `reclaim()` on an expired lease. A row that
+      // reports `queued` is already past that branch by the time the sweep
+      // sees it, so it is re-dispatched with no increment — every 15
+      // minutes, indefinitely.
+      //
+      // That is the right behaviour for a condition that really is
+      // temporary: you want it to keep trying until a slot frees. It is the
+      // wrong behaviour if the condition becomes permanent (max_instances
+      // set to zero, an account-level limit), because nothing then bounds
+      // the retries and nothing tells anyone — the member sees 等待轉檔
+      // forever and no mail is sent. At three instances for a club posting
+      // a few videos a month that trade is fine; if it stops being fine,
+      // the fix is to count attempts on this path too, not to make the
+      // failure terminal again.
       const busy = /Maximum number of running container instances/i.test(reason)
       const signalled = /exited (137|143)\b/.test(reason)
       const transient = busy || signalled
