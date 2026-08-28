@@ -141,6 +141,34 @@ jobs:
       # this with the same value. But a secret's contents cannot be reviewed
       # or diffed, so the one setting that decides which database a build
       # writes to lives where it can be read.
+      # The transcoder is a SEPARATE Worker (workers/transcoder), and until
+      # this step existed nothing deployed it. That is not a hypothetical
+      # gap: production ran the transcoder's FIRST version for a full day
+      # after every fix had merged, because `main` moving deploys the site
+      # and nothing else. It was still carrying the unauthenticated
+      # `/transcode` handler that accepted a caller-supplied destination
+      # key — anyone who knew the hostname could overwrite any object in the
+      # production media bucket — plus the unawaited RPC that silently
+      # dropped every job. A member's upload sat in `queued` and nobody
+      # would have noticed until they asked.
+      #
+      # Deployed BEFORE the site, because the site's `TRANSCODER` service
+      # binding needs the Worker to exist.
+      #
+      # Container rollouts are not a routine cost of this step. wrangler
+      # only touches the container application when the image digest
+      # changes, and reports "No changes to be made" otherwise — so a deploy
+      # that alters only the site, or only the Worker script, leaves running
+      # containers alone. A change to the Dockerfile or transcode.sh does
+      # roll them, which SIGKILLs anything mid-encode; the lease sweep
+      # re-queues those, which is what it is for.
+      - name: Deploy transcoder to staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: workers/transcoder
+        run: npx wrangler deploy --env staging
+
       - name: Deploy to staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -295,6 +323,17 @@ jobs:
       # minute into the build — so a blind rerun of the whole command is
       # cheap enough that isolating just the build step is not worth the
       # extra moving parts.
+      # Same reasoning as the staging step above — see the long note there.
+      # Production is the top-level wrangler config, so no `--env` flag:
+      # `wrangler.jsonc` has exactly one `env` section (`staging`), and
+      # naming production explicitly is rejected outright.
+      - name: Deploy transcoder to production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: workers/transcoder
+        run: npx wrangler deploy
+
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
