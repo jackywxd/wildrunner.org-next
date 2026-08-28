@@ -1,3 +1,4 @@
+import { downscaleImage } from "@/lib/media/downscale";
 import {
   DIRECT_UPLOAD_THRESHOLD,
   completeSession,
@@ -65,11 +66,16 @@ async function processImage(mediaId: number): Promise<void> {
 }
 
 export async function uploadImageFile(file: File): Promise<number> {
-  if (await wouldExceedQuota(file.size)) {
+  // Before the quota check, not after: the whole point of shrinking is that
+  // the smaller file is what gets billed, and checking the original's size
+  // would refuse an upload that comfortably fits.
+  const shrunk = await downscaleImage(file);
+
+  if (await wouldExceedQuota(shrunk.size)) {
     throw new Error("Storage quota exceeded");
   }
 
-  const named = new File([file], timestampedName(file), { type: file.type });
+  const named = new File([shrunk], timestampedName(shrunk), { type: shrunk.type });
   const alt = defaultAltFor(named.name);
 
   if (named.size <= DIRECT_UPLOAD_THRESHOLD) {

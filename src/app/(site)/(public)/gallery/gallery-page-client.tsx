@@ -91,6 +91,41 @@ export default function GalleryPageClient({
     );
   }, [galleries, raceTaggedPhotos]);
 
+  /**
+   * Every public video, from both paths, deduped — the exact counterpart of
+   * `allPhotos` above.
+   *
+   * Its absence is what made gallery videos invisible on this page. The
+   * "all" view rendered the raw `raceTaggedVideos` prop, so a video was
+   * only ever shown here if a member had tagged it with a race; the 23
+   * videos that live in an album and carry no race tag appeared nowhere on
+   * /gallery, while the album pages showed them fine. The player's own
+   * header describes this strip as rendering "every video of every gallery"
+   * — that was the intent, and this is what makes it true.
+   *
+   * Deduped by `src` for the same reason `allPhotos` is: album membership
+   * and a race tag are two different routes to "this is public" and one
+   * upload can have both. `src` is the identifier both sources carry, and
+   * is already what `GalleryVideos` keys on.
+   *
+   * Not sorted, unlike `allPhotos`: `SiteVideo` carries no `createdAt`
+   * (see `mapGalleryVideo`), so there is nothing to sort by. Album order
+   * first, then race tags, is the same order the albums view uses.
+   */
+  const allVideos = useMemo(() => {
+    const seen = new Set<string>();
+    const combined: SiteVideo[] = [];
+    for (const video of [
+      ...galleries.flatMap((gallery) => gallery.videos ?? []),
+      ...raceTaggedVideos,
+    ]) {
+      if (seen.has(video.src)) continue;
+      seen.add(video.src);
+      combined.push(video);
+    }
+    return combined;
+  }, [galleries, raceTaggedVideos]);
+
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {
       return acc.concat(gallery.images.filter((image) => image.featured));
@@ -144,9 +179,9 @@ export default function GalleryPageClient({
 
           {view === "all" && (
             <div className="mt-8 space-y-8">
-              {raceTaggedVideos.length > 0 && (
+              {allVideos.length > 0 && (
                 <div data-testid="gallery-all-photos-videos">
-                  <GalleryVideos videos={raceTaggedVideos} compact />
+                  <GalleryVideos videos={allVideos} compact />
                 </div>
               )}
               <div data-testid="gallery-all-photos">
