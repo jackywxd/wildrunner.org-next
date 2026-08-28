@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,7 @@ import {
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
 import { AIAssistPanel } from "@/components/members/editor/AIAssistPanel";
+import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { CoverImageField } from "@/components/members/posts/CoverImageField";
 import {
   RaceRecordField,
@@ -57,6 +58,39 @@ export function PostEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<PayloadContent | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Re-read the document for the preview pane.
+   *
+   * Debounced rather than run on every keystroke: the preview re-renders the
+   * whole document, and on a long race report that is a visible stutter
+   * while typing. 300ms is under the threshold where the pane stops feeling
+   * live.
+   *
+   * A failed read keeps the previous document instead of blanking the pane.
+   * `read()` throws while an image upload is still in flight — the same
+   * condition that blocks saving — and a preview that empties itself every
+   * time a member pastes a photo would look like the photo broke it.
+   */
+  const refreshPreview = useCallback(() => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => {
+      try {
+        setPreview(editorRef.current?.read() ?? null);
+      } catch {
+        /* keep the last readable version */
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewTimer.current) clearTimeout(previewTimer.current);
+    };
+  }, []);
 
   // Nothing here autosaves, so an accidental tab close loses real work.
   // Only registered while there is something to lose: an always-on handler
@@ -141,7 +175,14 @@ export function PostEditor({
   const uploading = pending > 0 || coverUploading;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    // Widened only while previewing. A permanently wide container would make
+    // the writing column too long to read on a desktop, which is the state
+    // the editor is in almost all of the time.
+    <div
+      className={`mx-auto space-y-6 ${previewing ? "max-w-6xl" : "max-w-2xl"}`}
+      data-testid="post-editor-root"
+      data-previewing={previewing ? "true" : "false"}
+    >
       <input
         data-testid="post-title"
         value={title}
@@ -198,6 +239,28 @@ export function PostEditor({
           </span>
         )}
         <span className="flex-1" />
+        <Button
+          data-testid="post-preview-toggle"
+          variant="outline"
+          size="sm"
+          className="justify-center"
+          onClick={() => {
+            const next = !previewing;
+            setPreviewing(next);
+            // Read immediately on open rather than waiting for the next
+            // keystroke — a member who opens a preview and sees nothing has
+            // no reason to believe a later edit will fix it.
+            if (next) {
+              try {
+                setPreview(editorRef.current?.read() ?? null);
+              } catch {
+                setPreview(null);
+              }
+            }
+          }}
+        >
+          {previewing ? "關閉預覽" : "預覽"}
+        </Button>
         <Button
           data-testid="post-save-draft"
           variant="outline"
@@ -260,12 +323,43 @@ export function PostEditor({
         }}
       />
 
-      <ContentEditor
-        initialContent={initial.content}
-        handleRef={editorRef}
-        onChange={() => setDirty(true)}
-        onPendingChange={setPending}
-      />
+      <div className={previewing ? "grid gap-6 lg:grid-cols-2" : undefined}>
+        {/*
+          Hidden with CSS, never unmounted. Unmounting the composer would
+          discard the undo history and the caret, so a member who opened a
+          preview on a phone and closed it would come back to a document
+          they could no longer undo. `hidden lg:block` is what makes the
+          mobile behaviour a cover rather than a split — two columns of
+          Chinese prose at phone width are unreadable.
+        */}
+        <div className={previewing ? "hidden lg:block" : undefined}>
+          <ContentEditor
+            initialContent={initial.content}
+            handleRef={editorRef}
+            onChange={() => {
+              setDirty(true);
+              if (previewing) refreshPreview();
+            }}
+            onPendingChange={setPending}
+          />
+        </div>
+
+        {previewing && (
+          <div
+            data-testid="post-preview"
+            className="border border-border bg-background p-4 lg:max-h-[80vh] lg:overflow-y-auto"
+          >
+            <p className="mb-3 text-xs text-foreground/50">
+              預覽 — 發布後在網站上的樣子
+            </p>
+            {preview ? (
+              <ContentPreview content={preview} />
+            ) : (
+              <p className="text-sm text-foreground/40">這篇文章還沒有內容。</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

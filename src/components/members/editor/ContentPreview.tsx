@@ -1,4 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { mediaImageSrc } from "@/lib/cf-image";
+import { useMediaById } from "@/lib/members/use-media";
 import type { PayloadContent } from "@/lib/editor/serialize";
 
 type JsonNode = {
@@ -13,16 +17,21 @@ const FORMAT_STRIKETHROUGH = 4;
 const FORMAT_CODE = 16;
 
 /**
- * A read-only, dependency-free render of a converted document, so a member
- * can see "does this look like my document" before committing to
- * `createPost`.
+ * A read-only render of a member's document, used by the import flow to ask
+ * "does this look like your document" and by the editor's preview button to
+ * ask "is this what it will look like published".
  *
  * Deliberately not `PayloadRichText` (`@/components/payload-rich-text`):
  * that component's converters have no `blocks` entry, so the `Code` node
- * this importer can produce would hit its `console.error` + "unknown node"
+ * the importer can produce would hit its `console.error` + "unknown node"
  * fallback in the member's own browser — which would fail the e2e console
  * guard in `e2e/helpers/test.ts` — and it would drag `next/image` and the
- * public converter set into a route that only ever previews plain text.
+ * public converter set into a route that only previews.
+ *
+ * Started life as `ImportPreview` under posts/. It moved here when the
+ * editor needed the same thing, rather than growing a second renderer that
+ * would drift from this one: two previews of the same document disagreeing
+ * about how it looks is worse than either being imperfect.
  */
 function renderText(node: JsonNode, key: number): ReactNode {
   const format = typeof node.format === "number" ? node.format : 0;
@@ -57,6 +66,32 @@ function renderInline(nodes: JsonNode[] | undefined): ReactNode {
         return null;
     }
   });
+}
+
+/**
+ * An `upload` node holds a bare media id, so the picture has to be fetched.
+ *
+ * A component rather than inline markup because that fetch is a hook, and a
+ * hook cannot live inside the `switch` of a plain render function.
+ *
+ * Plain `<img>`, not `next/image`: this is the same reason the header gives
+ * for not reusing the public renderer, and the preview is transient — it is
+ * not worth a second image pipeline with its own layout rules to show a
+ * member what they already have on screen in the editor beside it.
+ */
+function PreviewUpload({ value }: { value: number | string }) {
+  const media = useMediaById(value);
+  const src = media ? mediaImageSrc(media) : "";
+
+  if (!src) {
+    return (
+      <span className="block border border-dashed border-border px-3 py-6 text-center text-xs text-foreground/40">
+        圖片載入中…
+      </span>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={media?.alt ?? ""} className="h-auto max-w-full" />;
 }
 
 function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
@@ -125,6 +160,15 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
           </Cell>
         );
       }
+      case "upload": {
+        const value = node.value;
+        // Only a bare id is renderable. At depth >= 1 Payload would have
+        // replaced it with the whole Media object, which never reaches here
+        // — `loadPost` reads at depth 0 — but a populated value must fall
+        // through to nothing rather than render `[object Object]`.
+        if (typeof value !== "number" && typeof value !== "string") return null;
+        return <PreviewUpload key={index} value={value} />;
+      }
       case "block": {
         const fields = node.fields as
           | { blockType?: string; code?: string; html?: string; language?: string }
@@ -152,7 +196,17 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
   });
 }
 
-export function ImportPreview({ content }: { content: PayloadContent }) {
+export function ContentPreview({
+  className,
+  content,
+}: {
+  className?: string;
+  content: PayloadContent;
+}) {
   const root = content.root as unknown as JsonNode;
-  return <div className="prose max-w-none space-y-3">{renderBlocks(root.children)}</div>;
+  return (
+    <div className={className ?? "prose max-w-none space-y-3"}>
+      {renderBlocks(root.children)}
+    </div>
+  );
 }

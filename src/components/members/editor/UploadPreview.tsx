@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useLexicalComposerContext } from "@payloadcms/richtext-lexical/lexical/react/LexicalComposerContext";
 import { useLexicalNodeSelection } from "@payloadcms/richtext-lexical/lexical/react/useLexicalNodeSelection";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@payloadcms/richtext-lexical/lexical";
 import { mergeRegister } from "@payloadcms/richtext-lexical/lexical/utils";
 import { mediaImageSrc } from "@/lib/cf-image";
-import type { Media } from "@/payload-types";
+import { useMediaById } from "@/lib/members/use-media";
 
 /**
  * Resolves a media id to something displayable inside the editor, and owns
@@ -36,8 +36,6 @@ import type { Media } from "@/payload-types";
  * the hover button is here because a member should not have to discover a
  * selection model to remove a picture.
  */
-const cache = new Map<number | string, Media>();
-
 export function UploadPreview({
   nodeKey,
   value,
@@ -49,32 +47,9 @@ export function UploadPreview({
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [media, setMedia] = useState<Media | null>(cache.get(value) ?? null);
-
-  useEffect(() => {
-    if (cache.has(value)) {
-      setMedia(cache.get(value)!);
-      return;
-    }
-    let cancelled = false;
-    fetch(`/api/media/${value}?depth=0`, {
-      credentials: "same-origin",
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body) => {
-        const doc = body as Media | null;
-        if (cancelled || !doc) return;
-        cache.set(value, doc);
-        setMedia(doc);
-      })
-      .catch(() => {
-        /* a missing image shows the fallback box below */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [value]);
+  // Shared with the preview renderer so opening a preview does not refetch
+  // every image this editor has already resolved — see use-media.ts.
+  const media = useMediaById(value);
 
   const remove = useCallback(() => {
     editor.update(() => {
