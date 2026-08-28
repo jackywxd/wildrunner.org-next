@@ -1,6 +1,15 @@
 import type { Config } from "tailwindcss";
+// `import`, not `require`. This file is ESM by its own extension and the
+// rest of its syntax, and the CommonJS call made it unloadable by anything
+// other than Tailwind's own loader — including the test that checks the
+// `font-*` classes in src/ against the faces declared here.
+// Default import with the extension spelled out: the package is CommonJS
+// and names no ESM exports, and Node's own resolver will not add `.js` for
+// you. Both are why the original `require` looked like the easier option.
+import defaultTheme from "tailwindcss/defaultTheme.js";
+import tailwindcssAnimate from "tailwindcss-animate";
 
-const { fontFamily } = require("tailwindcss/defaultTheme");
+const { fontFamily } = defaultTheme;
 
 const config = {
   darkMode: ["class"],
@@ -28,6 +37,15 @@ const config = {
       fontFamily: {
         lexend: ["var(--font-body)", ...fontFamily.sans],
         code: ["var(--font-code)", ...fontFamily.sans],
+        // `font-heading` was used in twenty-odd places and defined in none:
+        // an unknown utility is not an error in Tailwind, it is simply
+        // absent from the output, so every one of those call sites asked for
+        // the heading face and silently kept the body one. The element rule
+        // in globals.css covers real `<h1>`–`<h6>`; this is for everything
+        // else that wants the same face — the editor's title input, the
+        // quota figure, the nav labels. e2e/unit/font-utilities.spec.ts is
+        // what stops the pair drifting apart again.
+        heading: ["var(--font-heading)", ...fontFamily.sans],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -106,7 +124,7 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;
 
 export default config;
