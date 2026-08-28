@@ -130,10 +130,19 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     const pending = created.splice(0, created.length).reverse();
     if (pending.length === 0) return;
 
-    const login = await request.post("/api/users/login", {
+    // Best effort, and deliberately not asserted on. The `request` fixture
+    // still holds the cookies from the sign-in this test already did, so
+    // this is a second login for a session that already exists — a failure
+    // surface with nothing behind it. One of them answered 500 on a CI
+    // shard, with no server-side log and with the deletes right after it
+    // fine, and failed a test whose own assertions had all passed.
+    //
+    // What has to work here is the delete, so that is what fails the test.
+    // A session that really had lapsed shows up as a 401 on the line below,
+    // which says so.
+    await request.post("/api/users/login", {
       data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
     });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
 
     for (const doomed of pending) {
       const deleted = await request.delete(`/api/${doomed.collection}/${doomed.id}`);
