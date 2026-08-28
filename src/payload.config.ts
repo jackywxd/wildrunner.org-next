@@ -31,6 +31,7 @@ import { HtmlEmbedBlock } from './blocks/HtmlEmbedBlock'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
+import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
@@ -199,6 +200,7 @@ export default buildConfig({
   globals: [Site],
   endpoints: [
     aiExpandPostEndpoint,
+    aiImprovePostEndpoint,
     inviteMemberEndpoint,
     storageUsageEndpoint,
     directUploadInitEndpoint,

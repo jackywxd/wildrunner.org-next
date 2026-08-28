@@ -7,7 +7,7 @@ import {
   ContentEditor,
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
-import { AIAssistPanel } from "@/components/members/editor/AIAssistPanel";
+import { AIImprovePanel } from "@/components/members/editor/AIImprovePanel";
 import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { CoverImageField } from "@/components/members/posts/CoverImageField";
 import {
@@ -69,6 +69,8 @@ export function PostEditor({
    */
   const [unpublished, setUnpublished] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  /** The AI panel is showing its version beside the member's. */
+  const [comparing, setComparing] = useState(false);
   const [preview, setPreview] = useState<PayloadContent | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refs, not state: the autosave loop reads them from inside a timeout, and
@@ -376,28 +378,33 @@ export function PostEditor({
           </span>
         )}
         <span className="flex-1" />
-        <Button
-          data-testid="post-preview-toggle"
-          variant="outline"
-          size="sm"
-          className="justify-center"
-          onClick={() => {
-            const next = !previewing;
-            setPreviewing(next);
-            // Read immediately on open rather than waiting for the next
-            // keystroke — a member who opens a preview and sees nothing has
-            // no reason to believe a later edit will fix it.
-            if (next) {
-              try {
-                setPreview(editorRef.current?.read() ?? null);
-              } catch {
-                setPreview(null);
+        {/* Not offered while the AI comparison is open: the preview pane is
+            suppressed there, so the button would be a control that does
+            nothing — indistinguishable from one that is broken. */}
+        {!comparing && (
+          <Button
+            data-testid="post-preview-toggle"
+            variant="outline"
+            size="sm"
+            className="justify-center"
+            onClick={() => {
+              const next = !previewing;
+              setPreviewing(next);
+              // Read immediately on open rather than waiting for the next
+              // keystroke — a member who opens a preview and sees nothing has
+              // no reason to believe a later edit will fix it.
+              if (next) {
+                try {
+                  setPreview(editorRef.current?.read() ?? null);
+                } catch {
+                  setPreview(null);
+                }
               }
-            }
-          }}
-        >
-          {previewing ? "關閉預覽" : "預覽"}
-        </Button>
+            }}
+          >
+            {previewing ? "關閉預覽" : "預覽"}
+          </Button>
+        )}
         <Button
           data-testid="post-save-draft"
           variant="outline"
@@ -451,16 +458,30 @@ export function PostEditor({
         ownerId={ownerId}
       />
 
-      <AIAssistPanel
-        title={title}
-        description={description}
-        onContent={(content) => {
+      <AIImprovePanel
+        onAccept={(content) => {
           editorRef.current?.replace(content);
           setDirty(true);
+          lastEditAt.current = Date.now();
+        }}
+        onComparingChange={setComparing}
+        readDocument={() => {
+          try {
+            return editorRef.current!.read();
+          } catch {
+            // A pending upload. The panel says so; sending the document
+            // without the image would ask the model to improve an article
+            // that is missing a picture the member can see on screen.
+            return null;
+          }
         }}
       />
 
-      <div className={previewing ? "grid gap-6 lg:grid-cols-2" : undefined}>
+      <div
+        className={
+          previewing && !comparing ? "grid gap-6 lg:grid-cols-2" : undefined
+        }
+      >
         {/*
           Hidden with CSS, never unmounted. Unmounting the composer would
           discard the undo history and the caret, so a member who opened a
@@ -469,7 +490,15 @@ export function PostEditor({
           mobile behaviour a cover rather than a split — two columns of
           Chinese prose at phone width are unreadable.
         */}
-        <div className={previewing ? "hidden lg:block" : undefined}>
+        <div
+          className={
+            // Hidden outright while the two versions are being compared:
+            // the comparison is already two columns, and a third would leave
+            // no column wide enough to read. Still mounted, for the reason
+            // below.
+            comparing ? "hidden" : previewing ? "hidden lg:block" : undefined
+          }
+        >
           <ContentEditor
             initialContent={initial.content}
             handleRef={editorRef}
@@ -482,7 +511,7 @@ export function PostEditor({
           />
         </div>
 
-        {previewing && (
+        {previewing && !comparing && (
           <div
             data-testid="post-preview"
             className="border border-border bg-background p-4 lg:max-h-[80vh] lg:overflow-y-auto"
