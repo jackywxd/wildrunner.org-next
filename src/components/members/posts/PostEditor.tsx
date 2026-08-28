@@ -15,6 +15,7 @@ import {
   type LinkedRace,
 } from "@/components/members/posts/RaceRecordField";
 import { savePost, unpublishPost } from "@/lib/members/posts";
+import { nextCheckDelay, shouldAutosave } from "@/lib/members/autosave";
 import type { PayloadContent } from "@/lib/editor/serialize";
 import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import type { RaceReportOption } from "@/lib/races/report-options";
@@ -58,9 +59,22 @@ export function PostEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  /**
+   * A draft has been written since this post was published.
+   *
+   * Without it the badge says "已發布" while the live site shows something
+   * older, and the member has no way to tell. That gap did not exist before
+   * autosave — a draft write only happened when somebody pressed a button —
+   * so nothing on screen ever had to describe it.
+   */
+  const [unpublished, setUnpublished] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [preview, setPreview] = useState<PayloadContent | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Refs, not state: the autosave loop reads them from inside a timeout, and
+  // as state every keystroke would re-arm the timer it is trying to wait out.
+  const lastEditAt = useRef<number | null>(null);
+  const lastSaveAt = useRef<number | null>(null);
 
   /**
    * Re-read the document for the preview pane.
@@ -92,9 +106,12 @@ export function PostEditor({
     };
   }, []);
 
-  // Nothing here autosaves, so an accidental tab close loses real work.
-  // Only registered while there is something to lose: an always-on handler
-  // makes browsers treat the page as unload-blocking and disables the
+  // The warning stays, and is now the second line of defence rather than the
+  // only one. A dialog fires on a deliberate close as readily as an accident,
+  // does nothing when the tab crashes or a phone reclaims the page, and is
+  // dismissible — none of which is true of a saved draft. Still only
+  // registered while there is something to lose: an always-on handler makes
+  // browsers treat the page as unload-blocking and disables the
   // back/forward cache for every visit.
   useEffect(() => {
     if (!dirty) return;
@@ -103,38 +120,139 @@ export function PostEditor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  /**
+   * Write the draft without the member asking, on the timing in
+   * src/lib/members/autosave.ts.
+   *
+   * Goes through `savePost` with `publish: false` like every other
+   * non-publish write, so it lands on the draft version and the public site
+   * is untouched even when the post is already published — that guarantee
+   * is `savePost`'s, and its header names autosave as the caller it was
+   * shaped for.
+   *
+   * A failure here is deliberately quiet: `dirty` stays true, so the
+   * unload warning is still armed and the next tick tries again. Interrupting
+   * someone mid-sentence with a dialog about a network blip would be a worse
+   * failure than the one being reported.
+   */
+  const autosaveNow = useCallback(async () => {
+    let payload: ReturnType<typeof collectPayload>;
+    try {
+      payload = collectPayload();
+    } catch {
+      return;
+    }
+
+    setBusy(true);
+    const result = await savePost(initial.id, payload, { publish: false });
+    setBusy(false);
+    if (!result.ok) {
+      setMessage("自動儲存失敗，稍後會再試");
+      return;
+    }
+    setDirty(false);
+    lastSaveAt.current = Date.now();
+    setUnpublished(status === "published");
+    setMessage("已自動儲存");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.id, status, title, slug, description, cover, race]);
+
+  useEffect(() => {
+    if (!dirty) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      if (cancelled) return;
+      const state = {
+        busy,
+        dirty,
+        lastEditAt: lastEditAt.current,
+        lastSaveAt: lastSaveAt.current,
+        uploading: pending > 0 || coverUploading,
+      };
+      const now = Date.now();
+      if (shouldAutosave(state, now)) {
+        void autosaveNow();
+        return;
+      }
+      // Ask again when the nearest condition could have changed, rather than
+      // polling — see nextCheckDelay.
+      timer = setTimeout(tick, nextCheckDelay(state, now));
+    };
+
+    timer = setTimeout(tick, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [autosaveNow, busy, coverUploading, dirty, pending]);
+
+  /**
+   * One last write when the page goes away.
+   *
+   * `visibilitychange` rather than `beforeunload`: it is the event that
+   * actually fires when a phone backgrounds a tab or the OS reclaims it,
+   * which is the case the idle timer cannot cover — the member is not
+   * pausing, they are gone. Nothing awaits it; the browser may not give the
+   * page another frame.
+   */
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState !== "hidden") return;
+      if (!dirty || busy || pending > 0 || coverUploading) return;
+      void autosaveNow();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [autosaveNow, busy, coverUploading, dirty, pending]);
+
+  /**
+   * Everything a write sends.
+   *
+   * Shared by the buttons and the autosave loop so the two cannot drift
+   * apart — an autosave that assembled its own payload would be the obvious
+   * place for a field to be forgotten, and forgetting one here means
+   * silently reverting it.
+   *
+   * Lets `read()` throw rather than swallowing it, because the two callers
+   * want opposite things from that failure: a member who pressed 儲存 needs
+   * to be told why nothing happened, and the autosave loop must say nothing
+   * at all and wait for the upload to finish.
+   */
+  function collectPayload() {
+    return {
+      title,
+      slug,
+      description,
+      content: editorRef.current!.read(),
+      // Both always sent, including as `null`. Omitting a key when nothing
+      // is linked would make "remove" impossible to express — the field
+      // would simply keep whatever was already stored. See PostPayload.
+      // `image` was previously never sent at all, which is why an existing
+      // cover survived every save; now that the member can clear one, the
+      // absent-means-keep behaviour is no longer enough.
+      image: cover,
+      raceRecord: race ? race.recordId : null,
+    };
+  }
+
   async function write(publish: boolean) {
     setBusy(true);
     setMessage("");
     setFieldErrors({});
 
-    let content: PayloadContent;
+    let payload: ReturnType<typeof collectPayload>;
     try {
-      content = editorRef.current!.read();
+      payload = collectPayload();
     } catch (error) {
       setMessage((error as Error).message);
       setBusy(false);
       return;
     }
 
-    const result = await savePost(
-      initial.id,
-      {
-        title,
-        slug,
-        description,
-        content,
-        // Both always sent, including as `null`. Omitting a key when
-        // nothing is linked would make "remove" impossible to express — the
-        // field would simply keep whatever was already stored. See
-        // PostPayload. `image` was previously never sent at all, which is
-        // why an existing cover survived every save; now that the member can
-        // clear one, the absent-means-keep behaviour is no longer enough.
-        image: cover,
-        raceRecord: race ? race.recordId : null,
-      },
-      { publish },
-    );
+    const result = await savePost(initial.id, payload, { publish });
     setBusy(false);
 
     if (!result.ok) {
@@ -143,6 +261,9 @@ export function PostEditor({
       return;
     }
     setDirty(false);
+    lastSaveAt.current = Date.now();
+    // A draft write on a published post leaves the live version behind.
+    setUnpublished(publish ? false : status === "published");
 
     // Publishing is the act that finishes a post, so it returns to the list
     // the way every mainstream editor does. Saving a draft is the opposite —
@@ -189,6 +310,7 @@ export function PostEditor({
         onChange={(e) => {
           setTitle(e.target.value);
           setDirty(true);
+          lastEditAt.current = Date.now();
         }}
         placeholder="無標題"
         className="w-full border-none bg-transparent font-heading text-3xl font-semibold outline-none placeholder:text-foreground/30"
@@ -203,6 +325,7 @@ export function PostEditor({
             onChange={(e) => {
               setSlug(e.target.value);
               setDirty(true);
+              lastEditAt.current = Date.now();
             }}
             className="border border-input bg-background px-3 py-2 text-sm"
           />
@@ -221,6 +344,7 @@ export function PostEditor({
             onChange={(e) => {
               setDescription(e.target.value);
               setDirty(true);
+              lastEditAt.current = Date.now();
             }}
             className="border border-input bg-background px-3 py-2 text-sm"
           />
@@ -232,6 +356,19 @@ export function PostEditor({
           {status === "published" ? "已發布" : "草稿"}
         </span>
         {dirty && <span data-testid="post-dirty">未儲存的變更</span>}
+        {/*
+          The fact autosave introduced. A draft write on a published post
+          leaves the live site showing the older version, and "已發布" alone
+          would let a member believe their edits are out there. Shown
+          alongside "未儲存的變更" rather than instead of it: they are
+          different facts — one is "not saved anywhere", the other is "saved,
+          but not what readers see".
+        */}
+        {unpublished && (
+          <span data-testid="post-unpublished" className="text-foreground/70">
+            有未發布的變更
+          </span>
+        )}
         {uploading && <span data-testid="post-uploading">圖片上傳中…</span>}
         {message && (
           <span data-testid="post-message" className="text-foreground/70">
@@ -338,6 +475,7 @@ export function PostEditor({
             handleRef={editorRef}
             onChange={() => {
               setDirty(true);
+              lastEditAt.current = Date.now();
               if (previewing) refreshPreview();
             }}
             onPendingChange={setPending}
