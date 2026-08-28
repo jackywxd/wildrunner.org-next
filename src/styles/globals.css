@@ -123,3 +123,115 @@ h6 {
 .editor-table-cell-resizer:hover {
   background: hsl(var(--primary));
 }
+
+/* Long-form article typography.
+ *
+ * `.article-body` is the one definition of what a member's document looks
+ * like once it is read rather than edited, and it exists because there was
+ * none. The public post page carried `prose prose-neutral dark:prose-invert`,
+ * but `@tailwindcss/typography` has never been a dependency of this repo —
+ * `git log -S` finds no commit that added it — so all three were class names
+ * matching no rule. Preflight, meanwhile, resets every heading to
+ * `font-size: inherit; font-weight: inherit`. Measured on a published post
+ * before this block existed: h1, h2, h3 and p all came back at 15px/400,
+ * `<ul>`/`<ol>` at `list-style-type: none` with no padding, and
+ * `<blockquote>` with no border — so a published article was a single
+ * undifferentiated column of text while the editor showed it correctly.
+ *
+ * Selectors are on elements rather than classes because none of the three
+ * renderers puts a class on what it emits: the vendor JSX converters
+ * (`payload-rich-text.tsx`) produce bare `<h1>`/`<p>`/`<blockquote>` — read
+ * off the served HTML, not assumed — and adding a converter per node type
+ * to attach one would be a second definition to keep in step.
+ *
+ * The scale deliberately matches `src/components/members/editor/theme.ts`,
+ * which is what the editing surface uses and cannot use this (Lexical hangs
+ * classes on nodes it creates). Two definitions of one scale is a drift
+ * risk, so M-TYPO-T2 measures both and fails if they disagree.
+ */
+.article-body h1 {
+  @apply mb-3 mt-8 text-3xl font-semibold;
+}
+.article-body h2 {
+  @apply mb-2 mt-6 text-2xl font-semibold;
+}
+.article-body h3 {
+  @apply mb-2 mt-5 text-xl font-semibold;
+}
+.article-body h4 {
+  @apply mb-2 mt-4 text-lg font-semibold;
+}
+.article-body h5 {
+  @apply mb-1 mt-3 text-base font-semibold;
+}
+.article-body h6 {
+  @apply mb-1 mt-3 text-sm font-semibold;
+}
+.article-body p {
+  @apply mb-3 leading-relaxed;
+}
+.article-body ul {
+  @apply mb-3 list-disc space-y-1 pl-6;
+}
+.article-body ol {
+  @apply mb-3 list-decimal space-y-1 pl-6;
+}
+.article-body li {
+  @apply leading-relaxed;
+}
+/* Lexical nests a sublist inside its parent `<li>`, so that item is a
+   container rather than a line of its own — a marker beside it reads as an
+   empty bullet above the indented list. */
+.article-body li > ul,
+.article-body li > ol {
+  @apply mb-0 mt-1;
+}
+.article-body blockquote {
+  @apply my-4 border-l-2 border-primary pl-4 text-foreground/70;
+}
+.article-body a {
+  @apply text-primary underline underline-offset-4;
+}
+.article-body code {
+  @apply bg-secondary px-1 py-0.5 font-code text-[0.9em];
+}
+.article-body pre {
+  @apply my-4 overflow-x-auto bg-secondary p-4 text-sm;
+}
+/* The block already carries the background and padding; the `<code>` inside
+   it must not draw a second one. */
+.article-body pre code {
+  @apply bg-transparent p-0;
+}
+.article-body table {
+  @apply my-4 w-full border-collapse;
+}
+.article-body th,
+.article-body td {
+  @apply border border-border px-3 py-2 align-top;
+}
+.article-body th {
+  @apply bg-secondary font-semibold;
+}
+/* Cell contents are wrapped in a paragraph by Lexical. The margin that
+   separates two paragraphs in the body only adds slack inside a cell. */
+.article-body th > p:last-child,
+.article-body td > p:last-child {
+  @apply mb-0;
+}
+/* Named by the vendor converter, read off the served HTML. Without it a wide
+   table pushes the whole page sideways on a phone. */
+.article-body .lexical-table-container {
+  @apply my-4 overflow-x-auto;
+}
+/* The wrapper already carries the block spacing; the table repeating it
+   doubles the gap above and below. */
+.article-body .lexical-table-container > table {
+  @apply my-0;
+}
+.article-body hr {
+  @apply my-8 border-t border-border;
+}
+.article-body img {
+  @apply my-4;
+}
