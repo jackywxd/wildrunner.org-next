@@ -202,6 +202,34 @@ export const Media: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    /**
+     * When the unused-media sweep first found nothing referencing this file.
+     *
+     * NULL means "not currently marked", which is both the starting state
+     * and what the sweep writes back the moment a marked file is used
+     * again — so a member who reinstates a photo during the grace period
+     * simply stops being warned, with nothing to undo.
+     *
+     * The date is what makes the deletion two-stage rather than immediate:
+     * the run that finds a file unused only records this and mails the
+     * owner, and a later run removes it once GRACE_MS has passed. See
+     * src/lib/media/unused.ts for the policy and src/endpoints/
+     * unusedMediaSweep.ts for what drives it.
+     *
+     * Read-only in the admin like every other field the sweep owns. A date
+     * an admin could type would be a deletion date an admin could bring
+     * forward by accident.
+     */
+    {
+      name: 'unusedSince',
+      type: 'date',
+      label: { en: 'Unused since', 'zh-TW': '未使用起算日' },
+      admin: {
+        readOnly: true,
+        description: 'Set by the weekly sweep. Cleared as soon as something references this file again.',
+        position: 'sidebar',
+      },
+    },
     {
       name: 'blurDataURL',
       type: 'textarea',

@@ -23,6 +23,25 @@ export const Users: CollectionConfig = {
     },
   },
   auth: {
+    /**
+     * 30 days, against Payload's 7200-second default.
+     *
+     * One value drives three things that have to agree: the JWT's `exp`,
+     * the cookie's `Expires`, and the `expiresAt` of the row this login
+     * adds to `users.sessions` (`useSessions` defaults to true). Setting it
+     * here is the only way to move all three together.
+     *
+     * It is an *absolute* expiry, not a sliding one. Payload can renew a
+     * session — `/api/users/refresh-token` pushes all three forward — but
+     * nothing in the members area calls it: the login page posts to
+     * /api/users/login and that is the last auth request of the session.
+     * (/admin does renew, which is why the 2-hour default was only ever
+     * felt by members and never by an admin.) So a member is signed out 30
+     * days after logging in however active they have been in between, and
+     * making that a rolling window means adding the refresh call — not
+     * raising this number.
+     */
+    tokenExpiration: 60 * 60 * 24 * 30,
     forgotPassword: {
       // No `expiration` here on purpose: a value set on the collection wins
       // over the per-call argument, and the invite endpoint needs to ask for

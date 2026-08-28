@@ -241,6 +241,10 @@ export interface Media {
    * Size and edge digest, used to spot a repeat upload.
    */
   contentFingerprint?: string | null;
+  /**
+   * Set by the weekly sweep. Cleared as soon as something references this file again.
+   */
+  unusedSince?: string | null;
   blurDataURL?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -705,6 +709,7 @@ export interface MediaSelect<T extends boolean = true> {
   originalUrl?: T;
   originalFilesize?: T;
   contentFingerprint?: T;
+  unusedSince?: T;
   blurDataURL?: T;
   updatedAt?: T;
   createdAt?: T;
