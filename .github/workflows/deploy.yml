@@ -295,18 +295,49 @@ jobs:
       # minute into the build — so a blind rerun of the whole command is
       # cheap enough that isolating just the build step is not worth the
       # extra moving parts.
+      #
+      # `set -o pipefail` is not decoration. `if pnpm deploy:prod | tee log`
+      # tests the *pipeline's* status, which without it is `tee`'s, which is
+      # always 0 — so the `if` branch was taken on attempt 1 no matter what
+      # the build did. Verified in a shell, not reasoned about: a loop of
+      # this exact shape over `false | tee` reports "the if branch was taken"
+      # and exits 0.
+      #
+      # Two consequences, both live until now. The retry loop below was dead
+      # code: attempt 2 was unreachable. And a *failed build* was reported as
+      # a successful deploy — run 33212001515 went red only because the smoke
+      # check afterwards happened to notice, and would have been green if the
+      # site had answered 200 while nothing had been deployed.
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # One worker for "Collecting page data", the same value
+          # .github/workflows/e2e.yml sets and next.config.ts's `cpus`
+          # comment prescribes.
+          #
+          # Run 33212001515 built with three and D1 answered "Your account is
+          # generating too much load on D1 DBs. Please back off and try again
+          # later." That limit is account-wide, so three workers each booting
+          # Payload against remote production D1 is the load, and this job
+          # starts moments after `verify-staging` has spent five minutes
+          # working the same account's staging database.
+          NEXT_BUILD_CPUS: "1"
         run: |
+          set -o pipefail
           for attempt in 1 2 3; do
             if pnpm deploy:prod 2>&1 | tee deploy-prod.log; then
               exit 0
             fi
-            if [ "$attempt" -lt 3 ] && grep -q 'D1_ERROR: Failed to parse body as JSON' deploy-prod.log; then
-              echo "::warning::deploy:prod attempt $attempt hit the transient D1 remote-binding error, retrying"
-              sleep 20
+            # Two signatures retry, both of them the edge saying "not now"
+            # rather than "not ever": the unparseable body documented above,
+            # and D1's own back-off, whose message asks for exactly this.
+            # Anything else — a TypeScript error, a real migration problem,
+            # wrangler rejecting a bad flag — still exits on the first
+            # attempt rather than burning two more build cycles.
+            if [ "$attempt" -lt 3 ] && grep -qE 'D1_ERROR: Failed to parse body as JSON|too much load on D1' deploy-prod.log; then
+              echo "::warning::deploy:prod attempt $attempt hit a transient D1 condition, retrying"
+              sleep 60
               continue
             fi
             echo "::error::deploy:prod failed on attempt $attempt"
