@@ -78,11 +78,16 @@ export const aiImprovePostEndpoint: Endpoint = {
 
     if (!useAI) {
       // Not a mock of the model — a stand-in for it that obeys the one rule
-      // the model is given, so the flow around it can be tested where there
-      // is no Workers AI binding (CI, and `pnpm dev` without AI_IN_DEV).
-      // Marker lines through untouched, every other line visibly changed, so
-      // a test can tell an improved document from the original without
-      // asserting on prose nobody controls.
+      // the model is given, so the whole flow works where there is no
+      // Workers AI binding: CI's local suite, and `pnpm dev` without
+      // AI_IN_DEV. Marker lines through untouched, every other line visibly
+      // changed, so a person opening the panel in dev can see at a glance
+      // that a different document came back.
+      //
+      // No test asserts on 「（已潤飾）」. One did, and went red on the
+      // staging deploy — where the real model runs — having proved nothing
+      // about what ships. M-AIIMPROVE asserts only properties that hold
+      // whatever comes back.
       return Response.json({ text: stubImprove(text), stub: true });
     }
 
