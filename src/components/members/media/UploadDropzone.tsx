@@ -14,6 +14,7 @@ import {
   uploadParts,
 } from "@/lib/direct-upload";
 import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
+import { downscaleImage } from "@/lib/media/downscale";
 import { Button } from "@/components/ui/button";
 import type { SiteRaceEditionOption } from "@/lib/content-types";
 
@@ -88,8 +89,15 @@ export function UploadDropzone({
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   }
 
-  async function uploadOne(index: number, chosen: File) {
+  async function uploadOne(index: number, picked: File) {
     patchItem(index, { status: "checking", percent: 0, message: "" });
+
+    // Shrink first, so everything downstream describes the file that will
+    // actually be stored: the fingerprint below is of the stored bytes, and
+    // the quota `enforceStorageQuota` bills is the stored size. Fingerprinting
+    // the original would also make the same photo look new after a change to
+    // MAX_EDGE. A file that needs no resizing comes back unchanged.
+    const chosen = await downscaleImage(picked);
 
     // Before any bytes move. A member who picked the same 400 MB clip twice
     // should learn that now, not after waiting for the second copy to

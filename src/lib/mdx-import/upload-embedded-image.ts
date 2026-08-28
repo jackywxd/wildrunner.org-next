@@ -1,3 +1,5 @@
+import { downscaleImage } from "@/lib/media/downscale";
+
 import type { EmbeddedImageUploader } from "./resolve-embedded-images";
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -26,8 +28,13 @@ export const uploadEmbeddedImage: EmbeddedImageUploader = async ({ alt, bytes, m
     type: mimeType,
   });
 
+  // Same cap as the other two upload paths. An imported document's images
+  // are as likely to be full-size camera output as a member's own, and they
+  // are billed against the same quota by the same hook.
+  const shrunk = await downscaleImage(file);
+
   const body = new FormData();
-  body.set("file", file);
+  body.set("file", shrunk);
   body.set("_payload", JSON.stringify({ alt }));
 
   const response = await fetch("/api/media", {
