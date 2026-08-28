@@ -320,3 +320,97 @@ jobs:
             echo "$path -> $code"
             [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
           done
+
+  # Its own job, deliberately, and not a step inside `staging`.
+  #
+  # As a step it was the LAST thing before `Deploy to staging`, so when it
+  # failed the site never deployed either — and `verify-staging` and the whole
+  # production chain were skipped behind it. That is exactly what happened on
+  # its first two runs: `wrangler` builds the image fine, then calls
+  # GET /accounts/<id>/containers/me for registry credentials and gets 403
+  # `Authentication error`, because the CI token has no Containers permission.
+  # Deploying by hand never hit it — a local OAuth login has it. Two merges
+  # (#73, #74) sat undeployed on `main` for that reason alone.
+  #
+  # A separate Worker's deploy must not be able to hold the site hostage. Red
+  # here is loud and specific; it just no longer stops anything else.
+  #
+  # These no longer run before the site. The ordering only ever mattered for
+  # the very first deploy, when the site's TRANSCODER binding had nothing to
+  # point at — and if that were ever true again, the site's own deploy would
+  # fail on the missing script and say so.
+  transcoder-staging:
+    name: Deploy transcoder (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # No package.json under workers/transcoder — `npx wrangler` resolves
+      # the pinned wrangler from the repo root's node_modules, so the install
+      # is not optional even though nothing here imports the site's code.
+      - run: pnpm install --frozen-lockfile
+
+      # The transcoder is a SEPARATE Worker (workers/transcoder), and until
+      # this step existed nothing deployed it. That is not a hypothetical
+      # gap: production ran the transcoder's FIRST version for a full day
+      # after every fix had merged, because `main` moving deploys the site
+      # and nothing else. It was still carrying the unauthenticated
+      # `/transcode` handler that accepted a caller-supplied destination
+      # key — anyone who knew the hostname could overwrite any object in the
+      # production media bucket — plus the unawaited RPC that silently
+      # dropped every job. A member's upload sat in `queued` and nobody
+      # would have noticed until they asked.
+      #
+      # Container rollouts are not a routine cost of this step. wrangler
+      # only touches the container application when the image digest
+      # changes, and reports "No changes to be made" otherwise — so a deploy
+      # that alters only the site, or only the Worker script, leaves running
+      # containers alone. A change to the Dockerfile or transcode.sh does
+      # roll them, which SIGKILLs anything mid-encode; the lease sweep
+      # re-queues those, which is what it is for.
+      - name: Deploy transcoder to staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: workers/transcoder
+        run: npx wrangler deploy --env staging
+
+  # Gated exactly as the site's production deploy is: staging deployed,
+  # then E2E green against it. Plus its own staging deploy, so production
+  # never gets an image staging refused.
+  transcoder-production:
+    name: Deploy transcoder (production)
+    needs: [transcoder-staging, verify-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # No package.json under workers/transcoder — `npx wrangler` resolves
+      # the pinned wrangler from the repo root's node_modules, so the install
+      # is not optional even though nothing here imports the site's code.
+      - run: pnpm install --frozen-lockfile
+
+      # Same reasoning as the staging step above — see the long note there.
+      # Production is the top-level wrangler config, so no `--env` flag:
+      # `wrangler.jsonc` has exactly one `env` section (`staging`), and
+      # naming production explicitly is rejected outright.
+      - name: Deploy transcoder to production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: workers/transcoder
+        run: npx wrangler deploy

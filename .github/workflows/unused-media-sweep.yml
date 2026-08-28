@@ -1,0 +1,86 @@
+name: Unused media sweep
+
+# Marks media that nothing has referenced for over a year, mails the owner,
+# and deletes it four weeks later if it is still unused.
+# src/endpoints/unusedMediaSweep.ts has the mechanics.
+#
+# Weekly, and the cadence is part of the safety rather than a cost decision.
+# The grace period is 28 days (GRACE_MS), so a weekly run means a marked file
+# is seen by four sweeps before it can be deleted and its owner has four
+# weeks to act. Running it daily would not delete anything sooner — the grace
+# period decides that — it would only multiply the number of runs able to
+# make a mistake.
+#
+# `apply=true` is passed explicitly because the endpoint dry-runs without it.
+# That default is deliberate (see its header): this is the only scheduled job
+# in the repo that destroys data, so the URL has to be safe to open by hand.
+# Removing `?apply=true` from the curl below turns this workflow into a
+# report, which is the right first move if the numbers ever look wrong.
+#
+# Not a Cloudflare Cron Trigger, for the same reason transcode-sweep and
+# race-schedule-maintenance are not: that needs a `scheduled` handler
+# exported from the Worker, and OpenNext generates the entrypoint.
+on:
+  schedule:
+    # 03:00 UTC Monday — a quiet hour for the site, and early enough in the
+    # week that somebody is around to notice a mail about their photos.
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Sweep unused media
+        env:
+          RACE_MAINTENANCE_SECRET: ${{ secrets.RACE_MAINTENANCE_SECRET }}
+        run: |
+          # Skipped rather than failed when unset, following
+          # transcode-sweep.yml. Unlike that one, nothing degrades while this
+          # is off: files simply keep accumulating, which is the state the
+          # site has been in all along.
+          if [ -z "$RACE_MAINTENANCE_SECRET" ]; then
+            echo "::warning::RACE_MAINTENANCE_SECRET is not set — skipping. Unused media will NOT be collected until it is configured."
+            {
+              echo '## Unused media sweep — skipped'
+              echo
+              echo '`RACE_MAINTENANCE_SECRET` is not configured.'
+              echo
+              echo 'To enable: `wrangler secret put RACE_MAINTENANCE_SECRET`,'
+              echo 'then add the same value to this repo'"'"'s Actions secrets.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -X POST 'https://wildrunner.org/api/members/media/unused-sweep?apply=true' \
+            -H "X-Maintenance-Secret: $RACE_MAINTENANCE_SECRET")
+
+          echo "HTTP $code"
+          cat "$body"
+
+          if [ "$code" != "200" ]; then
+            echo "::error::unused media sweep returned $code"
+            exit 1
+          fi
+
+          # Always summarised, unlike the transcode sweep. That one runs 96
+          # times a day and a summary per run would bury the interesting
+          # ones; this runs weekly and every run deletes files or explains
+          # why it did not, which is worth a permanent record either way.
+          {
+            echo '## Unused media sweep'
+            echo '```json'
+            cat "$body"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A run that could not tell somebody their files are going is a run
+          # that has scheduled a silent deletion. Surfaced as a warning rather
+          # than a failure: the marks are already written and correct, and a
+          # red run would suggest re-running, which cannot un-mark anything.
+          if grep -q '"notifyFailed":[1-9]' "$body"; then
+            echo "::warning::some owners could not be notified — see notifyFailed in the output above"
+          fi
