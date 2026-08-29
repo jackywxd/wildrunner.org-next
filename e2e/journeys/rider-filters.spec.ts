@@ -17,26 +17,35 @@ import { expect, test } from "../helpers/test";
  * The `goto` is here too, as the *second* half — that is the shareable-URL
  * claim, not a substitute for the first.
  *
- * WAITS FOR THE TRANSITION TO SETTLE, IN TWO STEPS, and the second step is
- * the one that is easy to get wrong. The site crossfades between pages, so
- * for the length of the transition *both* copies are mounted and every
- * `data-testid` resolves to two elements — which is how the first version
- * of RF-T1 failed: the chip locator found one node without `aria-current`
- * and one with. `visitor.spec` hit the same window on the race-schedule
- * toggle and its comment carries the measurement, about 350ms.
+ * WAITING FOR THE PAGE TO STOP BEING TWO PAGES, which took three attempts
+ * to get right and is the reason this comment is long.
  *
- * The obvious repair — wait for the container count to be 1 — is wrong on
- * its own, and was tried here. Immediately after a click the *old* page is
- * still the only one mounted, so the count is already 1 and the wait
- * returns before the transition has even begun. The second version failed
- * identically to the first.
+ * The site crossfades between pages, so for the length of a transition
+ * *both* copies are mounted and every locator resolves to two elements.
+ * `visitor.spec` hit the same window on the race-schedule toggle and its
+ * comment carries a measurement, about 350ms.
  *
- * So the wait is monotonic in both directions: first that the new page has
- * arrived, by the chip that should end up selected carrying `aria-current`
- * (0 → 1, and never 1 before the click), then that the old page has left,
- * by the container count (2 → 1). Its twin in visitor.spec waits on a
- * different testid; if a third spec needs one, they should become a helper
- * rather than three copies.
+ * Two repairs failed, and they failed for the same underlying reason —
+ * each was a condition that is *also* true at a moment when nothing has
+ * happened yet:
+ *
+ *   1. "Wait for the container count to be 1" after a click. Immediately
+ *      after a click the old page is still the only one mounted, so the
+ *      count is already 1 and the wait returns before the transition has
+ *      begun.
+ *   2. "Wait for the chip that will be selected to carry `aria-current`,
+ *      then for the count to be 1." That survived locally and died against
+ *      staging on a *cold load*, where there is no old page: the server
+ *      renders one copy, the wait passes, and the second copy appears when
+ *      hydration mounts the transition. The count goes 1 → 2 → 1, not
+ *      2 → 1, so a single check of "is it 1" can land before the 2.
+ *
+ * `member-races.spec`'s `badgeCount` had already recorded this exact
+ * window — "domcontentloaded fires before hydration finishes, so a single
+ * count taken right after it can land inside that window" — and rides it
+ * out by requiring two consecutive reads to agree. That is what this does
+ * now, plus requiring the agreed value to be 1. No fixed delay, and no
+ * condition that is satisfiable before the thing being waited for exists.
  *
  * SEVERAL BADGES MEAN ALL OF THEM. RF-T4 is the one a single-select
  * version of this feature would have passed unchanged, so it is the one
@@ -61,7 +70,44 @@ const chipFor = (page: import("@playwright/test").Page, badge: string) =>
   page.locator(`[data-badge="${badge}"]`);
 
 /**
- * Waits for the crossfade to finish, in both directions — see the header.
+ * How long the row must be a single row before it counts as settled.
+ *
+ * A duration, not a guess at *when*: visitor.spec measured the crossfade at
+ * about 350ms, so six samples at 100ms is comfortably longer than one
+ * transition. Two agreeing reads — the technique member-races.spec uses for
+ * the hydration window — is not enough here, because two samples 100ms
+ * apart can both land in the gap before the second copy mounts.
+ */
+const STABLE_SAMPLES = 6;
+
+/**
+ * Waits until the filter row has stopped being two filter rows — see the
+ * header for the ways of getting this wrong.
+ */
+const settled = async (page: import("@playwright/test").Page) => {
+  const row = page.getByTestId("rider-filters");
+  let stable = 0;
+  for (let attempt = 0; attempt < 80; attempt++) {
+    if ((await row.count()) === 1) {
+      stable += 1;
+      if (stable >= STABLE_SAMPLES) return;
+    } else {
+      stable = 0;
+    }
+    await page.waitForTimeout(100);
+  }
+  throw new Error("the filter row never settled to a single copy");
+};
+
+/**
+ * The selection the test asked for has arrived, and the page has stopped
+ * being two pages. IN THAT ORDER, and the order is the whole thing.
+ *
+ * Settling first is what broke the previous version: right after a click
+ * the old page is still the only one mounted, so "one row" is already true
+ * and the wait returns before the new page exists. Waiting for the selected
+ * chip first cannot be satisfied early — no chip carries it until the new
+ * page renders — and only then is the count worth watching.
  */
 const settledOn = async (
   page: import("@playwright/test").Page,
@@ -70,9 +116,7 @@ const settledOn = async (
   await expect(page.locator(`${selector}[aria-current="true"]`)).toHaveCount(1, {
     timeout: budget(15_000),
   });
-  await expect(page.getByTestId("rider-filters")).toHaveCount(1, {
-    timeout: budget(15_000),
-  });
+  await settled(page);
 };
 
 test.describe("RF filtering riders by badge", () => {
@@ -156,6 +200,10 @@ test.describe("RF filtering riders by badge", () => {
     await page.goto("/riders?badge=not-a-real-badge", {
       waitUntil: "domcontentloaded",
     });
+    // No chip is selected here, so there is no `aria-current` to wait on —
+    // but the two-copies window is the same, and `rider-empty` resolving to
+    // two nodes would fail on strict mode rather than on what it checks.
+    await settled(page);
 
     await expect(page.getByTestId("rider-card")).toHaveCount(0);
     await expect(page.getByTestId("rider-empty")).toHaveText(
