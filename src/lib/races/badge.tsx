@@ -15,14 +15,15 @@ import {
   BADGE_VIEWBOX,
   BADGE_YEAR_MIN_SIZE,
 } from "./badge-contract";
-import { renderBadgeArt } from "./badge-art";
+import { renderBadgeArt, renderSixMajorsArt } from "./badge-art";
+import type { BadgeArtRenderer } from "./badge-contract";
 import { badgeToken } from "./design-tokens";
 import type { BadgeDistance, BadgeEvent } from "./badge-source";
 import {
   SIX_MAJORS_BADGE_EVENT,
-  SIX_MAJORS_BAND_ZH,
+  SIX_MAJORS_BAND,
   SIX_MAJORS_ID,
-  SIX_MAJORS_LABEL_ZH,
+  SIX_MAJORS_TITLE,
 } from "./six-majors";
 import { cn } from "@/lib/utils";
 
@@ -31,11 +32,18 @@ export type RaceBadgeProps = {
   /** Resolved by the caller — see badge-source.ts for why. */
   distance: BadgeDistance;
   event: BadgeEvent;
+  /**
+   * Draws the interior. Defaults to the race artwork; `SixMajorsBadge` below
+   * passes its own, because an achievement is not a place and the terrain
+   * renderer has nothing true to say about it. Both come from the artwork
+   * track — this prop is the seam, not an invitation to draw here.
+   */
+  renderArt?: BadgeArtRenderer;
   size?: number;
   /**
    * Overrides the accessible name. Only for badges that are not one race —
-   * `SixMajorsBadge` below would otherwise announce itself as
-   * "六大馬拉松 — 六大 2024", saying the same thing twice.
+   * `SixMajorsBadge` would otherwise announce itself as
+   * "Six Star Finisher — 6★ 2024", saying the same thing twice.
    */
   title?: string;
   year: number;
@@ -45,6 +53,7 @@ export function RaceBadge({
   className,
   distance,
   event,
+  renderArt = renderBadgeArt,
   size = 64,
   title: titleOverride,
   year,
@@ -71,7 +80,7 @@ export function RaceBadge({
     >
       <title>{title}</title>
 
-      {renderBadgeArt(token, size)}
+      {renderArt(token, size)}
 
       {/* Distance band. Structure, not artwork — the label has to sit in a
           known place for the layout to stay predictable across 65 designs. */}
@@ -111,13 +120,13 @@ export function RaceBadge({
  * Six Star: all six Abbott World Marathon Majors, and the year of the sixth.
  *
  * Built out of `RaceBadge` rather than drawn separately, so it inherits the
- * frame, the band and the `data-*` the tests key on, and so the artwork
- * track can give `six-majors` its own motif later without the functional
- * track changing a line — that is what badge-contract.ts's split is for.
+ * frame, the band and the `data-*` the tests key on — but it passes its own
+ * art, because the terrain renderer draws places and this is not one.
  *
- * The band reads 「六大」 where a race badge reads its distance. That is the
- * honest substitution: this badge's subject is a set of races, and no single
- * distance describes it.
+ * The band reads `6★` where a race badge reads its distance: this badge's
+ * subject is a set of races, and no single distance describes it. Latin
+ * rather than 「六大」 because a badge travels — screenshotted and pasted
+ * somewhere with none of this site around it.
  */
 export function SixMajorsBadge({
   className,
@@ -131,10 +140,11 @@ export function SixMajorsBadge({
   return (
     <RaceBadge
       className={className}
-      distance={{ id: SIX_MAJORS_ID, label: SIX_MAJORS_BAND_ZH }}
+      distance={{ id: SIX_MAJORS_ID, label: SIX_MAJORS_BAND }}
       event={SIX_MAJORS_BADGE_EVENT}
+      renderArt={renderSixMajorsArt}
       size={size}
-      title={`${SIX_MAJORS_LABEL_ZH} — ${year}`}
+      title={`${SIX_MAJORS_TITLE} — ${year}`}
       year={year}
     />
   );
