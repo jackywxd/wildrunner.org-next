@@ -309,6 +309,14 @@ needs a server, a database or a browser. **A second config file is the
 mechanism, not a preference** — a project cannot opt out of the server the
 config starts.
 
+The browser lane is still not balanced, and the number is worth carrying
+rather than rounding away: measured locally its three shards take 1.6m, 4.6m
+and 3.2m against 6.8m unsharded, because the uploads and the AI journeys land
+together. Sharding by count therefore buys roughly 6.8m → 4.6m here, not a
+third of the time. `--shard` divides by count and nothing else, so the lever
+left is sharding by duration from the previous run's report — worth reaching
+for when the spread costs more than the complexity, not before.
+
 `assert:tests` enforces the boundary: a spec under `e2e/unit/` that reaches for
 `page.`, `request.` or `BASE_URL` fails the build. Without that the lane decays
 back into the mixed suite one commit at a time.

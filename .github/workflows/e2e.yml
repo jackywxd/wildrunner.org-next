@@ -43,14 +43,21 @@ name: E2E
 # So the unit level now runs in `checks` under its own config, with no server
 # and no database (playwright.unit.config.ts explains why that needs a second
 # config file rather than a second project): 164 tests in ~6s. What is left
-# here is 42 tests that genuinely need a server, a database or a browser, and
-# sharding *those* by count is sound because they are finally comparable to
-# one another.
+# here is 42 tests that genuinely need a server, a database or a browser.
 #
-# Verified before landing: each of `--shard=1/3`, `2/3` and `3/3` passes on
-# its own locally (14 + 14 + 14 = the same 42 the unsharded run reports).
-# That mattered — sharding regroups spec files, so any latent dependency
-# between files would surface here. There is none.
+# Verified before landing by running those 42 both ways — unsharded, and as
+# `--shard=1/3`, `2/3`, `3/3` (14 + 14 + 14). The sharded runs surface nothing
+# the unsharded run does not, which is the property that matters: sharding
+# regroups spec files, so a latent dependency between them would show up here.
+# There is none.
+#
+# NOT BALANCED, and better said than implied. Measured locally the three
+# shards took 1.6m, 4.6m and 3.2m against 6.8m unsharded — the uploads and the
+# AI journeys land together in the middle one. A 2.9x spread replacing a 10:1
+# spread is the right shape rather than the finished one, and it caps what
+# sharding can buy here at roughly 6.8m → 4.6m. If that starts to matter the
+# next lever is sharding by duration from the previous run's JSON report
+# instead of by count; `--shard` itself only ever divides by count.
 #
 # `playwright` at the bottom exists only to keep that name as the required
 # check; branch protection cannot depend on a matrix job, whose runs are named
