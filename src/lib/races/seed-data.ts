@@ -8,7 +8,7 @@
  * It exists because migrations are bundled into the Worker, where there is
  * no filesystem to read a CSV from — see that script's header.
  *
- * 100 events, 394 categories.
+ * 106 events, 400 categories.
  */
 
 export type SeedEvent = {
@@ -918,6 +918,54 @@ export const SEED_EVENTS: SeedEvent[] = [
     "source": "https://www.sinistersports.ca/blackspur/",
     "verifiedAt": "2026-08-05",
     "website": "https://www.sinistersports.ca/blackspur/"
+  },
+  {
+    "country": "JPN",
+    "key": "major-tokyo",
+    "name": "Tokyo Marathon",
+    "nameZh": "東京馬拉松",
+    "series": "marathon",
+    "website": "https://www.marathon.tokyo/"
+  },
+  {
+    "country": "USA",
+    "key": "major-boston",
+    "name": "Boston Marathon",
+    "nameZh": "波士頓馬拉松",
+    "series": "marathon",
+    "website": "https://www.baa.org/races/boston-marathon"
+  },
+  {
+    "country": "GBR",
+    "key": "major-london",
+    "name": "TCS London Marathon",
+    "nameZh": "倫敦馬拉松",
+    "series": "marathon",
+    "website": "https://www.tcslondonmarathon.com/"
+  },
+  {
+    "country": "DEU",
+    "key": "major-berlin",
+    "name": "BMW Berlin-Marathon",
+    "nameZh": "柏林馬拉松",
+    "series": "marathon",
+    "website": "https://www.bmw-berlin-marathon.com/"
+  },
+  {
+    "country": "USA",
+    "key": "major-chicago",
+    "name": "Bank of America Chicago Marathon",
+    "nameZh": "芝加哥馬拉松",
+    "series": "marathon",
+    "website": "https://www.chicagomarathon.com/"
+  },
+  {
+    "country": "USA",
+    "key": "major-new-york",
+    "name": "TCS New York City Marathon",
+    "nameZh": "紐約馬拉松",
+    "series": "marathon",
+    "website": "https://www.nyrr.org/tcsnycmarathon"
   }
 ];
 
@@ -5017,5 +5065,53 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     "source": "https://www.sinistersports.ca/blackspur/",
     "verified": true,
     "verifiedAt": "2026-08-05"
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-tokyo",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-boston",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-london",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-berlin",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-chicago",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
+  },
+  {
+    "distanceKm": 42.195,
+    "eventKey": "major-new-york",
+    "key": "marathon",
+    "label": "42K",
+    "order": 1,
+    "verified": false
   }
 ];

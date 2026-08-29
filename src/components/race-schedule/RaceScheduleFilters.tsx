@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { RACE_SERIES, RACE_SERIES_LABELS_ZH } from "@/lib/races/catalogue";
+import { RACE_SERIES_LABELS_ZH, SCHEDULE_SERIES } from "@/lib/races/catalogue";
 import { raceFiltersHref } from "@/lib/races/race-filters";
 import type { RaceFilters } from "@/lib/races/race-filters";
 import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
@@ -93,7 +93,7 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
         <Chip active={!filters.series} target={href(filters, { series: undefined })}>
           全部系列
         </Chip>
-        {RACE_SERIES.map((series) => (
+        {SCHEDULE_SERIES.map((series) => (
           <Chip
             active={filters.series === series}
             key={series}

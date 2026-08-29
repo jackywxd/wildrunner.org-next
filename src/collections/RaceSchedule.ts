@@ -2,9 +2,9 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminUser } from '../access'
 import {
-  RACE_SERIES,
   RACE_SERIES_LABELS,
   RACE_SERIES_LABELS_ZH,
+  SCHEDULE_SERIES,
   findRaceEvent,
 } from '../lib/races/catalogue'
 import { uniqueScheduleEntry } from './hooks/unique-schedule-entry'
@@ -63,7 +63,11 @@ import { revalidateRaceSchedule } from './hooks/revalidate'
  * having none. Leave a field empty rather than guessing at it.
  */
 
-const seriesOptions = RACE_SERIES.map((value) => ({
+// SCHEDULE_SERIES, not RACE_SERIES. This is the legacy trail schedule; the
+// `marathon` series exists only so six road races can be recorded, and they
+// are never scheduled here — offering the option would invite a row that
+// nothing reads.
+const seriesOptions = SCHEDULE_SERIES.map((value) => ({
   label: { en: RACE_SERIES_LABELS[value], 'zh-TW': RACE_SERIES_LABELS_ZH[value] },
   value,
 }))

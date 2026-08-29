@@ -50,7 +50,8 @@ import { getPayload } from "payload";
 import type { Where } from "payload";
 import { z } from "zod";
 
-import { RACE_SERIES, findRaceEvent } from "../src/lib/races/catalogue";
+import { findRaceEvent } from "../src/lib/races/catalogue";
+import type { ScheduleSeries } from "../src/lib/races/catalogue";
 
 const dryRun = process.argv.includes("--dry-run");
 const remote = process.argv.includes("--remote");
@@ -67,7 +68,7 @@ const VERIFIED_AT = "2026-08-01";
 type SeedRow = {
   name: string;
   nameZh?: string;
-  series: (typeof RACE_SERIES)[number];
+  series: ScheduleSeries;
   eventId: string;
   startDate: string;
   endDate?: string;
