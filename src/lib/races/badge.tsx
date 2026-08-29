@@ -18,6 +18,12 @@ import {
 import { renderBadgeArt } from "./badge-art";
 import { badgeToken } from "./design-tokens";
 import type { BadgeDistance, BadgeEvent } from "./badge-source";
+import {
+  SIX_MAJORS_BADGE_EVENT,
+  SIX_MAJORS_BAND_ZH,
+  SIX_MAJORS_ID,
+  SIX_MAJORS_LABEL_ZH,
+} from "./six-majors";
 import { cn } from "@/lib/utils";
 
 export type RaceBadgeProps = {
@@ -26,6 +32,12 @@ export type RaceBadgeProps = {
   distance: BadgeDistance;
   event: BadgeEvent;
   size?: number;
+  /**
+   * Overrides the accessible name. Only for badges that are not one race —
+   * `SixMajorsBadge` below would otherwise announce itself as
+   * "六大馬拉松 — 六大 2024", saying the same thing twice.
+   */
+  title?: string;
   year: number;
 };
 
@@ -34,13 +46,14 @@ export function RaceBadge({
   distance,
   event,
   size = 64,
+  title: titleOverride,
   year,
 }: RaceBadgeProps) {
   const token = badgeToken(event);
 
   const distanceLabel = distance.label;
   const showYear = size >= BADGE_YEAR_MIN_SIZE;
-  const title = `${event.name} — ${distanceLabel} ${year}`;
+  const title = titleOverride ?? `${event.name} — ${distanceLabel} ${year}`;
 
   return (
     <svg
@@ -91,5 +104,38 @@ export function RaceBadge({
         <circle cx={6} cy={6} fill={token.ink} opacity={0.9} r={4} />
       )}
     </svg>
+  );
+}
+
+/**
+ * Six Star: all six Abbott World Marathon Majors, and the year of the sixth.
+ *
+ * Built out of `RaceBadge` rather than drawn separately, so it inherits the
+ * frame, the band and the `data-*` the tests key on, and so the artwork
+ * track can give `six-majors` its own motif later without the functional
+ * track changing a line — that is what badge-contract.ts's split is for.
+ *
+ * The band reads 「六大」 where a race badge reads its distance. That is the
+ * honest substitution: this badge's subject is a set of races, and no single
+ * distance describes it.
+ */
+export function SixMajorsBadge({
+  className,
+  size = 64,
+  year,
+}: {
+  className?: string;
+  size?: number;
+  year: number;
+}) {
+  return (
+    <RaceBadge
+      className={className}
+      distance={{ id: SIX_MAJORS_ID, label: SIX_MAJORS_BAND_ZH }}
+      event={SIX_MAJORS_BADGE_EVENT}
+      size={size}
+      title={`${SIX_MAJORS_LABEL_ZH} — ${year}`}
+      year={year}
+    />
   );
 }

@@ -1,8 +1,9 @@
 import type { SiteRaceRecord } from "@/lib/content-types";
-import { RaceBadge } from "@/lib/races/badge";
+import { RaceBadge, SixMajorsBadge } from "@/lib/races/badge";
 import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { RACE_SERIES_LABELS } from "@/lib/races/catalogue";
+import { SIX_MAJORS_LABEL_ZH, sixMajorsCompletion } from "@/lib/races/six-majors";
 
 /**
  * One badge per event, showing the most recent year.
@@ -47,9 +48,14 @@ export async function RiderBadgeRow({
   const collapsed = latestPerEvent(records);
   const shown = collapsed.slice(0, limit);
   const overflow = collapsed.length - shown.length;
+  // Outside `limit` on purpose. Six Star is the rarest thing a card can say,
+  // and letting it consume one of five slots would push a race off the row
+  // to show it — paying for the headline with the story.
+  const sixMajors = sixMajorsCompletion(records);
 
   return (
     <div className="mt-2 flex items-center gap-1" data-testid="rider-badge-row">
+      {sixMajors !== undefined && <SixMajorsBadge size={32} year={sixMajors} />}
       {shown.map((record) => (
         <RaceBadge
           key={record.id}
@@ -79,9 +85,25 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
   // The grouping lives in badge-source.ts so it can be checked without a
   // browser — see U-GROUP in e2e/unit/badge-source.spec.ts.
   const { groups, unknown } = groupRecordsBySeries(catalogue, records);
+  const sixMajors = sixMajorsCompletion(records);
 
   return (
     <section className="space-y-6" data-testid="rider-badge-wall">
+      {/* Above the series groups, not inside one. The six majors sit in
+          `others` in the catalogue, but the achievement is not a series —
+          filing it under 「其他獨立賽事」 would bury the rarest badge on the
+          page under the most ordinary heading. */}
+      {sixMajors !== undefined && (
+        <div data-testid="rider-badge-six-majors">
+          <h2 className="font-heading text-sm font-semibold text-foreground/70">
+            {SIX_MAJORS_LABEL_ZH}
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <SixMajorsBadge size={72} year={sixMajors} />
+          </div>
+        </div>
+      )}
+
       {groups.map((group) => (
         <div key={group.series}>
           <h2 className="font-heading text-sm font-semibold text-foreground/70">

@@ -33,8 +33,9 @@ export default async function MemberRacesPage() {
     <div className="max-w-3xl">
       <h1 className="font-heading text-2xl font-semibold">比賽紀錄</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        登錄你完賽過的 UTMB World Series、World Trail Majors
-        與其他獨立賽事，徽章會出現在成員名錄和你的個人頁上。
+        登錄你完賽過的 UTMB World Series、World Trail
+        Majors、六大馬拉松與其他獨立賽事，徽章會出現在成員名錄和你的個人頁上。
+        六大馬拉松六場都登錄之後，會多一面「六大馬拉松」徽章，年份是你完成第六場的那一年。
       </p>
       <RaceRecordManager catalogueEvents={catalogueEvents} records={records} />
     </div>

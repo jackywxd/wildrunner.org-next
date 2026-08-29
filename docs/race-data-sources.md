@@ -138,6 +138,48 @@ Also noted, needing no decision here: the WS list carries `TOR100` and
 76 km `other-templiers/76k` we carry. Both are catalogue gaps, not qualifier
 questions.
 
+### The marathon majors
+
+Six road marathons — Tokyo, Boston, London, Berlin, Chicago, New York — sit
+in the catalogue under a series of their own, `marathon`, so a member can
+record them and earn the 六大馬拉松 badge. Three things about them are
+deliberate and easy to undo by accident.
+
+**None of their editions may be given a start date.** `/races` lists
+editions, not events, and `getUpcomingRaces` requires
+`startDate: { exists: true }` — so an undated edition is invisible there
+while the member picker, which reads the catalogue, offers the race
+normally.
+
+The obvious version of this rule — "they have no editions" — is wrong, and
+believing it would hide the real hazard. `populateRaceRecordRefs`
+find-or-creates a `(event, year)` edition for every record a member writes,
+so editions for these six appear on their own the first time anybody logs
+one. The hook writes only event and year, never a date, precisely so a
+member's claim cannot dictate the public calendar. What would put the Berlin
+Marathon on 野馬營's schedule is therefore not a new edition row — it is an
+admin filling in `startDate` on one of the rows that are already there.
+
+**`marathon` is excluded from the schedule's filter chips**, through
+`SCHEDULE_SERIES` in `src/lib/races/catalogue.ts`. A chip for a series with
+no editions can only ever land on 「這個條件下沒有賽事」.
+
+**`verified` is `no` on all twelve rows.** Nobody has read these events' own
+sites — the session that added them had no outbound network — so the flag
+says so rather than the omission implying it. The distances are not in
+doubt; who checked them is. Both qualifier dates are empty for the same
+reason: a road marathon cannot be on either lottery's list (WSER's shortest
+entry is 100 km, Hardrock's is 160), but those columns record a reading, not
+an inference.
+
+The badge itself turns on an explicit key list in
+`src/lib/races/six-majors.ts`, not on the series — six `marathon` records is
+not a Six Star if two of them are Boston. `U-SIXMAJORS` asserts that list
+against the seeded catalogue, because the same six keys are written out in
+`data/race-events.csv`, in the generated `seed-data.ts`, and in
+`20260829_041500_add_marathon_majors`, and a typo in any of them awards the
+badge to nobody with no error anywhere.
+
 ### Editions
 
 Each event's own site, recorded per row in `source_url`. Never a third-party

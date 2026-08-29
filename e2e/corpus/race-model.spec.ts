@@ -2,6 +2,7 @@ import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { anonContext } from "../helpers/members";
+import { SIX_MAJORS } from "@/lib/races/six-majors";
 
 /**
  * NO SKIP-IF-EMPTY GUARDS, and that is the point of the file.
@@ -204,5 +205,38 @@ test.describe("X race model corpus", () => {
       .filter((r) => editionEvent.get(r.edition as number) !== categoryEvent.get(r.category as number))
       .map((r) => `id=${r.id} edition=${r.edition} category=${r.category}`);
     expect(disagreements).toEqual([]);
+  });
+
+  test("X-T9: the six majors are here, recordable, and undated", () => {
+    // The migration's own end state, asserted where it landed rather than
+    // where it was written. `U-SIXMAJORS-4` checks these keys against
+    // `seed-data.ts`, which only reaches a database that has never
+    // migrated; every deployed environment gets them from
+    // 20260829_041500_add_marathon_majors instead, and nothing else would
+    // notice if that had not run.
+    const byKey = new Map(events.map((event) => [event.key as string, event.id]));
+    const missing = SIX_MAJORS.filter((key) => !byKey.has(key));
+    expect(missing, "marathon majors missing from this database").toEqual([]);
+
+    // An event with no category cannot be recorded at all — `race-records`
+    // needs a distanceId — so the badge would be unreachable rather than
+    // merely hard to earn.
+    const unrecordable = SIX_MAJORS.filter(
+      (key) => !categories.some((category) => category.event === byKey.get(key)),
+    );
+    expect(unrecordable, "marathon majors with nothing to enter").toEqual([]);
+
+    // THE INVARIANT THAT KEEPS ROAD RACES OFF A TRAIL SCHEDULE, and the one
+    // an admin can undo with a single field. `/races` shows editions with a
+    // `startDate`; these events legitimately accumulate editions, because
+    // `populateRaceRecordRefs` creates one per recorded year — but that hook
+    // writes only event and year. A dated one means somebody filled it in,
+    // and the Boston Marathon is now on 野馬營's calendar.
+    const majorIds = new Set(SIX_MAJORS.map((key) => byKey.get(key)));
+    const dated = editions
+      .filter((edition) => majorIds.has(edition.event as number))
+      .filter((edition) => edition.startDate)
+      .map((edition) => `${edition.event}/${edition.year}`);
+    expect(dated, "a marathon major has a dated edition — it will show on /races").toEqual([]);
   });
 });
