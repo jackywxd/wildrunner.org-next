@@ -30,13 +30,35 @@ import { checkAiRateLimit } from "@/lib/ai/rate-limit";
  *
  * The input cap is the improve endpoint's, for the same reason — it is about
  * how long a member will wait, not about the model, whose context window is
- * 262k. The output allowance is small on purpose: it is the ceiling that
- * makes "two sentences" cost a fraction of what improving the same article
- * costs, and a model that ignores the instruction is cut off rather than
- * producing an essay in a textarea two rows tall.
+ * 262k.
+ *
+ * The output allowance was 400, reasoned as "two sentences cost a fraction
+ * of a rewrite", and that reasoning had a hole in it: **Kimi K2.6 is a
+ * reasoning model, and its thinking is spent out of this same allowance**
+ * (Cloudflare's own page lists Reasoning among its capabilities and
+ * documents `chat_template_kwargs.thinking`). The model used all 400 tokens
+ * before writing a word. What came back was a well-formed chat completion
+ * with `finish_reason: "length"` and `content: ""` — so `replyText` returned
+ * nothing and every 摘要 on staging answered 502, while the improve endpoint,
+ * whose 16k leaves room for both, worked throughout.
+ *
+ * 4000 is a runaway bound, not a budget. `max_tokens` is a ceiling on what
+ * the model *may* emit, not a charge — a summary that obeys rule 1 stops
+ * after a hundred characters and is billed for a hundred characters — so
+ * setting it low bought nothing and cost the feature. What it still does is
+ * stop a model that has ignored the instruction from filling a textarea two
+ * rows tall.
+ *
+ * Turning thinking off with `chat_template_kwargs: { thinking: false }`
+ * would be the cheaper fix and is deliberately not done here: the docs name
+ * the key but not its accepted values, `env.AI.run`'s parameters are not
+ * type-checked (established for the model id, which tsc accepted as a typo),
+ * and there is no way to try it from anywhere but a deployed environment.
+ * Now that an empty reply reports its own `finish_reason`, that is a change
+ * that can be made and *measured* rather than guessed at.
  */
 const MAX_INPUT_CHARS = 12_000;
-const MAX_OUTPUT_TOKENS = 400;
+const MAX_OUTPUT_TOKENS = 4_000;
 
 const SYSTEM = [
   "你是一位越野跑與馬拉松專欄編輯。使用者會給你一篇文章，請寫出它的摘要。",
