@@ -1,6 +1,6 @@
 import { APIError } from "payload";
 
-import { replyText } from "./reply-text";
+import { describeEmptyReply, replyText } from "./reply-text";
 
 /**
  * One place that calls the model, for the endpoints that do.
@@ -74,7 +74,15 @@ export async function callTextModel(
 
     const reply = replyText(response).trim();
     if (!reply) {
-      throw new APIError("AI 沒有回覆內容，請稍後再試。", 502);
+      // The reason travels with the message for the same reason it does in
+      // the catch below — a Worker's log is not something the person hitting
+      // the failure can read. This branch shipped without one and cost a
+      // staging deploy and three red CI runs to answer a question the reply
+      // object could have answered on screen. See describeEmptyReply.
+      throw new APIError(
+        `AI 沒有回覆內容，請稍後再試。（${describeEmptyReply(response)}）`,
+        502,
+      );
     }
     return reply;
   } catch (error) {
