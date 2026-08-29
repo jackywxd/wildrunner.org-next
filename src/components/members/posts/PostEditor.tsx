@@ -8,6 +8,7 @@ import {
   type ContentEditorHandle,
 } from "@/components/members/editor/ContentEditor";
 import { AIImprovePanel } from "@/components/members/editor/AIImprovePanel";
+import { AISummaryButton } from "@/components/members/editor/AISummaryButton";
 import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { CoverImageField } from "@/components/members/posts/CoverImageField";
 import {
@@ -211,6 +212,23 @@ export function PostEditor({
   }, [autosaveNow, busy, coverUploading, dirty, pending]);
 
   /**
+   * The document as it stands, or null while it cannot be read.
+   *
+   * Null means a pending upload: `read()` throws while one is in the tree.
+   * Both AI panels ask for the document and both must refuse rather than
+   * send one — asking the model to work on an article that is missing a
+   * picture the member can see on screen produces a confident answer about
+   * the wrong document.
+   */
+  function readDocument(): PayloadContent | null {
+    try {
+      return editorRef.current!.read();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Everything a write sends.
    *
    * Shared by the buttons and the autosave loop so the two cannot drift
@@ -337,20 +355,35 @@ export function PostEditor({
             </span>
           )}
         </label>
-        <label className="grid gap-1">
-          <span className="text-xs text-foreground/60">摘要</span>
-          <textarea
-            data-testid="post-description"
-            rows={2}
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
+        <div className="grid gap-2">
+          <label className="grid gap-1">
+            <span className="text-xs text-foreground/60">摘要</span>
+            <textarea
+              data-testid="post-description"
+              rows={2}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDirty(true);
+                lastEditAt.current = Date.now();
+              }}
+              className="border border-input bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          {/*
+            Outside the <label>, deliberately. A button inside one is a click
+            on the label, which moves focus into the textarea — so pressing
+            使用 would drop the caret into the field it had just filled.
+          */}
+          <AISummaryButton
+            onUse={(summary) => {
+              setDescription(summary);
               setDirty(true);
               lastEditAt.current = Date.now();
             }}
-            className="border border-input bg-background px-3 py-2 text-sm"
+            readDocument={readDocument}
           />
-        </label>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/50">
@@ -465,16 +498,7 @@ export function PostEditor({
           lastEditAt.current = Date.now();
         }}
         onComparingChange={setComparing}
-        readDocument={() => {
-          try {
-            return editorRef.current!.read();
-          } catch {
-            // A pending upload. The panel says so; sending the document
-            // without the image would ask the model to improve an article
-            // that is missing a picture the member can see on screen.
-            return null;
-          }
-        }}
+        readDocument={readDocument}
       />
 
       <div

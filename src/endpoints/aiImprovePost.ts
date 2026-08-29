@@ -2,8 +2,8 @@ import type { Endpoint } from "payload";
 import { APIError } from "payload";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import { callTextModel, realAIAvailable } from "@/lib/ai/call-model";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
-import { replyText } from "@/lib/ai/reply-text";
 
 /**
  * Improve an article the member has already written, in place.
@@ -22,28 +22,6 @@ import { replyText } from "@/lib/ai/reply-text";
  */
 
 /**
- * The model.
- *
- * `@cf/meta/llama-3.3-70b-instruct-fp8-fast` was the first choice and it was
- * the wrong shape for this job. The hard part here is not writing — it is
- * doing exactly as told: emit `[[BLOCK-3]]` back byte for byte, on its own
- * line, and add no preamble. That is where a mid-size open model gives way
- * first, and helpfully: it wants to translate the marker into 「（此處有一
- * 張圖片）」, which reads like a considerate answer and destroys a
- * photograph.
- *
- * Kimi K2.6 is a 1T-parameter model (32B active) with a 262k context
- * window, and Chinese is not an afterthought in it. Cloudflare-hosted, so
- * this stays on the `AI` binding wrangler.jsonc already declares — no
- * gateway, no provider credentials, nothing new to keep secret.
- *
- * It needs the Workers Paid plan (or prepaid AI Gateway credits); the free
- * tier does not serve it. If the binding starts answering 4xx after a plan
- * change, that is the first thing to check.
- */
-const MODEL = "@cf/moonshotai/kimi-k2.6";
-
-/**
  * How much article the endpoint accepts, and how much reply it allows.
  *
  * These two are one decision, not two. The cap exists so that a member is
@@ -54,7 +32,7 @@ const MODEL = "@cf/moonshotai/kimi-k2.6";
  * one token per character, so the allowance is set well above the cap
  * rather than level with it.
  *
- * The old pair (8k in, 4k out) was measured against the 70B model's
+ * The old pair (8k in, 4k out) was measured against a 70B model's
  * truncation point. Neither number means anything now: this model's context
  * window is 262k, and the limit is the member's patience, not the model's.
  */
@@ -98,8 +76,8 @@ export const aiImprovePostEndpoint: Endpoint = {
     }
 
     const { env } = await getCloudflareContext({ async: true });
-    // Before the body is parsed, and the same budget /ai/expand-post spends.
-    // See src/lib/ai/rate-limit.ts.
+    // Before the body is parsed, and the same budget the other AI endpoints
+    // spend. See src/lib/ai/rate-limit.ts.
     await checkAiRateLimit(env.D1, String(req.user.id));
 
     let body: ImproveBody;
@@ -120,17 +98,12 @@ export const aiImprovePostEndpoint: Endpoint = {
       );
     }
 
-    const useAI =
-      process.env.NEXTJS_ENV !== "test" &&
-      (process.env.NODE_ENV === "production" || process.env.AI_IN_DEV === "true");
-
-    if (!useAI) {
-      // Not a mock of the model — a stand-in for it that obeys the one rule
-      // the model is given, so the whole flow works where there is no
-      // Workers AI binding: CI's local suite, and `pnpm dev` without
-      // AI_IN_DEV. Marker lines through untouched, every other line visibly
-      // changed, so a person opening the panel in dev can see at a glance
-      // that a different document came back.
+    if (!realAIAvailable()) {
+      // A stand-in that obeys the one rule the model is given, so the whole
+      // flow works where there is no Workers AI binding: CI's local suite,
+      // and `pnpm dev` without AI_IN_DEV. Marker lines through untouched,
+      // every other line visibly changed, so a person opening the panel in
+      // dev can see at a glance that a different document came back.
       //
       // No test asserts on 「（已潤飾）」. One did, and went red on the
       // staging deploy — where the real model runs — having proved nothing
@@ -139,64 +112,18 @@ export const aiImprovePostEndpoint: Endpoint = {
       return Response.json({ text: stubImprove(text), stub: true });
     }
 
-    try {
-      const response = await env.AI.run(MODEL, {
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: text },
-        ],
-        max_tokens: MAX_OUTPUT_TOKENS,
-      });
-      const improved = replyText(response).trim();
-
-      if (!improved) {
-        throw new APIError("AI 沒有回覆內容，請稍後再試。", 502);
-      }
-      return Response.json({ text: improved.trim() });
-    } catch (error) {
-      if (error instanceof APIError) throw error;
-      // Unlike expand-post, there is no useful fallback: handing back the
-      // member's own text as "the improved version" would put an unchanged
-      // document in the accept pane and invite them to approve a change that
-      // never happened.
-      //
-      // The reason travels with the message rather than only into
-      // console.warn. A Worker's log is not something the person hitting the
-      // failure can read — reporting one costs a round of "which message did
-      // you see" and often a deploy — and a model call can fail for reasons
-      // that need different fixes: a token limit, a plan that does not serve
-      // the model, a timeout on a long article. Same reasoning as the
-      // qualifier importer's failure line in AGENTS.md, which walks the cause
-      // chain so the next failure says what the database actually objected to.
-      console.warn("Workers AI improve failed", error);
-      throw new APIError(
-        `AI 服務暫時不可用，請稍後再試。（${describe(error)}）`,
-        502,
-      );
-    }
+    // Unlike expand-post, there is no useful fallback when this fails:
+    // handing back the member's own text as "the improved version" would put
+    // an unchanged document in the accept pane and invite them to approve a
+    // change that never happened. `callTextModel` throws instead.
+    const improved = await callTextModel(env.AI, {
+      system: SYSTEM,
+      text,
+      maxTokens: MAX_OUTPUT_TOKENS,
+    });
+    return Response.json({ text: improved });
   },
 };
-
-/**
- * A short, reportable description of a thrown value.
- *
- * Walks `cause`, because the outermost message is often a wrapper — the
- * shape AGENTS.md records for Drizzle, where `.message` is its own summary
- * and the real complaint sits one or two levels down. Truncated, because
- * this ends up in a sentence on screen and nobody needs the stack.
- */
-function describe(error: unknown): string {
-  const parts: string[] = [];
-  let current = error;
-  for (let depth = 0; depth < 4 && current; depth += 1) {
-    const message =
-      current instanceof Error ? current.message : String(current);
-    if (message && !parts.includes(message)) parts.push(message);
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  const joined = parts.join(" ← ") || "沒有錯誤訊息";
-  return joined.length > 200 ? `${joined.slice(0, 200)}…` : joined;
-}
 
 /** Marker lines verbatim; everything else marked as having been through. */
 function stubImprove(text: string): string {

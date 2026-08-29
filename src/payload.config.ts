@@ -32,6 +32,7 @@ import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
+import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
@@ -201,6 +202,7 @@ export default buildConfig({
   endpoints: [
     aiExpandPostEndpoint,
     aiImprovePostEndpoint,
+    aiSummarisePostEndpoint,
     inviteMemberEndpoint,
     storageUsageEndpoint,
     directUploadInitEndpoint,

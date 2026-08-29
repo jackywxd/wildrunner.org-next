@@ -135,6 +135,27 @@ export function toAIText(content: PayloadContent): MarkedDocument {
   return { text: lines.join("\n\n"), blocks };
 }
 
+/**
+ * The document's prose, with nothing standing in for what was left out.
+ *
+ * `toAIText` is for asking the model to give a document *back*, so the
+ * pictures leave a marker where they stood. Summarising asks for something
+ * new and short, and there a marker is only a liability: a model that echoes
+ * one puts the literal text `[[BLOCK-0]]` into an article's description,
+ * which is printed on the public site and shared to social — a failure that
+ * is invisible in the editor and obvious to everyone else.
+ *
+ * So the blocks are dropped rather than marked. A summary of the words is
+ * still a summary.
+ */
+export function proseOnly(content: PayloadContent): string {
+  return (content.root.children ?? [])
+    .filter((node) => REWRITABLE.has(node.type))
+    .map(blockToText)
+    .filter((text) => text.trim())
+    .join("\n\n");
+}
+
 /* ------------------------------------------------------------------ */
 /* text -> document                                                     */
 /* ------------------------------------------------------------------ */
