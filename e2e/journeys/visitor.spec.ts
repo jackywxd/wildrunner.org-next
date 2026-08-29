@@ -152,7 +152,7 @@ test.describe("V what a visitor can do", () => {
   test("V10: the about page renders, in the language it is written in", async ({
     page,
   }) => {
-    await open(page, "/about");
+    const response = await open(page, "/about");
     await expect(page.locator("h1")).toBeVisible();
 
     // The site is Traditional Chinese and declared itself English for the
@@ -167,7 +167,31 @@ test.describe("V what a visitor can do", () => {
     // answered `en` under every condition tried, because the page had *two*
     // `<html>` elements and the one it read was hardcoded. The count is the
     // assertion that could have caught that, so it is here beside the value.
+    const served = (await response?.text()) ?? "";
+    expect(served.match(/<html[\s>]/g)?.length ?? 0).toBe(1);
+    expect(served).toContain('lang="zh-Hant"');
+
+    // And it is still that once the client has had its turn.
+    //
+    // This half exists because the first version of V10 had only the half
+    // above, expressed as `toHaveAttribute` — which polls *until it
+    // matches* and then stops looking. `I18nProvider` ran
+    // `document.documentElement.lang = "en"` in an effect, so the served
+    // HTML was right, the first sample matched, and the assertion passed
+    // while every visitor's browser held "en". It was green locally through
+    // the entire life of that bug and red on staging, purely on which side
+    // of hydration the first sample landed. A value that is rewritten after
+    // the fact has to be watched, not sampled.
+    //
+    // `load` bounds the wait on the JS being fetched; the settle after it
+    // covers hydration, for which the App Router exposes no signal. Arriving
+    // by a click would prove hydration outright, but the nav is built from
+    // the Site global (src/lib/nav.ts), and a spec for the document language
+    // must not fail because someone edited a menu.
     expect(await page.locator("html").count()).toBe(1);
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
+    await page.waitForLoadState("load");
+    await page.waitForTimeout(budget(1_500));
+    expect(await page.locator("html").getAttribute("lang")).toBe("zh-Hant");
   });
 });

@@ -25,9 +25,25 @@ import { defaultNS } from "@/i18next.config";
 const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const resolvedLanguage = "en";
 
+  // `document.documentElement.lang = resolvedLanguage` used to sit beside
+  // this, and it undid the site's own declaration on every page load: the
+  // layout renders `<html lang="zh-Hant">`, this effect overwrote it with
+  // the hardcoded "en" above, and every visitor's browser held "en" for a
+  // Traditional Chinese site — the wrong screen-reader voice, the wrong
+  // language for a search engine to index, and one of the signals a browser
+  // uses to pick a CJK fallback face.
+  //
+  // The document language belongs to the layout, which is the one place
+  // that can state it before anything renders. Two places writing it is
+  // what made this invisible: the served HTML was right the whole time, so
+  // every check of it agreed, and only the live DOM disagreed.
+  //
+  // `resolvedLanguage` is left as it was. It is i18next's language, not the
+  // document's, and nothing in src/ renders a translation today — changing
+  // what this provider resolves to is a separate decision from stopping it
+  // reaching into the DOM.
   React.useEffect(() => {
     i18n.changeLanguage(resolvedLanguage);
-    document.documentElement.lang = resolvedLanguage;
   }, [resolvedLanguage]);
 
   return (
