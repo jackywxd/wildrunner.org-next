@@ -13,6 +13,7 @@
  */
 
 import type { BadgeEvent } from "./badge-source";
+import type { RaceSeries } from "./catalogue";
 import type { BadgeToken, Motif } from "./badge-contract";
 
 /** FNV-1a, the same hash `riders/avatar.ts` uses, for the same reason. */
@@ -46,11 +47,24 @@ function abbreviate(name: string): string {
 }
 
 /**
- * Every mockup badge uses the same motif. Assigning the real nine per race
- * is artwork work, and guessing here would only produce something that looks
- * decided when it is not.
+ * The default, and still a placeholder: assigning the real nine per race is
+ * artwork work, and guessing here would produce something that looks decided
+ * when it is not.
  */
 const MOCKUP_MOTIF: Motif = "peak";
+
+/**
+ * One exception, because it is not a guess. The `marathon` series is six road
+ * races; a mountain ridge on the Berlin Marathon is not "undecided artwork",
+ * it is wrong about what the race is. Keyed on series rather than on the six
+ * event keys so it stays true if a seventh road race is ever added.
+ *
+ * Per series and not per race — which terrain each individual trail event
+ * gets is exactly the judgement this file is not making yet.
+ */
+const SERIES_MOTIF: Partial<Record<RaceSeries, Motif>> = {
+  marathon: "city",
+};
 
 /**
  * Takes a resolved event rather than an id.
@@ -81,7 +95,7 @@ export function badgeToken(event: BadgeEvent): BadgeToken {
     abbr: abbreviate(event.name),
     eventId: event.id,
     ink: "hsl(0 0% 100%)",
-    motif: MOCKUP_MOTIF,
+    motif: SERIES_MOTIF[event.series] ?? MOCKUP_MOTIF,
     primary: `hsl(${hue} 62% 46%)`,
     secondary: `hsl(${(hue + 28) % 360} 58% 30%)`,
   };
