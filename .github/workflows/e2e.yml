@@ -25,8 +25,30 @@ name: E2E
 # separate runner with its own checkout, its own emulated D1 and its own dev
 # server, so there is no shared state to race on.
 #
+# ---
+#
+# LANES BEFORE SHARDS. `--shard` divides by *test count*, and in this suite
+# count is anti-correlated with cost. Measured on run 33276711769:
+#
+#   shard 1   12 corpus + 30 journeys + 32 unit   74 tests   6m19s
+#   shard 2                            67 unit    67 tests     46s
+#   shard 3                            65 unit    65 tests     38s
+#
+# Shard 1 held every browser test there was; the other two held pure functions
+# and nothing else, and each still paid a container, an install, `payload
+# migrate` and ~2m30s of seeding to execute about a third of a second of
+# assertions. Balanced by count, wildly unbalanced by clock — because 164 of
+# the 206 tests cost 2-20ms each while 30 journeys cost 3.2-15.9s each.
+#
+# So the unit level now runs in `checks` under its own config, with no server
+# and no database (playwright.unit.config.ts explains why that needs a second
+# config file rather than a second project): 164 tests in ~6s. What is left
+# here is 42 tests that genuinely need a server, a database or a browser, and
+# sharding *those* by count is sound because they are finally comparable to
+# one another.
+#
 # Verified before landing: each of `--shard=1/3`, `2/3` and `3/3` passes on
-# its own locally (92 + 79 + 83 = the same 254 the unsharded run reports).
+# its own locally (14 + 14 + 14 = the same 42 the unsharded run reports).
 # That mattered — sharding regroups spec files, so any latent dependency
 # between files would surface here. There is none.
 #
@@ -85,6 +107,16 @@ jobs:
       # it. Seconds, no database, no browser.
       - name: Assert every required field has a control
         run: pnpm assert:schema-screen
+      # The unit lane. Here rather than in the `e2e` job because none of these
+      # 164 tests touches a browser, a server or a database — they import a
+      # function and call it — and until now all three shards were paying a
+      # dev server and ~2m30s of seeding to run them anyway. Measured at 5.9s
+      # with no server; the whole level costs less than the typecheck above.
+      #
+      # `assert:tests` (three steps up) is what keeps that true: it fails any
+      # spec under e2e/unit/ that reaches for `page.`, `request.` or BASE_URL.
+      - name: Unit lane
+        run: pnpm test:unit
 
   e2e:
     runs-on: ubuntu-latest
@@ -126,7 +158,80 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # Build the fixture database once per input set, not once per shard.
+      #
+      # Migrating and seeding cost 2m16s-2m51s and every shard paid it, on the
+      # critical path, to produce a byte-identical database three times over.
+      #
+      # A cache and not a separate seed job: a job that seeds and uploads an
+      # artifact serialises what is currently parallel, and measured against
+      # these timings it makes the wall clock ~1m35s *worse*. A cache restores
+      # inside each shard, concurrently, and falls back to seeding on a miss.
+      #
+      # THE KEY IS THE WHOLE SAFETY ARGUMENT. A key that misses an input
+      # silently ships a stale corpus — precisely the failure `e2e/corpus/`
+      # exists to catch, arriving in the one form it cannot see. So every
+      # pattern below was traced to the script that reads it rather than
+      # guessed: `.velite/**` is committed and is what migrate:velite reads;
+      # seed-race-schedule imports src/lib/races/catalogue; import-race-
+      # editions and import-race-qualifiers read data/*.csv; all five boot
+      # Payload, so the config, the collections and the migrations are inputs
+      # to every one of them. pnpm-lock.yaml is here because a Payload bump
+      # can change what a migration produces.
+      #
+      # No `restore-keys`. A prefix fallback restores the newest *near* match,
+      # which is a database built from different inputs — the exact thing this
+      # key exists to prevent. An exact hit or a full seed, nothing between.
+      #
+      # RESTORE AND SAVE ARE SPLIT, AND THAT IS THE POINT. Plain `actions/cache`
+      # saves in a post-job hook — which runs *after* Playwright, so what it
+      # stored would be the database as the suite left it, test residue and
+      # all. Every subsequent run would inherit the rows a failed teardown did
+      # not remove, and `e2e/corpus/` asserts about the data that is actually
+      # there. docs/testing-strategy.md is unambiguous that this is the thing
+      # to avoid: "Setup and teardown are mandatory, not optional, and they run
+      # every time", and the reason CI is named as doing it correctly is that
+      # each job starts from an empty database. A cache saved after the tests
+      # would quietly end that and make every run depend on the last one.
+      #
+      # So the save below happens immediately after seeding and before a single
+      # test runs. What is cached is the corpus the seeds produce and nothing
+      # else — the same bytes a fresh seed would produce, which is the only
+      # thing that makes skipping the seed equivalent to running it.
+      - name: Restore the seeded fixture database
+        id: fixture
+        uses: actions/cache/restore@v4
+        with:
+          # The whole directory, not the .sqlite: miniflare leaves a -wal that
+          # routinely exceeds the database file itself (4.1MB against 1.7MB
+          # when this was written), and restoring the three files apart from
+          # one another would lose whatever had not been checkpointed.
+          #
+          # `d1` and not all of `state/v3`, because D1 is the entirety of what
+          # the seeds produce. `migrate-velite-to-payload.ts` registers Media
+          # rows pointing at objects already in R2 and deliberately does not
+          # fetch or re-upload them (its own header says so), so local R2 holds
+          # zero object blobs after a full seed — checked, not assumed. The
+          # other state directories are miniflare bookkeeping the seeds never
+          # write to.
+          path: .wrangler/state/v3/d1
+          key: >-
+            d1-fixture-v1-${{ hashFiles(
+              'src/migrations/**',
+              'src/collections/**',
+              'src/payload.config.ts',
+              'src/lib/races/**',
+              '.velite/**',
+              'data/*.csv',
+              'scripts/migrate-velite-to-payload.ts',
+              'scripts/seed-race-schedule.ts',
+              'scripts/seed-e2e-account.ts',
+              'scripts/import-race-editions.ts',
+              'scripts/import-race-qualifiers.ts',
+              'pnpm-lock.yaml'
+            ) }}
       - name: Apply local D1 migrations
+        if: steps.fixture.outputs.cache-hit != 'true'
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
@@ -148,6 +253,7 @@ jobs:
       # So CI now exercises the same corpus a developer has locally, rather
       # than an empty shell that every data-dependent assertion steps around.
       - name: Seed the corpus the journeys read
+        if: steps.fixture.outputs.cache-hit != 'true'
         # Bounded on purpose: these scripts boot Payload, and one that fails
         # to exit would otherwise burn the job's full 30 minutes before
         # anybody learned the seed was the problem.
@@ -186,6 +292,51 @@ jobs:
           # /races filters are about data the CSV carries, and a database
           # without it renders a filter that matches nothing.
           pnpm seed:qualifiers
+      # Snapshot the corpus here — after seeding, before any test touches it.
+      #
+      # `cache-primary-key` is the key the restore step computed, so the two
+      # cannot drift: there is one hashFiles expression in this file, not two
+      # that have to be kept identical by hand.
+      #
+      # Only shard 1 writes it. All three seed identically on a miss, so three
+      # uploads of the same bytes would race for one key and two would log a
+      # reservation warning for no benefit. If shard 1 dies before this point
+      # the run has bigger problems than a cold cache, and the next run simply
+      # seeds again.
+      - name: Save the seeded fixture database
+        if: matrix.shard == 1 && steps.fixture.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .wrangler/state/v3/d1
+          key: ${{ steps.fixture.outputs.cache-primary-key }}
+      # The one thing a restored database cannot carry forward.
+      #
+      # Every other input to the fixture is a file, so the key above sees it
+      # change. The e2e credential is a repo secret: rotating it — which
+      # AGENTS.md requires, because the fallback in e2e/helpers/auth.ts is
+      # published — touches no file at all, so a cached database would keep
+      # the old hash and every sign-in would fail, reading as an auth bug
+      # rather than a stale cache.
+      #
+      # So the account is re-stamped from the current secret whenever the
+      # database came from the cache. `seed-e2e-account.ts` now updates an
+      # existing user's password instead of returning it untouched, which is
+      # what makes this converge rather than merely re-run. On a miss the step
+      # above already ran it in its proper place in the ordering, so this is
+      # skipped there rather than doing it twice.
+      - name: Re-stamp the e2e account from the current secret
+        if: steps.fixture.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm seed:e2e:account
       - name: Run Playwright (shard ${{ matrix.shard }}/3)
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}

@@ -101,16 +101,37 @@ async function main() {
       where: { email: { equals: account.email } },
       limit: 1,
     });
-    const user =
-      found.docs[0] ??
-      (await payload.create({
-        collection: "users",
-        data: {
-          email: account.email,
-          password: account.password,
-          role: account.role,
-        },
-      }));
+    // Converge on the declared account, rather than accepting whatever is
+    // already there.
+    //
+    // This used to be find-or-create: a user found by email was returned
+    // untouched, so its password stayed whatever it was first created with.
+    // That is invisible while every CI job seeds a database it just created —
+    // the create branch always ran — and becomes a silent outage the moment a
+    // database outlives one job, which is exactly what caching the seeded
+    // fixture does (.github/workflows/e2e.yml). Rotating E2E_ADMIN_PASSWORD is
+    // a repo-settings action that touches no file, so it cannot invalidate a
+    // file-hash cache key; without this, every sign-in would fail against a
+    // restored database and would read as an auth bug rather than a stale one.
+    //
+    // AGENTS.md requires that rotation ("the password on the deployed
+    // environment has to be rotated too"), so this is a case the project
+    // expects to happen, not a hypothetical.
+    const user = found.docs[0]
+      ? await payload.update({
+          collection: "users",
+          id: found.docs[0].id,
+          data: { password: account.password, role: account.role },
+          overrideAccess: true,
+        })
+      : await payload.create({
+          collection: "users",
+          data: {
+            email: account.email,
+            password: account.password,
+            role: account.role,
+          },
+        });
 
     const foundAuthor = await payload.find({
       collection: "authors",

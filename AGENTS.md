@@ -300,7 +300,8 @@ Playwright codegen. Not something written five minutes ago.
 pnpm dev                     # Turbopack, ready in ~340ms
 pnpm typecheck               # always run this
 npx eslint src scripts e2e   # `pnpm lint` OOMs on this repo; CI does not run it
-pnpm test:e2e                # full Playwright suite against localhost
+pnpm test:unit               # the unit lane: no server, no database, ~6s
+pnpm test:e2e                # browser + contract lane, against localhost
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
