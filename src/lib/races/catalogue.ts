@@ -34,7 +34,7 @@
  * races.
  */
 
-export type RaceSeries = "utmb" | "wtm" | "others";
+export type RaceSeries = "utmb" | "wtm" | "marathon" | "others";
 
 /**
  * The series, in display order.
@@ -42,8 +42,37 @@ export type RaceSeries = "utmb" | "wtm" | "others";
  * Exported so nothing else has to keep its own copy — `RaceRecordManager`
  * used to hold a hand-written `["utmb", "wtm"]`, which meant adding a series
  * here left it invisible in the member picker. One list, one place.
+ *
+ * `marathon` is the six Abbott World Marathon Majors, and it is a group of
+ * its own rather than a corner of `others` because it is a different kind of
+ * race, not an unaffiliated one: road, not trail. Filing the Berlin Marathon
+ * under 「其他獨立賽事」 next to the Barkley describes neither.
  */
-export const RACE_SERIES: readonly RaceSeries[] = ["utmb", "wtm", "others"];
+export const RACE_SERIES: readonly RaceSeries[] = [
+  "utmb",
+  "wtm",
+  "marathon",
+  "others",
+];
+
+/**
+ * The series `/races` offers as filter chips — every series EXCEPT
+ * `marathon`.
+ *
+ * The schedule lists editions that carry a `startDate`, and the marathon
+ * events deliberately have none dated — that is what keeps six road races
+ * off a trail calendar. A chip for them would therefore always land on
+ * 「這個條件下沒有賽事」 — a control whose only outcome is an empty page.
+ *
+ * A hand-typed copy of the other three would rot the moment a fourth trail
+ * series is added, which is the exact bug the comment above records. So it
+ * is derived, and the exclusion is the thing stated.
+ */
+export type ScheduleSeries = Exclude<RaceSeries, "marathon">;
+
+export const SCHEDULE_SERIES: readonly ScheduleSeries[] = RACE_SERIES.filter(
+  (series): series is ScheduleSeries => series !== "marathon",
+);
 
 /**
  * UTMB standardises every event into four categories — this is the official
@@ -359,13 +388,15 @@ export function raceEventsBySeries(series: RaceSeries): RaceEvent[] {
 export const RACE_SERIES_LABELS: Record<RaceSeries, string> = {
   utmb: "UTMB World Series",
   wtm: "World Trail Majors",
+  marathon: "Marathon Majors",
   others: "Independent Races",
 };
 
-/** The same three, for the Chinese-language UI. */
+/** The same four, for the Chinese-language UI. */
 export const RACE_SERIES_LABELS_ZH: Record<RaceSeries, string> = {
   utmb: "UTMB 世界系列賽",
   wtm: "World Trail Majors",
+  marathon: "馬拉松",
   others: "其他獨立賽事",
 };
 

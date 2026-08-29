@@ -1,5 +1,6 @@
 /** Public-site shapes decoupled from Velite and Payload document types. */
 
+import type { RaceSeries } from "./races/catalogue";
 import type { RaceQualifiers } from "./races/qualifiers";
 
 export type SiteImage = {
@@ -48,7 +49,7 @@ export type SiteRaceEditionDetail = {
   eventKey: string;
   name: string;
   nameZh?: string;
-  series: "utmb" | "wtm" | "others";
+  series: RaceSeries;
   country?: string;
   year: number;
   startDate?: string;
@@ -143,7 +144,7 @@ export type SiteRaceScheduleEntry = {
   id: number;
   name: string;
   nameZh?: string;
-  series: "utmb" | "wtm" | "others";
+  series: RaceSeries;
   startDate: string;
   endDate?: string;
   eventId?: string;

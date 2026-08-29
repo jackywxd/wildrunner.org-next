@@ -320,7 +320,7 @@ export interface RaceEvent {
   /**
    * Changes between seasons — races join and leave. Re-check it when the next calendar is published.
    */
-  series: 'utmb' | 'wtm' | 'others';
+  series: 'utmb' | 'wtm' | 'marathon' | 'others';
   /**
    * ISO 3166-1 alpha-3, e.g. FRA.
    */

@@ -106,6 +106,7 @@ export const RaceEvents: CollectionConfig = {
       options: [
         { label: { en: 'UTMB World Series', 'zh-TW': 'UTMB 世界系列賽' }, value: 'utmb' },
         { label: { en: 'World Trail Majors', 'zh-TW': 'World Trail Majors' }, value: 'wtm' },
+        { label: { en: 'Marathon Majors', 'zh-TW': '馬拉松' }, value: 'marathon' },
         { label: { en: 'Independent', 'zh-TW': '其他獨立賽事' }, value: 'others' },
       ],
       admin: {

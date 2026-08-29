@@ -20,7 +20,7 @@ import path from "node:path";
 const DATA_DIR = path.resolve(import.meta.dirname, "..", "data");
 const requireVerified = process.argv.includes("--require-verified");
 
-const SERIES = new Set(["utmb", "wtm", "others"]);
+const SERIES = new Set(["utmb", "wtm", "marathon", "others"]);
 
 /**
  * Minimal RFC 4180 reader — enough for these two files, which are written by
@@ -97,7 +97,7 @@ for (const event of events) {
 
   if (!event.name) fail(`events: ${key} has no name`);
   if (!SERIES.has(event.series)) {
-    fail(`events: ${key} has series "${event.series}", expected utmb|wtm|others`);
+    fail(`events: ${key} has series "${event.series}", expected utmb|wtm|marathon|others`);
   }
   // Country is ISO 3166-1 alpha-3 everywhere else in this codebase
   // (RaceSchedule validates the same shape); a two-letter code here would
