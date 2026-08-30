@@ -124,6 +124,21 @@ export const Media: CollectionConfig = {
      * page to run the same query, and two different visibility rules would be
      * exactly the split-brain that file exists to avoid.
      *
+     * THE DEFAULT IS `attachment`, WHICH IS FAIL-CLOSED AND IS NOT WHAT THE
+     * MEMBER SEES. Every path that deliberately puts a file in the library
+     * says `gallery` outright — `UploadDropzone` (with the member's own
+     * checkbox) and the admin panel's `LargeUploadPanel` — so a member's
+     * upload is public by default exactly as intended. What the default
+     * decides is only the case where nobody said anything, and there is a real
+     * one: /admin's rich-text editor uses Payload's unrestricted
+     * `UploadFeature`, whose drawer POSTs to /api/media with no `usage` at
+     * all. Measured with `gallery` as the default — an image inserted into an
+     * article from /admin landed on the public photo wall, which is precisely
+     * what this column exists to prevent, on the path this site's own author
+     * uses most. "Unspecified" therefore means "keep it off the wall", the
+     * same direction `20260830_090000_add_media_usage` chose for rows it could
+     * not classify.
+     *
      * Curated albums (`galleries.items[]`) are NOT governed by it: an editor
      * putting a file in an album is its own explicit act.
      *
@@ -137,7 +152,7 @@ export const Media: CollectionConfig = {
       name: 'usage',
       type: 'select',
       label: { en: 'Usage', 'zh-TW': '用途' },
-      defaultValue: 'gallery',
+      defaultValue: 'attachment',
       options: [
         { label: { en: 'Photo wall', 'zh-TW': '相片牆' }, value: 'gallery' },
         { label: { en: 'Private', 'zh-TW': '不公開' }, value: 'private' },

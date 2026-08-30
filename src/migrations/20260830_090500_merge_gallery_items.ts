@@ -34,9 +34,13 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-d1-sqlite'
  * a 500 the first time an editor saved a draft with an empty row.
  *
  * SAFE TO RUN TWICE, which is a requirement rather than a nicety — see
- * AGENTS.md and `20260826_072758_add_race_category_qualifiers`. How each copy
- * achieves that differs between the live and version tables, and the
- * difference is load-bearing; see the two constants below.
+ * AGENTS.md and `20260826_072758_add_race_category_qualifiers`. Both copies
+ * below get that from a per-parent `NOT EXISTS` evaluated inside the one
+ * INSERT — the "database decides inside the statement" shape rather than the
+ * check-then-act one. They differ in why they cannot use the row id instead:
+ * the version tables' integer keys collide across the two sources, and the
+ * live tables' text keys would resurrect a row somebody deleted later. Both
+ * are written up on the constants themselves.
  */
 
 const CREATE_ITEMS = sql`
@@ -75,7 +79,7 @@ const INDEXES = [
 
 /**
  * Images keep their position; videos are appended after the last image in the
- * same album.
+ * same album. One statement, one guard.
  *
  * `_order` has to be recomputed rather than carried over. Each of the two old
  * tables numbered from 1 within a parent, so a straight union puts two rows at
@@ -86,24 +90,42 @@ const INDEXES = [
  * this does not depend on D1's SQLite build having window functions. It costs
  * one small lookup per video row, on 22 rows in this corpus.
  *
- * `INSERT OR IGNORE` is what makes these re-entrant, and it works here only
- * because `id` is the source table's own `text` primary key: a second worker
- * inserting the same ids conflicts on every row and writes nothing. The
- * version copy below cannot use this — see there.
+ * RE-ENTRANT BY PARENT, not by row id, and the difference is the whole point.
+ * The first version used two `INSERT OR IGNORE` statements keyed on the id
+ * carried over from the source. That is re-entrant against a *concurrent*
+ * replay, which is what it was written for, but not against a *later* one:
+ * measured on a copy of the seeded corpus, deleting one item from an album
+ * (420 rows -> 419) and then replaying this file put it straight back, because
+ * the id a delete removes is exactly the id `OR IGNORE` looks for. The old
+ * tables are frozen by design, so they hold that row forever, and AGENTS.md
+ * records a real occasion when a ledger row went missing and a file replayed.
+ *
+ * Asking "does this album have any rows yet" instead cannot resurrect a
+ * deleted one, and still resumes per album if a worker dies partway. It has
+ * one narrower hole, stated rather than hidden: an album whose items were ALL
+ * removed looks untouched, and a replay would refill it. The migration that
+ * drops the old tables closes even that.
+ *
+ * The two halves must be ONE statement. Copying images first and videos second
+ * with the same per-parent guard would skip every video — by then the parent
+ * has image rows, so the guard is false for all of them.
  */
-const COPY_IMAGES = sql`
-  INSERT OR IGNORE INTO \`galleries_items\` (\`_order\`,\`_parent_id\`,\`id\`,\`media_id\`,\`featured\`)
-  SELECT \`_order\`, \`_parent_id\`, \`id\`, \`media_id\`, \`featured\`
-  FROM \`galleries_images\`;
-`
-
-const COPY_VIDEOS = sql`
-  INSERT OR IGNORE INTO \`galleries_items\` (\`_order\`,\`_parent_id\`,\`id\`,\`media_id\`,\`featured\`)
-  SELECT
-    (SELECT COALESCE(MAX(i.\`_order\`), 0) FROM \`galleries_images\` i
-      WHERE i.\`_parent_id\` = v.\`_parent_id\`) + v.\`_order\`,
-    v.\`_parent_id\`, v.\`id\`, v.\`media_id\`, false
-  FROM \`galleries_videos\` v;
+const COPY_LIVE_ROWS = sql`
+  INSERT INTO \`galleries_items\` (\`_order\`,\`_parent_id\`,\`id\`,\`media_id\`,\`featured\`)
+  SELECT src.\`_order\`, src.\`_parent_id\`, src.\`id\`, src.\`media_id\`, src.\`featured\`
+  FROM (
+    SELECT \`_order\`, \`_parent_id\`, \`id\`, \`media_id\`, \`featured\`
+    FROM \`galleries_images\`
+    UNION ALL
+    SELECT
+      (SELECT COALESCE(MAX(i.\`_order\`), 0) FROM \`galleries_images\` i
+        WHERE i.\`_parent_id\` = v.\`_parent_id\`) + v.\`_order\`,
+      v.\`_parent_id\`, v.\`id\`, v.\`media_id\`, false
+    FROM \`galleries_videos\` v
+  ) src
+  WHERE NOT EXISTS (
+    SELECT 1 FROM \`galleries_items\` x WHERE x.\`_parent_id\` = src.\`_parent_id\`
+  );
 `
 
 /**
@@ -241,8 +263,7 @@ export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
 
   // Run unconditionally, whatever the two flags say: guarding a copy on "did I
   // create the table" is the check-then-act shape that took staging down.
-  await db.run(COPY_IMAGES)
-  await db.run(COPY_VIDEOS)
+  await db.run(COPY_LIVE_ROWS)
   await db.run(COPY_VERSION_ROWS)
 
   const [counts] = rowsOf<{
@@ -253,11 +274,21 @@ export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
   }>(await db.run(COUNTS))
   if (!counts) throw new Error('galleries_items: the verification query returned no row.')
 
+  // Two jobs, and the second one arrived by accident. It verifies the copy
+  // completed — and because the old tables are frozen while the new one is
+  // live, it also refuses a *stale* replay: once anybody has edited an album
+  // the counts can no longer match, so a run that reaches here on an
+  // already-migrated database stops instead of being believed. That only
+  // happens when the ledger row has gone missing, which is a situation a
+  // person needs to look at anyway. It does not fire on the concurrent
+  // build-worker replay this file is written for, where nothing has been
+  // edited yet — measured.
   const expected = Number(counts.images) + Number(counts.videos)
   if (Number(counts.items) !== expected) {
     throw new Error(
       `galleries_items has ${counts.items} rows; galleries_images + galleries_videos is ${expected}. ` +
-        'The copy is incomplete, and the old tables are still present — do not drop them.',
+        'Either the copy is incomplete, or this database is already migrated and has since been ' +
+        'edited — check which before doing anything. The old tables are still present; do not drop them.',
     )
   }
   if (Number(counts.duplicate_order) > 0) {
