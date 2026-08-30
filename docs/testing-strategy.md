@@ -167,7 +167,10 @@ tell you which. Four sources can, and each costs under two minutes:
 
 ### unit
 - No clock, no network, no database. `now` is a parameter — that is why
-  `calendar.ts` takes one.
+  `calendar.ts` takes one. This one is mechanical: the lane has no server to
+  reach (§9), and `assert:tests` fails a spec here that names `page.`,
+  `request.` or `BASE_URL`. A test that needs one has changed level — move the
+  file, do not weaken the rule.
 - Construct dates as `new Date("2026-08-01T12:00:00Z")`, never
   `new Date(2026, 7, 1)`: the second is local time and flips half the
   assertions on a UTC-7 runner.
@@ -276,12 +279,56 @@ a spec document behind one.
 
 ## 9. Speed is a correctness feature
 
-CI is four jobs: `checks` (typecheck and asserts, ~40s), `e2e` across three
-shards, `build`. Sharding rather than raising `workers`, because every spec
-shares one local D1 and the corpus tests would race fixture creation.
+CI is four jobs: `checks` (typecheck, asserts and the unit lane, ~50s), `e2e`
+across three shards, `build`. Sharding rather than raising `workers`, because
+every spec in the `e2e` job shares one local D1 and the corpus tests would race
+fixture creation.
 
 Each shard must pass alone before the split lands — sharding regroups spec
 files and surfaces any latent dependency between them.
+
+**A level runs in a lane carrying only what that level needs, and lanes come
+before shards.** `--shard` divides by test *count*, which is only a proxy for
+cost while the tests are comparable. They were not. Measured:
+
+|  | corpus | journeys | unit | tests | clock |
+|---|---|---|---|---|---|
+| shard 1 | 12 | 30 | 32 | 74 | **6m19s** |
+| shard 2 | | | 67 | 67 | 46s |
+| shard 3 | | | 65 | 65 | 38s |
+
+One shard held every browser test there was. The other two held pure functions
+and nothing else — and still paid a container, an install, `payload migrate`
+and ~2m30s of seeding each to run about a third of a second of assertions,
+because `webServer` and `globalSetup` are `TestConfig` options with no
+per-project form. Perfectly balanced by count; 10:1 by clock.
+
+So the unit level has its own config (`playwright.unit.config.ts`) with no
+server and no database, and runs in `checks` in ~6s. `e2e` shards only what
+needs a server, a database or a browser. **A second config file is the
+mechanism, not a preference** — a project cannot opt out of the server the
+config starts.
+
+The browser lane is still not balanced, and the number is worth carrying
+rather than rounding away. On CI (run 33290945244, the first fully green one):
+`checks` 50s, the three shards 2m42s / 4m56s / 4m23s, `build` 2m49s, whole
+workflow **5m02s against the ~9m45s it replaced**. The uploads and the AI
+journeys land together in shard 2, so sharding by count buys less than a third
+of the time. `--shard` divides by count and nothing else, so the lever left is
+sharding by duration from the previous run's report — worth reaching for when
+the spread costs more than the complexity, not before.
+
+Two costs inside that 5m02s are worth knowing before trying to shrink it
+further. The seeded fixture database is cached, so on a hit the migrate and
+seed steps skip entirely: restore 1s and a re-stamp of the e2e account 8s,
+where seeding used to be 2m16s-2m51s *per shard*. And `globalSetup` now warms
+20 routes rather than 8, at 53.8s — compile time moved out of test budgets
+rather than removed, after a sharded run put an unwarmed route's first compile
+inside `P-PHOTO`'s 20s budget and failed it.
+
+`assert:tests` enforces the boundary: a spec under `e2e/unit/` that reaches for
+`page.`, `request.` or `BASE_URL` fails the build. Without that the lane decays
+back into the mixed suite one commit at a time.
 
 Slow feedback is not just annoying: an 18-minute red is one nobody reads
 carefully, and this whole document is about failures nobody read carefully.

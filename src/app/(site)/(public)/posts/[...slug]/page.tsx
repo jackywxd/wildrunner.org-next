@@ -74,7 +74,39 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * The published posts, prerendered at build time.
+ *
+ * KEPT, unlike `/gallery/[slug]`'s. AGENTS.md's rule is that a route which is
+ * `force-dynamic` must not export this — Next asks anyway, in a forked child,
+ * and throws the answer away. This route is not force-dynamic and the answer
+ * is not thrown away: every published post is prerendered, served from the R2
+ * incremental cache, and invalidated per-slug by `revalidatePosts` when the
+ * post changes (open-next.config.ts wires the D1 tag cache that makes that
+ * work). Forcing this route dynamic to quiet the dev log would throw all of
+ * that away and put a D1 query in front of every first view of an article.
+ *
+ * THE DEV SHORT-CIRCUIT IS THE POINT. Next's own docs: "During `next dev`,
+ * `generateStaticParams` will be called when you navigate to a route"
+ * (node_modules/next/dist/docs/.../generate-static-params.md). Dev renders
+ * every path on demand whatever this returns, so in dev the answer is unused
+ * — but producing it is not free. It runs in the `getStaticPathsWorker` fork,
+ * whose global scope is empty, so payload.config.ts finds no parked
+ * Cloudflare context and builds a *second* miniflare over the same local
+ * SQLite file the dev server is serving from, then runs a full
+ * `getPublishedPosts()` through it.
+ *
+ * Measured on the first navigation to this route on a warm dev server:
+ * `generate-params: 5.2s`, and a second `workerd` appears alongside the dev
+ * server's own for the duration. That is the same shape as the
+ * `database is locked` AGENTS.md traces to this fork — two workerd contending
+ * for one file — and the same waste `/gallery/[slug]` was paying at 2.1s.
+ *
+ * `next build` sets NODE_ENV=production, so the build still gets the real
+ * list; nothing about what ships changes.
+ */
 export async function generateStaticParams() {
+  if (process.env.NODE_ENV !== "production") return [];
   const slugs = await getPublishedPostSlugs();
   return slugs.map((slug) => ({
     slug: slug.split("/"),

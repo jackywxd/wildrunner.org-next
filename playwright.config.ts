@@ -49,6 +49,16 @@ const TIMEOUT = isLocalTarget ? 20_000 : 300_000;
 
 export default defineConfig({
   testDir: "./e2e",
+  // The browser lane: everything that needs a server, a database or a browser.
+  //
+  // `e2e/unit` is excluded because it needs none of the three, and this config
+  // cannot give it that. `webServer` and `globalSetup` below are `TestConfig`
+  // options — there is no per-project form of either (playwright/types/
+  // test.d.ts, 1.56.1) — so any test reachable from here boots `next dev` and
+  // warms eight routes first. 164 pure-function tests were paying that, and
+  // `--shard` was dividing by test count, so two of the three CI shards ran
+  // nothing but those. See playwright.unit.config.ts, which runs them in 5.9s.
+  testIgnore: "**/unit/**",
   forbidOnly: !!process.env.CI,
   // Runs once per shard, after `webServer` reports ready and before the first
   // test's clock starts. See e2e/helpers/warmup.ts for why the cost belongs

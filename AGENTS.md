@@ -300,7 +300,11 @@ Playwright codegen. Not something written five minutes ago.
 pnpm dev                     # Turbopack, ready in ~340ms
 pnpm typecheck               # always run this
 npx eslint src scripts e2e   # `pnpm lint` OOMs on this repo; CI does not run it
-pnpm test:e2e                # full Playwright suite against localhost
+pnpm test:unit               # the unit lane: no server, no database, ~6s
+pnpm test:e2e                # browser + contract lane, against localhost
+pnpm db:reset:local          # rebuild local D1 into the corpus CI seeds — run
+                             # this BEFORE test:e2e, every time, not when it
+                             # looks broken
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
@@ -387,6 +391,26 @@ Two rules that came out of getting these wrong:
   accounts, `race_records` often empty. A spec that leans on ambient data
   passes locally and fails in CI, where the database starts empty.
 
+  `pnpm db:reset:local` is the fix and it belongs *before* the run, not after
+  a confusing one. Eight consecutive suite runs were made here against a
+  database nobody rebuilt: it drifted from the seeded 15 posts to 22, and the
+  results degraded monotonically — 40 passed/2 failed, then 21/21, then
+  16/26. Three explanations were reached for and each was wrong (orphaned
+  processes, a corrupted corpus, a degraded machine); the corpus specs passing
+  12/12 is what finally ruled out the data, and CI — which rebuilds per shard
+  — disagreed with all of it. **A local browser-suite result from an un-reset
+  database is not evidence of anything.**
+
+- **A dynamic segment is its own compilation unit.** `e2e/helpers/warmup.ts`
+  claimed detail routes "share a compiled route with their index"; they do
+  not, and each costs ~5s to compile on a cold server. That was invisible
+  while all 42 browser tests ran in one shard, because some earlier test
+  always happened to pay it. Sharding removed the accident and dropped the
+  compile inside `P-PHOTO`'s 20s budget, which is how it failed on CI while
+  passing locally. Anything a spec reaches — `/members/media`,
+  `/races/<key>/<year>` — has to be in that ROUTES list by name; an index
+  does not cover its children.
+
 ### A page that logs errors is not a page that works
 
 The suite had 257 tests and **one** of them looked at the console. That is how
@@ -466,6 +490,45 @@ longer see. The bar is "the app cannot cause it and cannot stop it", never
   and a red `V-RACEALBUM-T1` that passed on re-run. The fix is that outside a
   production build the config goes straight to local emulated bindings —
   the remote handshake only ever made sense for `build:staging`/`build:prod`.
+
+  **That fix removed the failed handshake, not the second miniflare, and this
+  paragraph read as though it had removed both.** `getRuntimeContext()` reuses
+  a *parked* context when one exists and otherwise calls `getPlatformProxy()`;
+  a forked child's global scope is empty, so it never has a parked context and
+  always builds its own miniflare. Going "straight to local emulated bindings"
+  is what that call *is*. So the fork got faster — seconds of doomed handshake
+  removed — while still opening a second workerd over the file the dev server
+  is serving from. Measured 2026-08-30 on `/posts/[...slug]`, whose
+  `generateStaticParams` is legitimate (it is not force-dynamic; its answer is
+  prerendered and invalidated by `revalidatePosts`, so the rule below does not
+  reach it): `generate-params: 6.3s` on first navigation, and `pgrep workerd`
+  going 2 → 3 and *staying* there. `/about` in the same loop stayed flat.
+
+  Short-circuiting that route's `generateStaticParams` in dev removes the
+  query and the 6.3s. It does **not** remove the miniflare: `payload.config.ts`
+  acquires the context in a top-level `await`, so importing the module is what
+  boots it, whichever branch the function then takes. Measured after the
+  short-circuit landed — still 2 → 3.
+
+  **Do not reach for a lazy binding to fix that.** `@payloadcms/db-d1-sqlite`
+  stores `args.binding` at construction and dereferences it *synchronously* at
+  connect (`connect.js`: `let binding = this.binding`, then `drizzle(binding)`),
+  while acquiring it is async. A Proxy cannot bridge that, and the file it
+  would live in is the one that decides which database everything talks to.
+
+  What is left is to stop the fork existing: a dynamic route with no
+  `generateStaticParams` export is never asked for one. For `/posts/[...slug]`
+  that means dropping build-time enumeration and letting posts render on first
+  request into the R2 incremental cache — which is *not* the same as making
+  the route `force-dynamic`, and which the tag cache already invalidates
+  correctly. It changes what production serves, so it needs a real build and a
+  staging check before it lands; it was deliberately not done blind.
+
+  **Killing `next dev` orphans its `workerd`.** It reparents to init and keeps
+  `.wrangler/state/v3/d1` open, so restarting the dev server a few times
+  silently accumulates miniflares over one SQLite file — three of them during
+  one measurement here, which is the contention above, self-inflicted. Check
+  `pgrep workerd` after stopping the server, not just the port.
 
   Two things generalise. **A route that is `force-dynamic` must not export
   `generateStaticParams`**: Next asks for it anyway, in that forked child, and

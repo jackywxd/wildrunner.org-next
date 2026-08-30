@@ -90,6 +90,36 @@ for (const file of specFiles(E2E)) {
   const usesPage = /\bpage\./.test(stripComments(source))
   const relative = file.replace(`${E2E}/`, '')
 
+  // §4 unit — "no clock, no network, no database", enforced.
+  //
+  // The unit lane runs under playwright.unit.config.ts, which has no
+  // `webServer` and no `globalSetup` because 164 pure-function tests were
+  // booting `next dev` and warming eight routes to assert on a pure function.
+  // Nothing in that lane can reach a server, so a spec that acquires a
+  // `page.` or a `request.` there does not fail with "no server" — it fails
+  // with a fixture error, or worse, silently against whatever happens to be
+  // listening on port 3000 on a developer's machine.
+  //
+  // A spec that needs any of these has changed level, and §2 says going up a
+  // level must be justified in the test. Justifying it means moving the file
+  // to `e2e/journeys/`, not weakening this.
+  if (relative.startsWith('unit/')) {
+    const reach = [
+      ['page.', /\bpage\./],
+      ['request.', /\brequest\./],
+      ['BASE_URL', /\bBASE_URL\b/],
+    ]
+      .filter(([, pattern]) => pattern.test(stripComments(source)))
+      .map(([name]) => name)
+    if (reach.length) {
+      problems.push({
+        key: relative,
+        rule: '§4 unit — no clock, no network, no database',
+        detail: `reaches for ${reach.join(', ')} — the unit lane has no server to reach; move the spec to e2e/journeys/`,
+      })
+    }
+  }
+
   // §4 journey — every browser spec must go through the console guard, or a
   // page that logs errors passes silently. This is the rule that a whole
   // admin panel failing hydration got past.
