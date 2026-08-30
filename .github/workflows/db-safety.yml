@@ -1,0 +1,247 @@
+name: DB safety
+
+# The two things that have to be true before schema reaches a deployed
+# database, done where the credentials actually are.
+#
+# AGENTS.md states the requirement ("A deployed database is not touched until
+# there is a way back, and staging is not a rehearsal unless it carries
+# production's rows"). This workflow is how it gets satisfied, because an
+# agent session has no CLOUDFLARE_API_TOKEN and a laptop's copy of one is not
+# a record anybody else can read. Every run leaves the bookmark, the drift and
+# the sync plan in its own summary.
+#
+# WHY NOTHING HERE EXPORTS A DUMP. The obvious automation is
+# `wrangler d1 export` piped into upload-artifact, and it is the one thing
+# this workflow must not do: the dump carries members' real emails and bcrypt
+# hashes, and **this repository is public**. Whether Actions artifacts on a
+# public repo are publicly downloadable was not verified when this was written
+# (docs.github.com was unreachable), so it is treated as unsafe — which is the
+# only defensible default for that combination. `time-travel` gives a way back
+# without a single row leaving Cloudflare, so that is what runs here. A real
+# dump needs a private destination first; there is no backup bucket today, and
+# creating one is a decision, not a step.
+#
+# ON DEMAND ONLY, and deliberately not scheduled. A bookmark is worth having
+# at the moment somebody is about to change a schema; recorded nightly it is
+# just noise, and Time Travel is continuous anyway — the value here is the
+# record of *when you looked*, tied to the change you were about to make.
+#
+# DRY-RUN UNLESS ASKED, following unused-media-sweep.yml: the only step that
+# writes anything is gated behind an input that defaults to off, so opening
+# this workflow and pressing Run is always safe.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Write the staging sync (off = report only, nothing is written)"
+        type: boolean
+        default: false
+
+# One at a time. Two syncs into the same staging database would interleave
+# writes for no reason; queue rather than cancel, since a half-finished sync
+# is worse than a slow one.
+concurrency:
+  group: db-safety
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Restore point, drift, sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Fails rather than skips, unlike the other maintenance workflows. Those
+      # are opt-in jobs whose absence degrades nothing; this one exists solely
+      # to answer "is there a way back", and a green run that answered nothing
+      # is the exact failure mode it was written to prevent.
+      - name: Require credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::missing secrets:$missing — this workflow cannot read either database without them"
+            exit 1
+          fi
+
+      # THE RESTORE POINT. `time-travel info` prints a bookmark and the window
+      # it can reach, and prints no rows — which is why it, and not a dump, is
+      # what this workflow records. Read the window as well as the bookmark:
+      # it is what tells you whether Time Travel alone is enough cover for the
+      # change you are about to make, or whether this one needs a dump taken
+      # by hand to a private destination.
+      #
+      # Production is the top-level environment and wrangler names it by its
+      # ABSENCE — there is exactly one `env` section (staging), so passing
+      # `-e production` fails with "No environment found in configuration with
+      # name production". AGENTS.md has the long version.
+      - name: Record restore points
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          prod=$(npx wrangler d1 time-travel info wildrunner-org-next)
+          staging=$(npx wrangler d1 time-travel info wildrunner-org-next-staging --env staging)
+
+          # Into the log as well as the summary, and empty is a failure. The
+          # first version of this step captured both into variables and wrote
+          # them only to the summary, so a run that recorded nothing at all
+          # would still be green — the exact shape this workflow exists to
+          # prevent, committed by the workflow itself.
+          echo "$prod"
+          echo "$staging"
+          if [ -z "$prod" ] || [ -z "$staging" ]; then
+            echo "::error::time-travel returned nothing — there is no recorded restore point, so do not treat this run as cover"
+            exit 1
+          fi
+          {
+            echo '## Restore points'
+            echo
+            echo 'Recorded before any change. `wrangler d1 time-travel restore <db> --bookmark <id>` is the way back.'
+            echo
+            echo '### production — `wildrunner-org-next`'
+            echo '```'
+            echo "$prod"
+            echo '```'
+            echo '### staging — `wildrunner-org-next-staging`'
+            echo '```'
+            echo "$staging"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Is staging still a rehearsal? Only if it holds production's rows.
+      #
+      # One row of subqueries rather than a UNION per table: D1's SQLite is
+      # built with a low SQLITE_MAX_COMPOUND_SELECT, and six `UNION ALL` terms
+      # come back as "too many terms in compound SELECT".
+      - name: Compare production and staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          # Published counts, not raw table counts, because published is what
+          # the sync can actually copy: it reads production over its public
+          # REST API. The first run of this workflow reported staging 4 posts
+          # behind while the dry-run offered to copy 1 — the other three are
+          # drafts, and no amount of re-running with apply on would ever have
+          # closed that gap. A drift number the fix cannot move is a number
+          # that sends people looking for a broken sync.
+          sql="SELECT (SELECT COUNT(*) FROM media) AS media, (SELECT COUNT(*) FROM posts WHERE _status = 'published') AS posts, (SELECT COUNT(*) FROM galleries WHERE _status = 'published') AS galleries;"
+          npx wrangler d1 execute wildrunner-org-next --remote --json --command "$sql" > prod.json
+          npx wrangler d1 execute wildrunner-org-next-staging --remote --json --command "$sql" --env staging > staging.json
+          node -e '
+            const read = (f) => JSON.parse(require("fs").readFileSync(f, "utf8"))?.[0]?.results?.[0];
+            const prod = read("prod.json");
+            const staging = read("staging.json");
+            // Shape-checked before it is read: a guard that cannot tell "zero
+            // rows" from "I could not parse the answer" reports drift as
+            // agreement, which is the wrong way round to be wrong.
+            if (!prod || !staging) {
+              console.error("::error::could not read the row counts back from one of the databases");
+              process.exit(1);
+            }
+            const rows = ["media", "posts", "galleries"].map((t) =>
+              `| \`${t}\` | ${prod[t]} | ${staging[t]} | ${staging[t] - prod[t]} |`);
+            const behind = ["media", "posts", "galleries"].filter((t) => staging[t] < prod[t]);
+            const out = [
+              "## Staging drift",
+              "",
+              "Posts and galleries are counted published-only — that is what the sync can copy.",
+              "`media` is every row, and it will not converge: production holds media",
+              "attached to drafts, and media nothing references at all.",
+              "",
+              "| table | production | staging | staging − production |",
+              "|---|---:|---:|---:|",
+              ...rows,
+              "",
+              behind.length
+                ? `**staging is behind production on: ${behind.join(", ")}.** A migration rehearsed here runs against less data than production has. The sync plan below is the authoritative statement of what can be copied — read it, then re-run with \`apply\` on if it is worth having.`
+                : "Staging is not behind production on any of these. It can legitimately hold *more*: the e2e suite creates content there.",
+              "",
+            ].join("\n");
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+            console.log(out);
+          '
+
+      # `.env.staging` is gitignored and lives in one secret; scripts/with-env
+      # requires the file to exist. `pnpm sync:staging` only loads `.env.local`
+      # — which exists on a laptop and never in CI — so run bare it starts
+      # Payload without PAYLOAD_SECRET and dies with "missing secret key".
+      # deploy.yml's cleanup step is written this way for the same reason.
+      - name: Materialise .env.staging
+        env:
+          STAGING_DOTENV: ${{ secrets.STAGING_DOTENV }}
+        run: |
+          if [ -z "$STAGING_DOTENV" ]; then
+            echo "::error::secrets.STAGING_DOTENV is not set — see docs/workers-builds.md"
+            exit 1
+          fi
+          printf '%s' "$STAGING_DOTENV" > .env.staging
+
+      # Always. What it would write is the interesting half of this workflow,
+      # and reading it costs nothing.
+      - name: Plan the staging sync
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          node scripts/with-env.mjs .env.staging pnpm sync:staging --dry-run 2>&1 | tee sync-plan.txt
+          {
+            echo '## Staging sync — plan'
+            echo '```'
+            tail -40 sync-plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The only step that writes anything, and the only one behind the input.
+      # One direction only: production is the source of truth and staging never
+      # writes back (see the script's header, which also explains why `users`,
+      # drafts and R2 objects are excluded).
+      - name: Sync staging from production
+        if: ${{ inputs.apply }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          node scripts/with-env.mjs .env.staging pnpm sync:staging 2>&1 | tee sync-run.txt
+          {
+            echo '## Staging sync — applied'
+            echo '```'
+            tail -40 sync-run.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Read back rather than trust the step above. A seed or sync script that
+      # exits cleanly has not proven it wrote anything — the same lesson
+      # db:reset:local learned the hard way (AGENTS.md).
+      - name: Re-read staging after the sync
+        if: ${{ inputs.apply }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          sql="SELECT (SELECT COUNT(*) FROM media) AS media, (SELECT COUNT(*) FROM posts) AS posts, (SELECT COUNT(*) FROM galleries) AS galleries;"
+          {
+            echo '## Staging after the sync'
+            echo '```json'
+            npx wrangler d1 execute wildrunner-org-next-staging --remote --json --command "$sql" --env staging
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
