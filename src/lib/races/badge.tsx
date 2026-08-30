@@ -15,6 +15,7 @@ import {
   BADGE_VIEWBOX,
   BADGE_YEAR_MIN_SIZE,
 } from "./badge-contract";
+import { fitBandLabel } from "./badge-band";
 import { renderBadgeArt, renderSixMajorsArt } from "./badge-art";
 import type { BadgeArtRenderer } from "./badge-contract";
 import { badgeToken } from "./design-tokens";
@@ -64,6 +65,12 @@ export function RaceBadge({
   const showYear = size >= BADGE_YEAR_MIN_SIZE;
   const title = titleOverride ?? `${event.name} — ${distanceLabel} ${year}`;
 
+  const band = fitBandLabel(
+    distanceLabel,
+    showYear ? ` ${year}` : "",
+    showYear ? 11 : 13,
+  );
+
   return (
     <svg
       aria-label={title}
@@ -95,13 +102,13 @@ export function RaceBadge({
         dominantBaseline="central"
         fill={token.ink}
         fontFamily="inherit"
-        fontSize={showYear ? 11 : 13}
+        fontSize={band.fontSize}
         fontWeight={700}
         textAnchor="middle"
         x={BADGE_VIEWBOX / 2}
         y={BADGE_ART_HEIGHT + (BADGE_VIEWBOX - BADGE_ART_HEIGHT) / 2}
       >
-        {showYear ? `${distanceLabel} ${year}` : distanceLabel}
+        {band.text}
       </text>
 
       {/* Series tag. Two marks rather than a label: at 32px a word is

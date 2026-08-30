@@ -11,9 +11,66 @@ import {
 } from "@/lib/races/six-majors";
 
 /**
+ * Badge size on a directory card.
+ *
+ * 36 rather than the 32 this drew while the badges lived inside the card's
+ * text column: the band is 20 of the badge's 64 user units, so at 32px the
+ * distance label rendered at about 6px and every one of them was a smudge.
+ *
+ * THE CEILING IS MEASURED, NOT CHOSEN, and it is set by one card: the
+ * narrowest the grid is ever two-up on. That is the 1024px viewport, where
+ * a card is 472px and its inside 430 — measured, because the arithmetic was
+ * wrong here once before (it put the 768px card at 360/320 when it was
+ * 344/304, having guessed the container's padding) and a 40px badge shipped
+ * on that guess and wrapped.
+ *
+ * The widest shelf is eight tiles — a Six Star, `limit` races, and the
+ * overflow — so a tile may cost at most (430 - 7 gaps × 6px) / 8 = 48.5px.
+ * 44 measures 394 against 430: 36px of slack, and no wrap at any width the
+ * grid is two-up.
+ *
+ * WHAT ACTUALLY RAISED IT was moving the grid to two-up at `lg` rather than
+ * `md`. Widening the page to max-w-6xl on its own did nothing for this —
+ * that width only takes effect from 1152px up, while this number is decided
+ * at the bottom of the two-up range, which was 768px and is now 1024.
+ *
+ * Still deliberately short of BADGE_YEAR_MIN_SIZE (56): crossing it would
+ * put a year into the same band as the distance, and this page's question is
+ * "who has run what", not "when" — the year is on the profile, at 72.
+ *
+ */
+const ROW_BADGE_SIZE = 44;
+
+/**
+ * The shelf: a band across the bottom of the card, not a fourth line of text.
+ *
+ * The badges used to be the last block inside the card's identity column —
+ * indented under the name and sharing that column's ~330px with it, which is
+ * the crowding this redesign was asked to fix. Here they get the card's full
+ * width and a rule of their own, because a strip of graphics directly under
+ * a line of type reads as part of the same block otherwise.
+ *
+ * `mt-auto` is what makes a grid of these look deliberate: the card is
+ * stretched to its row's height, so without it the shelf sits wherever the
+ * text above it happens to end and no two cards in a row agree. Pinned to
+ * the bottom, the rules line up across the row whatever is above them.
+ *
+ * `flex-wrap` is graceful degradation, and it is scoped: ROW_BADGE_SIZE is
+ * set so a full shelf stays on one line at every width the grid is two-up,
+ * because that is where a wrap would cost a row its alignment. Below 1024
+ * the grid is one column, there is no neighbour to line up with, and the
+ * card is far wider than the shelf until the screen is a phone — measured,
+ * 394px of tiles against 662px of card at 768 and 284px at 390. A phone
+ * gets a second line, which is a better answer than badges sized for the
+ * smallest screen anyone might use.
+ */
+const SHELF_CLASS =
+  "mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-4";
+
+/**
  * One badge per event, showing the most recent year.
  *
- * A directory card has room for a handful of badges, and somebody who has
+ * A directory row has room for a handful of badges, and somebody who has
  * run the same race eight times would otherwise fill the row with eight
  * near-identical squares and crowd out every other race they have done. The
  * profile page shows the full history.
@@ -96,9 +153,23 @@ function SixMajorsProgressLine({
   );
 }
 
-/** Compact row for a directory card. */
+/**
+ * The badge shelf on a directory card.
+ *
+ * SIX RACES, WHICH IS EIGHT TILES. The count that has to fit is not this
+ * number: `limit` bounds the races, and a Six Star badge is drawn outside it
+ * (see `sixMajorsBadges` below) with the overflow tile after them both. So
+ * the shelf's width is set by 6 + 1 + 1, and both this and ROW_BADGE_SIZE
+ * are spending the same 430px — the page got wider and the two-up range
+ * started later, and the room that bought went to a bigger badge *and* one
+ * more race rather than all to either.
+ *
+ * A per-breakpoint limit is not available here and must not be faked with a
+ * second copy of the shelf: `/riders` shipping two nodes per rider is a bug
+ * this project has already had once, at length (PageTransitionEffect.tsx).
+ */
 export async function RiderBadgeRow({
-  limit = 5,
+  limit = 6,
   records,
 }: {
   limit?: number;
@@ -121,22 +192,27 @@ export async function RiderBadgeRow({
   const badges = sixMajorsBadges(sixMajorsProgress(records).completions);
 
   return (
-    <div className="mt-2 flex items-center gap-1" data-testid="rider-badge-row">
+    <div className={SHELF_CLASS} data-testid="rider-badge-row">
       {badges.map((badge) => (
-        <SixMajorsBadge key={badge.set} size={32} year={badge.year} />
+        <SixMajorsBadge key={badge.set} size={ROW_BADGE_SIZE} year={badge.year} />
       ))}
       {shown.map((record) => (
         <RaceBadge
           key={record.id}
           {...resolveBadge(catalogue, record.eventId, record.distanceId)}
-          size={32}
+          size={ROW_BADGE_SIZE}
           year={record.year}
         />
       ))}
+      {/* A tile of the same size, not a line of small type trailing the
+          row. "+6" set at 12px beside 40px squares read as a caption that
+          had lost its badge; drawn as the seventh tile it reads as what it
+          is — the rest of the collection, one click away. */}
       {overflow > 0 && (
         <span
-          className="ml-1 text-xs text-muted-foreground"
+          className="flex shrink-0 items-center justify-center border border-border text-xs font-semibold tabular-nums text-muted-foreground"
           data-testid="rider-badge-overflow"
+          style={{ height: ROW_BADGE_SIZE, width: ROW_BADGE_SIZE }}
         >
           +{overflow}
         </span>
