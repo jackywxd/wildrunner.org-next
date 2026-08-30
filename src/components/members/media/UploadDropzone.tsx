@@ -294,7 +294,7 @@ export function UploadDropzone({
             <span className="text-sm">
               顯示在相片牆
               <span className="block text-xs text-muted-foreground">
-                取消勾選後只有你自己看得到，之後仍可以在媒體庫裡改。
+                取消勾選後不會出現在公開相片牆，之後仍可以在媒體庫裡改。
               </span>
             </span>
           </label>

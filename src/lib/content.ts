@@ -1435,19 +1435,23 @@ export async function getRaceEditionDetail(
  * `owner` is resolved to the uploader's public author identity exactly the
  * way `raceRecordsByAuthorId` resolves one for badges — never a bare
  * `users` id past this function, and `media` itself is fetched at depth 0
- * so `owner` never even reaches Payload's populate step. Read access on
- * `media` is `ownedOnlyPublicRead` (Media.ts), which is full read for an
- * anonymous visitor — this is meant to be a public wall.
+ * so `owner` never even reaches Payload's populate step. What keeps this wall
+ * public is the `where` below, not the access layer — see the note on the
+ * query.
  */
 export async function getRaceEditionPhotos(
   editionId: number,
 ): Promise<SiteRaceEditionPhoto[]> {
   const payload = await getPayloadClient();
 
-  // No `overrideAccess`: `getPayloadClient()` carries no user, so this
-  // already evaluates as an anonymous request, and `ownedOnlyPublicRead`
-  // (Media.ts) gives anonymous full read — exactly "public wall," and
-  // consistent with every other query in this file.
+  // No `overrideAccess`, and it does NOT mean what the comment here used to
+  // claim. The Local API's default is `overrideAccess: true`
+  // (node_modules/payload/dist/collections/operations/local/find.js), so this
+  // is not evaluated as an anonymous request and Media's read rule is not
+  // consulted — the `usage` condition in the `where` below is what makes this
+  // a public wall, not the access layer. src/lib/members/data.ts had it right
+  // and this file had it backwards; the difference matters because it decides
+  // whether tightening a read rule changes what the public site shows.
   const result = await payload.find({
     collection: "media",
     depth: 0,

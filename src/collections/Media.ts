@@ -23,7 +23,7 @@
  */
 import type { CollectionConfig } from 'payload'
 
-import { isAuthenticated, isOwner, ownedOnlyPublicRead } from '../access'
+import { isAuthenticated, isOwner, mediaPublicRead } from '../access'
 import { ownerField } from '../fields/owner'
 import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
@@ -46,9 +46,10 @@ export const Media: CollectionConfig = {
     },
   },
   access: {
-    // Anonymous keeps full read (the public site resolves images through
-    // it); a signed-in member sees only their own library.
-    read: ownedOnlyPublicRead,
+    // Anonymous reads everything except a file its owner marked `private`;
+    // a signed-in member sees only their own library. See mediaPublicRead —
+    // and note it bounds the API, not the R2 object.
+    read: mediaPublicRead,
     create: isAuthenticated,
     update: isOwner,
     delete: isOwner,

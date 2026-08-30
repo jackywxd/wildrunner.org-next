@@ -70,6 +70,44 @@ export const ownedOnlyPublicRead: Access = ({ req: { user } }) => {
   return { owner: { equals: user.id } }
 }
 
+/**
+ * Read rule for `media` specifically: `ownedOnlyPublicRead`, minus the files a
+ * member asked not to publish.
+ *
+ * Split out from `ownedOnlyPublicRead` rather than changing it, because that
+ * helper is also `authors`' read rule and `authors` has no `usage` column.
+ *
+ * Only the anonymous branch differs, and it is there because the media library
+ * now offers a member a checkbox that says the file will not be shown. Without
+ * this, `usage` was purely a rendering filter: every query in
+ * src/lib/content.ts narrows what the site *draws*, and nothing narrowed what
+ * the REST API *serves*, so an unauthenticated
+ * `GET /api/media?where[usage][equals]=private` returned those rows in full,
+ * `url` and `filename` included. Reproduced before this was written.
+ *
+ * `not_equals` also excludes a NULL `usage`, which is deliberate: unclassified
+ * is not a claim that something is publishable, and the field default plus
+ * `20260830_090000_add_media_usage` mean no such row should exist anyway.
+ *
+ * THIS DOES NOT MAKE A FILE PRIVATE, and the member-facing copy is worded for
+ * what it does do. R2 is served from a public origin with no signing
+ * (`R2_PUBLIC_URL`, and `r2Storage` sets no `generateFileURL`), so anyone
+ * holding the object URL can still fetch the bytes. Closing that means serving
+ * these files through an authenticated route instead, which is a separate
+ * piece of work.
+ *
+ * The public site is unaffected: it reads through the Local API, whose
+ * `overrideAccess` defaults to `true`
+ * (node_modules/payload/dist/collections/operations/local/find.js), so this
+ * rule is not consulted there at all — only the REST API reaches it.
+ */
+export const mediaPublicRead: Access = ({ req: { user } }) => {
+  if (isAdminUser(user)) return true
+  if (!user) return { usage: { not_equals: 'private' } } as Where
+
+  return { owner: { equals: user.id } } as Where
+}
+
 /** Write rule: admins anywhere, members only on documents they own. */
 export const isOwner: Access = ({ req: { user } }) => {
   if (!user) return false

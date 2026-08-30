@@ -124,10 +124,16 @@ async function main() {
       !isAttachment &&
       (albumIds.has(doc.id) || (doc.raceEdition !== null && doc.raceEdition !== undefined))
 
-    if (!isAttachment && !isPhotoWall && !publishUnproven) {
-      unproven.push(`${doc.id} ${doc.filename ?? '(no filename)'}`)
-      tally.unchanged += 1
-      continue
+    // Recorded whichever way the flag is set. Populating this only in the skip
+    // branch meant the run that actually publishes these files — the one whose
+    // filenames matter — printed no list at all, including in its dry run,
+    // which is exactly backwards from the instruction below.
+    if (!isAttachment && !isPhotoWall) {
+      unproven.push(`${doc.id} ${doc.usage ?? '(unset)'} ${doc.filename ?? '(no filename)'}`)
+      if (!publishUnproven) {
+        tally.unchanged += 1
+        continue
+      }
     }
 
     const target = isAttachment ? 'attachment' : 'gallery'
@@ -146,15 +152,30 @@ async function main() {
 
   if (unproven.length > 0) {
     console.log(
-      `\n${unproven.length} media have neither an article holding them nor album/race evidence.` +
-        ' Left as they are. A sample:',
+      `\n${unproven.length} media have neither an article holding them nor album/race evidence` +
+        `${publishUnproven ? ', and --publish-unproven is PUBLISHING them' : ', and are left as they are'}` +
+        '. id / current usage / filename:',
     )
     for (const line of unproven.slice(0, 25)) console.log(`  ${line}`)
+    if (unproven.length > 25) console.log(`  … and ${unproven.length - 25} more`)
     console.log(
       '\nRead the filenames before deciding: `posts--…` names are Velite imports whose article' +
         ' never placed them, and publishing those puts an orphaned article image on the photo wall.' +
         ' Pass --publish-unproven once you are satisfied they are members\' own uploads.',
     )
+    // The migration's fail-closed backfill and a member's own untick both write
+    // the literal 'private', so this flag cannot tell "never classified" from
+    // "the member said no" — which is why the current value is printed above
+    // and why this warns rather than deciding for you.
+    const alreadyPrivate = unproven.filter((line) => line.includes(' private ')).length
+    if (publishUnproven && alreadyPrivate > 0) {
+      console.log(
+        `\nWARNING: ${alreadyPrivate} of those already read 'private'. That value is written both ` +
+          "by the migration's fail-closed backfill and by a member unticking 顯示在相片牆 — this " +
+          'script cannot tell them apart. On a database that members have used since the migration, ' +
+          'publishing them overrides a choice somebody made.',
+      )
+    }
   }
 
   if (!shouldWrite) {

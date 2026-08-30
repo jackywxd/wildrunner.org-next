@@ -189,7 +189,7 @@ export function MediaDetailDialog({
             <span className="block text-xs text-muted-foreground">
               {wasAttachment
                 ? "這個檔案目前是文章裡的圖片，不會出現在相片牆。勾選後會一併公開在相片牆。"
-                : "取消勾選後只有你自己看得到，檔案仍然保留。"}
+                : "取消勾選後不會出現在公開相片牆，檔案仍然保留。"}
             </span>
           </span>
         </label>
