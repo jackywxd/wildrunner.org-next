@@ -310,12 +310,21 @@ mechanism, not a preference** — a project cannot opt out of the server the
 config starts.
 
 The browser lane is still not balanced, and the number is worth carrying
-rather than rounding away: measured locally its three shards take 1.6m, 4.6m
-and 3.2m against 6.8m unsharded, because the uploads and the AI journeys land
-together. Sharding by count therefore buys roughly 6.8m → 4.6m here, not a
-third of the time. `--shard` divides by count and nothing else, so the lever
-left is sharding by duration from the previous run's report — worth reaching
-for when the spread costs more than the complexity, not before.
+rather than rounding away. On CI (run 33290945244, the first fully green one):
+`checks` 50s, the three shards 2m42s / 4m56s / 4m23s, `build` 2m49s, whole
+workflow **5m02s against the ~9m45s it replaced**. The uploads and the AI
+journeys land together in shard 2, so sharding by count buys less than a third
+of the time. `--shard` divides by count and nothing else, so the lever left is
+sharding by duration from the previous run's report — worth reaching for when
+the spread costs more than the complexity, not before.
+
+Two costs inside that 5m02s are worth knowing before trying to shrink it
+further. The seeded fixture database is cached, so on a hit the migrate and
+seed steps skip entirely: restore 1s and a re-stamp of the e2e account 8s,
+where seeding used to be 2m16s-2m51s *per shard*. And `globalSetup` now warms
+20 routes rather than 8, at 53.8s — compile time moved out of test budgets
+rather than removed, after a sharded run put an unwarmed route's first compile
+inside `P-PHOTO`'s 20s budget and failed it.
 
 `assert:tests` enforces the boundary: a spec under `e2e/unit/` that reaches for
 `page.`, `request.` or `BASE_URL` fails the build. Without that the lane decays

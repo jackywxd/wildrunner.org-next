@@ -51,13 +51,20 @@ name: E2E
 # regroups spec files, so a latent dependency between them would show up here.
 # There is none.
 #
-# NOT BALANCED, and better said than implied. Measured locally the three
-# shards took 1.6m, 4.6m and 3.2m against 6.8m unsharded — the uploads and the
-# AI journeys land together in the middle one. A 2.9x spread replacing a 10:1
-# spread is the right shape rather than the finished one, and it caps what
-# sharding can buy here at roughly 6.8m → 4.6m. If that starts to matter the
-# next lever is sharding by duration from the previous run's JSON report
-# instead of by count; `--shard` itself only ever divides by count.
+# NOT BALANCED, and better said than implied. Measured on CI run 33290945244,
+# the first fully green one: checks 50s, e2e 2m42s / 4m56s / 4m23s, build
+# 2m49s, whole workflow 5m02s against the ~9m45s it replaced. The uploads and
+# the AI journeys land together in shard 2, so the spread is about 1.8x here
+# (2.9x locally) — the right shape rather than the finished one, and it caps
+# what sharding can buy. If that starts to matter the next lever is sharding
+# by duration from the previous run's JSON report instead of by count;
+# `--shard` itself only ever divides by count.
+#
+# Where the 5m02s goes, on a cache hit: ~51s of container, checkout, install
+# and restore, then 53.8s of `globalSetup` warming 20 routes, then the tests.
+# Warming grew from 8 routes to 20 (e2e/helpers/warmup.ts) after `P-PHOTO`
+# timed out on a route nobody had warmed — that cost is compile time moved
+# out of test budgets, not removed.
 #
 # `playwright` at the bottom exists only to keep that name as the required
 # check; branch protection cannot depend on a matrix job, whose runs are named
@@ -169,6 +176,8 @@ jobs:
       #
       # Migrating and seeding cost 2m16s-2m51s and every shard paid it, on the
       # critical path, to produce a byte-identical database three times over.
+      # Measured on a hit (run 33290945244): restore 1s, migrate/seed/save all
+      # skipped, re-stamp 8s. Nine seconds for what was two and a half minutes.
       #
       # A cache and not a separate seed job: a job that seeds and uploads an
       # artifact serialises what is currently parallel, and measured against
