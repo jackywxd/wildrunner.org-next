@@ -17,13 +17,18 @@ import {
  * text column: the band is 20 of the badge's 64 user units, so at 32px the
  * distance label rendered at about 6px and every one of them was a smudge.
  *
- * NOT LARGER, AND THE CEILING IS ARITHMETIC RATHER THAN TASTE. The grid goes
- * two-up at 768px, where a card is 360px and its inside 320. The widest
- * shelf is seven tiles — a Six Star, `limit` races, and the overflow — so a
- * tile may cost at most (320 - 6 gaps × 6px) / 7 = 40.6px, and 40 clears
- * that by four pixels, which is not clearing it: measured at 768 it wrapped,
- * and a wrapped shelf costs the row the alignment `mt-auto` exists to give.
- * 36 fits with 30px to spare.
+ * NOT LARGER, AND THE CEILING IS MEASURED RATHER THAN CHOSEN. The grid goes
+ * two-up at 768px, where a card is 344px and its inside 304 — measured, not
+ * derived; the arithmetic said 360/320 and was wrong about the container's
+ * padding, which is exactly the kind of confidence that put 40px here in the
+ * first place. The widest shelf is seven tiles — a Six Star, `limit` races,
+ * and the overflow — so a tile may cost at most (304 - 6 gaps × 6px) / 7 =
+ * 38.3px. 40 wrapped when it was tried, and a wrapped shelf costs the row
+ * the alignment `mt-auto` exists to give. 36 fits with 16px to spare.
+ *
+ * Widening the page to max-w-6xl did not raise this. That width only takes
+ * effect from 1152px up; at 768 the container is still the viewport, so the
+ * narrowest two-up card is the same card it always was.
  *
  * Deliberately short of BADGE_YEAR_MIN_SIZE (56). Crossing it would put a
  * year into the same band as the distance, and this page's question is
@@ -51,7 +56,7 @@ const ROW_BADGE_SIZE = 36;
  * because that is where a wrap would cost a row its alignment. Below that
  * the grid is one column, there is no neighbour to line up with, and a
  * phone narrow enough to wrap the shelf (measured: 288px of tiles against
- * 284px of card at 390px) is better served by a second line than by badges
+ * 286px of card at 390px) is better served by a second line than by badges
  * shrunk to fit the smallest screen anyone might use.
  */
 const SHELF_CLASS =

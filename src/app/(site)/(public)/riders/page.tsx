@@ -59,7 +59,12 @@ export default async function RidersPage({
   const riders = filterRidersByBadges(all, badges);
 
   return (
-    <div className="container max-w-4xl py-6 lg:py-10">
+    // max-w-6xl, the width the home page and /about already use. The
+    // directory is a grid of cards rather than a column of prose, so the
+    // 4xl it inherited from /posts was measuring it against the wrong
+    // thing: 4xl is a reading width, and there is nothing here to read at
+    // length. At 6xl a card goes from 424px to 552px.
+    <div className="container max-w-6xl py-6 lg:py-10">
       <PageHeader title="野馬" description="" />
 
       <div className="mt-6">
