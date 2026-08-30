@@ -2,8 +2,14 @@ import type { SiteRaceRecord } from "@/lib/content-types";
 import { RaceBadge, SixMajorsBadge } from "@/lib/races/badge";
 import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { RACE_SERIES_LABELS } from "@/lib/races/catalogue";
-import { SIX_MAJORS_LABEL_ZH, sixMajorsCompletion } from "@/lib/races/six-majors";
+import {
+  SIX_MAJORS,
+  SIX_MAJORS_LABEL_ZH,
+  sixMajorsCompletion,
+  sixMajorsMissing,
+} from "@/lib/races/six-majors";
 
 /**
  * One badge per event, showing the most recent year.
@@ -31,6 +37,42 @@ function latestPerEvent(records: SiteRaceRecord[]): SiteRaceRecord[] {
  * query once per request — the same guarantee `React.cache` already gives
  * `getCurrentUser()` elsewhere in this codebase.
  */
+
+/**
+ * "六大馬拉松 5/6 · 還差 紐約馬拉松", under the 馬拉松 heading.
+ *
+ * ONLY ON A PROFILE, not on a directory card. A card has room for a row of
+ * badges and nothing else, and somebody else's unfinished set is not what a
+ * directory is for.
+ *
+ * Names come from the catalogue, so a race renamed in /admin renames here
+ * too; `nameZh` first, matching every other place the site shows a race to a
+ * Chinese-reading visitor. Falling back to the key rather than dropping the
+ * entry keeps the count and the list agreeing — a "5/6" listing four races
+ * would be a worse bug than an ugly one listing five.
+ */
+function SixMajorsProgress({
+  catalogue,
+  missing,
+}: {
+  catalogue: RaceCatalogueMap;
+  missing: readonly string[];
+}) {
+  const names = missing.map((key) => {
+    const event = catalogue.get(key);
+    return event?.nameZh ?? event?.name ?? key;
+  });
+
+  return (
+    <p
+      className="mt-1 text-xs text-muted-foreground"
+      data-testid="six-majors-progress"
+    >
+      {SIX_MAJORS_LABEL_ZH} {SIX_MAJORS.length - missing.length}/
+      {SIX_MAJORS.length} · 還差 {names.join("、")}
+    </p>
+  );
+}
 
 /** Compact row for a directory card. */
 export async function RiderBadgeRow({
@@ -86,6 +128,7 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
   // browser — see U-GROUP in e2e/unit/badge-source.spec.ts.
   const { groups, unknown } = groupRecordsBySeries(catalogue, records);
   const sixMajors = sixMajorsCompletion(records);
+  const missingMajors = sixMajorsMissing(records);
 
   return (
     <section className="space-y-6" data-testid="rider-badge-wall">
@@ -109,6 +152,12 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
           <h2 className="font-heading text-sm font-semibold text-foreground/70">
             {RACE_SERIES_LABELS[group.series]}
           </h2>
+          {/* Under the 馬拉松 heading rather than beside the achievement
+              badge, because when it shows there IS no achievement badge —
+              that is the whole point of it. */}
+          {group.series === "marathon" && missingMajors.length > 0 && (
+            <SixMajorsProgress catalogue={catalogue} missing={missingMajors} />
+          )}
           <div
             className="mt-3 flex flex-wrap gap-3"
             data-series={group.series}

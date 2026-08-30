@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 import { SEED_CATEGORIES, SEED_EVENTS } from "@/lib/races/seed-data";
-import { SIX_MAJORS, sixMajorsCompletion } from "@/lib/races/six-majors";
+import {
+  SIX_MAJORS,
+  sixMajorsCompletion,
+  sixMajorsMissing,
+} from "@/lib/races/six-majors";
 
 /**
  * U-SIXMAJORS — when the six majors are done, and in which year.
@@ -80,4 +84,44 @@ test("U-SIXMAJORS-4: every key names a race somebody can actually record", () =>
   }
 
   expect(new Set(SIX_MAJORS).size).toBe(6);
+});
+
+test("U-SIXMAJORS-5: names what is missing, and agrees with the badge", () => {
+  // The case the profile page exists to explain: London twice, no New York.
+  // Six records, five majors — which is what a reader saw as six badges and
+  // no Six Star, with nothing on the page accounting for the difference.
+  const londonTwiceNoNewYork = [
+    { eventId: "major-tokyo", year: 2026 },
+    { eventId: "major-chicago", year: 2024 },
+    { eventId: "major-london", year: 2024 },
+    { eventId: "major-berlin", year: 2023 },
+    { eventId: "major-boston", year: 2023 },
+    { eventId: "major-london", year: 2019 },
+  ];
+
+  expect(sixMajorsMissing(londonTwiceNoNewYork)).toEqual(["major-new-york"]);
+  expect(sixMajorsCompletion(londonTwiceNoNewYork)).toBeUndefined();
+
+  expect(sixMajorsMissing([])).toEqual([...SIX_MAJORS]);
+  expect(sixMajorsMissing(allSix(2020))).toEqual([]);
+});
+
+test("U-SIXMAJORS-6: the badge and the count can never disagree", () => {
+  // Two functions answering the same question from two loops is how a page
+  // comes to print "5/6" beside a badge claiming six. Exactly one of them is
+  // non-empty, for every case above and a few more.
+  const cases = [
+    [],
+    OTHERS,
+    allSix(2019),
+    allSix(2019).slice(0, 5),
+    [...allSix(2019), ...OTHERS],
+    [{ eventId: "major-london", year: 2019 }, { eventId: "major-london", year: 2024 }],
+  ];
+
+  for (const records of cases) {
+    const complete = sixMajorsCompletion(records) !== undefined;
+    const missing = sixMajorsMissing(records);
+    expect(complete, JSON.stringify(records)).toBe(missing.length === 0);
+  }
 });
