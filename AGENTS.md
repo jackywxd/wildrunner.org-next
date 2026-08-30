@@ -161,6 +161,51 @@ Two more things from that migration worth keeping:
   while worker B is still copying; and it makes `down()` a plain drop of what
   was created, with nothing to reconstruct.
 
+### `db:reset:local` seeds nothing about one run in four
+
+`pnpm migrate:velite` — the step that imports the 15 posts, 20 galleries and
+546 media rows — sometimes writes nothing, prints nothing and exits **0**. The
+reset then reported success over an empty database, and the browser suite ran
+against a corpus nobody built: the condition this file already describes as
+un-diagnosable, where results degrade in ways that look like anything except
+the data.
+
+Measured 2026-08-30 over four consecutive resets — **one failed, three
+passed** — after PR #93 had recorded an earlier occurrence as "only happened
+once, did not reproduce".
+
+**The failing child dies inside wrangler's own startup.** Its entire output is
+the `Proxy environment variables detected` warning, and then nothing: it never
+reaches the `Using secrets defined in .env` line that every healthy run prints
+next, so `main()` never runs. No output, no rows, status 0, under five
+seconds. That is the signature of a top-level `await` that never settles with
+nothing left on the event loop — `payload.config.ts` acquires its Cloudflare
+context in a top-level await, so module evaluation is what hangs, and Node
+exits cleanly once the loop empties.
+
+What it is **not**, each ruled out by measurement rather than argument:
+
+- **Not the stdio or env the reset passes.** Invoked through an `execSync`
+  that copies both exactly, it works.
+- **Not workerd contention over the just-deleted D1 directory.** `pgrep
+  workerd` was sampled every second across the failing run and the count was
+  **0** while the step ran — it never got as far as creating a miniflare.
+- **Not a later step deleting the rows.** `seed-e2e-account.ts` contains no
+  delete, and the failing run's log shows the import never printed anything.
+- **Not an error.** Every failure path in that script prints and exits 1.
+
+The cause is still open. The silence is not: the reset reads its row counts
+back with `wrangler d1 execute --local` and exits non-zero naming the empty
+table and the step that should have filled it. Re-running the step alone has
+worked every time.
+
+**Two things that guard learned the same day, both by being run rather than
+read.** `execSync` goes through `/bin/sh`, so backticks quoting a table name
+are command substitution and the name vanishes from the SQL; and D1's SQLite
+is built with a low `SQLITE_MAX_COMPOUND_SELECT`, so six `UNION ALL` terms
+come back as "too many terms in compound SELECT". Count rows with one
+`SELECT (SELECT COUNT(*) FROM t) AS t, …` instead.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
@@ -361,7 +406,9 @@ pnpm test:unit               # the unit lane: no server, no database, ~6s
 pnpm test:e2e                # browser + contract lane, against localhost
 pnpm db:reset:local          # rebuild local D1 into the corpus CI seeds — run
                              # this BEFORE test:e2e, every time, not when it
-                             # looks broken
+                             # looks broken. Prints the counts it read back;
+                             # about one run in four seeds nothing and now
+                             # fails loudly — see Landmines
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
