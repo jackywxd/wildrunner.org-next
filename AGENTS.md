@@ -468,6 +468,45 @@ longer see. The bar is "the app cannot cause it and cannot stop it", never
   production build the config goes straight to local emulated bindings —
   the remote handshake only ever made sense for `build:staging`/`build:prod`.
 
+  **That fix removed the failed handshake, not the second miniflare, and this
+  paragraph read as though it had removed both.** `getRuntimeContext()` reuses
+  a *parked* context when one exists and otherwise calls `getPlatformProxy()`;
+  a forked child's global scope is empty, so it never has a parked context and
+  always builds its own miniflare. Going "straight to local emulated bindings"
+  is what that call *is*. So the fork got faster — seconds of doomed handshake
+  removed — while still opening a second workerd over the file the dev server
+  is serving from. Measured 2026-08-30 on `/posts/[...slug]`, whose
+  `generateStaticParams` is legitimate (it is not force-dynamic; its answer is
+  prerendered and invalidated by `revalidatePosts`, so the rule below does not
+  reach it): `generate-params: 6.3s` on first navigation, and `pgrep workerd`
+  going 2 → 3 and *staying* there. `/about` in the same loop stayed flat.
+
+  Short-circuiting that route's `generateStaticParams` in dev removes the
+  query and the 6.3s. It does **not** remove the miniflare: `payload.config.ts`
+  acquires the context in a top-level `await`, so importing the module is what
+  boots it, whichever branch the function then takes. Measured after the
+  short-circuit landed — still 2 → 3.
+
+  **Do not reach for a lazy binding to fix that.** `@payloadcms/db-d1-sqlite`
+  stores `args.binding` at construction and dereferences it *synchronously* at
+  connect (`connect.js`: `let binding = this.binding`, then `drizzle(binding)`),
+  while acquiring it is async. A Proxy cannot bridge that, and the file it
+  would live in is the one that decides which database everything talks to.
+
+  What is left is to stop the fork existing: a dynamic route with no
+  `generateStaticParams` export is never asked for one. For `/posts/[...slug]`
+  that means dropping build-time enumeration and letting posts render on first
+  request into the R2 incremental cache — which is *not* the same as making
+  the route `force-dynamic`, and which the tag cache already invalidates
+  correctly. It changes what production serves, so it needs a real build and a
+  staging check before it lands; it was deliberately not done blind.
+
+  **Killing `next dev` orphans its `workerd`.** It reparents to init and keeps
+  `.wrangler/state/v3/d1` open, so restarting the dev server a few times
+  silently accumulates miniflares over one SQLite file — three of them during
+  one measurement here, which is the contention above, self-inflicted. Check
+  `pgrep workerd` after stopping the server, not just the port.
+
   Two things generalise. **A route that is `force-dynamic` must not export
   `generateStaticParams`**: Next asks for it anyway, in that forked child, and
   throws the answer away — `/gallery/[slug]` was paying `generate-params: 2.1s`
