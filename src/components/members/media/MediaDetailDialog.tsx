@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import type { Media } from "@/payload-types";
 import { transcodeNote } from "@/lib/media/transcode-copy";
+import { nextUsage } from "@/lib/media/usage";
 import type { SiteRaceEditionOption, SiteVideo } from "@/lib/content-types";
 
 export function MediaDetailDialog({
@@ -30,11 +31,10 @@ export function MediaDetailDialog({
   const [raceEditionId, setRaceEditionId] = useState(
     typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
   );
-  // `usage` is a three-value column but only two of them are a member's to
-  // choose between: 'gallery' and 'private'. The third, 'attachment', is set
-  // by the editor's own upload path and shown below as a note rather than a
-  // state this control can return to — a member ticking the box is saying
-  // "put this on the wall", which makes it library content from then on.
+  // Only `gallery` and `private` are this checkbox's to write; `attachment`
+  // is provenance the editor's upload path set. `nextUsage` is what keeps the
+  // difference — see src/lib/media/usage.ts for the alt-text edit that used to
+  // reclassify an article image on the way past.
   const [showOnWall, setShowOnWall] = useState(item.usage === "gallery");
   const wasAttachment = item.usage === "attachment";
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -70,6 +70,7 @@ export function MediaDetailDialog({
   async function save() {
     setStatus("saving");
     setError("");
+    const usageToWrite = nextUsage(item.usage, showOnWall);
     const res = await fetch(`/api/media/${item.id}`, {
       method: "PATCH",
       credentials: "same-origin",
@@ -79,9 +80,11 @@ export function MediaDetailDialog({
         // Always sent, and `null` rather than omitted: picking "不連結比賽"
         // after a race was already set has to clear it, not leave it alone.
         raceEdition: raceEditionId ? Number(raceEditionId) : null,
-        // Always sent for the same reason: unticking has to write 'private',
-        // not leave the previous value in place.
-        usage: showOnWall ? "gallery" : "private",
+        // Spread rather than always sent, unlike `raceEdition` above: this
+        // control governs two of `usage`'s values and must not touch the
+        // others, so `nextUsage` returns undefined for the cases it does not
+        // own and the key is then absent from the body entirely.
+        ...(usageToWrite !== undefined ? { usage: usageToWrite } : {}),
       }),
     });
     if (!res.ok) {
