@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import type { Media } from "@/payload-types";
 import { transcodeNote } from "@/lib/media/transcode-copy";
+import { mediaToSiteVideo } from "@/lib/media/site-video";
 import { nextUsage } from "@/lib/media/usage";
 import type { SiteRaceEditionOption, SiteVideo } from "@/lib/content-types";
 
@@ -45,27 +46,11 @@ export function MediaDetailDialog({
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
   const src = mediaImageSrc(item);
-  // Built inline rather than importing content.ts's mapGalleryVideo: that
-  // file resolves the payload client at module scope, which has no place
-  // in a client bundle. mediaImageSrc is the one part of that mapping this
-  // component already needed anyway.
-  const video: SiteVideo | null =
-    isVideo && src
-      ? {
-          mediaId: item.id,
-          id: item.filename ?? String(item.id),
-          filename: item.filename ?? "video",
-          src,
-          slug: item.filename ?? String(item.id),
-          mimeType: item.mimeType ?? "video/mp4",
-          size: item.filesize ?? undefined,
-          extension: item.filename?.includes(".")
-            ? item.filename.split(".").pop()
-            : undefined,
-          streamId: item.streamId,
-          streamReady: Boolean(item.streamReady),
-        }
-      : null;
+  // The conversion used to be written out here, because content.ts resolves
+  // the payload client at module scope and cannot be imported into a client
+  // bundle. That is still true; @/lib/media/site-video is the same mapping
+  // with no server dependencies, so there is one definition again.
+  const video: SiteVideo | null = isVideo ? mediaToSiteVideo(item) : null;
 
   async function save() {
     setStatus("saving");

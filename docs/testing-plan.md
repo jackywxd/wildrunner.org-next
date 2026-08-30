@@ -94,7 +94,9 @@ and where most of the growth goes.
 | `races/race-state.ts` | 12 | upcoming/ongoing/finished transitions, registration windows — *exists, keep* |
 | `races/design-tokens.ts` | 6 | badge colour is stable for a key across environments — *exists, keep* |
 | `races/badge-source.ts` | 4 | an unknown event id degrades to a placeholder, never throws |
-| `lib/youtube.ts` | 5 | every URL shape a member might paste resolves to one id; a non-video URL resolves to none |
+| `lib/youtube.ts` | 9 | every URL shape a member might paste resolves to one id; a non-video URL resolves to none; and (`U-YT-PARA`) which paragraphs become an embed — measured, because the rule's own comment claimed more than it did |
+| `lib/media/site-video.ts` | 5 | `U-SITEVIDEO` — the share-id precedence (explicit → `legacyVideoId` → filename slug) that decides which permalink resolves, and the documented gap where a Stream-only video maps to null |
+| `lib/media/usage.ts` | 3 | `U-USAGE` — the library's visibility checkbox writes `gallery`/`private` and leaves every other `usage` value alone |
 | `lib/quota.ts` | 4 | default quota, per-user override, the boundary at exactly the limit |
 | `lib/cf-image.ts` | 4 | own-origin absolute URLs become relative; remote ones are left alone |
 | `access/index.ts` | 6 | `isOwner`, `ownedOnly`, `isAdmin` return the right constraint for admin / owner / stranger / anonymous |
@@ -136,6 +138,7 @@ Every one imports `test` from `e2e/helpers/test.ts`, so any `pageerror` or
 | id | use case | walks |
 |---|---|---|
 | J1 | V1 | open an article from the index by clicking; assert text, an image, a table, a code block and the video player all render |
+| V-POSTVIDEO | V1 | the video-player half of J1, which had been written down here and never built: a post whose body holds an uploaded video renders a player rather than a broken image |
 | J2 | V2 | gallery index → one gallery → one photo, all by clicking |
 | J3 | V3 | gallery → video → the share URL opens the same video directly |
 | J4 | V4 | calendar: move forward, move back, filter by series, all without a reload |

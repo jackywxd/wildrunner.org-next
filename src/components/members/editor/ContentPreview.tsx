@@ -3,6 +3,10 @@
 import type { ReactNode } from "react";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { useMediaById } from "@/lib/members/use-media";
+import { mediaToSiteVideo } from "@/lib/media/site-video";
+import { StreamVideoPlayer } from "@/components/stream-video-player";
+import { YouTubeEmbed } from "@/components/youtube-embed";
+import { soleYouTubeUrl, youTubeVideoId } from "@/lib/youtube";
 import type { PayloadContent } from "@/lib/editor/serialize";
 
 type JsonNode = {
@@ -58,8 +62,15 @@ function renderInline(nodes: JsonNode[] | undefined): ReactNode {
         return renderText(node, index);
       case "linebreak":
         return <br key={index} />;
-      case "link": {
+      // `autolink` alongside `link` because the published page treats them
+      // identically and this function's `default` returned null for it — so
+      // an autolinked URL rendered as *nothing at all* in the preview, which
+      // was a silent drop quite apart from the YouTube case.
+      case "link":
+      case "autolink": {
         const fields = node.fields as { url?: string } | undefined;
+        const videoId = fields?.url ? youTubeVideoId(fields.url) : null;
+        if (videoId) return <YouTubeEmbed key={index} videoId={videoId} />;
         return (
           <a key={index} href={fields?.url ?? "#"}>
             {renderInline(node.children)}
@@ -94,6 +105,16 @@ function PreviewUpload({ value }: { value: number | string }) {
       </span>
     );
   }
+
+  // `compact`, unlike the published page. This preview re-renders on every
+  // keystroke (M-PREVIEW-T1 asserts exactly that), so `preload="metadata"`
+  // here would open a media request per edit; `compact` is `preload="none"`
+  // and `loading="lazy"`.
+  if (media?.mimeType?.startsWith("video/")) {
+    const video = mediaToSiteVideo(media);
+    if (video) return <StreamVideoPlayer video={video} compact />;
+  }
+
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt={media?.alt ?? ""} className="h-auto max-w-full" />;
 }
@@ -114,8 +135,14 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
           <Tag key={index}>{renderInline(node.children)}</Tag>
         );
       }
-      case "paragraph":
+      case "paragraph": {
+        // The same rule the published page applies, from the same function —
+        // this preview's whole job is "is this what it will look like
+        // published", and it used to answer wrongly for a pasted YouTube URL.
+        const videoId = soleYouTubeUrl(node);
+        if (videoId) return <YouTubeEmbed key={index} videoId={videoId} />;
         return <p key={index}>{renderInline(node.children)}</p>;
+      }
       case "quote":
         return (
           <blockquote key={index}>{renderInline(node.children)}</blockquote>

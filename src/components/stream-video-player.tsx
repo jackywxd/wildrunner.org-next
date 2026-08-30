@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";
 import { streamIframeSrc } from "@/lib/stream";
@@ -8,6 +9,17 @@ type StreamVideoPlayerProps = {
   video: SiteVideo;
   className?: string;
   compact?: boolean;
+  /**
+   * Passed straight through to whichever element is rendered.
+   *
+   * Needed because Payload's JSX converter wraps whatever a converter returns
+   * in `React.cloneElement(node, { key, style })`, with `style` derived from
+   * the Lexical node's own `format` and `indent`. `next/image` accepts a
+   * `style` prop, so the image branch of the rich-text `upload` converter has
+   * always honoured alignment; without this, a centred or indented video
+   * would silently lose it.
+   */
+  style?: CSSProperties;
 };
 
 /**
@@ -25,6 +37,7 @@ export function StreamVideoPlayer({
   video,
   className,
   compact = false,
+  style,
 }: StreamVideoPlayerProps) {
   const streamSrc = streamIframeSrc(video.streamId);
   const label = mediaDisplayName(video);
@@ -41,6 +54,7 @@ export function StreamVideoPlayer({
         allowFullScreen
         loading={compact ? "lazy" : undefined}
         className={className ?? sizing}
+        style={style}
       />
     );
   }
@@ -62,6 +76,7 @@ export function StreamVideoPlayer({
         // duration and first frame are there before play.
         preload={compact ? "none" : "metadata"}
         className={className ?? sizing}
+        style={style}
       >
         <a href={video.src}>{label}</a>
       </video>
@@ -77,6 +92,7 @@ export function StreamVideoPlayer({
         "flex aspect-video w-full items-center justify-center text-white"
       }
       data-testid="stream-processing"
+      style={style}
     >
       视频正在转码，请稍后再试。
     </div>

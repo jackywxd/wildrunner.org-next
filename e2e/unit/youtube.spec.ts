@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
+import { soleYouTubeUrl, youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
 
 /**
  * U-YT — the URL shapes a member might paste.
@@ -74,5 +74,62 @@ test.describe("U-YT youtube url parsing", () => {
     expect(youTubeEmbedUrl(ID)).toBe(
       `https://www.youtube-nocookie.com/embed/${ID}`,
     );
+  });
+});
+
+/**
+ * The paragraph rule, which the public article page and the member's preview
+ * now share. It had no test at all while it was a private function inside
+ * `payload-rich-text.tsx` — moving it here is what made one possible.
+ */
+const paragraph = (...children: { type: string; text?: string }[]) => ({ children });
+const textNode = (text: string) => ({ type: "text", text });
+
+test.describe("U-YT-PARA a paragraph that is nothing but a YouTube URL", () => {
+  test("U-YT-PARA-1: a lone URL becomes the video", () => {
+    expect(soleYouTubeUrl(paragraph(textNode("https://youtu.be/dQw4w9WgXcQ")))).toBe(
+      "dQw4w9WgXcQ",
+    );
+    // Split across text nodes, which is what typing rather than pasting
+    // produces once a format mark lands mid-URL.
+    expect(
+      soleYouTubeUrl(paragraph(textNode("https://youtu.be/"), textNode("dQw4w9WgXcQ"))),
+    ).toBe("dQw4w9WgXcQ");
+  });
+
+  test("U-YT-PARA-2: a sentence mentioning a video keeps its sentence", () => {
+    // The strictness is the feature. Anything but the bare URL and the
+    // paragraph renders as prose — otherwise a member's own words vanish.
+    expect(
+      soleYouTubeUrl(paragraph(textNode("看這個 https://youtu.be/dQw4w9WgXcQ"))),
+    ).toBeNull();
+    expect(soleYouTubeUrl(paragraph(textNode("")))).toBeNull();
+    expect(soleYouTubeUrl({})).toBeNull();
+  });
+
+  test("U-YT-PARA-3: only a non-text child BETWEEN text disqualifies", () => {
+    // Written the other way round first, asserting that any non-text sibling
+    // disqualifies — which is what the function's comment claimed and not what
+    // it does. `trim()` removes the space a leading or trailing child
+    // contributed, so those still embed. Pinned as measured rather than as
+    // intended, because "paste a URL, press shift+enter" is the common shape
+    // and embedding it is the answer people want.
+    const url = textNode("https://youtu.be/dQw4w9WgXcQ");
+    expect(soleYouTubeUrl(paragraph(url, { type: "linebreak" }))).toBe("dQw4w9WgXcQ");
+    expect(soleYouTubeUrl(paragraph({ type: "linebreak" }, url))).toBe("dQw4w9WgXcQ");
+
+    // Split by something in the middle, and it is prose again.
+    expect(
+      soleYouTubeUrl(
+        paragraph(textNode("https://youtu.be/"), { type: "linebreak" }, textNode("dQw4w9WgXcQ")),
+      ),
+    ).toBeNull();
+  });
+
+  test("U-YT-PARA-4: a URL that is not a video is left as a link", () => {
+    expect(
+      soleYouTubeUrl(paragraph(textNode("https://www.youtube.com/@someclub"))),
+    ).toBeNull();
+    expect(soleYouTubeUrl(paragraph(textNode("https://wildrunner.org/posts/x")))).toBeNull();
   });
 });

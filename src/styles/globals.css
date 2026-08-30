@@ -250,3 +250,17 @@ h6 {
 .article-body img {
   @apply my-4;
 }
+/*
+ * Videos get the same breathing room as images.
+ *
+ * Given here rather than passed as a className, because StreamVideoPlayer
+ * *replaces* its sizing with whatever className it is handed
+ * (`className ?? sizing`) — so `class="my-4"` would drop
+ * `aspect-video w-full min-h-[240px]` and collapse the player.
+ *
+ * Not `iframe`: the only iframe in an article body is YouTubeEmbed, which
+ * already carries its own `my-6 block aspect-video w-full`.
+ */
+.article-body video {
+  @apply my-4;
+}

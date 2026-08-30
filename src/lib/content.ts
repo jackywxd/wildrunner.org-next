@@ -15,6 +15,7 @@ import type {
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
+import { mediaToSiteVideo } from "@/lib/media/site-video";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import type {
   SiteGallery,
@@ -34,7 +35,6 @@ import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
 import { qualifiersFor } from "@/lib/races/qualifiers";
 import { isFinished } from "@/lib/races/race-state";
-import { videoIdFromFilename } from "@/lib/videoId";
 import { cache } from "react";
 
 /**
@@ -200,34 +200,16 @@ function mapMediaToPhoto(
 }
 
 /**
- * `videoId` is the share-page id, and the caller decides it. Left unset it
- * falls back to the media's own `legacyVideoId` and then to a filename slug —
- * the order `getGalleryVideo` resolves in, so a link built here is a link that
- * page can look up.
+ * Kept as a name in this file because the call sites read better for it, but
+ * the mapping itself lives in @/lib/media/site-video — the article renderer
+ * and the member's preview need the same conversion and cannot import this
+ * file, which resolves the payload client at module scope.
  */
 function mapGalleryVideo(
   media: MediaCardDoc,
   videoId?: string | null,
 ): SiteVideo | null {
-  const src = mediaImageSrc(media);
-  if (!src) return null;
-  const filename = media.filename ?? "video";
-  const id =
-    videoId?.trim() || media.legacyVideoId?.trim() || videoIdFromFilename(filename);
-  return {
-    mediaId: media.id,
-    id,
-    filename,
-    src,
-    slug: filename,
-    mimeType: media.mimeType ?? "video/mp4",
-    size: media.filesize ?? undefined,
-    extension: filename.includes(".")
-      ? filename.split(".").pop()!
-      : undefined,
-    streamId: media.streamId,
-    streamReady: Boolean(media.streamReady),
-  };
+  return mediaToSiteVideo(media, videoId);
 }
 
 /**
