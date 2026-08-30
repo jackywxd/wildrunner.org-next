@@ -364,9 +364,9 @@ database to returning every public upload.
 
 ## Rules that override convenience
 
-Four, learned the expensive way on 2026-08-06. Each is also enforced or
-documented somewhere concrete, because a rule only in prose is a rule that
-decays.
+Five, learned the expensive way — four on 2026-08-06 and one on 2026-08-30.
+Each is also enforced or documented somewhere concrete, because a rule only in
+prose is a rule that decays.
 
 **Destructive work is proposed, never performed.** Deletes and drops on any
 database *including local*, migrations against a deployed environment,
@@ -374,6 +374,37 @@ database *including local*, migrations against a deployed environment,
 using. Produce the commands in order, name the irreversible step, hand them
 over. If a task cannot continue without one, stop and report the state — an
 unfinished task is recoverable, a destroyed one is not.
+
+**A deployed database is not touched until there is a way back, and staging is
+not a rehearsal unless it carries production's rows.** Two halves of one
+requirement, and on 2026-08-30 a merge was one click away with neither of them
+established — the merge alone would have applied two migrations to staging,
+because `deploy.yml`'s first job is `payload migrate`.
+
+- **Record the restore point before the schema change, not after.**
+  `wrangler d1 time-travel info <db>` prints a bookmark and the window it can
+  reach; that is the fast way back, and no row leaves Cloudflare.
+  `wrangler d1 export <db> --remote --output prod-backup-$(date +%Y%m%d).sql`
+  is the slow one, for when that window does not cover it —
+  `docs/production-cutover.md` says "**先做这一步**" and then explains why it is
+  slow: the dump's INSERTs come before the CREATEs and `users` ↔ `authors` is a
+  circular foreign key, so restoring it is a reconstruction, not one command.
+  **That file never enters git or a workflow artifact.** This repository is
+  public and the dump carries real emails and bcrypt hashes — the same reason
+  `sync-prod-content-to-staging.ts` refuses to copy `users` at all.
+- **Nothing in this repository backs anything up on a schedule.** All five
+  workflows were checked; none does. So "there is a backup" is never an
+  assumption, only an observation you just made.
+- **A migration on staging rehearses production only if staging holds
+  production's data.** `pnpm sync:staging` closes the gap one way — published
+  content only, no `users`, no drafts, no R2 bytes. Compare the row counts on
+  both databases first (one row of subqueries; D1's `SQLITE_MAX_COMPOUND_SELECT`
+  is too low for a `UNION ALL` per table), and read the migration's own output
+  afterwards. Those numbers are the only evidence the change survives real data.
+- Reading a deployed ledger is `wrangler d1 execute --remote --command "SELECT
+  name, batch FROM payload_migrations …"`. **Never `payload migrate:status`** —
+  connecting with `NODE_ENV=production` is the write, as the two-environment-
+  variables section above records.
 
 **Never delete by `like`, prefix, or any pattern.** Only by ids captured when
 the rows were created. A fuzzy match in a query returns wrong rows; in a delete
