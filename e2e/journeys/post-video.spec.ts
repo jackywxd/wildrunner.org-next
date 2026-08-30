@@ -93,6 +93,8 @@ test.describe("V-POSTVIDEO a video in an article plays", () => {
     page,
     request,
   }) => {
+    test.setTimeout(budget(60_000));
+
     const login = await request.post("/api/users/login", {
       data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
     });

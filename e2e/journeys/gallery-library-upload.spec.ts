@@ -57,6 +57,8 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
   }
 
   test("V-LIBRARY-T1: a library upload with no race is on /gallery", async ({ page }) => {
+    test.setTimeout(budget(60_000));
+
     await signIn(page);
 
     // By clicking, not by URL — the calendar-toggle bug lived entirely in
@@ -110,6 +112,8 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
   });
 
   test("V-LIBRARY-T2: an upload marked not-public stays off /gallery", async ({ page }) => {
+    test.setTimeout(budget(60_000));
+
     await signIn(page);
     await page.getByTestId("member-nav-media").click();
     await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });

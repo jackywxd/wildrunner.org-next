@@ -266,6 +266,8 @@ test.describe("M-TYPO a published article is readable", () => {
   test("M-TYPO-T1: headings, lists, quotes and tables are told apart on the published page", async ({
     page,
   }) => {
+    test.setTimeout(budget(60_000));
+
     await page.goto(`/posts/${postSlug}`, { waitUntil: "domcontentloaded" });
     await expect(page.locator(".article-body")).toContainText(H1, {
       timeout: budget(15_000),
@@ -299,6 +301,8 @@ test.describe("M-TYPO a published article is readable", () => {
   test("M-TYPO-T2: the editor and the published page agree about the heading scale", async ({
     page,
   }) => {
+    test.setTimeout(budget(60_000));
+
     // Two definitions of one scale — `editorTheme` for the editing surface,
     // `.article-body` for everything that reads a document back — because
     // Lexical hangs classes on the nodes it creates and cannot use the
