@@ -51,7 +51,7 @@ export default async function RiderPage({ params }: Params) {
   const { posts, rider } = found;
 
   return (
-    <div className="container max-w-4xl py-6 lg:py-10">
+    <div className="container max-w-6xl py-6 lg:py-10">
       <div className="flex items-start gap-5" data-testid="rider-profile">
         <RiderAvatar rider={rider} size={88} />
         <div className="min-w-0 flex-1">
@@ -61,9 +61,16 @@ export default async function RiderPage({ params }: Params) {
           >
             {rider.name}
           </h1>
+          {/* Bounded, because the container around it is not. The page moved
+              to max-w-6xl to match the directory, and the bio is the only
+              thing on it that is a paragraph — at 1440px it was setting
+              1012px lines, about 65 Chinese characters, where a readable
+              measure is nearer 40. max-w-2xl is 672px, which is 44 of them
+              at this size. The header's own width is unchanged; only the
+              prose inside it is held back. */}
           {rider.bio && (
             <p
-              className="mt-3 whitespace-pre-line text-muted-foreground"
+              className="mt-3 max-w-2xl whitespace-pre-line text-muted-foreground"
               data-testid="rider-bio"
             >
               {rider.bio}
