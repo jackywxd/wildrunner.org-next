@@ -68,6 +68,15 @@ export const BADGE_VIEWBOX = 64;
 export const BADGE_ART_HEIGHT = 44;
 
 /**
+ * How much of the band's width the label may use.
+ *
+ * Three units of margin each side, so a fitted label stops short of the
+ * frame rather than touching it — the badge has an outline, and type that
+ * runs into one looks like type that was cut off.
+ */
+export const BADGE_BAND_WIDTH = BADGE_VIEWBOX - 6;
+
+/**
  * Below this the year is dropped from the drawing and carried only by the
  * `<title>` and the data attributes: two strings cannot both be legible in a
  * 32px square, and an unreadable smudge is worse than an honest omission.

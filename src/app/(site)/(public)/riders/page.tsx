@@ -69,37 +69,63 @@ export default async function RidersPage({
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       {riders.length ? (
-        <div className="grid gap-4 sm:grid-cols-2" data-testid="rider-list">
+        // Two columns still, and the fix is inside the card rather than in
+        // the grid. What made this page feel cramped was never the column
+        // count: the badges were the last block *inside* the identity
+        // column, indented under the name and sharing ~330px with it, and
+        // they lengthened the cards that had them and not the ones that did
+        // not. So the card gets two stacked zones instead — identity, then
+        // a shelf across the card's full width — and the shelf is pinned to
+        // the bottom (`mt-auto`, below) so the shelves in a row line up
+        // whatever is above them.
+        //
+        // <ul>/<li> because it is a list of people and announcing "list, 12
+        // items" is most of what a screen reader can offer here. `li` is a
+        // flex box only so the card can fill the height the grid stretches
+        // it to; without that the shelf has no bottom to pin to.
+        <ul className="grid gap-4 md:grid-cols-2" data-testid="rider-list">
           {riders.map((rider) => (
-            <Link
-              key={rider.slug}
-              className="group flex items-center gap-4 border border-border bg-secondary p-4 transition-colors hover:bg-secondary/60"
-              data-rider-slug={rider.slug}
-              data-testid="rider-card"
-              href={`/riders/${rider.slug}`}
-            >
-              <RiderAvatar rider={rider} size={56} />
-              <div className="min-w-0">
-                <h2 className="truncate font-heading text-lg font-semibold">
-                  {rider.name}
-                </h2>
-                {rider.bio && (
-                  <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
-                    {rider.bio}
-                  </p>
-                )}
-                <p
-                  className="mt-1 text-xs text-muted-foreground"
-                  data-post-count={rider.postCount}
-                  data-testid="rider-post-count"
-                >
-                  {rider.postCount} 篇文章
-                </p>
+            <li key={rider.slug} className="flex">
+              {/* `gap-4` rather than a margin on the shelf: it is the
+                  minimum the two zones may ever be apart, and it composes
+                  with the shelf's `mt-auto` instead of fighting it — a
+                  margin cannot be both "at least 16" and "all of it". */}
+              <Link
+                className="group flex w-full flex-col gap-4 border border-border bg-secondary p-5 transition-colors hover:bg-accent"
+                data-rider-slug={rider.slug}
+                data-testid="rider-card"
+                href={`/riders/${rider.slug}`}
+              >
+                <div className="flex items-center gap-4">
+                  <RiderAvatar rider={rider} size={64} />
+                  <div className="min-w-0">
+                    {/* The name changes colour on hover as well as the card
+                        changing shade. A whole-card target with no mark on
+                        the thing being opened leaves people guessing which
+                        of the card's several pieces they are about to
+                        follow. */}
+                    <h2 className="truncate font-heading text-lg font-semibold transition-colors group-hover:text-primary lg:text-xl">
+                      {rider.name}
+                    </h2>
+                    {rider.bio && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {rider.bio}
+                      </p>
+                    )}
+                    <p
+                      className="mt-1 text-xs text-muted-foreground"
+                      data-post-count={rider.postCount}
+                      data-testid="rider-post-count"
+                    >
+                      {rider.postCount} 篇文章
+                    </p>
+                  </div>
+                </div>
                 <RiderBadgeRow records={rider.races} />
-              </div>
-            </Link>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         // Two different facts, and saying the wrong one is how a filter
         // lies: an empty directory means the club has no members, an empty
