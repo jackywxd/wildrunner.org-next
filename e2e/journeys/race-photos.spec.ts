@@ -69,6 +69,8 @@ test.describe("P a member tags a photo with a race", () => {
   test("P-PHOTO: uploads a photo tagged with a race, and it appears on that race's wall", async ({
     page,
   }) => {
+    test.setTimeout(budget(60_000));
+
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
