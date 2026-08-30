@@ -88,7 +88,7 @@ export default async function RidersPage({
         // items" is most of what a screen reader can offer here. `li` is a
         // flex box only so the card can fill the height the grid stretches
         // it to; without that the shelf has no bottom to pin to.
-        <ul className="grid gap-4 md:grid-cols-2" data-testid="rider-list">
+        <ul className="grid gap-4 lg:grid-cols-2" data-testid="rider-list">
           {riders.map((rider) => (
             <li key={rider.slug} className="flex">
               {/* `gap-4` rather than a margin on the shelf: it is the

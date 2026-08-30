@@ -17,25 +17,29 @@ import {
  * text column: the band is 20 of the badge's 64 user units, so at 32px the
  * distance label rendered at about 6px and every one of them was a smudge.
  *
- * NOT LARGER, AND THE CEILING IS MEASURED RATHER THAN CHOSEN. The grid goes
- * two-up at 768px, where a card is 344px and its inside 304 — measured, not
- * derived; the arithmetic said 360/320 and was wrong about the container's
- * padding, which is exactly the kind of confidence that put 40px here in the
- * first place. The widest shelf is seven tiles — a Six Star, `limit` races,
- * and the overflow — so a tile may cost at most (304 - 6 gaps × 6px) / 7 =
- * 38.3px. 40 wrapped when it was tried, and a wrapped shelf costs the row
- * the alignment `mt-auto` exists to give. 36 fits with 16px to spare.
+ * THE CEILING IS MEASURED, NOT CHOSEN, and it is set by one card: the
+ * narrowest the grid is ever two-up on. That is the 1024px viewport, where
+ * a card is 472px and its inside 430 — measured, because the arithmetic was
+ * wrong here once before (it put the 768px card at 360/320 when it was
+ * 344/304, having guessed the container's padding) and a 40px badge shipped
+ * on that guess and wrapped.
  *
- * Widening the page to max-w-6xl did not raise this. That width only takes
- * effect from 1152px up; at 768 the container is still the viewport, so the
- * narrowest two-up card is the same card it always was.
+ * The widest shelf is eight tiles — a Six Star, `limit` races, and the
+ * overflow — so a tile may cost at most (430 - 7 gaps × 6px) / 8 = 48.5px.
+ * 44 measures 394 against 430: 36px of slack, and no wrap at any width the
+ * grid is two-up.
  *
- * Deliberately short of BADGE_YEAR_MIN_SIZE (56). Crossing it would put a
- * year into the same band as the distance, and this page's question is
- * "who has run what", not "when" — the year is on the profile, which draws
- * at 72.
+ * WHAT ACTUALLY RAISED IT was moving the grid to two-up at `lg` rather than
+ * `md`. Widening the page to max-w-6xl on its own did nothing for this —
+ * that width only takes effect from 1152px up, while this number is decided
+ * at the bottom of the two-up range, which was 768px and is now 1024.
+ *
+ * Still deliberately short of BADGE_YEAR_MIN_SIZE (56): crossing it would
+ * put a year into the same band as the distance, and this page's question is
+ * "who has run what", not "when" — the year is on the profile, at 72.
+ *
  */
-const ROW_BADGE_SIZE = 36;
+const ROW_BADGE_SIZE = 44;
 
 /**
  * The shelf: a band across the bottom of the card, not a fourth line of text.
@@ -53,11 +57,12 @@ const ROW_BADGE_SIZE = 36;
  *
  * `flex-wrap` is graceful degradation, and it is scoped: ROW_BADGE_SIZE is
  * set so a full shelf stays on one line at every width the grid is two-up,
- * because that is where a wrap would cost a row its alignment. Below that
- * the grid is one column, there is no neighbour to line up with, and a
- * phone narrow enough to wrap the shelf (measured: 288px of tiles against
- * 286px of card at 390px) is better served by a second line than by badges
- * shrunk to fit the smallest screen anyone might use.
+ * because that is where a wrap would cost a row its alignment. Below 1024
+ * the grid is one column, there is no neighbour to line up with, and the
+ * card is far wider than the shelf until the screen is a phone — measured,
+ * 394px of tiles against 662px of card at 768 and 284px at 390. A phone
+ * gets a second line, which is a better answer than badges sized for the
+ * smallest screen anyone might use.
  */
 const SHELF_CLASS =
   "mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-4";
@@ -151,19 +156,20 @@ function SixMajorsProgressLine({
 /**
  * The badge shelf on a directory card.
  *
- * FIVE RACES, WHICH IS SEVEN TILES. The count that has to fit is not this
+ * SIX RACES, WHICH IS EIGHT TILES. The count that has to fit is not this
  * number: `limit` bounds the races, and a Six Star badge is drawn outside it
  * (see `sixMajorsBadges` below) with the overflow tile after them both. So
- * the shelf's width is set by 5 + 1 + 1, and ROW_BADGE_SIZE is what was
- * moved to make that fit — not this, because dropping a race to make room
- * for a wider badge trades the page's content for its decoration.
+ * the shelf's width is set by 6 + 1 + 1, and both this and ROW_BADGE_SIZE
+ * are spending the same 430px — the page got wider and the two-up range
+ * started later, and the room that bought went to a bigger badge *and* one
+ * more race rather than all to either.
  *
  * A per-breakpoint limit is not available here and must not be faked with a
  * second copy of the shelf: `/riders` shipping two nodes per rider is a bug
  * this project has already had once, at length (PageTransitionEffect.tsx).
  */
 export async function RiderBadgeRow({
-  limit = 5,
+  limit = 6,
   records,
 }: {
   limit?: number;
