@@ -302,6 +302,9 @@ pnpm typecheck               # always run this
 npx eslint src scripts e2e   # `pnpm lint` OOMs on this repo; CI does not run it
 pnpm test:unit               # the unit lane: no server, no database, ~6s
 pnpm test:e2e                # browser + contract lane, against localhost
+pnpm db:reset:local          # rebuild local D1 into the corpus CI seeds — run
+                             # this BEFORE test:e2e, every time, not when it
+                             # looks broken
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
@@ -387,6 +390,26 @@ Two rules that came out of getting these wrong:
 - **Local D1 is e2e residue**, not realistic data — hundreds of `dupe-*`
   accounts, `race_records` often empty. A spec that leans on ambient data
   passes locally and fails in CI, where the database starts empty.
+
+  `pnpm db:reset:local` is the fix and it belongs *before* the run, not after
+  a confusing one. Eight consecutive suite runs were made here against a
+  database nobody rebuilt: it drifted from the seeded 15 posts to 22, and the
+  results degraded monotonically — 40 passed/2 failed, then 21/21, then
+  16/26. Three explanations were reached for and each was wrong (orphaned
+  processes, a corrupted corpus, a degraded machine); the corpus specs passing
+  12/12 is what finally ruled out the data, and CI — which rebuilds per shard
+  — disagreed with all of it. **A local browser-suite result from an un-reset
+  database is not evidence of anything.**
+
+- **A dynamic segment is its own compilation unit.** `e2e/helpers/warmup.ts`
+  claimed detail routes "share a compiled route with their index"; they do
+  not, and each costs ~5s to compile on a cold server. That was invisible
+  while all 42 browser tests ran in one shard, because some earlier test
+  always happened to pay it. Sharding removed the accident and dropped the
+  compile inside `P-PHOTO`'s 20s budget, which is how it failed on CI while
+  passing locally. Anything a spec reaches — `/members/media`,
+  `/races/<key>/<year>` — has to be in that ROUTES list by name; an index
+  does not cover its children.
 
 ### A page that logs errors is not a page that works
 
