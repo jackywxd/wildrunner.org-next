@@ -96,6 +96,18 @@ jobs:
           set -o pipefail
           prod=$(npx wrangler d1 time-travel info wildrunner-org-next)
           staging=$(npx wrangler d1 time-travel info wildrunner-org-next-staging --env staging)
+
+          # Into the log as well as the summary, and empty is a failure. The
+          # first version of this step captured both into variables and wrote
+          # them only to the summary, so a run that recorded nothing at all
+          # would still be green — the exact shape this workflow exists to
+          # prevent, committed by the workflow itself.
+          echo "$prod"
+          echo "$staging"
+          if [ -z "$prod" ] || [ -z "$staging" ]; then
+            echo "::error::time-travel returned nothing — there is no recorded restore point, so do not treat this run as cover"
+            exit 1
+          fi
           {
             echo '## Restore points'
             echo
@@ -122,7 +134,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          sql="SELECT (SELECT COUNT(*) FROM media) AS media, (SELECT COUNT(*) FROM posts) AS posts, (SELECT COUNT(*) FROM galleries) AS galleries;"
+          # Published counts, not raw table counts, because published is what
+          # the sync can actually copy: it reads production over its public
+          # REST API. The first run of this workflow reported staging 4 posts
+          # behind while the dry-run offered to copy 1 — the other three are
+          # drafts, and no amount of re-running with apply on would ever have
+          # closed that gap. A drift number the fix cannot move is a number
+          # that sends people looking for a broken sync.
+          sql="SELECT (SELECT COUNT(*) FROM media) AS media, (SELECT COUNT(*) FROM posts WHERE _status = 'published') AS posts, (SELECT COUNT(*) FROM galleries WHERE _status = 'published') AS galleries;"
           npx wrangler d1 execute wildrunner-org-next --remote --json --command "$sql" > prod.json
           npx wrangler d1 execute wildrunner-org-next-staging --remote --json --command "$sql" --env staging > staging.json
           node -e '
@@ -142,13 +161,17 @@ jobs:
             const out = [
               "## Staging drift",
               "",
+              "Posts and galleries are counted published-only — that is what the sync can copy.",
+              "`media` is every row, and it will not converge: production holds media",
+              "attached to drafts, and media nothing references at all.",
+              "",
               "| table | production | staging | staging − production |",
               "|---|---:|---:|---:|",
               ...rows,
               "",
               behind.length
-                ? `**staging is behind production on: ${behind.join(", ")}** — a migration rehearsed here is rehearsed against less data than production has. Re-run with \`apply\` on.`
-                : "Staging is not behind production on any of these. Note staging can legitimately hold *more*: the e2e suite creates content there.",
+                ? `**staging is behind production on: ${behind.join(", ")}.** A migration rehearsed here runs against less data than production has. The sync plan below is the authoritative statement of what can be copied — read it, then re-run with \`apply\` on if it is worth having.`
+                : "Staging is not behind production on any of these. It can legitimately hold *more*: the e2e suite creates content there.",
               "",
             ].join("\n");
             require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
