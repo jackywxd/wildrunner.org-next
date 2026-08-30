@@ -64,13 +64,3 @@ next-env.d.ts
 /blob-report/
 /reports/
 .tmp-payload-template/
-
-# Database dumps. `wrangler d1 export` output carries members' real emails and
-# bcrypt hashes, and this repository is public — so the rule in AGENTS.md ("A
-# deployed database is not touched until there is a way back") gets a mechanical
-# half here rather than living only in prose. The names are the ones
-# docs/production-cutover.md and docs/workers-builds.md tell you to write;
-# scripts/sql/ stays tracked because only the repo root is swept.
-/*.sql
-prod-backup-*.sql
-backup*.sql
