@@ -9,6 +9,7 @@
  * Everything here is deliberately free of React and of Payload's admin
  * internals so it can be driven from a component, a test, or a script.
  */
+import type { Media } from '@/payload-types'
 
 /**
  * Below this, uploads keep Payload's built-in path, which reads the file
@@ -206,6 +207,7 @@ export async function createMediaDocument(input: {
   alt?: string
   contentFingerprint?: string
   raceEdition?: number
+  usage?: Media['usage']
 }): Promise<{ id: number }> {
   const response = await fetch('/api/media', {
     method: 'POST',
@@ -217,6 +219,11 @@ export async function createMediaDocument(input: {
       ...(input.alt ? { alt: input.alt } : {}),
       ...(input.contentFingerprint ? { contentFingerprint: input.contentFingerprint } : {}),
       ...(input.raceEdition ? { raceEdition: input.raceEdition } : {}),
+      // Tested for `undefined` rather than truthiness like the others: the
+      // caller that most needs this sends 'attachment', but a caller sending
+      // any explicit value must have it survive, and a truthiness guard is
+      // how a deliberate value gets silently dropped.
+      ...(input.usage !== undefined ? { usage: input.usage } : {}),
     }),
   })
   if (!response.ok) {

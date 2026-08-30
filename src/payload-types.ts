@@ -213,9 +213,13 @@ export interface Media {
   owner?: (number | null) | User;
   alt: string;
   /**
-   * Optional. Which race this photo is from — shown on that race’s public photo wall.
+   * Optional. Which race this photo is from. Shown on that race’s photo wall when Usage is “Photo wall”.
    */
   raceEdition?: (number | null) | RaceEdition;
+  /**
+   * Whether this file appears on the public photo walls. Uploads default to “Photo wall”; images placed in an article are “Article attachment”.
+   */
+  usage?: ('gallery' | 'private' | 'attachment') | null;
   /**
    * Cloudflare Stream UID after video ingest (Phase 5+)
    */
@@ -245,6 +249,10 @@ export interface Media {
    * Set by the weekly sweep. Cleared as soon as something references this file again.
    */
   unusedSince?: string | null;
+  /**
+   * The pre-2026 /gallery/[slug]/v/[id] identifier. Kept so old links resolve; never set on new uploads.
+   */
+  legacyVideoId?: string | null;
   blurDataURL?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -473,20 +481,10 @@ export interface Gallery {
   featured?: boolean | null;
   eventDate?: string | null;
   cover?: (number | null) | Media;
-  images?:
+  items?:
     | {
         media: number | Media;
         featured?: boolean | null;
-        id?: string | null;
-      }[]
-    | null;
-  videos?:
-    | {
-        media: number | Media;
-        /**
-         * Stable public id for /gallery/[slug]/v/[videoId]
-         */
-        videoId?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -702,6 +700,7 @@ export interface MediaSelect<T extends boolean = true> {
   owner?: T;
   alt?: T;
   raceEdition?: T;
+  usage?: T;
   streamId?: T;
   streamReady?: T;
   transcodeStatus?: T;
@@ -710,6 +709,7 @@ export interface MediaSelect<T extends boolean = true> {
   originalFilesize?: T;
   contentFingerprint?: T;
   unusedSince?: T;
+  legacyVideoId?: T;
   blurDataURL?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -765,18 +765,11 @@ export interface GalleriesSelect<T extends boolean = true> {
   featured?: T;
   eventDate?: T;
   cover?: T;
-  images?:
+  items?:
     | T
     | {
         media?: T;
         featured?: T;
-        id?: T;
-      };
-  videos?:
-    | T
-    | {
-        media?: T;
-        videoId?: T;
         id?: T;
       };
   updatedAt?: T;

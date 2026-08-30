@@ -33,12 +33,20 @@ const upload = (value: unknown) => ({ type: "upload", relationTo: "media", value
 
 const paragraph = (...children: unknown[]) => ({ type: "paragraph", children });
 
-/** `decide` reads four fields; everything else on a media doc is irrelevant to it. */
+/**
+ * `decide` reads four fields; everything else on a media doc is irrelevant.
+ *
+ * `usage: "attachment"` is the default here rather than an override, and that
+ * is the whole subject of the cases below: an attachment is now the *only*
+ * thing the sweep can collect, so a fixture without it describes a file the
+ * sweep will never touch and every age and grace-period boundary below would
+ * assert nothing.
+ */
 const mediaDoc = (over: Partial<Parameters<typeof decide>[0]["doc"]> = {}) =>
   ({
     id: 1,
     createdAt: "2020-01-01T00:00:00.000Z",
-    raceEdition: null,
+    usage: "attachment",
     unusedSince: null,
     ...over,
   }) as Parameters<typeof decide>[0]["doc"];
@@ -106,14 +114,30 @@ test.describe("U-UNUSED reference collection", () => {
 });
 
 test.describe("U-UNUSED sweep policy", () => {
-  test("U-UNUSED-5: a race-tagged photo is in use though nothing references it", () => {
-    // A race album is a *query* over `media.raceEdition`, not a stored
-    // gallery — src/lib/race-gallery.ts chose that deliberately. So judged by
-    // references alone every race photo on the site is unreferenced, and this
-    // is the line that stops the sweep from emptying the race walls.
-    expect(isInUse({ id: 1, raceEdition: null }, new Set())).toBe(false);
-    expect(isInUse({ id: 1, raceEdition: 12 }, new Set())).toBe(true);
-    expect(isInUse({ id: 1, raceEdition: null }, new Set([1]))).toBe(true);
+  test("U-UNUSED-5: only an article attachment can ever be collected", () => {
+    // The public photo wall is a *query* over `media.usage`, not a set of rows
+    // pointing at the file — the same shape src/lib/race-gallery.ts chose for
+    // race albums. So judged by references alone every photo on /gallery is
+    // unreferenced, and this is the line that stops the sweep emptying it.
+    expect(isInUse({ id: 1, usage: "attachment" }, new Set())).toBe(false);
+    expect(isInUse({ id: 1, usage: "gallery" }, new Set())).toBe(true);
+    expect(isInUse({ id: 1, usage: "attachment" }, new Set([1]))).toBe(true);
+  });
+
+  test("U-UNUSED-5b: a private upload is kept, and an unclassified one too", () => {
+    // `private` is a member's own file that they chose not to publish. Hiding
+    // it from the wall must not put it on a deletion schedule — the toggle in
+    // the media library is about who can see the file, never about whether it
+    // survives.
+    expect(isInUse({ id: 1, usage: "private" }, new Set())).toBe(true);
+
+    // NULL means "not classified yet": the column is nullable and the backfill
+    // is a separate, human-run step. Written as two explicit cases because the
+    // natural way to spell this policy — `usage !== 'gallery'`, or a boolean
+    // read as `!== false` — collects exactly these rows, and every age
+    // boundary below would still pass while it did.
+    expect(isInUse({ id: 1, usage: null }, new Set())).toBe(true);
+    expect(isInUse({ id: 1, usage: undefined }, new Set())).toBe(true);
   });
 
   test("U-UNUSED-6: an unreferenced file under a year old is left alone", () => {

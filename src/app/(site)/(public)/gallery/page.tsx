@@ -1,21 +1,21 @@
 import React from "react";
 import {
+  getGalleryPhotos,
+  getGalleryVideos,
   getPublishedGalleries,
   getRaceGalleries,
-  getRaceTaggedPhotos,
-  getRaceTaggedVideos,
 } from "@/lib/content";
 import GalleryPageClient from "./gallery-page-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
-  const [galleries, raceGalleries, raceTaggedPhotos, raceTaggedVideos] =
+  const [galleries, raceGalleries, libraryPhotos, libraryVideos] =
     await Promise.all([
       getPublishedGalleries(),
       getRaceGalleries(new Date()),
-      getRaceTaggedPhotos(),
-      getRaceTaggedVideos(),
+      getGalleryPhotos(),
+      getGalleryVideos(),
     ]);
   // Merged rather than rendered separately: the albums shelf is already
   // generic over SiteGallery, and `allPhotos` dedupes by src, so a photo
@@ -25,8 +25,8 @@ export default async function GalleryPage() {
   return (
     <GalleryPageClient
       galleries={[...galleries, ...raceGalleries]}
-      raceTaggedPhotos={raceTaggedPhotos}
-      raceTaggedVideos={raceTaggedVideos}
+      libraryPhotos={libraryPhotos}
+      libraryVideos={libraryVideos}
     />
   );
 }

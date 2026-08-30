@@ -53,8 +53,10 @@ type ProdMedia = {
   filename?: string | null
   height?: number | null
   id: number
+  legacyVideoId?: string | null
   mimeType?: string | null
   url?: string | null
+  usage?: 'gallery' | 'private' | 'attachment' | null
   width?: number | null
 }
 
@@ -127,6 +129,13 @@ async function main() {
         width: prod.width ?? undefined,
         height: prod.height ?? undefined,
         blurDataURL: prod.blurDataURL ?? undefined,
+        // Copied from production rather than defaulted, and stated explicitly
+        // rather than omitted: `payload.db.create` skips the document layer,
+        // and Drizzle binds a column's declared default as an INSERT parameter,
+        // so leaving this out would silently publish production's article
+        // images on staging's photo wall.
+        usage: prod.usage ?? 'attachment',
+        legacyVideoId: prod.legacyVideoId ?? undefined,
         owner: owner.id,
       },
     })
@@ -141,13 +150,12 @@ async function main() {
     cover?: ProdMedia | number | null
     eventDate?: string | null
     featured?: boolean | null
-    // Both `images` rows and `videos` rows key the upload as `media` — see
-    // Galleries.ts. `featured` marks the album's hero image.
-    images?: { featured?: boolean | null; media?: ProdMedia | number | null }[]
+    // One list for photos and videos alike — see Galleries.ts. `featured`
+    // marks the album's hero image.
+    items?: { featured?: boolean | null; media?: ProdMedia | number | null }[]
     location?: string | null
     name: string
     slug: string
-    videos?: { media?: ProdMedia | number | null; videoId?: string | null }[]
   }
 
   for (const gallery of await prodList<ProdGallery>('galleries')) {
@@ -162,15 +170,10 @@ async function main() {
 
     console.log(`gallery ${gallery.slug}`)
     const cover = await ensureMedia(gallery.cover as ProdMedia)
-    const images: { featured?: boolean; media: number }[] = []
-    for (const row of gallery.images ?? []) {
+    const items: { featured?: boolean; media: number }[] = []
+    for (const row of gallery.items ?? []) {
       const id = await ensureMedia(row.media as ProdMedia)
-      if (id) images.push({ media: id, featured: row.featured ?? false })
-    }
-    const videos: { media: number; videoId?: string | null }[] = []
-    for (const row of gallery.videos ?? []) {
-      const id = await ensureMedia(row.media as ProdMedia)
-      if (id) videos.push({ media: id, videoId: row.videoId ?? undefined })
+      if (id) items.push({ media: id, featured: row.featured ?? false })
     }
 
     summary.galleries += 1
@@ -185,8 +188,7 @@ async function main() {
         eventDate: gallery.eventDate ?? undefined,
         featured: gallery.featured ?? false,
         cover: cover ?? undefined,
-        images,
-        videos,
+        items,
         owner: owner.id,
         _status: 'published',
       },

@@ -35,7 +35,10 @@ export const uploadEmbeddedImage: EmbeddedImageUploader = async ({ alt, bytes, m
 
   const body = new FormData();
   body.set("file", shrunk);
-  body.set("_payload", JSON.stringify({ alt }));
+  // An image lifted out of an imported document is an article attachment by
+  // definition — it exists because the body references it. Without this it
+  // would take `media.usage`'s 'gallery' default and land on the photo wall.
+  body.set("_payload", JSON.stringify({ alt, usage: "attachment" }));
 
   const response = await fetch("/api/media", {
     method: "POST",

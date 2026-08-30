@@ -4,6 +4,7 @@ import type {
   GalleriesSelect,
   Gallery,
   Media,
+  MediaSelect,
   Post,
   PostsSelect,
   RaceCategory,
@@ -85,11 +86,10 @@ const GALLERY_SELECT = {
   createdAt: true,
   eventDate: true,
   featured: true,
-  images: true,
+  items: true,
   location: true,
   name: true,
   slug: true,
-  videos: true,
 } as const satisfies GalleriesSelect<true>;
 
 /**
@@ -119,11 +119,36 @@ type GalleryDoc = Pick<
   | "createdAt"
   | "eventDate"
   | "featured"
-  | "images"
+  | "items"
   | "location"
   | "name"
   | "slug"
-  | "videos"
+>;
+
+/**
+ * Exactly the media fields the public mappers below read, and no more.
+ *
+ * `owner` is the point: this file's header makes its absence from every
+ * `select` the rule, because at depth >= 1 Payload populates the whole user
+ * account behind every card on the page. Naming the fields positively rather
+ * than relying on `depth: 0` is what lets the gallery query carry a `select`
+ * at all.
+ */
+type MediaCardDoc = Pick<
+  Media,
+  | "blurDataURL"
+  | "createdAt"
+  | "filename"
+  | "filesize"
+  | "height"
+  | "id"
+  | "legacyVideoId"
+  | "mimeType"
+  | "raceEdition"
+  | "streamId"
+  | "streamReady"
+  | "url"
+  | "width"
 >;
 
 function isMedia(value: unknown): value is Media {
@@ -153,7 +178,7 @@ export function mapMediaToSiteImage(media: Media | null | undefined) {
 }
 
 function mapMediaToPhoto(
-  media: Media,
+  media: MediaCardDoc,
   featured: boolean,
 ): SitePhoto | null {
   const src = mediaImageSrc(media);
@@ -174,14 +199,21 @@ function mapMediaToPhoto(
   };
 }
 
+/**
+ * `videoId` is the share-page id, and the caller decides it. Left unset it
+ * falls back to the media's own `legacyVideoId` and then to a filename slug —
+ * the order `getGalleryVideo` resolves in, so a link built here is a link that
+ * page can look up.
+ */
 function mapGalleryVideo(
-  media: Media,
+  media: MediaCardDoc,
   videoId?: string | null,
 ): SiteVideo | null {
   const src = mediaImageSrc(media);
   if (!src) return null;
   const filename = media.filename ?? "video";
-  const id = videoId?.trim() || videoIdFromFilename(filename);
+  const id =
+    videoId?.trim() || media.legacyVideoId?.trim() || videoIdFromFilename(filename);
   return {
     mediaId: media.id,
     id,
@@ -198,27 +230,41 @@ function mapGalleryVideo(
   };
 }
 
+/**
+ * One album's stored rows, split back into photos and videos.
+ *
+ * The split is by `media.mimeType` and happens here rather than in the schema:
+ * `galleries.items[]` is one ordered list because album membership is one
+ * relation, and which of the two lists a row lands in is a fact about the
+ * file, not about the membership. See the field's header in
+ * src/collections/Galleries.ts.
+ *
+ * A row whose media is missing is skipped, not counted. That can only happen
+ * on a version row now — the live table cascades — but the guard stays because
+ * `_galleries_v_version_items` deliberately keeps `ON DELETE set null` so a
+ * deleted file does not rewrite history.
+ */
 export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
   const images: SitePhoto[] = [];
   const featuredStems: string[] = [];
+  const videos: SiteVideo[] = [];
 
-  for (const row of doc.images ?? []) {
+  for (const row of doc.items ?? []) {
     const media = row.media;
     if (!isMedia(media)) continue;
+
+    if (media.mimeType?.startsWith("video/")) {
+      const video = mapGalleryVideo(media);
+      if (video) videos.push(video);
+      continue;
+    }
+
     const photo = mapMediaToPhoto(media, Boolean(row.featured));
     if (!photo) continue;
     images.push(photo);
     if (row.featured) {
       featuredStems.push(photo.filename.replace(/\.[^.]+$/, ""));
     }
-  }
-
-  const videos: SiteVideo[] = [];
-  for (const row of doc.videos ?? []) {
-    const media = row.media;
-    if (!isMedia(media)) continue;
-    const video = mapGalleryVideo(media, row.videoId);
-    if (video) videos.push(video);
   }
 
   const coverMedia = isMedia(doc.cover) ? doc.cover : undefined;
@@ -989,34 +1035,53 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
 }
 
 /**
- * Every image a member has tagged with a race — the same public signal that
- * puts a photo on that race's own wall (getRaceEditionPhotos), read here as
- * "this member wants it public" for the site's general photo view too.
+ * The media select for the public photo views.
  *
- * Deliberately not "every media doc": most uploads (post-embedded images,
- * pasted editor screenshots, avatars) are not public gallery content, and
- * `media`'s read access being public (ownedOnlyPublicRead) is not the same
- * claim as belonging in a curated photo view. Tagging a race is a member's
- * own explicit "show this" — the same bar `galleries.images[]` membership
- * already sets, just via a different, member-reachable path.
+ * `owner` is deliberately absent, per this file's header: `media.owner` is a
+ * relationship to `users`, and populating it would put an email and a live
+ * session array behind every photo on the page.
  */
+const GALLERY_MEDIA_SELECT = {
+  blurDataURL: true,
+  createdAt: true,
+  filename: true,
+  filesize: true,
+  height: true,
+  legacyVideoId: true,
+  mimeType: true,
+  raceEdition: true,
+  streamId: true,
+  streamReady: true,
+  url: true,
+  width: true,
+} as const satisfies MediaSelect<true>;
+
 /**
- * Every race-tagged upload, photos and videos together, once per request.
+ * Every upload a member meant to be public, photos and videos together, once
+ * per request.
+ *
+ * The predicate used to be `raceEdition exists`, and the comment here used to
+ * defend that: tagging a race was read as "this member wants it public". It
+ * was a category tag doing a publish switch's job, and it meant a member who
+ * uploaded a photo without picking a race got a file that appeared nowhere —
+ * and that src/lib/media/unused.ts would eventually delete for the same
+ * reason. `media.usage` is the column that question actually needed; see its
+ * header in src/collections/Media.ts.
  *
  * `React.cache`'d because /gallery asks three different questions of the same
  * rows — the albums shelf, the photo view, the video view — and used to run
- * this scan three times concurrently for them. Payload's drizzle reads are two
- * statements each (ids, then `... where id IN (<every id>)`), so that was six
- * statements against the same unbounded set, at the exact moment the page is
- * doing everything else it does.
+ * this scan three times concurrently for them.
  *
- * It cannot be bounded by a `limit`: the page renders all of it. It can be
- * read once, which is what this is. The `IN` list still grows with the
- * corpus — ~390 ids in CI — and that is the shape to watch if the collection
- * keeps growing; a paged read would change what the page shows, so it is a
- * decision rather than a tidy-up.
+ * It cannot be bounded by a `limit`: the page renders all of it, so truncating
+ * would change what /gallery shows rather than just what it costs. What it can
+ * be is read once and narrowed, which is what the `select` above is for. Note
+ * that there is no `IN (...)` fan-out here despite what this comment used to
+ * claim — `@payloadcms/drizzle`'s `selectDistinct` short-circuits when a query
+ * has no joins, and both `usage` and the sort key are `media`'s own columns.
+ * The row count is the thing to watch: on the seeded corpus this predicate
+ * returns ~420 where `raceEdition exists` returned 0.
  */
-const getRaceTaggedMedia = cache(async () => {
+const getGalleryMedia = cache(async () => {
   const payload = await getPayloadClient();
   // depth 0 keeps `owner` a bare id so it never reaches Payload's populate
   // step — the rule every other query in this file follows, and the reason
@@ -1026,14 +1091,15 @@ const getRaceTaggedMedia = cache(async () => {
     depth: 0,
     limit: 0,
     pagination: false,
+    select: GALLERY_MEDIA_SELECT,
     sort: "-createdAt",
-    where: { raceEdition: { exists: true } },
+    where: { usage: { equals: "gallery" } },
   });
   return result.docs;
 });
 
-export async function getRaceTaggedPhotos(): Promise<SitePhoto[]> {
-  const docs = await getRaceTaggedMedia();
+export async function getGalleryPhotos(): Promise<SitePhoto[]> {
+  const docs = await getGalleryMedia();
   const photos: SitePhoto[] = [];
   for (const doc of docs) {
     if (!doc.mimeType?.startsWith("image/")) continue;
@@ -1061,10 +1127,15 @@ export async function getRaceEditionVideos(editionId: number): Promise<SiteVideo
     limit: 0,
     pagination: false,
     sort: "-createdAt",
+    select: GALLERY_MEDIA_SELECT,
     where: {
       and: [
         { raceEdition: { equals: editionId } },
         { mimeType: { like: "video" } },
+        // The race wall and the virtual race album must return the same set:
+        // src/lib/race-gallery.ts makes the album a re-run of this query, and
+        // two different visibility rules is the split-brain it exists to avoid.
+        { usage: { equals: "gallery" } },
       ],
     },
   });
@@ -1076,9 +1147,9 @@ export async function getRaceEditionVideos(editionId: number): Promise<SiteVideo
   return videos;
 }
 
-/** Every video a member has tagged with a race — the video counterpart to getRaceTaggedPhotos. */
-export async function getRaceTaggedVideos(): Promise<SiteVideo[]> {
-  const docs = await getRaceTaggedMedia();
+/** The video half of the same set — the counterpart to getGalleryPhotos. */
+export async function getGalleryVideos(): Promise<SiteVideo[]> {
+  const docs = await getGalleryMedia();
   const videos: SiteVideo[] = [];
   for (const doc of docs) {
     if (!doc.mimeType?.startsWith("video/")) continue;
@@ -1112,16 +1183,54 @@ export async function getGalleryBySlug(
   return getRaceGalleryBySlug(slug, new Date());
 }
 
+/**
+ * Find one video inside an album by the id in the URL.
+ *
+ * The media id is tried first because that is what identifies a video now: it
+ * is the same in every album the file appears in, and it exists for a file in
+ * no album at all (which is what /gallery/v/[mediaId] serves). `v.id` is the
+ * older per-album identifier, kept working here — it resolves to
+ * `media.legacyVideoId` or a filename slug via `mapGalleryVideo`.
+ */
 export function getGalleryVideo(
   gallery: SiteGallery,
   videoId: string,
 ): { gallery: SiteGallery; video: SiteVideo } | undefined {
   const decoded = decodeURIComponent(videoId);
-  const video = gallery.videos.find(
-    (v) => v.id === decoded || v.id === videoId,
-  );
+  const video =
+    gallery.videos.find((v) => String(v.mediaId) === decoded) ??
+    gallery.videos.find((v) => v.id === decoded || v.id === videoId);
   if (!video) return undefined;
   return { gallery, video };
+}
+
+/**
+ * One public video by its media id, with no album around it.
+ *
+ * What /gallery/v/[mediaId] serves. A member's upload that is in no album and
+ * carries no race tag had no shareable address before this: the share page
+ * resolved a video by looking it up inside a gallery, so `GalleryVideos`
+ * rendered no share button for it at all.
+ */
+export async function getGalleryVideoById(
+  mediaId: number,
+): Promise<SiteVideo | null> {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 1,
+    select: GALLERY_MEDIA_SELECT,
+    where: {
+      and: [
+        { id: { equals: mediaId } },
+        { mimeType: { like: "video" } },
+        { usage: { equals: "gallery" } },
+      ],
+    },
+  });
+  const doc = result.docs[0];
+  return doc ? mapGalleryVideo(doc, String(doc.id)) : null;
 }
 
 /**
@@ -1142,7 +1251,7 @@ export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
 
   const byId = new Map(editions.map((edition) => [edition.id, edition]));
 
-  const docs = await getRaceTaggedMedia();
+  const docs = await getGalleryMedia();
 
   const grouped = new Map<number, { photos: SitePhoto[]; videos: SiteVideo[] }>();
   for (const doc of docs) {
@@ -1367,6 +1476,9 @@ export async function getRaceEditionPhotos(
       and: [
         { raceEdition: { equals: editionId } },
         { mimeType: { like: "image" } },
+        // Same reason as getRaceEditionVideos: this query and the virtual
+        // album at /gallery/race-<key>-<year> have to agree.
+        { usage: { equals: "gallery" } },
       ],
     },
   });

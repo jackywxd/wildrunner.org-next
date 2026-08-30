@@ -123,6 +123,11 @@ export function LargeUploadPanel() {
     }
   }, [file])
 
+  // Both branches below leave `usage` at the field's 'gallery' default, and
+  // that is a decision rather than an omission: this panel is the admin's own
+  // media library, so what it uploads is photo-wall content. The attachment
+  // paths (src/lib/members/upload-image.ts, the MDX importer) are the ones
+  // that have to say otherwise.
   async function uploadSmall(chosen: File) {
     const body = new FormData()
     body.set('file', chosen)

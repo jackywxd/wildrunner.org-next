@@ -84,8 +84,14 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     expect(before.status()).toBe(404);
 
     // One photo and one video, so the album exercises both halves.
+    //
+    // `usage=gallery` is part of the filter, not an incidental detail: the
+    // race album is built from the same set /gallery renders, so a fixture
+    // that happened to pick a private file or an article attachment would
+    // make the album appear or not appear for a reason this test does not
+    // control — Payload's default sort and the importer's insertion order.
     const mine = await request.get(
-      "/api/media?depth=0&limit=200&where[raceEdition][exists]=false",
+      "/api/media?depth=0&limit=200&where[raceEdition][exists]=false&where[usage][equals]=gallery",
     );
     expect(mine.ok()).toBe(true);
     const docs = (await mine.json()).docs as {

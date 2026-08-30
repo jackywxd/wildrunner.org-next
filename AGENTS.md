@@ -110,6 +110,57 @@ round trip, not the write.
   so no update is issued, and there is no root cause here — only the
   observation and the rule.
 
+### `payload.db.create` does not fall through to the SQL column default
+
+A new column added with a "safe" DDL default does not protect the scripts that
+write rows without going through Payload's document layer. Drizzle binds a
+column's *declared* default as an INSERT parameter (`withDefault.js` and
+`buildDrizzleTable.js` in `@payloadcms/drizzle`, then `buildInsertQuery` in
+`drizzle-orm`); it never emits the SQL `DEFAULT` keyword. So the value the
+scaffold's `defaultValue` names is what lands, whatever the `ALTER TABLE` said.
+
+That matters because `migrate-velite-to-payload.ts` and
+`sync-prod-content-to-staging.ts` both use `payload.db.create` deliberately —
+`payload.create` would treat a `url` in the data as a "paste URL to upload"
+request. When `media.usage` arrived, leaving it to the field default would have
+marked all 126 imported article images as public photo-wall content in the
+local corpus and on staging. `ensureMediaFromUrl` now takes it as a **required
+parameter with no default**, so each call site has to say which it is.
+
+**A new field with a meaningful default: grep for `db.create` before trusting
+it.**
+
+### Merging two version array tables silently eats rows
+
+Payload's array tables come in pairs: `galleries_items` (live, `id text`) and
+`_galleries_v_version_items` (versions, `id integer PRIMARY KEY`). Merging two
+arrays into one means copying two source tables into each — and the two halves
+behave differently, in a way that looks identical until you count.
+
+The live tables carry Payload's own `text` ids, which are unique across both,
+so `INSERT OR IGNORE ... SELECT id, ...` is re-entrant and correct. The version
+tables number **from 1 in each table**, so their ids collide across almost
+every row; the same statement drops each collision without an error. Measured
+on the seeded corpus: **200 source rows in, 120 out, 80 lost, exit status 0.**
+
+So a version copy must not carry the id at all — let SQLite assign — and get
+its re-entrancy elsewhere. `20260830_090500_merge_gallery_items` uses a
+`WHERE NOT EXISTS (... x._parent_id = src._parent_id)` correlated inside the
+one INSERT, which is the "database decides inside the statement" shape rather
+than the check-then-act one.
+
+Two more things from that migration worth keeping:
+
+- **`_order` has to be recomputed, not copied.** Each source table numbers from
+  1 within a parent, so a plain union puts two rows at `_order = 1` in the same
+  album — and Payload sorts the array by that column, so the album's order
+  becomes whatever the planner returns.
+- **Expand, never expand-and-contract in one file.** The old tables are left in
+  place and dropped by a later migration in a later PR. With no transactional
+  DDL and several build workers in the same file, worker A's `DROP` can land
+  while worker B is still copying; and it makes `down()` a plain drop of what
+  was created, with nothing to reconstruct.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
@@ -256,7 +307,13 @@ email, invite state, live session array — behind every card on the page.
 Every `select` in `src/lib/content.ts` omits `owner` for this reason; the
 header there explains it at length. `posts.raceRecord` adds a second hop
 (`→ race_records.owner → users`), so the detail query stops at depth 1.
-`P2-T12` and `R-T6` assert the rendered HTML stays clean.
+`P2-T12`, `R-T6` and `V-LIBRARY-T1` assert the rendered HTML stays clean.
+
+The gallery media query was the one query in that file with no `select` at
+all — safe only because it also ran at depth 0. It carries one now
+(`GALLERY_MEDIA_SELECT`), which matters more since `media.usage` replaced
+`raceEdition exists`: the same query went from returning nothing on a seeded
+database to returning every public upload.
 
 ---
 

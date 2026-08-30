@@ -20,6 +20,21 @@
  * takes on the media row. So the question this answers is the one the data
  * can actually support: "uploaded over a year ago, and referenced by
  * nothing today".
+ *
+ * WHAT THIS SWEEP CAN STILL COLLECT, since `media.usage` arrived: article
+ * attachments, and only those. A member's own library file is never
+ * collectable — public or private, they uploaded it deliberately and it is
+ * billed against their quota — so the sweep's whole remaining subject is an
+ * image pasted into an article and later removed from it, plus a cover
+ * chosen and then replaced. That is a real shrink, and it is the correct
+ * consequence of the model rather than an accident of it: uploading to the
+ * library *is* publishing now, and this file used to describe its subject as
+ * files "uploaded to the library and never placed anywhere", a category that
+ * no longer exists.
+ *
+ * Note that versions still count as references (see ./references.ts), so an
+ * attachment removed from an article today is held by every `_posts_v` row
+ * saved before the removal, and only becomes collectable once those age out.
  */
 import type { Media } from '@/payload-types'
 
@@ -49,16 +64,26 @@ export type MediaDecision =
 /**
  * Whether anything at all makes this file "in use".
  *
- * Two sources, and the second is easy to miss. A photo carrying
- * `raceEdition` appears on that race's public wall even though no row
- * anywhere points at it: the album is a *query* over the tag rather than a
- * stored gallery, which src/lib/race-gallery.ts explains at length and
- * chose deliberately. Judged by references alone, every race photo on the
- * site is unreferenced.
+ * Two sources, and the second is easy to miss: most of the media on this site
+ * is not pointed at by any row. A photo on the public wall gets there because
+ * `usage` says so and a *query* finds it — the same shape src/lib/race-gallery.ts
+ * chose for race albums. Judged by references alone, every photo on /gallery
+ * looks unreferenced and every one of them would be deleted.
+ *
+ * So the test is inverted: only an `attachment` can be collected, and only
+ * when nothing refers to it. `gallery` and `private` are both a member's own
+ * library and are kept either way — the switch between them is about who can
+ * see the file, never about whether it survives.
+ *
+ * `=== 'attachment'` rather than a check for "not gallery": a row whose
+ * `usage` is NULL has not been classified yet (the column is nullable and the
+ * backfill is a separate, human-run step), and an unclassified row must be
+ * kept. Unprovable is not the same as false — the same reasoning `decide`
+ * applies to an unparseable `createdAt` below.
  */
-export function isInUse(doc: Pick<Media, 'id' | 'raceEdition'>, referenced: ReadonlySet<number>): boolean {
+export function isInUse(doc: Pick<Media, 'id' | 'usage'>, referenced: ReadonlySet<number>): boolean {
   if (referenced.has(doc.id)) return true
-  return doc.raceEdition !== null && doc.raceEdition !== undefined
+  return doc.usage !== 'attachment'
 }
 
 /**
@@ -89,7 +114,7 @@ export function decide({
   now,
   referenced,
 }: {
-  doc: Pick<Media, 'id' | 'createdAt' | 'raceEdition' | 'unusedSince'>
+  doc: Pick<Media, 'id' | 'createdAt' | 'usage' | 'unusedSince'>
   now: Date
   referenced: ReadonlySet<number>
 }): MediaDecision {

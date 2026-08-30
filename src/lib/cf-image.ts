@@ -11,8 +11,11 @@ import type { Media } from "@/payload-types";
  * configured"). Stripping our own origin back to a relative path keeps
  * those images working everywhere, and leaves genuinely remote URLs (the
  * R2 CDN) untouched so they still match remotePatterns.
+ *
+ * Takes the one field it reads rather than a whole `Media`, so a `select`ed
+ * document from src/lib/content.ts satisfies it. A full `Media` still does.
  */
-export function mediaImageSrc(media: Media | null | undefined): string {
+export function mediaImageSrc(media: Pick<Media, "url"> | null | undefined): string {
   if (!media?.url) return "";
 
   const url = media.url;
@@ -29,7 +32,7 @@ export function mediaImageSrc(media: Media | null | undefined): string {
 }
 
 export function mediaDimensions(
-  media: Media | null | undefined,
+  media: Pick<Media, "width" | "height"> | null | undefined,
   fallback: { width: number; height: number } = { width: 1200, height: 800 },
 ): { width: number; height: number } {
   return {

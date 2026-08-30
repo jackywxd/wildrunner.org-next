@@ -30,6 +30,13 @@ export function MediaDetailDialog({
   const [raceEditionId, setRaceEditionId] = useState(
     typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
   );
+  // `usage` is a three-value column but only two of them are a member's to
+  // choose between: 'gallery' and 'private'. The third, 'attachment', is set
+  // by the editor's own upload path and shown below as a note rather than a
+  // state this control can return to — a member ticking the box is saying
+  // "put this on the wall", which makes it library content from then on.
+  const [showOnWall, setShowOnWall] = useState(item.usage === "gallery");
+  const wasAttachment = item.usage === "attachment";
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [status, setStatus] = useState<
     "idle" | "saving" | "deleting" | "retrying" | "error"
@@ -72,6 +79,9 @@ export function MediaDetailDialog({
         // Always sent, and `null` rather than omitted: picking "不連結比賽"
         // after a race was already set has to clear it, not leave it alone.
         raceEdition: raceEditionId ? Number(raceEditionId) : null,
+        // Always sent for the same reason: unticking has to write 'private',
+        // not leave the previous value in place.
+        usage: showOnWall ? "gallery" : "private",
       }),
     });
     if (!res.ok) {
@@ -176,6 +186,24 @@ export function MediaDetailDialog({
             onChange={(e) => setAlt(e.target.value)}
             className="block w-full border border-input bg-background px-3 py-2 text-sm"
           />
+        </label>
+
+        <label className="flex items-start gap-2">
+          <input
+            data-testid="media-detail-usage"
+            type="checkbox"
+            checked={showOnWall}
+            onChange={(e) => setShowOnWall(e.target.checked)}
+            className="mt-1"
+          />
+          <span className="text-sm">
+            顯示在相片牆
+            <span className="block text-xs text-muted-foreground">
+              {wasAttachment
+                ? "這個檔案目前是文章裡的圖片，不會出現在相片牆。勾選後會一併公開在相片牆。"
+                : "取消勾選後只有你自己看得到，檔案仍然保留。"}
+            </span>
+          </span>
         </label>
 
         {raceEditions.length > 0 && (

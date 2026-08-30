@@ -82,7 +82,14 @@ test.describe("V-GALLERYVIDEO a gallery video is visible on /gallery", () => {
           mimeType: "video/mp4",
           buffer: MP4_HEADER,
         },
-        _payload: JSON.stringify({ alt: `V-GALLERYVIDEO probe ${stamp}` }),
+        // `usage` is explicit even though 'gallery' is the field default:
+        // what this test pins is that an album's video shows on the landing
+        // view, and a fixture that silently depended on a default would stop
+        // pinning it the day the default changed.
+        _payload: JSON.stringify({
+          alt: `V-GALLERYVIDEO probe ${stamp}`,
+          usage: "gallery",
+        }),
       },
     });
     expect(uploaded.ok(), `media upload failed: ${uploaded.status()}`).toBeTruthy();
@@ -98,7 +105,7 @@ test.describe("V-GALLERYVIDEO a gallery video is visible on /gallery", () => {
         name: `V-GALLERYVIDEO ${stamp}`,
         slug: `v-galleryvideo-${stamp}`,
         _status: "published",
-        videos: [{ media: mediaId, videoId: `probe-${stamp}` }],
+        items: [{ media: mediaId }],
       },
     });
     expect(gallery.ok(), `gallery create failed: ${gallery.status()}`).toBeTruthy();
