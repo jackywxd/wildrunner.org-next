@@ -26,7 +26,7 @@ import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import {
   SIX_MAJORS_ID,
   SIX_MAJORS_LABEL_ZH,
-  sixMajorsCompletion,
+  sixMajorsProgress,
 } from "@/lib/races/six-majors";
 
 /**
@@ -127,7 +127,9 @@ export function riderMatchesBadge(
   badge: string,
 ): boolean {
   if (badge === SIX_MAJORS_ID) {
-    return sixMajorsCompletion(records) !== undefined;
+    // At least one completed set. Somebody wearing two Six Stars is still one
+    // rider, and the chip asks who has done it — not how many times.
+    return sixMajorsProgress(records).completions.length > 0;
   }
 
   const shortcut = RIDER_BADGE_SHORTCUTS.find((entry) => entry.id === badge);

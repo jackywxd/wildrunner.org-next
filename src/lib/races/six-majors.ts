@@ -71,60 +71,68 @@ export const SIX_MAJORS_BADGE_EVENT: BadgeEvent = {
 };
 
 /**
- * Which of the six a member has not run.
+ * How far through the six majors somebody is, and every set they finished.
  *
- * WHY THE PAGE NEEDS THIS AND NOT JUST THE BADGE. The badge wall renders
- * every record, not one per event, so somebody who has run London twice and
- * five majors in all sees SIX badges under 馬拉松 and no Six Star badge — and
- * nothing on the page explains the gap. That is not a hypothetical: it is the
- * first thing a reader asked about. The completion rule is right; what was
- * missing was any way to see it.
+ * ONE FUNCTION BECAUSE THERE IS ONE TRAVERSAL. This replaced a pair —
+ * `sixMajorsCompletion` and `sixMajorsMissing` — that each walked the records
+ * separately to answer halves of the same question, and needed a test
+ * (`U-SIXMAJORS-6`) written for no reason but to pin them together: two loops
+ * answering one question is exactly how a page comes to print "5/6" beside a
+ * badge claiming six. Returning both from one pass makes disagreement
+ * unrepresentable, which is stronger than an assertion about it.
  *
- * A separate pass rather than a second return value from
- * `sixMajorsCompletion`, so neither function has to carry the other's
- * concern. `U-SIXMAJORS-5` pins the two together — exactly one of them may be
- * non-empty — because two functions answering the same question from two
- * loops is precisely how a page comes to say "5/6" beside a badge that
- * claims six.
+ * PER MAJOR THE *EARLIEST* FINISH COUNTS, and a set is dated by the latest of
+ * the six that completed it. Somebody who ran Boston in 2015 and again in
+ * 2022, and the other five in 2018, completed the set in 2018 — their second
+ * Boston earned nothing. Taking the latest year per event would date the badge
+ * 2022 and quietly reward repetition.
+ *
+ * Generalised, that rule is an index: the k-th set is finished when every
+ * major has been run k times, and it is dated by the latest of each major's
+ * k-th *earliest* finish. k = 1 is the paragraph above, unchanged.
  */
-export function sixMajorsMissing(
-  records: readonly { eventId: string }[],
-): SixMajorKey[] {
-  const ran = new Set(records.map((record) => record.eventId));
-  return SIX_MAJORS.filter((key) => !ran.has(key));
-}
+export type SixMajorsProgress = {
+  /**
+   * One year per completed set, earliest first. Empty until all six are in.
+   *
+   * A list rather than a count-and-a-year because each set is its own
+   * achievement with its own date — the same model as a race badge, which is
+   * how somebody with two Six Stars ends up wearing two of them.
+   */
+  completions: number[];
+  /**
+   * Which majors stand between this member and their *next* set.
+   *
+   * Never empty, by construction: `sets` is the smallest number of finishes
+   * any major has, so at least one major sits at exactly that number. For
+   * somebody with no majors at all this is all six; for somebody who has just
+   * completed a set it is again all six, which is why the page hides the
+   * progress line at 0/6 rather than reading it as a gap.
+   */
+  missing: SixMajorKey[];
+};
 
-/**
- * The year the sixth major was finished, or `undefined` if fewer than six.
- *
- * PER MAJOR THE *EARLIEST* FINISH COUNTS, and the answer is the latest of
- * those six. Six Star is earned the day the sixth different race is
- * finished, so somebody who ran Boston in 2015 and again in 2022, and the
- * other five in 2018, completed the set in 2018 — their second Boston did
- * not earn anything. Taking the latest year per event instead would date the
- * badge 2022 and quietly reward repetition.
- *
- * Returns `undefined` rather than `0` or `null`, matching `qualifiersFor()`:
- * "has not finished the six" and "finished them in year zero" must not be
- * the same value, because a falsy year renders as an empty band.
- */
-export function sixMajorsCompletion(
+export function sixMajorsProgress(
   records: readonly { eventId: string; year: number }[],
-): number | undefined {
-  const firstYear = new Map<string, number>();
+): SixMajorsProgress {
+  // Six passes over a member's own race history, which is tens of rows. The
+  // shape is worth more than the pass: `years[i]` lines up with
+  // `SIX_MAJORS[i]`, so "the k-th earliest finish of every major" is one
+  // index rather than a lookup that can miss.
+  const years = SIX_MAJORS.map((key) =>
+    records
+      .filter((record) => record.eventId === key)
+      .map((record) => record.year)
+      .sort((a, b) => a - b),
+  );
 
-  for (const record of records) {
-    const current = firstYear.get(record.eventId);
-    if (current === undefined || record.year < current) {
-      firstYear.set(record.eventId, record.year);
-    }
-  }
+  const sets = Math.min(...years.map((list) => list.length));
 
-  let completedAt = 0;
-  for (const key of SIX_MAJORS) {
-    const year = firstYear.get(key);
-    if (year === undefined) return undefined;
-    if (year > completedAt) completedAt = year;
-  }
-  return completedAt;
+  const completions = Array.from({ length: sets }, (_, k) =>
+    Math.max(...years.map((list) => list[k])),
+  );
+
+  const missing = SIX_MAJORS.filter((_, index) => years[index].length === sets);
+
+  return { completions, missing };
 }
