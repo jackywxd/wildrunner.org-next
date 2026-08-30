@@ -27,19 +27,51 @@ const isLocalTarget =
   /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(BASE_URL);
 
 /**
- * Every route a spec reaches by `goto`, plus `/admin` and `/members`, whose
- * first compile is the largest of the lot. Sub-pages (`/posts/<slug>`) share
- * a compiled route with their index, so listing one of each is enough.
+ * Every route the browser lane reaches, plus `/admin`, whose first compile is
+ * the largest of the lot.
+ *
+ * A DYNAMIC SEGMENT IS ITS OWN COMPILATION UNIT. This list used to say that
+ * "sub-pages (`/posts/<slug>`) share a compiled route with their index, so
+ * listing one of each is enough". They do not: `posts/page.tsx` and
+ * `posts/[...slug]/page.tsx` are separate files and compile separately, and
+ * the same holds for every pair below. Warming only the index left every
+ * detail route's first compile to land inside whichever test reached it
+ * first, which is the cost this file exists to move out of test budgets.
+ *
+ * It went unnoticed while all 42 browser tests ran in one shard: by the time
+ * an upload journey ran, some earlier test had usually paid the compile. Once
+ * the lane was split three ways that stopped being true, and `P-PHOTO` — which
+ * reaches `/members/login`, `/members/media` and `/races/<key>/<year>`, none
+ * of them warmed — blew its 20s budget on CI while passing locally.
+ *
+ * The placeholder params below do not need to resolve. Next compiles the
+ * route to answer the request at all, so a 404 warms it exactly as well as a
+ * hit; `fetch` failures here are already tolerated and logged rather than
+ * fatal. Member routes redirect when signed out and that is fine for the same
+ * reason: there is no middleware, so the redirect comes from the route itself
+ * having been compiled and run.
  */
 const ROUTES = [
   "/",
-  "/posts",
-  "/gallery",
-  "/races",
-  "/riders",
   "/about",
-  "/members",
   "/admin",
+  "/posts",
+  "/posts/warmup-not-a-real-post",
+  "/gallery",
+  "/gallery/warmup-not-a-real-gallery",
+  "/races",
+  "/races/warmup-not-a-real-event/2026",
+  "/riders",
+  "/riders/warmup-not-a-real-rider",
+  "/members",
+  "/members/login",
+  "/members/media",
+  "/members/races",
+  "/members/profile",
+  "/members/posts",
+  "/members/posts/new",
+  "/members/posts/import",
+  "/members/posts/0",
 ];
 
 export default async function warmup() {
