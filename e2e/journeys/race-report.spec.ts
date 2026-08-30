@@ -74,6 +74,8 @@ test.describe("R what a member does with a race report", () => {
   test("R-REPORT: writes a report, attaches a race, and it publishes", async ({
     page,
   }) => {
+    test.setTimeout(budget(60_000));
+
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
@@ -181,6 +183,15 @@ test.describe("R what a member does with a race report", () => {
   test("R-DUPLICATE: a second report on the same race is refused", async ({
     page,
   }) => {
+    // Measured, not guessed: this test took 19.6s of its 20s default on the
+    // last green CI run, and 20.0s on the next one, where it died. Two full
+    // sign-in-and-publish flows through dynamic member routes do not fit a
+    // budget sized for a single page assertion, and the sibling below is at
+    // 15.1s on the same ceiling. Raising it is what the rest of the suite
+    // does for its heavy journeys (RF-T1..T4, SM-T1, Q1 — all lighter than
+    // this one); leaving them here was an oversight, not a decision.
+    test.setTimeout(budget(60_000));
+
     // The refusal is the feature. One report per member per race, and the site
     // says so on the start page rather than failing at save. An earlier draft
     // routed *around* this by hunting for an unused race, which discarded the
