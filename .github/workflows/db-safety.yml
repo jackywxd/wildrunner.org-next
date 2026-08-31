@@ -228,11 +228,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Read back rather than trust the step above. A seed or sync script that
-      # exits cleanly has not proven it wrote anything — the same lesson
-      # db:reset:local learned the hard way (AGENTS.md).
+      # Read back rather than trust the step above, and read back ESPECIALLY
+      # when it failed. A sync that exits cleanly has not proven it wrote
+      # anything (the lesson db:reset:local learned the hard way), and a sync
+      # that exits 1 has not proven it wrote nothing — AGENTS.md's "a row
+      # reported as failed may already be written".
+      #
+      # `!cancelled()` rather than a bare `inputs.apply`: on the first real
+      # apply run the sync died on a validation error *after* creating the
+      # post's cover media, and this step — the one that would have said so —
+      # skipped, because a failed job skips what follows. The state had to be
+      # reconstructed from a later read-only run instead. Not `always()`:
+      # a cancelled job has no state worth reporting.
       - name: Re-read staging after the sync
-        if: ${{ inputs.apply }}
+        if: ${{ !cancelled() && inputs.apply }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

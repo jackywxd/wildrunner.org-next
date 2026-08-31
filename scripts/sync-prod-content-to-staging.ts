@@ -194,6 +194,57 @@ async function main() {
     })
   }
 
+  /**
+   * Rewrite the `upload` nodes inside a post's body to staging's media ids.
+   *
+   * Production is read at `depth=1`, and Payload populates *every*
+   * relationship at that depth — including the upload nodes inside rich
+   * text, whose `value` comes back as the entire Media document.
+   * `guardPostContent` refuses exactly that shape, because a populated
+   * value corrupts the field both Payload's own population and the public
+   * converter expect to be a bare id. So a post with any image in its body
+   * could never be copied: the create died with one ValidationError per
+   * upload node, and the cover media it had already written stayed behind as
+   * an orphan.
+   *
+   * Found by running this against production for the first time on
+   * 2026-08-31 — `whistler-by-utmb-2026-crew`, four upload nodes, four
+   * errors. It had been unreachable before only because nothing had asked
+   * this script to copy a post with pictures in it.
+   *
+   * Depth 1 is not the thing to change: `ensureMedia` needs the populated
+   * object to key on filename, and the cover goes through it too. The body
+   * simply gets the same treatment the cover already had.
+   *
+   * A node that cannot be mapped throws rather than writing `undefined`:
+   * the guard would reject that too, but with a message about the shape
+   * rather than about the media that could not be resolved.
+   */
+  async function remapContentUploads(content: unknown, slug: string) {
+    const walk = async (node: unknown): Promise<void> => {
+      if (!node || typeof node !== 'object') return
+      const record = node as Record<string, unknown>
+
+      if (record.type === 'upload' && record.value && typeof record.value === 'object') {
+        const mapped = await ensureMedia(record.value as ProdMedia)
+        if (mapped === null) {
+          const source = record.value as ProdMedia
+          throw new Error(
+            `${slug}: cannot map the upload ${source.filename ?? source.id} in its body ` +
+              `to a staging media row — it has no url, so ensureMedia could not copy it`,
+          )
+        }
+        record.value = mapped
+      }
+
+      if (Array.isArray(record.children)) {
+        for (const child of record.children) await walk(child)
+      }
+    }
+
+    await walk((content as { root?: unknown } | undefined)?.root)
+  }
+
   // ---- posts ----
   type ProdPost = {
     content?: unknown
@@ -217,6 +268,9 @@ async function main() {
 
     console.log(`post ${post.slug}`)
     const image = await ensureMedia(post.image as ProdMedia)
+    // Before the dry-run return, so a dry run counts the body's media too.
+    // It reported `media: 1` for a post carrying four more.
+    await remapContentUploads(post.content, post.slug)
     summary.posts += 1
     if (dryRun) continue
 
