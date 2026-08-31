@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import type { SiteAlbumCard, SitePhoto, SiteVideo } from "@/lib/content-types";
+import type { SiteAlbumCard, SiteMediaItem, SitePhoto } from "@/lib/content-types";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
-import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
-import { AllPhotosView } from "@/app/(site)/(public)/gallery/_components/AllPhotosView";
+import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
 import { AlbumCards } from "@/app/(site)/(public)/gallery/_components/AlbumCards";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +19,13 @@ import { cn } from "@/lib/utils";
 type GalleryPageClientProps = {
   albums: SiteAlbumCard[];
   featuredPhotos: SitePhoto[];
-  /** Album membership ∪ media.usage, deduped and newest-first — see unionBySrc. */
-  photos: SitePhoto[];
-  videos: SiteVideo[];
+  /**
+   * Album membership ∪ media.usage, deduped and newest-first — see
+   * unionBySrc. Photos and videos in one list because the page draws them in
+   * one grid; a separate video rail was a separate order, and two orders is
+   * what buried a member's newest upload at position 24.
+   */
+  items: SiteMediaItem[];
 };
 
 type GalleryView = "all" | "albums";
@@ -71,8 +74,7 @@ function ViewChip({
 export default function GalleryPageClient({
   albums,
   featuredPhotos,
-  photos,
-  videos,
+  items,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -109,15 +111,8 @@ export default function GalleryPageClient({
           </div>
 
           {view === "all" && (
-            <div className="mt-8 space-y-8">
-              {videos.length > 0 && (
-                <div data-testid="gallery-all-photos-videos">
-                  <GalleryVideos videos={videos} compact />
-                </div>
-              )}
-              <div data-testid="gallery-all-photos">
-                <AllPhotosView photos={photos} />
-              </div>
+            <div className="mt-8" data-testid="gallery-all-photos">
+              <MediaGrid items={items} />
             </div>
           )}
         </section>

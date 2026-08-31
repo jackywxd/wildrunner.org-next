@@ -16,6 +16,7 @@
 import type {
   SiteAlbumCard,
   SiteGallery,
+  SiteMediaItem,
   SitePhoto,
   SiteVideo,
 } from '@/lib/content-types'
@@ -72,8 +73,15 @@ export function unionBySrc<T extends { src: string; createdAt: string }>(
 export type GalleryIndexData = {
   albums: SiteAlbumCard[]
   featuredPhotos: SitePhoto[]
-  photos: SitePhoto[]
-  videos: SiteVideo[]
+  /**
+   * The wall, photos and videos in one list, newest first.
+   *
+   * Was two lists. Two lists is what put a member's newest video 24th: the
+   * page could only render them as a separate strip, and a strip has to be
+   * ordered somehow — it was ordered by source. One list has one order, and
+   * the order is time.
+   */
+  items: SiteMediaItem[]
 }
 
 export function buildGalleryIndex(
@@ -92,7 +100,16 @@ export function buildGalleryIndex(
     featuredPhotos: albumPhotos
       .filter((photo) => photo.featured)
       .slice(0, FEATURED_LIMIT),
-    photos: unionBySrc(albumPhotos, libraryPhotos),
-    videos: unionBySrc(albumVideos, libraryVideos),
+    // Unioned per kind first, because dedupe is by `src` and a photo and a
+    // video can never collide on one; then merged and re-sorted so the wall
+    // is one sequence in time rather than two lists stapled together.
+    items: [
+      ...unionBySrc(albumPhotos, libraryPhotos).map(
+        (photo): SiteMediaItem => ({ kind: 'photo', ...photo }),
+      ),
+      ...unionBySrc(albumVideos, libraryVideos).map(
+        (video): SiteMediaItem => ({ kind: 'video', ...video }),
+      ),
+    ].sort(newestFirst),
   }
 }
