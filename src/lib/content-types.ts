@@ -129,6 +129,27 @@ export type SiteGallery = {
   items: SiteMediaItem[];
 };
 
+/**
+ * One album as the index renders it, and nothing more.
+ *
+ * /gallery used to receive every album with every one of its `items`, and the
+ * client then reduced that to a shelf. Measured on the seeded corpus, the page
+ * carried each photo twice — 820 `blurDataURL`s and 840 `createdAt`s for ~420
+ * photos — because the same rows arrive once inside an album and once in the
+ * flat wall. The albums view only ever draws a cover, a name and two counts,
+ * so that is what it is sent; the contents live one click away at
+ * /gallery/[slug], which queries them itself.
+ */
+export type SiteAlbumCard = {
+  slug: string;
+  name: string;
+  cover?: SiteImage | null;
+  photoCount: number;
+  videoCount: number;
+  /** Sort key for the shelf — the album's own createdAt, or its newest media. */
+  created: string;
+};
+
 export type SitePost = {
   id: number;
   title: string;
