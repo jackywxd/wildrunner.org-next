@@ -4,6 +4,7 @@ import type {
   GlobalAfterChangeHook,
 } from "payload";
 
+import { publicMediaFieldsChanged } from "@/lib/media/public-fields";
 import {
   revalidateForGallery,
   revalidateForPost,
@@ -154,20 +155,61 @@ export const revalidatePosts: CollectionAfterChangeHook = async (args) => {
   }
 };
 
+/**
+ * No video ids any more, and their absence is a fix rather than a loss.
+ *
+ * This used to read `doc.videos[].videoId` and pass the result on so that
+ * `/gallery/<slug>/v/<videoId>` was busted too. `galleries.videos` stopped
+ * existing when #95 merged the two arrays into `items`, and `videoId` moved to
+ * `media.legacyVideoId` in the same change — so `doc.videos ?? []` had been
+ * evaluating to `[]` on every save since, quietly, with the ids nowhere in
+ * reach of a hook that only has the gallery document.
+ *
+ * It cost nothing, because those share pages are `force-dynamic` and nothing
+ * revalidates a route that is never cached. Rebuilding it would therefore mean
+ * adding a query per album save to feed a no-op. What matters is that it is
+ * gone rather than looking like coverage: if those pages are ever cached, the
+ * ids live on the media rows now and fetching them is the work to do.
+ */
 export const revalidateGalleries: CollectionAfterChangeHook = ({
   doc,
   previousDoc,
 }) => {
-  const videoIds = (doc.videos ?? [])
-    .map((row: { videoId?: string | null }) => row.videoId)
-    .filter(Boolean) as string[];
-  revalidateForGallery(doc.slug, videoIds);
+  revalidateForGallery(doc.slug);
   if (previousDoc?.slug && previousDoc.slug !== doc.slug) {
-    const previousVideoIds = (previousDoc.videos ?? [])
-      .map((row: { videoId?: string | null }) => row.videoId)
-      .filter(Boolean) as string[];
-    revalidateForGallery(previousDoc.slug, previousVideoIds);
+    revalidateForGallery(previousDoc.slug);
   }
+};
+
+/**
+ * `media` had no revalidation hook at all, and only `/gallery` being
+ * `force-dynamic` hid it: a member unticking 顯示在相片牆 took effect on the
+ * next request because the page was rebuilt on every request. The moment that
+ * page is cached, the same untick stops taking effect until something else
+ * happens to bust the path.
+ *
+ * Which is why this lands before the caching does, and why the rule is worth
+ * saying out loud: **publishing may lag, un-publishing may not.** A photo that
+ * takes a minute to appear is an inconvenience; a photo that stays up after
+ * its owner removed it is not the same kind of thing.
+ *
+ * `revalidatePublicSite()` rather than a narrower path list, because every one
+ * of STATIC_PATHS can render a media row — `/posts` and `/` through post
+ * covers, `/riders` through author avatars, `/about` through the site global,
+ * `/gallery` through the wall itself. The breadth is affordable precisely
+ * because `publicMediaFieldsChanged` keeps the sweeps out.
+ */
+export const revalidateMedia = {
+  afterChange: (({ doc, previousDoc }) => {
+    if (!publicMediaFieldsChanged(doc, previousDoc)) return;
+    revalidatePublicSite();
+  }) as CollectionAfterChangeHook,
+
+  // No field check on delete: the row is gone, so whatever it was showing is
+  // gone with it.
+  afterDelete: (() => {
+    revalidatePublicSite();
+  }) as CollectionAfterDeleteHook,
 };
 
 export const revalidateSiteGlobal: GlobalAfterChangeHook = () => {

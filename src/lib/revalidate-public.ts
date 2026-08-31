@@ -39,16 +39,25 @@ export function revalidateForRaceSchedule(): void {
   revalidatePaths(["/", "/races"]);
 }
 
-export function revalidateForGallery(
-  slug: string | null | undefined,
-  videoIds: string[] = [],
-): void {
+/**
+ * No `videoIds` parameter, deliberately.
+ *
+ * It used to add `/gallery/<slug>/v/<videoId>` for each of an album's videos.
+ * The only caller fed it `doc.videos[].videoId`, and `galleries.videos` has
+ * not existed since #95 merged the two arrays into `items` — so every call had
+ * been passing `[]` for weeks, silently. A parameter that can structurally
+ * only receive an empty list reads as coverage and is not any.
+ *
+ * Losing it costs nothing today: those share pages are `force-dynamic`, and
+ * revalidating a route that is never cached does nothing. If they are ever
+ * cached, the ids now live on `media.legacyVideoId` and an album save would
+ * need a query to reach them — that is the work, and it belongs with whatever
+ * change starts caching those pages.
+ */
+export function revalidateForGallery(slug: string | null | undefined): void {
   const paths = [...STATIC_PATHS];
   if (slug) {
     paths.push(`/gallery/${slug}`);
-    for (const videoId of videoIds) {
-      paths.push(`/gallery/${slug}/v/${encodeURIComponent(videoId)}`);
-    }
   }
   revalidatePaths(paths);
 }
