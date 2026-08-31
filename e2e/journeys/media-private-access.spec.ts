@@ -96,4 +96,80 @@ test.describe("M-PRIVATE a private file is not served anonymously", () => {
     expect(own.status()).toBe(200);
     expect(((await own.json()) as { usage: string }).usage).toBe("private");
   });
+
+  /**
+   * The rule above was `usage != 'private'`, which is wider than it reads.
+   * Nothing marks a file `private` except a member unticking the box, so on a
+   * database where nobody has — production, after the backfill — it admitted
+   * every row: the whole media library including article attachments, and with
+   * them the cover images of posts that are still drafts.
+   *
+   * Both halves matter and only one of them is about disclosure. Narrowing the
+   * *listing* costs the site nothing, because no public page fetches
+   * /api/media from a browser. Narrowing the *file route* would 403 every
+   * article image wherever Payload serves the bytes itself — dev, and every
+   * origin without R2_PUBLIC_URL, which is where this suite runs. So the
+   * second assertion here is not a bonus: it is the one that fails if the
+   * rule is tightened the obvious way.
+   */
+  test("M-PRIVATE-T2: anonymous lists only the photo wall, and still gets article bytes", async ({
+    baseURL,
+    request,
+  }) => {
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const stamp = Date.now();
+    const filename = `m-private-attachment-${stamp}.svg`;
+    const created = await request.post("/api/media", {
+      multipart: {
+        file: {
+          name: filename,
+          mimeType: "image/svg+xml",
+          buffer: Buffer.from(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"></svg>',
+          ),
+        },
+        _payload: JSON.stringify({
+          alt: `M-PRIVATE attachment ${stamp}`,
+          usage: "attachment",
+        }),
+      },
+    });
+    expect(created.ok(), `media create failed: ${created.status()}`).toBeTruthy();
+    const doc = (await created.json()).doc as { id: number; usage: string };
+    mediaId = doc.id;
+    recordCreated({ collection: "media", id: doc.id, note: "M-PRIVATE attachment" });
+    expect(doc.usage).toBe("attachment");
+
+    const anon = await playwrightRequest.newContext({ baseURL });
+    try {
+      const listed = await anon.get("/api/media?depth=0&limit=200");
+      expect(listed.ok()).toBeTruthy();
+      const body = (await listed.json()) as {
+        docs: { id: number; usage?: string | null }[];
+      };
+
+      // Asserted about the corpus, not only about the fixture: a rule that
+      // happened to hide this one row while still admitting every other
+      // attachment would pass the narrower check and be no fix at all.
+      expect(
+        body.docs.filter((row) => row.usage !== "gallery").map((row) => row.id),
+        "anonymous listing must contain nothing but photo-wall media",
+      ).toEqual([]);
+      expect(body.docs.map((row) => row.id)).not.toContain(doc.id);
+
+      // ...and the bytes still serve, which is what the public site actually
+      // depends on wherever Payload is the one answering for the file.
+      const bytes = await anon.get(`/api/media/file/${filename}`);
+      expect(
+        bytes.status(),
+        "tightening the listing must not 403 an article image",
+      ).toBe(200);
+    } finally {
+      await anon.dispose();
+    }
+  });
 });

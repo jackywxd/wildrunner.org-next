@@ -96,14 +96,44 @@ export const ownedOnlyPublicRead: Access = ({ req: { user } }) => {
  * these files through an authenticated route instead, which is a separate
  * piece of work.
  *
- * The public site is unaffected: it reads through the Local API, whose
+ * The public site is unaffected: its pages read through the Local API, whose
  * `overrideAccess` defaults to `true`
  * (node_modules/payload/dist/collections/operations/local/find.js), so this
- * rule is not consulted there at all — only the REST API reaches it.
+ * rule is not consulted for anything the site renders.
+ *
+ * TWO DIFFERENT QUESTIONS REACH THIS RULE, and answering them the same way
+ * breaks the site. `isReadingStaticFile` is how Payload tells them apart.
+ *
+ *   listing   `GET /api/media`, and GraphQL. Anonymous gets exactly what the
+ *             public photo wall shows, because nothing else needs it: no page
+ *             under src/app/(site)/(public) fetches /api/media from the
+ *             browser (only the admin's LargeUploadPanel does). `not_equals
+ *             private` was too wide — with the backfill done, production holds
+ *             zero `private` rows, so it returned all 568, including the 138
+ *             article attachments and with them the cover images of 9 posts
+ *             that are still drafts. Their `url` and `filename` were
+ *             enumerable before the article was ever published.
+ *
+ *   the bytes `/api/media/file/<name>`. `checkFileAccess` ANDs whatever Where
+ *             this returns with the filename and throws `Forbidden` when
+ *             nothing matches (node_modules/payload/dist/uploads/
+ *             checkFileAccess.js). Narrowing to `gallery` here would 403 every
+ *             article image wherever Payload serves the file itself — dev, and
+ *             any origin without `R2_PUBLIC_URL`, which is where the whole e2e
+ *             suite runs. It would also buy nothing: production serves those
+ *             bytes from a public, unsigned R2 origin, so anyone holding the
+ *             URL already has them, exactly as the paragraph above says.
+ *
+ * So the narrow answer goes to the question that is actually about disclosure,
+ * and the wide one to the question that is only about a redirect target.
  */
-export const mediaPublicRead: Access = ({ req: { user } }) => {
+export const mediaPublicRead: Access = ({ isReadingStaticFile, req: { user } }) => {
   if (isAdminUser(user)) return true
-  if (!user) return { usage: { not_equals: 'private' } } as Where
+  if (!user) {
+    return isReadingStaticFile
+      ? ({ usage: { not_equals: 'private' } } as Where)
+      : ({ usage: { equals: 'gallery' } } as Where)
+  }
 
   return { owner: { equals: user.id } } as Where
 }
