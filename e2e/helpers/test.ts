@@ -80,7 +80,21 @@ export const test = base.extend<{ failOnBrowserErrors: void }>({
         if (message.type() !== "error") return;
         const text = message.text();
         if (isIgnored(text)) return;
-        problems.push(`console.error: ${text}`);
+        // Chromium's text for a failed subresource names the status and
+        // nothing else — "Failed to load resource: the server responded with
+        // a status of 500 ()". So this guard could say a page is broken while
+        // withholding which request broke it, which is what happened to
+        // deploy run 97: `M-PREVIEW-T1` went red on staging with exactly that
+        // one line, and naming the resource would have meant downloading the
+        // CI artifact and opening the trace. The URL was in `location()` the
+        // whole time.
+        //
+        // `isIgnored` deliberately still matches on the text alone. Matching
+        // the URL too would quietly widen the ignore list — a path happening
+        // to contain "favicon" would silence a real error — and that list's
+        // bar is "the app cannot cause it and cannot stop it".
+        const { url } = message.location();
+        problems.push(`console.error: ${text}${url ? ` [${url}]` : ""}`);
       });
 
       await use();
