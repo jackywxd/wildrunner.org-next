@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 
 type GalleryPageClientProps = {
   galleries: SiteGallery[];
-  /** Photos tagged with a race but not necessarily in any album — see getRaceTaggedPhotos. */
-  raceTaggedPhotos: SitePhoto[];
-  /** Videos tagged with a race but not necessarily in any album — see getRaceTaggedVideos. */
-  raceTaggedVideos: SiteVideo[];
+  /** Every upload marked as photo-wall content, album membership irrelevant — see getGalleryPhotos. */
+  libraryPhotos: SitePhoto[];
+  /** The video half of the same set — see getGalleryVideos. */
+  libraryVideos: SiteVideo[];
 };
 
 type GalleryView = "all" | "albums";
@@ -62,8 +62,8 @@ function ViewChip({
 
 export default function GalleryPageClient({
   galleries,
-  raceTaggedPhotos,
-  raceTaggedVideos,
+  libraryPhotos,
+  libraryVideos,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -74,13 +74,13 @@ export default function GalleryPageClient({
   const allPhotos = useMemo(() => {
     const seen = new Set<string>();
     const combined: SitePhoto[] = [];
-    // Gallery-curated photos and race-tagged photos are two different
-    // paths to "this is public" (album membership vs. a member's own race
-    // tag) and can overlap on the same underlying upload — deduped by src,
-    // the one stable identifier both sources carry.
+    // Album membership and `media.usage` are two different paths to "this is
+    // public" (an editor curated it vs. a member uploaded it to the library)
+    // and can overlap on the same underlying upload — deduped by src, the one
+    // stable identifier both sources carry.
     for (const photo of [
       ...galleries.flatMap((gallery) => gallery.images),
-      ...raceTaggedPhotos,
+      ...libraryPhotos,
     ]) {
       if (seen.has(photo.src)) continue;
       seen.add(photo.src);
@@ -89,42 +89,42 @@ export default function GalleryPageClient({
     return combined.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [galleries, raceTaggedPhotos]);
+  }, [galleries, libraryPhotos]);
 
   /**
    * Every public video, from both paths, deduped — the exact counterpart of
    * `allPhotos` above.
    *
    * Its absence is what made gallery videos invisible on this page. The
-   * "all" view rendered the raw `raceTaggedVideos` prop, so a video was
-   * only ever shown here if a member had tagged it with a race; the 23
-   * videos that live in an album and carry no race tag appeared nowhere on
+   * "all" view rendered only the videos a member had tagged with a race; the
+   * 23 videos that live in an album and carry no race tag appeared nowhere on
    * /gallery, while the album pages showed them fine. The player's own
    * header describes this strip as rendering "every video of every gallery"
    * — that was the intent, and this is what makes it true.
    *
-   * Deduped by `src` for the same reason `allPhotos` is: album membership
-   * and a race tag are two different routes to "this is public" and one
-   * upload can have both. `src` is the identifier both sources carry, and
-   * is already what `GalleryVideos` keys on.
+   * Deduped by `src` for the same reason `allPhotos` is: album membership and
+   * `media.usage` are two different routes to "this is public" and one upload
+   * can have both. `src` is the identifier both sources carry, and is already
+   * what `GalleryVideos` keys on.
    *
    * Not sorted, unlike `allPhotos`: `SiteVideo` carries no `createdAt`
    * (see `mapGalleryVideo`), so there is nothing to sort by. Album order
-   * first, then race tags, is the same order the albums view uses.
+   * first, then the rest of the library, is the same order the albums view
+   * uses.
    */
   const allVideos = useMemo(() => {
     const seen = new Set<string>();
     const combined: SiteVideo[] = [];
     for (const video of [
       ...galleries.flatMap((gallery) => gallery.videos ?? []),
-      ...raceTaggedVideos,
+      ...libraryVideos,
     ]) {
       if (seen.has(video.src)) continue;
       seen.add(video.src);
       combined.push(video);
     }
     return combined;
-  }, [galleries, raceTaggedVideos]);
+  }, [galleries, libraryVideos]);
 
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {

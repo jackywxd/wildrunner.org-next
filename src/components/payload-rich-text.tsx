@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 
 import type { Media, Post } from "@/payload-types";
 import { mediaImageSrc } from "@/lib/cf-image";
-import { youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
+import { soleYouTubeUrl, youTubeVideoId } from "@/lib/youtube";
+import { YouTubeEmbed } from "@/components/youtube-embed";
+import { StreamVideoPlayer } from "@/components/stream-video-player";
+import { mediaToSiteVideo } from "@/lib/media/site-video";
 import {
   RichText,
   type JSXConvertersFunction,
@@ -29,65 +32,6 @@ function orDefault<Args>(
   return typeof converter === "function"
     ? (converter as (a: Args) => ReactNode)(args)
     : ((converter as ReactNode) ?? null);
-}
-
-/**
- * A YouTube link, shown as the video.
- *
- * `youtube-nocookie.com` and a rebuilt URL — see src/lib/youtube.ts for why
- * the author's own string never reaches the iframe. `loading="lazy"` keeps
- * a post with several videos from opening several player connections before
- * the reader has scrolled to any of them.
- *
- * The wrapper is a `<span class="block">`, not a `<div>`, because the `link`
- * and `autolink` converters below substitute this for an *inline* node — one
- * that sits inside the paragraph Lexical wrapped it in. A `<div>` there is a
- * div inside a `<p>`, which the parser closes the paragraph to escape: the
- * server's HTML and the client's tree then disagree and hydration fails for
- * the whole page. `<span>` is phrasing content, so it is legal in both
- * positions, and `block` restores the layout the `<div>` had.
- */
-function YouTubeEmbed({ videoId }: { videoId: string }) {
-  return (
-    <span
-      data-testid="youtube-embed"
-      data-video-id={videoId}
-      className="my-6 block aspect-video w-full"
-    >
-      <iframe
-        src={youTubeEmbedUrl(videoId)}
-        title="YouTube 影片"
-        loading="lazy"
-        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
-        className="h-full w-full border-0"
-      />
-    </span>
-  );
-}
-
-/**
- * The single YouTube URL a paragraph consists of, or null.
- *
- * This is the case that actually matters for members: the editor has no
- * autolink, so a pasted URL stays plain text rather than becoming a `link`
- * node. Deliberately strict — the paragraph must be nothing but the URL, so
- * a sentence that happens to mention a video keeps its sentence.
- */
-function soleYouTubeUrl(node: JsonNode): string | null {
-  const children = node.children ?? [];
-  // A non-text child contributes a space, so a paragraph holding the URL
-  // *and* an image or a line break fails the whitespace test below rather
-  // than having its other content silently dropped.
-  const text = children
-    .map((child) => (child.type === "text" ? String(child.text ?? "") : " "))
-    .join("")
-    .trim();
-  // Any whitespace left after trimming means the paragraph holds something
-  // besides the URL - a sentence mentioning a video keeps its sentence.
-  if (!text || /\s/.test(text)) return null;
-  return youTubeVideoId(text);
 }
 
 /**
@@ -161,9 +105,39 @@ const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
       </Tag>
     );
   },
+  /**
+   * An uploaded file. Images through next/image; videos through the same
+   * player the gallery uses.
+   *
+   * The video branch is new, and its absence was silent rather than loud: a
+   * video upload node used to fall through to `<Image>` and become an
+   * `<img src="….mp4">`. With `images.loader: "custom"` (next.config.ts) the
+   * request never reaches `/_next/image`, so it answers 200 `video/mp4` and
+   * the browser simply fails to decode it — Chromium logs nothing for that,
+   * so the page held a blank 3:2 box that no assertion and no console guard
+   * in this repo could see.
+   *
+   * Safe to return a block element here *because* Payload's
+   * `UploadServerNode.isInline()` is `false` — an upload is never a child of
+   * a paragraph. That is not true of `YouTubeEmbed` above, which the `link`
+   * and `autolink` converters substitute for an inline node, and which is a
+   * `<span class="block">` for exactly that reason. So do not reuse
+   * `StreamVideoPlayer` from those three converters: its transcoding branch
+   * returns a `<div>`, and a `<div>` inside a `<p>` breaks hydration for the
+   * whole page.
+   *
+   * No `refreshStreamReady` call, unlike the video share page: that is a
+   * write, and an article can hold several videos. The gallery's own video
+   * strip does not do it either.
+   */
   upload: ({ node }) => {
     const value = node.value as Media | number | null | undefined;
     if (!value || typeof value !== "object" || !value.url) return null;
+
+    if (value.mimeType?.startsWith("video/")) {
+      const video = mediaToSiteVideo(value);
+      return video ? <StreamVideoPlayer video={video} /> : null;
+    }
 
     const alt = value.alt ?? "";
     // Dimensions come from the migration (Velite resolved them) or from

@@ -66,6 +66,10 @@ export function UploadDropzone({
   const [raceEditionId, setRaceEditionId] = useState(
     preselectedRaceEditionId ? String(preselectedRaceEditionId) : "",
   );
+  // Applies to the whole batch, not per file. A member picking 40 photos they
+  // do not want public would otherwise have to open 40 detail dialogs after
+  // the fact — the one place the toggle used to live.
+  const [showOnWall, setShowOnWall] = useState(true);
   const [running, setRunning] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -142,6 +146,9 @@ export function UploadDropzone({
           filename: session.filename,
           mimeType: session.mimeType,
           alt: defaultAltFor(chosen.name),
+          // Stated rather than left to the field default, so this control is
+          // the single answer for both branches below.
+          usage: showOnWall ? "gallery" : "private",
           ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
           ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
         });
@@ -153,6 +160,7 @@ export function UploadDropzone({
           "_payload",
           JSON.stringify({
             alt: defaultAltFor(chosen.name),
+            usage: showOnWall ? "gallery" : "private",
             ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
             ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
           }),
@@ -274,6 +282,23 @@ export function UploadDropzone({
 
       {items.length > 0 && (
         <>
+          <label className="flex items-start gap-2">
+            <input
+              data-testid="media-upload-usage"
+              type="checkbox"
+              checked={showOnWall}
+              disabled={running}
+              onChange={(event) => setShowOnWall(event.target.checked)}
+              className="mt-1"
+            />
+            <span className="text-sm">
+              顯示在相片牆
+              <span className="block text-xs text-muted-foreground">
+                取消勾選後不會出現在公開相片牆，之後仍可以在媒體庫裡改。
+              </span>
+            </span>
+          </label>
+
           {raceEditions.length > 0 && (
             <label className="block space-y-1">
               <span className="text-sm">這些照片是哪一場比賽的（選填）</span>

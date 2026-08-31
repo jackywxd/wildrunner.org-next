@@ -110,6 +110,102 @@ round trip, not the write.
   so no update is issued, and there is no root cause here — only the
   observation and the rule.
 
+### `payload.db.create` does not fall through to the SQL column default
+
+A new column added with a "safe" DDL default does not protect the scripts that
+write rows without going through Payload's document layer. Drizzle binds a
+column's *declared* default as an INSERT parameter (`withDefault.js` and
+`buildDrizzleTable.js` in `@payloadcms/drizzle`, then `buildInsertQuery` in
+`drizzle-orm`); it never emits the SQL `DEFAULT` keyword. So the value the
+scaffold's `defaultValue` names is what lands, whatever the `ALTER TABLE` said.
+
+That matters because `migrate-velite-to-payload.ts` and
+`sync-prod-content-to-staging.ts` both use `payload.db.create` deliberately —
+`payload.create` would treat a `url` in the data as a "paste URL to upload"
+request. When `media.usage` arrived, leaving it to the field default would have
+marked all 126 imported article images as public photo-wall content in the
+local corpus and on staging. `ensureMediaFromUrl` now takes it as a **required
+parameter with no default**, so each call site has to say which it is.
+
+**A new field with a meaningful default: grep for `db.create` before trusting
+it.**
+
+### Merging two version array tables silently eats rows
+
+Payload's array tables come in pairs: `galleries_items` (live, `id text`) and
+`_galleries_v_version_items` (versions, `id integer PRIMARY KEY`). Merging two
+arrays into one means copying two source tables into each — and the two halves
+behave differently, in a way that looks identical until you count.
+
+The live tables carry Payload's own `text` ids, which are unique across both,
+so `INSERT OR IGNORE ... SELECT id, ...` is re-entrant and correct. The version
+tables number **from 1 in each table**, so their ids collide across almost
+every row; the same statement drops each collision without an error. Measured
+on the seeded corpus: **200 source rows in, 120 out, 80 lost, exit status 0.**
+
+So a version copy must not carry the id at all — let SQLite assign — and get
+its re-entrancy elsewhere. `20260830_090500_merge_gallery_items` uses a
+`WHERE NOT EXISTS (... x._parent_id = src._parent_id)` correlated inside the
+one INSERT, which is the "database decides inside the statement" shape rather
+than the check-then-act one.
+
+Two more things from that migration worth keeping:
+
+- **`_order` has to be recomputed, not copied.** Each source table numbers from
+  1 within a parent, so a plain union puts two rows at `_order = 1` in the same
+  album — and Payload sorts the array by that column, so the album's order
+  becomes whatever the planner returns.
+- **Expand, never expand-and-contract in one file.** The old tables are left in
+  place and dropped by a later migration in a later PR. With no transactional
+  DDL and several build workers in the same file, worker A's `DROP` can land
+  while worker B is still copying; and it makes `down()` a plain drop of what
+  was created, with nothing to reconstruct.
+
+### `db:reset:local` seeds nothing about one run in four
+
+`pnpm migrate:velite` — the step that imports the 15 posts, 20 galleries and
+546 media rows — sometimes writes nothing, prints nothing and exits **0**. The
+reset then reported success over an empty database, and the browser suite ran
+against a corpus nobody built: the condition this file already describes as
+un-diagnosable, where results degrade in ways that look like anything except
+the data.
+
+Measured 2026-08-30 over four consecutive resets — **one failed, three
+passed** — after PR #93 had recorded an earlier occurrence as "only happened
+once, did not reproduce".
+
+**The failing child dies inside wrangler's own startup.** Its entire output is
+the `Proxy environment variables detected` warning, and then nothing: it never
+reaches the `Using secrets defined in .env` line that every healthy run prints
+next, so `main()` never runs. No output, no rows, status 0, under five
+seconds. That is the signature of a top-level `await` that never settles with
+nothing left on the event loop — `payload.config.ts` acquires its Cloudflare
+context in a top-level await, so module evaluation is what hangs, and Node
+exits cleanly once the loop empties.
+
+What it is **not**, each ruled out by measurement rather than argument:
+
+- **Not the stdio or env the reset passes.** Invoked through an `execSync`
+  that copies both exactly, it works.
+- **Not workerd contention over the just-deleted D1 directory.** `pgrep
+  workerd` was sampled every second across the failing run and the count was
+  **0** while the step ran — it never got as far as creating a miniflare.
+- **Not a later step deleting the rows.** `seed-e2e-account.ts` contains no
+  delete, and the failing run's log shows the import never printed anything.
+- **Not an error.** Every failure path in that script prints and exits 1.
+
+The cause is still open. The silence is not: the reset reads its row counts
+back with `wrangler d1 execute --local` and exits non-zero naming the empty
+table and the step that should have filled it. Re-running the step alone has
+worked every time.
+
+**Two things that guard learned the same day, both by being run rather than
+read.** `execSync` goes through `/bin/sh`, so backticks quoting a table name
+are command substitution and the name vanishes from the SQL; and D1's SQLite
+is built with a low `SQLITE_MAX_COMPOUND_SELECT`, so six `UNION ALL` terms
+come back as "too many terms in compound SELECT". Count rows with one
+`SELECT (SELECT COUNT(*) FROM t) AS t, …` instead.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
@@ -256,7 +352,13 @@ email, invite state, live session array — behind every card on the page.
 Every `select` in `src/lib/content.ts` omits `owner` for this reason; the
 header there explains it at length. `posts.raceRecord` adds a second hop
 (`→ race_records.owner → users`), so the detail query stops at depth 1.
-`P2-T12` and `R-T6` assert the rendered HTML stays clean.
+`P2-T12`, `R-T6` and `V-LIBRARY-T1` assert the rendered HTML stays clean.
+
+The gallery media query was the one query in that file with no `select` at
+all — safe only because it also ran at depth 0. It carries one now
+(`GALLERY_MEDIA_SELECT`), which matters more since `media.usage` replaced
+`raceEdition exists`: the same query went from returning nothing on a seeded
+database to returning every public upload.
 
 ---
 
@@ -335,7 +437,9 @@ pnpm test:unit               # the unit lane: no server, no database, ~6s
 pnpm test:e2e                # browser + contract lane, against localhost
 pnpm db:reset:local          # rebuild local D1 into the corpus CI seeds — run
                              # this BEFORE test:e2e, every time, not when it
-                             # looks broken
+                             # looks broken. Prints the counts it read back;
+                             # about one run in four seeds nothing and now
+                             # fails loudly — see Landmines
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging

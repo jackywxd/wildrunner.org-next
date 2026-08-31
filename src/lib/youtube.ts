@@ -81,3 +81,47 @@ export function youTubeVideoId(rawUrl: string): string | null {
 export function youTubeEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}`;
 }
+
+/**
+ * The single YouTube URL a paragraph consists of, or null.
+ *
+ * A second concern from the URL parsing above — this one walks a Lexical
+ * paragraph rather than a string — but it lives here so that the article
+ * renderer and the member's preview share one rule. They did not: the public
+ * page embedded, the preview showed the raw text, and a member had no way to
+ * tell what publishing would do until they published.
+ *
+ * This is the case that actually matters for members: the editor has no
+ * autolink, so a pasted URL stays plain text rather than becoming a `link`
+ * node. Deliberately strict — the paragraph must be nothing but the URL, so
+ * a sentence that happens to mention a video keeps its sentence.
+ *
+ * Typed structurally rather than against Lexical's own node types: both
+ * renderers already carry their own local `JsonNode` shape, and importing an
+ * editor type into either of them would drag the editor bundle with it.
+ */
+export function soleYouTubeUrl(node: {
+  children?: { type?: string; text?: unknown }[];
+}): string | null {
+  const children = node.children ?? [];
+  // A non-text child contributes a space, so one sitting *between* text nodes
+  // leaves whitespace the test below catches, rather than having its content
+  // silently dropped.
+  const text = children
+    .map((child) => (child.type === "text" ? String(child.text ?? "") : " "))
+    .join("")
+    .trim();
+  // Any whitespace left after trimming means the paragraph holds something
+  // besides the URL - a sentence mentioning a video keeps its sentence.
+  //
+  // Measured, because the wording here used to claim more than the code does:
+  // `trim()` also eats the space a LEADING or TRAILING non-text child
+  // contributed, so a paragraph of "<url><br>" still embeds. That is the
+  // common shape — paste a URL, press shift+enter — and embedding it is the
+  // wanted answer, so the behaviour stands and this note records its edge:
+  // a trailing `link` node's text would go with it. Since the member's
+  // preview now renders this rule too, that case is at least visible before
+  // publishing rather than a surprise afterwards.
+  if (!text || /\s/.test(text)) return null;
+  return youTubeVideoId(text);
+}

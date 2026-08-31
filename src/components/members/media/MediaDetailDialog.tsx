@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import type { Media } from "@/payload-types";
 import { transcodeNote } from "@/lib/media/transcode-copy";
+import { mediaToSiteVideo } from "@/lib/media/site-video";
+import { nextUsage } from "@/lib/media/usage";
 import type { SiteRaceEditionOption, SiteVideo } from "@/lib/content-types";
 
 export function MediaDetailDialog({
@@ -30,6 +32,12 @@ export function MediaDetailDialog({
   const [raceEditionId, setRaceEditionId] = useState(
     typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
   );
+  // Only `gallery` and `private` are this checkbox's to write; `attachment`
+  // is provenance the editor's upload path set. `nextUsage` is what keeps the
+  // difference — see src/lib/media/usage.ts for the alt-text edit that used to
+  // reclassify an article image on the way past.
+  const [showOnWall, setShowOnWall] = useState(item.usage === "gallery");
+  const wasAttachment = item.usage === "attachment";
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [status, setStatus] = useState<
     "idle" | "saving" | "deleting" | "retrying" | "error"
@@ -38,31 +46,16 @@ export function MediaDetailDialog({
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
   const src = mediaImageSrc(item);
-  // Built inline rather than importing content.ts's mapGalleryVideo: that
-  // file resolves the payload client at module scope, which has no place
-  // in a client bundle. mediaImageSrc is the one part of that mapping this
-  // component already needed anyway.
-  const video: SiteVideo | null =
-    isVideo && src
-      ? {
-          mediaId: item.id,
-          id: item.filename ?? String(item.id),
-          filename: item.filename ?? "video",
-          src,
-          slug: item.filename ?? String(item.id),
-          mimeType: item.mimeType ?? "video/mp4",
-          size: item.filesize ?? undefined,
-          extension: item.filename?.includes(".")
-            ? item.filename.split(".").pop()
-            : undefined,
-          streamId: item.streamId,
-          streamReady: Boolean(item.streamReady),
-        }
-      : null;
+  // The conversion used to be written out here, because content.ts resolves
+  // the payload client at module scope and cannot be imported into a client
+  // bundle. That is still true; @/lib/media/site-video is the same mapping
+  // with no server dependencies, so there is one definition again.
+  const video: SiteVideo | null = isVideo ? mediaToSiteVideo(item) : null;
 
   async function save() {
     setStatus("saving");
     setError("");
+    const usageToWrite = nextUsage(item.usage, showOnWall);
     const res = await fetch(`/api/media/${item.id}`, {
       method: "PATCH",
       credentials: "same-origin",
@@ -72,6 +65,11 @@ export function MediaDetailDialog({
         // Always sent, and `null` rather than omitted: picking "不連結比賽"
         // after a race was already set has to clear it, not leave it alone.
         raceEdition: raceEditionId ? Number(raceEditionId) : null,
+        // Spread rather than always sent, unlike `raceEdition` above: this
+        // control governs two of `usage`'s values and must not touch the
+        // others, so `nextUsage` returns undefined for the cases it does not
+        // own and the key is then absent from the body entirely.
+        ...(usageToWrite !== undefined ? { usage: usageToWrite } : {}),
       }),
     });
     if (!res.ok) {
@@ -176,6 +174,24 @@ export function MediaDetailDialog({
             onChange={(e) => setAlt(e.target.value)}
             className="block w-full border border-input bg-background px-3 py-2 text-sm"
           />
+        </label>
+
+        <label className="flex items-start gap-2">
+          <input
+            data-testid="media-detail-usage"
+            type="checkbox"
+            checked={showOnWall}
+            onChange={(e) => setShowOnWall(e.target.checked)}
+            className="mt-1"
+          />
+          <span className="text-sm">
+            顯示在相片牆
+            <span className="block text-xs text-muted-foreground">
+              {wasAttachment
+                ? "這個檔案目前是文章裡的圖片，不會出現在相片牆。勾選後會一併公開在相片牆。"
+                : "取消勾選後不會出現在公開相片牆，檔案仍然保留。"}
+            </span>
+          </span>
         </label>
 
         {raceEditions.length > 0 && (

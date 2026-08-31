@@ -11,13 +11,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getPayload } from "payload";
+import type { Media } from "../src/payload-types";
 import { getPlatformProxy } from "wrangler";
 import {
   convertMarkdownToLexical,
   type LexicalRichTextAdapter,
 } from "@payloadcms/richtext-lexical";
 
-import { videoIdFromFilename } from "../src/lib/videoId";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -149,6 +149,18 @@ async function ensureMediaFromUrl(
   payload: Awaited<ReturnType<typeof getPayload>>,
   url: string,
   alt: string,
+  /**
+   * Required, and deliberately without a default: every call site has to say
+   * whether what it is importing is photo-wall content or an article
+   * attachment.
+   *
+   * It cannot be left to the field default. `payload.db.create` below skips
+   * Payload's document layer, and Drizzle binds a column's declared default
+   * as an INSERT parameter rather than emitting SQL `DEFAULT` — so an omitted
+   * `usage` arrives as `'gallery'`, and every inline article image in the
+   * corpus would land on the public photo wall.
+   */
+  usage: NonNullable<Media["usage"]>,
   meta?: {
     width?: number;
     height?: number;
@@ -180,6 +192,7 @@ async function ensureMediaFromUrl(
     collection: "media",
     data: {
       alt,
+      usage,
       url,
       filename: name,
       mimeType: meta?.mimeType ?? mimeTypeFromUrl(url),
@@ -338,6 +351,7 @@ async function postContentFromRaw(
       payload,
       info.src,
       alt || info.alt || post.title,
+      "attachment",
       {
         width: info.width,
         height: info.height,
@@ -494,7 +508,7 @@ async function main() {
       ? authorMap.get(authorEntry.slug)
       : undefined;
     const imageId = post.image?.src
-      ? await ensureMediaFromUrl(payload, post.image.src, post.title, {
+      ? await ensureMediaFromUrl(payload, post.image.src, post.title, "attachment", {
           width: post.image.width,
           height: post.image.height,
         })
@@ -542,17 +556,32 @@ async function main() {
     // the video list is missing. Fill just that in rather than skipping the
     // whole document (which is why the plain re-run added nothing).
     if (existingGallery) {
-      const alreadyHasVideos = (existingGallery.videos ?? []).length > 0
+      // `items` holds photos and videos together now, so "has videos" is a
+      // question about the files rather than about a second array. Depth 0
+      // above leaves `media` a bare id, so ask the media rows.
+      const itemMediaIds = (existingGallery.items ?? [])
+        .map((row) => (typeof row.media === "number" ? row.media : row.media?.id))
+        .filter((id): id is number => typeof id === "number");
+      const existingVideos = itemMediaIds.length
+        ? await payload.count({
+            collection: "media",
+            where: {
+              and: [{ id: { in: itemMediaIds } }, { mimeType: { like: "video" } }],
+            },
+          })
+        : { totalDocs: 0 };
+      const alreadyHasVideos = existingVideos.totalDocs > 0
       if (skipVideos || dryRun || alreadyHasVideos || !(gallery.videos ?? []).length) {
         continue;
       }
 
-      const refreshedVideos: { media: number; videoId?: string }[] = [];
+      const refreshedVideos: { media: number }[] = [];
       for (const video of gallery.videos ?? []) {
         const mediaId = await ensureMediaFromUrl(
           payload,
           video.src,
           `${gallery.name} ${video.filename}`,
+          "gallery",
           { mimeType: video.mimeType ?? "video/mp4" },
         );
         if (!mediaId || mediaId <= 0) continue;
@@ -574,19 +603,27 @@ async function main() {
           console.warn(`Stream ingest pending: ${video.src}`, error);
         }
 
-        refreshedVideos.push({
-          media: mediaId,
-          videoId: video.id ?? videoIdFromFilename(video.filename),
-        });
+        refreshedVideos.push({ media: mediaId });
         videoCount += 1;
         if (!streamId) streamPending.push(video.src);
       }
 
       if (refreshedVideos.length) {
+        // Appended, not assigned: `items` already holds this album's photos,
+        // and the old code could overwrite a separate `videos` array without
+        // touching them.
         await payload.update({
           collection: "galleries",
           id: existingGallery.id,
-          data: { videos: refreshedVideos },
+          data: {
+            items: [
+              ...(existingGallery.items ?? []).map((row) => ({
+                media: typeof row.media === "number" ? row.media : row.media.id,
+                featured: Boolean(row.featured),
+              })),
+              ...refreshedVideos,
+            ],
+          },
           overrideAccess: true,
         });
         galleriesRefreshed += 1;
@@ -600,6 +637,7 @@ async function main() {
         payload,
         image.src,
         `${gallery.name} ${image.filename}`,
+        "gallery",
         {
           width: image.width,
           height: image.height,
@@ -612,12 +650,13 @@ async function main() {
       }
     }
 
-    const videos: { media: number; videoId?: string }[] = [];
+    const videos: { media: number }[] = [];
     for (const video of skipVideos ? [] : (gallery.videos ?? [])) {
       const mediaId = await ensureMediaFromUrl(
         payload,
         video.src,
         `${gallery.name} ${video.filename}`,
+        "gallery",
         { mimeType: video.mimeType ?? "video/mp4" },
       );
       if (mediaId && mediaId > 0) {
@@ -639,10 +678,7 @@ async function main() {
         } catch (error) {
           console.warn(`Stream ingest pending: ${video.src}`, error);
         }
-        videos.push({
-          media: mediaId,
-          videoId: video.id ?? videoIdFromFilename(video.filename),
-        });
+        videos.push({ media: mediaId });
         videoCount += 1;
         if (!streamId) streamPending.push(video.src);
       }
@@ -650,7 +686,7 @@ async function main() {
 
     const coverSrc = gallery.images?.[0]?.src;
     const coverId = coverSrc
-      ? await ensureMediaFromUrl(payload, coverSrc, gallery.name)
+      ? await ensureMediaFromUrl(payload, coverSrc, gallery.name, "gallery")
       : null;
 
     if (dryRun) {
@@ -666,8 +702,9 @@ async function main() {
         featured: gallery.images.some((image) => image.featured),
         eventDate: gallery.created,
         cover: coverId && coverId > 0 ? coverId : undefined,
-        images,
-        videos,
+        // Photos first, then videos — the order the two arrays used to imply,
+        // now written explicitly because there is one list.
+        items: [...images, ...videos],
         _status: "published",
       },
     });

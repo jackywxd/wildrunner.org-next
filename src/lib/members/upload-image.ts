@@ -15,6 +15,13 @@ import {
  * Consumes src/lib/direct-upload.ts unchanged — same threshold, same
  * reserve → session → parts → complete → document sequence the media
  * library and the admin panel use.
+ *
+ * Everything created here is `usage: 'attachment'`, and this is the seam that
+ * makes that true for the whole editor: both an image pasted into an article
+ * body (ImageInsertPlugin) and a post's cover (CoverImageField) come through
+ * this one function. `media.usage` defaults to 'gallery', so an attachment
+ * path that forgets to say so puts a screenshot on the public photo wall —
+ * which is why it is sent on both branches below rather than once.
  */
 
 type Usage = { quotaBytes: number; usedBytes: number };
@@ -84,7 +91,7 @@ export async function uploadImageFile(file: File): Promise<number> {
     // processImage below — see its own comment.
     const body = new FormData();
     body.set("file", named);
-    body.set("_payload", JSON.stringify({ alt }));
+    body.set("_payload", JSON.stringify({ alt, usage: "attachment" }));
     const response = await fetch("/api/media", {
       method: "POST",
       credentials: "same-origin",
@@ -105,6 +112,7 @@ export async function uploadImageFile(file: File): Promise<number> {
     filename: session.filename,
     mimeType: session.mimeType,
     alt,
+    usage: "attachment",
   });
 
   // Nothing read this file server-side, so it has no dimensions. Measuring

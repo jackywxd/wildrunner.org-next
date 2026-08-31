@@ -72,13 +72,38 @@ export const Galleries: CollectionConfig = {
       relationTo: 'media',
       label: { en: 'Cover Image', 'zh-TW': '封面圖片' },
     },
+    /**
+     * Everything in this album, photos and videos in one ordered list.
+     *
+     * Two arrays split by mime type is how this started, and it was the same
+     * relation twice: identical columns apart from `featured` on one and
+     * `videoId` on the other, four tables once the version shadows are counted,
+     * and a union in every consumer. Splitting on the file's type also meant
+     * `featured` was unavailable to videos for no reason anyone recorded.
+     *
+     * `featured` belongs here rather than on `media` because it is a fact about
+     * *this membership* — the same photo can be featured in one album and not
+     * another. `videoId` did not, and that is why it is gone: it identified the
+     * media, not the membership, so the same video in two albums had two public
+     * ids and a video in no album had none. It now lives on `media` as
+     * `legacyVideoId`, read only to keep already-published links working.
+     *
+     * Readers split back out by `media.mimeType` (`mapPayloadGallery`), which
+     * is what the /gallery client was already doing to build its photo and
+     * video views.
+     *
+     * `(gallery, media)` is deliberately NOT unique. The same file can be added
+     * twice, as it could before. Enforcing it in the database would turn a
+     * validation message into a 500: drafts are on, and a draft save skips
+     * required/uniqueness validation.
+     */
     {
-      name: 'images',
+      name: 'items',
       type: 'array',
-      label: { en: 'Images', 'zh-TW': '圖片' },
+      label: { en: 'Items', 'zh-TW': '內容' },
       labels: {
-        singular: { en: 'Image', 'zh-TW': '圖片' },
-        plural: { en: 'Images', 'zh-TW': '圖片' },
+        singular: { en: 'Item', 'zh-TW': '項目' },
+        plural: { en: 'Items', 'zh-TW': '項目' },
       },
       fields: [
         {
@@ -93,32 +118,6 @@ export const Galleries: CollectionConfig = {
           type: 'checkbox',
           label: { en: 'Featured', 'zh-TW': '精選' },
           defaultValue: false,
-        },
-      ],
-    },
-    {
-      name: 'videos',
-      type: 'array',
-      label: { en: 'Videos', 'zh-TW': '影片' },
-      labels: {
-        singular: { en: 'Video', 'zh-TW': '影片' },
-        plural: { en: 'Videos', 'zh-TW': '影片' },
-      },
-      fields: [
-        {
-          name: 'media',
-          type: 'upload',
-          relationTo: 'media',
-          label: { en: 'Media', 'zh-TW': '媒體' },
-          required: true,
-        },
-        {
-          name: 'videoId',
-          type: 'text',
-          label: { en: 'Video ID', 'zh-TW': '影片代碼' },
-          admin: {
-            description: 'Stable public id for /gallery/[slug]/v/[videoId]',
-          },
         },
       ],
     },

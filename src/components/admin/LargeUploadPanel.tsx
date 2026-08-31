@@ -123,10 +123,15 @@ export function LargeUploadPanel() {
     }
   }, [file])
 
+  // Both branches state `usage: 'gallery'` rather than leaning on the field
+  // default, which is 'attachment'. This panel is the admin's own media
+  // library, so what it uploads is photo-wall content — and saying so is what
+  // lets the default stay fail-closed for the one caller that says nothing,
+  // /admin's rich-text upload drawer. See media.usage's header.
   async function uploadSmall(chosen: File) {
     const body = new FormData()
     body.set('file', chosen)
-    body.set('_payload', JSON.stringify({ alt: alt || defaultAltFor(chosen.name) }))
+    body.set('_payload', JSON.stringify({ alt: alt || defaultAltFor(chosen.name), usage: 'gallery' }))
 
     const response = await fetch('/api/media', {
       method: 'POST',
@@ -165,6 +170,7 @@ export function LargeUploadPanel() {
       filename: session.filename,
       mimeType: session.mimeType,
       alt: alt || defaultAltFor(chosen.name),
+      usage: 'gallery',
     })
   }
 

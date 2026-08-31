@@ -123,6 +123,19 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     expect(typeof set.image).toBe("number");
     mediaId = set.image as number;
 
+    // The cover the member just picked must NOT land on the public photo
+    // wall. `media.usage` defaults to 'gallery' so that a library upload is
+    // published without anyone having to opt in, which puts the burden on the
+    // article paths to say otherwise — and both of them (this field and the
+    // editor's paste plugin) go through the one seam,
+    // src/lib/members/upload-image.ts. Asserted here rather than in a journey
+    // of its own because this test already drives that seam, and the failure
+    // is observable at exactly this point: a cover classified as photo-wall
+    // content shows up on /gallery with nothing on screen to say so.
+    const coverMedia = await page.request.get(`/api/media/${mediaId}?depth=0`);
+    expect(coverMedia.ok()).toBe(true);
+    expect(((await coverMedia.json()) as { usage?: string }).usage).toBe("attachment");
+
     // Act 3 — the guard this journey exists for. Reload the editor and save
     // again without going near the cover field. `PostEditor` sends `image`
     // on every save now, so a wrongly-wired `initial.cover` would clear it

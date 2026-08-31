@@ -33,9 +33,18 @@ type ContentNode = {
  * The first *image* in the body, in document order.
  *
  * Videos are skipped rather than treated as pictures: `media` holds 23 of
- * them (22 `video/mp4` + 1 `video/quicktime`, measured 2026-08-18), a member
- * can embed one anywhere in a post, and handing a crawler an mp4 as
- * `og:image` produces a broken card rather than a video preview.
+ * them (22 `video/mp4` + 1 `video/quicktime`, measured 2026-08-18), one can
+ * sit anywhere in a post body, and handing a crawler an mp4 as `og:image`
+ * produces a broken card rather than a video preview.
+ *
+ * "A member can embed one" is what this used to say, and it was not true —
+ * the member editor filters every insertion route to `image/*`
+ * (ImageInsertPlugin.tsx). A video reaches `posts.content` from /admin, whose
+ * editor has Payload's unrestricted `UploadFeature`, or from a hand-built
+ * write to /api/posts, which `guardPostContent` allows because it checks only
+ * that the node's `value` is an id. The skip below is right either way, and
+ * more load-bearing since the public `upload` converter started rendering
+ * those videos as players instead of broken images.
  *
  * Reads `node.value` as a populated document, which it is: the detail query
  * (`getPostBySlugParam`) runs at `depth: 1`, and Payload's `UploadFeature`

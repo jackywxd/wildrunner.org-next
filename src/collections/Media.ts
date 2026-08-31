@@ -1,6 +1,29 @@
+/**
+ * An uploaded file, and the three places it can belong.
+ *
+ * A media row can carry a race (`raceEdition`), can be listed by any number of
+ * galleries (`galleries.items[].media`), and can be referenced from an article
+ * — and all three are optional and independent. What it could *not* express
+ * until `usage` existed is the one thing the site actually asks of it: is this
+ * public photo-wall content, or an attachment to something else?
+ *
+ * `/gallery` used to answer that with `raceEdition exists`, which made a
+ * category tag double as a publish switch. A member who uploaded a photo
+ * without picking a race got a file that appeared nowhere and that the weekly
+ * sweep would eventually delete. `usage` is that missing column.
+ *
+ * Two deliberate denormalizations live in this table, both older than `usage`
+ * and both left alone. `originalUrl -> originalFilesize` and
+ * `streamId -> streamReady` are each a fact about a *second* file identified
+ * by the column above it, so strictly `id -> originalUrl -> originalFilesize`
+ * is transitive and breaks 3NF. Splitting either into its own table buys
+ * correctness on paper and costs a join on every read, for two nullable
+ * columns describing an optional 1:0..1 attachment. Recorded here so the next
+ * person knows it was weighed rather than missed.
+ */
 import type { CollectionConfig } from 'payload'
 
-import { isAuthenticated, isOwner, ownedOnlyPublicRead } from '../access'
+import { isAuthenticated, isOwner, mediaPublicRead } from '../access'
 import { ownerField } from '../fields/owner'
 import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
@@ -23,9 +46,10 @@ export const Media: CollectionConfig = {
     },
   },
   access: {
-    // Anonymous keeps full read (the public site resolves images through
-    // it); a signed-in member sees only their own library.
-    read: ownedOnlyPublicRead,
+    // Anonymous reads everything except a file its owner marked `private`;
+    // a signed-in member sees only their own library. See mediaPublicRead —
+    // and note it bounds the API, not the R2 object.
+    read: mediaPublicRead,
     create: isAuthenticated,
     update: isOwner,
     delete: isOwner,
@@ -65,8 +89,80 @@ export const Media: CollectionConfig = {
       // moderation path docs/plan's S5 asks for; nothing further to build.
       admin: {
         description: {
-          en: 'Optional. Which race this photo is from — shown on that race’s public photo wall.',
-          'zh-TW': '選填。這張照片是哪一場比賽的——會顯示在該場比賽的公開相片牆。',
+          en: 'Optional. Which race this photo is from. Shown on that race’s photo wall when Usage is “Photo wall”.',
+          'zh-TW': '選填。這張照片是哪一場比賽的。當「用途」是「相片牆」時，會顯示在該場比賽的相片牆。',
+        },
+      },
+    },
+    /**
+     * Whether this file is public photo-wall content, and if not, why not.
+     *
+     * Three values rather than a boolean, because the system genuinely
+     * distinguishes three cases and a boolean collapses the last two into one
+     * false that nothing can tell apart:
+     *
+     *   gallery     a member's upload, shown publicly
+     *   private     a member's upload they chose to keep to themselves
+     *   attachment  pasted into an article, a post cover, an avatar, an import
+     *
+     * The difference between `private` and `attachment` is what the weekly
+     * sweep is allowed to delete (src/lib/media/unused.ts). A member's own
+     * library file is never collectable whether or not it is public; an
+     * attachment nothing references any more is. A boolean would force that
+     * question back onto `references.ts`'s walk of the Lexical JSON, every
+     * week, forever.
+     *
+     * Which is the other half of why this column exists: "is this an article
+     * attachment" is today only knowable by parsing `posts.content`, a blob no
+     * query can reach into. Storing it here is the one normalization available
+     * against a rich-text body — the fact stops being derived and becomes a
+     * column.
+     *
+     * Governs every public photo listing: /gallery's photo and video views and
+     * its album shelf, the virtual race album /gallery/race-<key>-<year>, and
+     * the race wall on /races/[key]/[year]. The race wall is included on
+     * purpose — src/lib/race-gallery.ts requires the virtual album and the race
+     * page to run the same query, and two different visibility rules would be
+     * exactly the split-brain that file exists to avoid.
+     *
+     * THE DEFAULT IS `attachment`, WHICH IS FAIL-CLOSED AND IS NOT WHAT THE
+     * MEMBER SEES. Every path that deliberately puts a file in the library
+     * says `gallery` outright — `UploadDropzone` (with the member's own
+     * checkbox) and the admin panel's `LargeUploadPanel` — so a member's
+     * upload is public by default exactly as intended. What the default
+     * decides is only the case where nobody said anything, and there is a real
+     * one: /admin's rich-text editor uses Payload's unrestricted
+     * `UploadFeature`, whose drawer POSTs to /api/media with no `usage` at
+     * all. Measured with `gallery` as the default — an image inserted into an
+     * article from /admin landed on the public photo wall, which is precisely
+     * what this column exists to prevent, on the path this site's own author
+     * uses most. "Unspecified" therefore means "keep it off the wall", the
+     * same direction `20260830_090000_add_media_usage` chose for rows it could
+     * not classify.
+     *
+     * Curated albums (`galleries.items[]`) are NOT governed by it: an editor
+     * putting a file in an album is its own explicit act.
+     *
+     * NOT INDEXED, matching `unusedSince` and the qualifiers migration:
+     * SQLite refuses `DROP COLUMN` on an indexed column, which would force
+     * `down()` to rebuild the table.
+     *
+     * Unrelated to `src/lib/quota.ts`'s storage usage, which counts bytes.
+     */
+    {
+      name: 'usage',
+      type: 'select',
+      label: { en: 'Usage', 'zh-TW': '用途' },
+      defaultValue: 'attachment',
+      options: [
+        { label: { en: 'Photo wall', 'zh-TW': '相片牆' }, value: 'gallery' },
+        { label: { en: 'Private', 'zh-TW': '不公開' }, value: 'private' },
+        { label: { en: 'Article attachment', 'zh-TW': '文章附件' }, value: 'attachment' },
+      ],
+      admin: {
+        description: {
+          en: 'Whether this file appears on the public photo walls. Uploads default to “Photo wall”; images placed in an article are “Article attachment”.',
+          'zh-TW': '這個檔案是否出現在公開相片牆。上傳預設為「相片牆」；放進文章裡的圖片是「文章附件」。',
         },
       },
     },
@@ -227,6 +323,41 @@ export const Media: CollectionConfig = {
       admin: {
         readOnly: true,
         description: 'Set by the weekly sweep. Cleared as soon as something references this file again.',
+        position: 'sidebar',
+      },
+    },
+    /**
+     * The share-page id this file had before the id became the media id.
+     *
+     * `/gallery/[slug]/v/[videoId]` used to resolve a video through
+     * `galleries_videos.video_id` — an identifier of the *media* stored on the
+     * membership row, so a video in two albums had two of them and a video in
+     * no album had none and could not be shared at all. The identity now lives
+     * where it belongs: the media id.
+     *
+     * This column exists only so the links already published keep working, and
+     * it is needed rather than assumed. Measured: all 22 videos in
+     * `.velite/galleries.json` carry an `id`, and none differs from
+     * `videoIdFromFilename(velite's filename)` — but the database's
+     * `media.filename` is `migrationFilename(url)`, a flattened value
+     * (`galleries--2023--foo--clip.mp4`) rather than velite's `clip.mp4`, so
+     * deriving the id from `filename` does NOT reproduce the stored value.
+     * Dropping the column would 404 every one of those permalinks.
+     *
+     * Never written by new code. Read only as the second step of
+     * `getGalleryVideo`'s lookup, after the media id.
+     *
+     * Not uniquely indexed, for the same `DROP COLUMN` reason as `usage`; the
+     * migration that fills it asserts uniqueness instead, and refuses to run if
+     * one media ever carried two different ids.
+     */
+    {
+      name: 'legacyVideoId',
+      type: 'text',
+      label: { en: 'Legacy share id', 'zh-TW': '舊分享代碼' },
+      admin: {
+        readOnly: true,
+        description: 'The pre-2026 /gallery/[slug]/v/[id] identifier. Kept so old links resolve; never set on new uploads.',
         position: 'sidebar',
       },
     },

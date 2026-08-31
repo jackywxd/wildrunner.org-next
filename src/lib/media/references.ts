@@ -5,11 +5,10 @@
  * is wrong in a way that destroys published content, and the wrongness is
  * invisible until someone opens an old article.
  *
- * Nine columns carry a real foreign key to `media` — `posts.image_id`,
- * `galleries.cover_id`, `galleries_images.media_id`,
- * `galleries_videos.media_id`, `authors.avatar_id`, and the four `_v`
- * version tables that shadow them. A query written against those columns
- * looks complete and passes review.
+ * Seven columns carry a real foreign key to `media` — `posts.image_id`,
+ * `galleries.cover_id`, `galleries_items.media_id`, `authors.avatar_id`, and
+ * the three `_v` version tables that shadow them. A query written against
+ * those columns looks complete and passes review.
  *
  * It is not complete. **An image pasted into an article is not a foreign
  * key.** It is a node inside the `posts.content` JSON blob:
@@ -166,13 +165,13 @@ export type ReferenceScan = {
 /**
  * Every media id that anything in the database points at.
  *
- * Note what is NOT here: `media.raceEdition`. That is a media row pointing
- * *out* at a race, not something pointing in, but it still means the photo
- * is published — it is what puts it on that race's public wall (see
- * src/lib/race-gallery.ts, where a race album is a query over this tag
- * rather than a stored gallery). The policy in ./unused.ts treats it as a
- * use for that reason; keeping it out of here leaves this function with one
- * job, "what refers to media", and no exceptions to it.
+ * Note what is NOT here: `media.usage`. That is the media row's own statement
+ * about itself, not something pointing in at it — but it is what decides
+ * whether a file is on the public wall, since the wall is a query rather than
+ * a set of rows (see src/lib/race-gallery.ts for the same shape applied to
+ * race albums). The policy in ./unused.ts reads it for that reason; keeping it
+ * out of here leaves this function with one job, "what refers to media", and
+ * no exceptions to it.
  */
 export async function collectReferencedMediaIds(
   payload: Payload,
@@ -261,14 +260,92 @@ export async function collectReferencedMediaIds(
   return { counts, ids }
 }
 
-/** `cover`, plus the media on every image and video row. Shared by live rows and versions. */
+/**
+ * Every media id an article or a byline holds — the reference set minus
+ * galleries.
+ *
+ * Exists for one job: `scripts/backfill-media-usage.ts` has to decide, once,
+ * which of the media rows that predate `media.usage` are article attachments.
+ * That question cannot be asked in SQL, because an image pasted into an
+ * article is a node inside `posts.content` rather than a foreign key — the
+ * whole reason this module exists. So it is asked here, with the same walk,
+ * and the answer is then stored in a column and never re-derived.
+ *
+ * Galleries are deliberately absent. `collectReferencedMediaIds` includes them
+ * because an album row genuinely refers to a file; this function is asking
+ * something narrower — "is this file an attachment to a document?" — and a
+ * photo in a curated album is not. Folding galleries in here would classify
+ * every album photo as an attachment and hide the entire gallery from
+ * /gallery, which is the exact bug being fixed.
+ */
+export async function collectAttachmentMediaIds(
+  payload: Payload,
+  req?: PayloadRequest,
+): Promise<ReferenceScan> {
+  const ids = new Set<MediaId>()
+  const counts: Record<string, number> = {}
+
+  counts.posts = await eachDocument(
+    (page) =>
+      payload.find({
+        collection: 'posts',
+        depth: 0,
+        limit: PAGE_SIZE,
+        page,
+        overrideAccess: true,
+        req,
+      }),
+    (doc) => {
+      addRelation(doc.image, ids)
+      collectUploadIds(doc.content, ids)
+    },
+    'posts',
+  )
+
+  // Versions are scanned for the same reason the sweep scans them: an image
+  // removed from an article this morning is still in every version saved
+  // before the removal, and it was an attachment in all of them.
+  counts.postVersions = await eachDocument(
+    (page) =>
+      payload.findVersions({
+        collection: 'posts',
+        depth: 0,
+        limit: PAGE_SIZE,
+        page,
+        overrideAccess: true,
+        req,
+      }),
+    (doc) => {
+      const version = (doc.version ?? {}) as Record<string, unknown>
+      addRelation(version.image, ids)
+      collectUploadIds(version.content, ids)
+    },
+    'post versions',
+  )
+
+  counts.authors = await eachDocument(
+    (page) =>
+      payload.find({
+        collection: 'authors',
+        depth: 0,
+        limit: PAGE_SIZE,
+        page,
+        overrideAccess: true,
+        req,
+      }),
+    (doc) => addRelation(doc.avatar, ids),
+    'authors',
+  )
+
+  return { counts, ids }
+}
+
+/** `cover`, plus the media on every item row. Shared by live rows and versions. */
 function collectGalleryFields(doc: Record<string, unknown>, into: Set<MediaId>): void {
   addRelation(doc.cover, into)
-  for (const key of ['images', 'videos'] as const) {
-    const rows = doc[key]
-    if (!Array.isArray(rows)) continue
-    for (const row of rows) {
-      if (row && typeof row === 'object') addRelation((row as { media?: unknown }).media, into)
-    }
+  const rows = doc.items
+  if (!Array.isArray(rows)) return
+  for (const row of rows) {
+    if (row && typeof row === 'object') addRelation((row as { media?: unknown }).media, into)
   }
 }
