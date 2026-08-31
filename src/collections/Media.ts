@@ -28,6 +28,7 @@ import { ownerField } from '../fields/owner'
 import { setMediaUrl } from './hooks/media-url'
 import { enforceStorageQuota } from './hooks/quota'
 import { setOwner } from './hooks/owner'
+import { revalidateMedia } from './hooks/revalidate'
 import { streamIngestOnUpload } from './hooks/stream-ingest'
 import { verifyDirectUpload } from './hooks/verify-direct-upload'
 
@@ -62,7 +63,10 @@ export const Media: CollectionConfig = {
     // Image processing (blurDataURL, dimensions, HEIC→WebP) is NOT here —
     // see src/endpoints/processMediaImage.ts for why an afterChange hook
     // doesn't work for it.
-    afterChange: [streamIngestOnUpload],
+    afterChange: [streamIngestOnUpload, revalidateMedia.afterChange],
+    // The first hook on this collection that fires on delete. Its own header
+    // says why the pair has to exist before /gallery is ever cached.
+    afterDelete: [revalidateMedia.afterDelete],
   },
   fields: [
     ownerField,
