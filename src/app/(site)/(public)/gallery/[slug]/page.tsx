@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import PhotoGallery from "@/app/(site)/(public)/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
 import { resolveGalleryOgImage } from "@/lib/galleryOg";
+import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { getGalleryBySlug, getSiteGlobals } from "@/lib/content";
 
 // No `generateStaticParams` here, deliberately. This route is force-dynamic,
@@ -74,7 +75,8 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
   const gallery = await getGalleryBySlug((await params).slug);
   if (!gallery) notFound();
 
-  const videoCount = gallery.videos?.length ?? 0;
+  const photoCount = photosOf(gallery.items).length;
+  const videoCount = videosOf(gallery.items).length;
 
   return (
     <div className="container relative max-w-7xl py-6 lg:py-10">
@@ -83,7 +85,7 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {gallery.name}
         </h1>
         <div className="text-left text-sm text-muted-foreground">
-          {gallery.images.length}张照片
+          {photoCount}张照片
           {videoCount > 0 ? ` · ${videoCount}个视频` : null}
         </div>
         <PhotoGallery gallery={gallery} />
