@@ -13,23 +13,39 @@
  *
  * Tagging is done over the API rather than through the media dialog: the
  * subject here is the album, not the tagging control, and the tag is setup.
- * Untagging in `afterEach` restores exactly the two rows this test touched,
- * by id — see docs/testing-strategy.md on cleaning up only what you made.
+ * The two media are uploaded by this test and deleted by id in `afterEach`
+ * — see docs/testing-strategy.md on cleaning up only what you made.
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { recordCreated } from "../helpers/created";
 
 const RACE_SLUG_RE = /^race-.+-\d{4}$/;
 
+/** 1x1 PNG, the same bytes the editor specs upload. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** The smallest bytes Payload sniffs as video/mp4 — see gallery-videos.spec.ts. */
+const MP4_HEADER = Buffer.concat([
+  Buffer.from("00000018", "hex"),
+  Buffer.from("ftypmp42"),
+  Buffer.from("00000000", "hex"),
+  Buffer.from("mp42isom"),
+  Buffer.alloc(1024),
+]);
+
 test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
-  /** Captured before the first tag, restored whatever the test does. */
-  const restore: { id: number; raceEdition: number | null }[] = [];
+  /** Uploaded by this test, deleted whatever the test does. */
+  const created: { collection: string; id: number }[] = [];
   let editionKey = "";
   let editionYear = 0;
 
   test.afterEach(async ({ request }) => {
-    const pending = restore.splice(0, restore.length);
+    const pending = created.splice(0, created.length);
     if (pending.length === 0) return;
 
     const login = await request.post("/api/users/login", {
@@ -38,11 +54,12 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
 
     for (const row of pending) {
-      const undone = await request.patch(`/api/media/${row.id}`, {
-        data: { raceEdition: row.raceEdition },
-      });
-      if (!undone.ok()) {
-        throw new Error(`teardown failed to restore media/${row.id}: ${undone.status()}`);
+      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
+      // 404 means the test's own steps got there first.
+      if (!deleted.ok() && deleted.status() !== 404) {
+        throw new Error(
+          `teardown failed to delete ${row.collection}/${row.id}: ${deleted.status()}`,
+        );
       }
     }
   });
@@ -83,27 +100,49 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     const before = await page.request.get(`/gallery/${slug}`);
     expect(before.status()).toBe(404);
 
-    // One photo and one video, so the album exercises both halves.
+    // One photo and one video, so the album exercises both halves — uploaded
+    // here rather than looked for in the library.
     //
-    // `usage=gallery` is part of the filter, not an incidental detail: the
-    // race album is built from the same set /gallery renders, so a fixture
-    // that happened to pick a private file or an article attachment would
-    // make the album appear or not appear for a reason this test does not
-    // control — Payload's default sort and the importer's insertion order.
-    const mine = await request.get(
-      "/api/media?depth=0&limit=200&where[raceEdition][exists]=false&where[usage][equals]=gallery",
-    );
-    expect(mine.ok()).toBe(true);
-    const docs = (await mine.json()).docs as {
-      id: number;
-      mimeType?: string;
-    }[];
-    const photo = docs.find((doc) => doc.mimeType?.startsWith("image/"));
-    const video = docs.find((doc) => doc.mimeType?.startsWith("video/"));
-    if (!photo || !video) throw new Error("need one untagged image and one untagged video");
+    // This used to search for media matching `raceEdition` absent AND
+    // `usage=gallery`. On a seeded local database that set is large, because
+    // the importer writes `usage` itself. On a database whose `usage` came
+    // from 20260830_090000_add_media_usage the set is **empty by
+    // construction**: that migration's entire rule is
+    // `race_edition_id IS NOT NULL -> gallery`, so "on the wall" and "not
+    // tagged to a race" cannot both hold until a backfill or a member's own
+    // upload says so. It passed locally for weeks and threw "need one
+    // untagged image and one untagged video" the first time the suite ran
+    // against staging with the migration applied.
+    //
+    // That is the failure AGENTS.md already describes — a spec leaning on
+    // ambient data passes where the data happens to suit it — so this makes
+    // what it needs. `usage: 'gallery'` stays explicit for the reason
+    // gallery-videos.spec.ts gives: a fixture that rides on a field default
+    // stops pinning anything the day the default moves.
+    const stamp = Date.now();
+    const docs: { id: number }[] = [];
+    for (const file of [
+      { name: `racealbum-${stamp}.png`, mimeType: "image/png", buffer: PNG },
+      { name: `racealbum-${stamp}.mp4`, mimeType: "video/mp4", buffer: MP4_HEADER },
+    ]) {
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file,
+          _payload: JSON.stringify({
+            alt: `V-RACEALBUM probe ${stamp}`,
+            usage: "gallery",
+          }),
+        },
+      });
+      expect(uploaded.ok(), `fixture upload failed: ${uploaded.status()}`).toBeTruthy();
+      const id = (await uploaded.json()).doc.id as number;
+      created.push({ collection: "media", id });
+      recordCreated({ collection: "media", id, note: "V-RACEALBUM probe" });
+      docs.push({ id });
+    }
+    const [photo, video] = docs;
 
     for (const doc of [photo, video]) {
-      restore.push({ id: doc.id, raceEdition: null });
       const tagged = await request.patch(`/api/media/${doc.id}`, {
         data: { raceEdition: edition.id },
       });
