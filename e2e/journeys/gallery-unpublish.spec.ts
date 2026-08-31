@@ -22,11 +22,44 @@
  * `usage` is changed through the REST API rather than the member UI on
  * purpose: the member dialog is already covered by V-LIBRARY-T2, and what is
  * being pinned here is the cache, not the checkbox.
+ *
+ * WHY THE MEDIA FILES ARE INTERCEPTED. The first version of this spec loaded
+ * /gallery for real and then immediately PATCHed the same server; CI answered
+ * the PATCH with `read ECONNRESET` while the server logged nothing at all — no
+ * exception, no SQLITE_BUSY, nothing. It passes locally for a reason that is
+ * pure accident: the seeded corpus stores absolute `images.wildrunner.org`
+ * URLs, so a local wall loads its ~420 photos from a host that is not the
+ * server under test. CI has no `R2_PUBLIC_URL`, so the same rows are
+ * `/api/media/file/<name>` — every one of them served by this dev server,
+ * through `checkFileAccess` and a D1 query each. This is the only spec that
+ * writes to the API immediately after paying that, and it is the only one that
+ * failed; M-PRIVATE-T1/T2 create and delete media in the same shard, firing
+ * the same revalidation hook, and both pass.
+ *
+ * Fulfilled rather than aborted: `route.abort()` makes the browser log
+ * `Failed to load resource: net::ERR_FAILED`, which is a console.error, which
+ * ../helpers/test.ts fails the test on. And it costs the assertions nothing —
+ * what is being claimed is which media the wall lists, not that 420 photos
+ * decode. The locator matches the `src` attribute, which interception does not
+ * touch, so a row served from the wrong URL still fails.
+ *
+ * Both media hosts are matched, and the second one is what makes this spec
+ * verifiable at all. The corpus stores `images.wildrunner.org` URLs, which no
+ * sandbox here can reach; without intercepting them a local run drowns in
+ * `ERR_TUNNEL_CONNECTION_FAILED` and the console guard reds the test whatever
+ * the assertions did — which is exactly why the ECONNRESET above could only be
+ * found in CI. One matcher, two environments, and the same claim in both.
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+
+/** 1×1 transparent GIF, answered in-process so no request reaches the server. */
+const PIXEL = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
 
 test.describe("V-UNPUBLISH a withdrawn photo leaves the wall", () => {
   /** Deleted by the id captured at upload, never by a name or a pattern. */
@@ -74,6 +107,10 @@ test.describe("V-UNPUBLISH a withdrawn photo leaves the wall", () => {
     const doc = (await created.json()).doc as { id: number; url: string };
     createdMediaId = doc.id;
     recordCreated({ collection: "media", id: doc.id, note: "V-UNPUBLISH probe" });
+
+    await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+      route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+    );
 
     // The photo wall renders by `src`, and the media's own url is the one
     // identifier that survives the mapping into SitePhoto.
