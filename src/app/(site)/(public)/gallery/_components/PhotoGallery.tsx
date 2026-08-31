@@ -12,7 +12,8 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 import React from "react";
 import PhotoAlbum from "react-photo-album";
-import type { SiteGallery } from "@/lib/content-types";
+import type { SiteGallery, SitePhoto } from "@/lib/content-types";
+import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 
@@ -23,7 +24,7 @@ interface Photo {
   blurDataURL: string;
 }
 
-function toPhotos(images: SiteGallery["images"]): Photo[] {
+function toPhotos(images: SitePhoto[]): Photo[] {
   return images.map((img) => ({
     src: img.src,
     width: img.width,
@@ -34,21 +35,27 @@ function toPhotos(images: SiteGallery["images"]): Photo[] {
 
 export const PhotoGallery: React.FC<{ gallery: SiteGallery }> = ({ gallery }) => {
   const [index, setIndex] = useState(-1);
+  // Both halves of the album, derived once. Splitting still happens here for
+  // now because this component lays photos and videos out separately; the one
+  // ordered `items` list is what makes rendering them as a single sequence
+  // possible, and that is a later change.
+  const images = useMemo(() => photosOf(gallery.items), [gallery.items]);
+  const videos = useMemo(() => videosOf(gallery.items), [gallery.items]);
   // Seed first paint immediately (avoid empty → useEffect delay hurting LCP)
   const [photos, setPhotos] = useState<Photo[]>(() =>
-    toPhotos(gallery.images.slice(0, 10))
+    toPhotos(images.slice(0, 10))
   );
 
   useEffect(() => {
-    setPhotos(toPhotos(gallery.images.slice(0, 10)));
+    setPhotos(toPhotos(images.slice(0, 10)));
 
-    if (gallery.images.length <= 10) return;
+    if (images.length <= 10) return;
 
     const timer = setTimeout(() => {
-      setPhotos(toPhotos(gallery.images));
+      setPhotos(toPhotos(images));
     }, 100);
     return () => clearTimeout(timer);
-  }, [gallery]);
+  }, [images]);
 
   const slides: Slide[] = useMemo(() => {
     const imageSlides: Slide[] = photos.map((photo) => ({
@@ -61,12 +68,9 @@ export const PhotoGallery: React.FC<{ gallery: SiteGallery }> = ({ gallery }) =>
 
   return (
     <>
-      {(gallery.videos?.length ?? 0) > 0 && (
+      {videos.length > 0 && (
         <div className="mb-6">
-          <GalleryVideos
-            videos={gallery.videos ?? []}
-            gallerySlug={gallery.slug}
-          />
+          <GalleryVideos videos={videos} gallerySlug={gallery.slug} />
         </div>
       )}
 

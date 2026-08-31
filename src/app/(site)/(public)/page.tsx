@@ -11,6 +11,7 @@ import {
   getSiteGlobals,
   getUpcomingRaces,
 } from "@/lib/content";
+import { photosOf } from "@/lib/media/gallery-items";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
@@ -75,11 +76,11 @@ export default async function Home() {
   ].slice(0, HOME_RACE_COUNT);
 
   const imageCount = galleries.reduce((acc, gallery) => {
-    return acc + gallery.images.length;
+    return acc + photosOf(gallery.items).length;
   }, 0);
 
   let featuredImages = galleries.reduce((acc, gallery) => {
-    return acc.concat(gallery.images.filter((image) => image.featured));
+    return acc.concat(photosOf(gallery.items).filter((image) => image.featured));
   }, [] as SitePhoto[]);
 
   featuredImages =

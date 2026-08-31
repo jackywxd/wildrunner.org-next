@@ -32,7 +32,36 @@ export type SiteVideo = {
   lastModified?: string;
   streamId?: string | null;
   streamReady?: boolean;
+  /**
+   * The media doc's own createdAt, for the same reason `SitePhoto` carries one.
+   *
+   * Its absence is why /gallery's video strip could not be sorted at all: the
+   * strip is built as "album videos, then the rest of the library", so a
+   * member's newest upload landed behind every album video — 24th, on a
+   * horizontally scrolling strip nobody scrolls. The flat photo list next to
+   * it has been date-sorted the whole time.
+   */
+  createdAt: string;
 };
+
+/**
+ * One entry in an album, in the order its curator put it there.
+ *
+ * A discriminated union over the two shapes that already exist rather than a
+ * third shape of its own: what a photo is and what a video is has not changed,
+ * only whether an album is allowed to interleave them. `SitePhoto` and
+ * `SiteVideo` keep every other caller (the rich-text renderer, the member
+ * editor's preview, PhotoCard, the homepage) untouched.
+ *
+ * `kind` rather than reading `mimeType` at each call site: the split used to
+ * happen once in mapPayloadGallery and every consumer inherited two lists, so
+ * nothing downstream ever had to ask. Now that they share one list, they do —
+ * and a discriminant TypeScript can narrow on is cheaper to get right than a
+ * string prefix test repeated in six components.
+ */
+export type SiteMediaItem =
+  | ({ kind: "photo" } & SitePhoto)
+  | ({ kind: "video" } & SiteVideo);
 
 /** One race edition a member can tag an upload with — already run, so a photo of it can exist. */
 export type SiteRaceEditionOption = {
@@ -81,8 +110,23 @@ export type SiteGallery = {
   /** Legacy OG helper: filename stems marked featured on images */
   featured: string[];
   cover?: SiteImage | null;
-  images: SitePhoto[];
-  videos: SiteVideo[];
+  /**
+   * The album, as one ordered list.
+   *
+   * Was `images: SitePhoto[]` and `videos: SiteVideo[]`. Those two came from
+   * one table with one `_order` — `galleries_items`, which the migration in
+   * #95 created precisely because "ordering cannot be expressed across two
+   * tables" — and mapPayloadGallery split them apart again on the way out. A
+   * curator who arranged video, photo, photo, video got video, video, photo,
+   * photo: the relative order inside each half survived, the interleaving did
+   * not. The schema could express something no page could render.
+   *
+   * Derive the halves with `photosOf` / `videosOf` in src/lib/media/
+   * gallery-items.ts where a caller genuinely wants one of them (counts, the
+   * OG image, the featured shelf). Anything laying the album out should walk
+   * this list instead.
+   */
+  items: SiteMediaItem[];
 };
 
 export type SitePost = {

@@ -2,7 +2,6 @@ import type {
   Author,
   AuthorsSelect,
   GalleriesSelect,
-  Gallery,
   Media,
   MediaSelect,
   Post,
@@ -15,11 +14,19 @@ import type {
   Site as SiteGlobal,
 } from "@/payload-types";
 import { mediaDimensions, mediaImageSrc } from "@/lib/cf-image";
-import { mediaToSiteVideo } from "@/lib/media/site-video";
+import { photosOf, videosOf } from "@/lib/media/gallery-items";
+import {
+  isMedia,
+  mapGalleryVideo,
+  mapMediaToPhoto,
+  mapMediaToSiteImage,
+  mapPayloadGallery,
+} from "@/lib/media/gallery-mapping";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import type {
   SiteGallery,
   SiteGlobals,
+  SiteMediaItem,
   SitePhoto,
   SitePost,
   SiteRaceEditionDetail,
@@ -112,49 +119,6 @@ type PostCardDoc = Pick<
   | "_status"
 > & { content?: Post["content"]; raceRecord?: Post["raceRecord"] };
 
-/** Exactly what GALLERY_SELECT returns — notably no `owner`. */
-type GalleryDoc = Pick<
-  Gallery,
-  | "cover"
-  | "createdAt"
-  | "eventDate"
-  | "featured"
-  | "items"
-  | "location"
-  | "name"
-  | "slug"
->;
-
-/**
- * Exactly the media fields the public mappers below read, and no more.
- *
- * `owner` is the point: this file's header makes its absence from every
- * `select` the rule, because at depth >= 1 Payload populates the whole user
- * account behind every card on the page. Naming the fields positively rather
- * than relying on `depth: 0` is what lets the gallery query carry a `select`
- * at all.
- */
-type MediaCardDoc = Pick<
-  Media,
-  | "blurDataURL"
-  | "createdAt"
-  | "filename"
-  | "filesize"
-  | "height"
-  | "id"
-  | "legacyVideoId"
-  | "mimeType"
-  | "raceEdition"
-  | "streamId"
-  | "streamReady"
-  | "url"
-  | "width"
->;
-
-function isMedia(value: unknown): value is Media {
-  return Boolean(value && typeof value === "object" && "url" in value);
-}
-
 function isAuthor(value: unknown): value is Author {
   return Boolean(value && typeof value === "object" && "name" in value);
 }
@@ -168,101 +132,6 @@ function isAuthor(value: unknown): value is Author {
  */
 function isRaceRecord(value: unknown): value is RaceRecord {
   return Boolean(value && typeof value === "object" && "eventId" in value);
-}
-
-export function mapMediaToSiteImage(media: Media | null | undefined) {
-  const src = mediaImageSrc(media);
-  if (!src) return undefined;
-  const { width, height } = mediaDimensions(media);
-  return { src, width, height };
-}
-
-function mapMediaToPhoto(
-  media: MediaCardDoc,
-  featured: boolean,
-): SitePhoto | null {
-  const src = mediaImageSrc(media);
-  if (!src) return null;
-  const { width, height } = mediaDimensions(media);
-  const filename = media.filename ?? src.split("/").pop() ?? "image";
-  return {
-    filename,
-    src,
-    slug: src,
-    featured,
-    width,
-    height,
-    blurDataURL: media.blurDataURL ?? undefined,
-    blurWidth: 20,
-    blurHeight: Math.max(1, Math.round((height / width) * 20)),
-    createdAt: media.createdAt,
-  };
-}
-
-/**
- * Kept as a name in this file because the call sites read better for it, but
- * the mapping itself lives in @/lib/media/site-video — the article renderer
- * and the member's preview need the same conversion and cannot import this
- * file, which resolves the payload client at module scope.
- */
-function mapGalleryVideo(
-  media: MediaCardDoc,
-  videoId?: string | null,
-): SiteVideo | null {
-  return mediaToSiteVideo(media, videoId);
-}
-
-/**
- * One album's stored rows, split back into photos and videos.
- *
- * The split is by `media.mimeType` and happens here rather than in the schema:
- * `galleries.items[]` is one ordered list because album membership is one
- * relation, and which of the two lists a row lands in is a fact about the
- * file, not about the membership. See the field's header in
- * src/collections/Galleries.ts.
- *
- * A row whose media is missing is skipped, not counted. That can only happen
- * on a version row now — the live table cascades — but the guard stays because
- * `_galleries_v_version_items` deliberately keeps `ON DELETE set null` so a
- * deleted file does not rewrite history.
- */
-export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
-  const images: SitePhoto[] = [];
-  const featuredStems: string[] = [];
-  const videos: SiteVideo[] = [];
-
-  for (const row of doc.items ?? []) {
-    const media = row.media;
-    if (!isMedia(media)) continue;
-
-    if (media.mimeType?.startsWith("video/")) {
-      const video = mapGalleryVideo(media);
-      if (video) videos.push(video);
-      continue;
-    }
-
-    const photo = mapMediaToPhoto(media, Boolean(row.featured));
-    if (!photo) continue;
-    images.push(photo);
-    if (row.featured) {
-      featuredStems.push(photo.filename.replace(/\.[^.]+$/, ""));
-    }
-  }
-
-  const coverMedia = isMedia(doc.cover) ? doc.cover : undefined;
-
-  return {
-    slug: doc.slug,
-    name: doc.name,
-    location: doc.location,
-    created: doc.createdAt,
-    eventDate: doc.eventDate,
-    isFeatured: Boolean(doc.featured),
-    featured: featuredStems,
-    cover: coverMedia ? mapMediaToSiteImage(coverMedia) : null,
-    images,
-    videos,
-  };
 }
 
 export function mapPayloadPost(doc: PostCardDoc): SitePost {
@@ -1179,9 +1048,10 @@ export function getGalleryVideo(
   videoId: string,
 ): { gallery: SiteGallery; video: SiteVideo } | undefined {
   const decoded = decodeURIComponent(videoId);
+  const videos = videosOf(gallery.items);
   const video =
-    gallery.videos.find((v) => String(v.mediaId) === decoded) ??
-    gallery.videos.find((v) => v.id === decoded || v.id === videoId);
+    videos.find((v) => String(v.mediaId) === decoded) ??
+    videos.find((v) => v.id === decoded || v.id === videoId);
   if (!video) return undefined;
   return { gallery, video };
 }
@@ -1235,7 +1105,7 @@ export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
 
   const docs = await getGalleryMedia();
 
-  const grouped = new Map<number, { photos: SitePhoto[]; videos: SiteVideo[] }>();
+  const grouped = new Map<number, SiteMediaItem[]>();
   for (const doc of docs) {
     const editionId =
       typeof doc.raceEdition === "number"
@@ -1243,24 +1113,22 @@ export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
         : doc.raceEdition?.id;
     if (editionId === undefined || !byId.has(editionId)) continue;
 
-    const bucket = grouped.get(editionId) ?? { photos: [], videos: [] };
+    const bucket = grouped.get(editionId) ?? [];
     if (doc.mimeType?.startsWith("video/")) {
       // The media id as the share id — see buildRaceGallery.
       const video = mapGalleryVideo(doc, String(doc.id));
-      if (video) bucket.videos.push(video);
+      if (video) bucket.push({ kind: "video", ...video });
     } else if (doc.mimeType?.startsWith("image/")) {
       const photo = mapMediaToPhoto(doc, false);
-      if (photo) bucket.photos.push(photo);
+      if (photo) bucket.push({ kind: "photo", ...photo });
     }
     grouped.set(editionId, bucket);
   }
 
   const galleries: SiteGallery[] = [];
-  for (const [editionId, bucket] of grouped) {
-    if (bucket.photos.length === 0 && bucket.videos.length === 0) continue;
-    galleries.push(
-      buildRaceGallery(byId.get(editionId)!, bucket.photos, bucket.videos),
-    );
+  for (const [editionId, items] of grouped) {
+    if (items.length === 0) continue;
+    galleries.push(buildRaceGallery(byId.get(editionId)!, items));
   }
   return galleries;
 }
@@ -1297,13 +1165,18 @@ export async function getRaceGalleryBySlug(
  */
 function buildRaceGallery(
   edition: SiteRaceEditionOption,
-  photos: SitePhoto[],
-  videos: SiteVideo[],
+  items: SiteMediaItem[],
 ): SiteGallery {
+  // A race album has no curator, so `items` inherits the order of the query it
+  // was built from — getGalleryMedia sorts `-createdAt` — and photos and
+  // videos are already interleaved by date rather than segregated.
+  const photos = photosOf(items);
   // Newest media stands in for the album's date: an edition option carries
   // no start date, and this only has to place the album in a list sorted on
   // `created` (gallery-page-client.tsx).
-  const newest = photos[0]?.createdAt ?? new Date(0).toISOString();
+  const newest = items[0]?.createdAt ?? new Date(0).toISOString();
+  // The cover has to be an image, so it is the first photo rather than the
+  // first item — a race whose newest upload is a video still gets a picture.
   const first = photos[0];
 
   return {
@@ -1313,11 +1186,10 @@ function buildRaceGallery(
     created: newest,
     eventDate: null,
     featured: [],
-    images: photos,
     isFeatured: false,
+    items,
     name: `${edition.nameZh ?? edition.name} ${edition.year}`,
     slug: raceGallerySlug(edition.eventKey, edition.year),
-    videos,
   };
 }
 

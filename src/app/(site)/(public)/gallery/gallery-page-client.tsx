@@ -7,6 +7,7 @@ import { Icon } from "@iconify-icon/react";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 import { AllPhotosView } from "@/app/(site)/(public)/gallery/_components/AllPhotosView";
+import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { cn } from "@/lib/utils";
 
 type GalleryPageClientProps = {
@@ -79,7 +80,7 @@ export default function GalleryPageClient({
     // and can overlap on the same underlying upload — deduped by src, the one
     // stable identifier both sources carry.
     for (const photo of [
-      ...galleries.flatMap((gallery) => gallery.images),
+      ...galleries.flatMap((gallery) => photosOf(gallery.items)),
       ...libraryPhotos,
     ]) {
       if (seen.has(photo.src)) continue;
@@ -107,48 +108,56 @@ export default function GalleryPageClient({
    * can have both. `src` is the identifier both sources carry, and is already
    * what `GalleryVideos` keys on.
    *
-   * Not sorted, unlike `allPhotos`: `SiteVideo` carries no `createdAt`
-   * (see `mapGalleryVideo`), so there is nothing to sort by. Album order
-   * first, then the rest of the library, is the same order the albums view
-   * uses.
+   * Sorted newest-first, exactly like `allPhotos`. It could not be before,
+   * because `SiteVideo` carried no `createdAt`; the strip was therefore
+   * "album videos, then the rest of the library", which put a member's newest
+   * upload behind all 23 album videos — 24th in a horizontally scrolling strip,
+   * which reads as "my video is not on the gallery". The field exists now, so
+   * the two halves of this page finally agree on what order means.
    */
   const allVideos = useMemo(() => {
     const seen = new Set<string>();
     const combined: SiteVideo[] = [];
     for (const video of [
-      ...galleries.flatMap((gallery) => gallery.videos ?? []),
+      ...galleries.flatMap((gallery) => videosOf(gallery.items)),
       ...libraryVideos,
     ]) {
       if (seen.has(video.src)) continue;
       seen.add(video.src);
       combined.push(video);
     }
-    return combined;
+    return combined.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }, [galleries, libraryVideos]);
 
   const featuredImages = useMemo(() => {
     const featured = galleries.reduce((acc, gallery) => {
-      return acc.concat(gallery.images.filter((image) => image.featured));
+      return acc.concat(
+        photosOf(gallery.items).filter((image) => image.featured),
+      );
     }, [] as SitePhoto[]);
     return featured.length > 20 ? featured.slice(0, 20) : featured;
   }, [galleries]);
 
+  // Each section still shows its two halves separately, so they are derived
+  // here rather than in the JSX — one pass over `items` per album instead of
+  // four. The photo cap is the same 10 this shelf has always shown; the album
+  // page is where the rest lives.
   const gallerySections = useMemo(() => {
     return galleries
-      .filter(
-        (gallery) =>
-          gallery.images.length > 0 || (gallery.videos?.length ?? 0) > 0,
-      )
+      .map((gallery) => ({
+        gallery,
+        photos: photosOf(gallery.items),
+        videos: videosOf(gallery.items),
+      }))
+      .filter((section) => section.photos.length > 0 || section.videos.length > 0)
       .sort((a, b) => {
-        const dateA = new Date(a?.created ?? 0);
-        const dateB = new Date(b?.created ?? 0);
+        const dateA = new Date(a.gallery.created ?? 0);
+        const dateB = new Date(b.gallery.created ?? 0);
         return dateB.getTime() - dateA.getTime();
       })
-      .map((gallery) => {
-        return gallery.images.length > 10
-          ? { ...gallery, images: gallery.images.slice(0, 10) }
-          : gallery;
-      });
+      .map((section) => ({ ...section, photos: section.photos.slice(0, 10) }));
   }, [galleries]);
 
   return (
@@ -202,7 +211,7 @@ export default function GalleryPageClient({
               />
             </section>
 
-            {gallerySections.map((gallery) => (
+            {gallerySections.map(({ gallery, photos, videos }) => (
               <section
                 key={gallery.slug}
                 className="border-t-2 border-border pt-8"
@@ -215,7 +224,7 @@ export default function GalleryPageClient({
                     {gallery.name}
                   </h1>
                   <div className="flex items-center gap-3">
-                    {(gallery.videos?.length ?? 0) > 0 && (
+                    {videos.length > 0 && (
                       <Icon
                         className="opacity-70"
                         icon="heroicons:play-circle"
@@ -230,19 +239,19 @@ export default function GalleryPageClient({
                   </div>
                 </Link>
 
-                {(gallery.videos?.length ?? 0) > 0 && (
+                {videos.length > 0 && (
                   <div className="mt-4">
                     <GalleryVideos
-                      videos={gallery.videos}
+                      videos={videos}
                       gallerySlug={gallery.slug}
                       compact
                     />
                   </div>
                 )}
 
-                {gallery.images.length > 0 && (
+                {photos.length > 0 && (
                   <div className="mt-4">
-                    <SwiperLightbox images={gallery.images} maxHeight={160} />
+                    <SwiperLightbox images={photos} maxHeight={160} />
                   </div>
                 )}
               </section>

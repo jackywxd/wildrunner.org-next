@@ -30,6 +30,7 @@ import { videoIdFromFilename } from '@/lib/videoId'
 /** Everything the mapping reads. A full `Media` satisfies it structurally. */
 export type VideoMediaDoc = Pick<
   Media,
+  | 'createdAt'
   | 'filename'
   | 'filesize'
   | 'id'
@@ -61,6 +62,7 @@ export function mediaToSiteVideo(
   return {
     mediaId: media.id,
     id,
+    createdAt: media.createdAt,
     filename,
     src,
     slug: filename,

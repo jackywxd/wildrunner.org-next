@@ -1,0 +1,154 @@
+/**
+ * One gallery document, as the public pages consume it — and nothing else.
+ *
+ * Extracted from src/lib/content.ts for the reason src/lib/media/site-video.ts
+ * already gives: that file imports `@payload-config`, whose module evaluation
+ * is a top-level await acquiring the Cloudflare context, so importing it boots
+ * a miniflare. No unit spec can touch it, which is why the mapping that
+ * decides an album's order had no test while it was in there.
+ *
+ * Everything here is pure and imports only types from Payload, so the unit
+ * lane can exercise it directly (e2e/unit/gallery-mapping.spec.ts).
+ */
+import type { Gallery, Media } from '@/payload-types'
+
+import { mediaDimensions, mediaImageSrc } from '@/lib/cf-image'
+import type { SiteGallery, SiteMediaItem, SitePhoto, SiteVideo } from '@/lib/content-types'
+import { mediaToSiteVideo } from '@/lib/media/site-video'
+
+/**
+ * Exactly the media fields the public mappers below read, and no more.
+ *
+ * `owner` is the point: this file's header makes its absence from every
+ * `select` the rule, because at depth >= 1 Payload populates the whole user
+ * account behind every card on the page. Naming the fields positively rather
+ * than relying on `depth: 0` is what lets the gallery query carry a `select`
+ * at all.
+ */
+export type MediaCardDoc = Pick<
+  Media,
+  | "blurDataURL"
+  | "createdAt"
+  | "filename"
+  | "filesize"
+  | "height"
+  | "id"
+  | "legacyVideoId"
+  | "mimeType"
+  | "raceEdition"
+  | "streamId"
+  | "streamReady"
+  | "url"
+  | "width"
+>;
+
+/** Exactly what GALLERY_SELECT returns — notably no `owner`. */
+export type GalleryDoc = Pick<
+  Gallery,
+  | "cover"
+  | "createdAt"
+  | "eventDate"
+  | "featured"
+  | "items"
+  | "location"
+  | "name"
+  | "slug"
+>;
+
+export function isMedia(value: unknown): value is Media {
+  return Boolean(value && typeof value === "object" && "url" in value);
+}
+
+export function mapMediaToSiteImage(media: Media | null | undefined) {
+  const src = mediaImageSrc(media);
+  if (!src) return undefined;
+  const { width, height } = mediaDimensions(media);
+  return { src, width, height };
+}
+
+export function mapMediaToPhoto(
+  media: MediaCardDoc,
+  featured: boolean,
+): SitePhoto | null {
+  const src = mediaImageSrc(media);
+  if (!src) return null;
+  const { width, height } = mediaDimensions(media);
+  const filename = media.filename ?? src.split("/").pop() ?? "image";
+  return {
+    filename,
+    src,
+    slug: src,
+    featured,
+    width,
+    height,
+    blurDataURL: media.blurDataURL ?? undefined,
+    blurWidth: 20,
+    blurHeight: Math.max(1, Math.round((height / width) * 20)),
+    createdAt: media.createdAt,
+  };
+}
+
+/**
+ * Kept as a name in this file because the call sites read better for it, but
+ * the mapping itself lives in @/lib/media/site-video — the article renderer
+ * and the member's preview need the same conversion and cannot import this
+ * file, which resolves the payload client at module scope.
+ */
+export function mapGalleryVideo(
+  media: MediaCardDoc,
+  videoId?: string | null,
+): SiteVideo | null {
+  return mediaToSiteVideo(media, videoId);
+}
+
+/**
+ * One album's stored rows, kept in the order they are stored in.
+ *
+ * This used to split them by `media.mimeType` into `images` and `videos`,
+ * which quietly undid what `galleries.items[]` exists for: one relation, one
+ * `_order`, so a curator can arrange photos and videos together. The split
+ * preserved each half's internal order and discarded the interleaving between
+ * them. `kind` records the same mimeType test once, here, so no consumer has
+ * to repeat it — see `SiteMediaItem` in src/lib/content-types.ts.
+ *
+ * A row whose media is missing is skipped, not counted. That can only happen
+ * on a version row now — the live table cascades — but the guard stays because
+ * `_galleries_v_version_items` deliberately keeps `ON DELETE set null` so a
+ * deleted file does not rewrite history.
+ */
+export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
+  const items: SiteMediaItem[] = [];
+  const featuredStems: string[] = [];
+
+  for (const row of doc.items ?? []) {
+    const media = row.media;
+    if (!isMedia(media)) continue;
+
+    if (media.mimeType?.startsWith("video/")) {
+      const video = mapGalleryVideo(media);
+      if (video) items.push({ kind: "video", ...video });
+      continue;
+    }
+
+    const photo = mapMediaToPhoto(media, Boolean(row.featured));
+    if (!photo) continue;
+    items.push({ kind: "photo", ...photo });
+    if (row.featured) {
+      featuredStems.push(photo.filename.replace(/\.[^.]+$/, ""));
+    }
+  }
+
+  const coverMedia = isMedia(doc.cover) ? doc.cover : undefined;
+
+  return {
+    slug: doc.slug,
+    name: doc.name,
+    location: doc.location,
+    created: doc.createdAt,
+    eventDate: doc.eventDate,
+    isFeatured: Boolean(doc.featured),
+    featured: featuredStems,
+    cover: coverMedia ? mapMediaToSiteImage(coverMedia) : null,
+    items,
+  };
+}
