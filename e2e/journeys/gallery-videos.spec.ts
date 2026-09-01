@@ -12,7 +12,7 @@ import { recordCreated } from "../helpers/created";
  * in an album and carries no race tag appeared nowhere on the page, while
  * the album's own page showed it correctly. On production that was 23 of
  * the 25 videos in albums. The suite stayed green throughout, because
- * nothing asserted about the default view's video strip — the same shape of
+ * nothing asserted about the default view's videos at all — the same shape of
  * blind spot AGENTS.md records for the calendar toggle.
  *
  * So the assertion is deliberately made *before any interaction*. Clicking
@@ -120,10 +120,22 @@ test.describe("V-GALLERYVIDEO a gallery video is visible on /gallery", () => {
     await expect(page.getByTestId("gallery-view-toggle")).toBeVisible({
       timeout: budget(15_000),
     });
-    await expect(page.getByTestId("gallery-all-photos-videos")).toBeVisible({
-      timeout: budget(15_000),
-    });
-    await expect(page.getByTestId("direct-video").first()).toBeVisible({
+    // The video is a tile in the one grid now, not a rail above it. The old
+    // assertion looked for `gallery-all-photos-videos`, the strip's wrapper,
+    // and for a `direct-video` player rendered unclicked — both are gone with
+    // the strip. The claim this spec makes is unchanged, so the assertion
+    // follows the claim rather than the markup: the video is on the wall
+    // without anything being clicked.
+    const tile = page.getByTestId("gallery-video-tile").first();
+    await expect(tile).toBeVisible({ timeout: budget(15_000) });
+
+    // ...and clicking it opens a player. The strip could only ever show a
+    // black box — a `<video preload="none">` with no poster — so "visible"
+    // there proved less than it looked. Nothing here decodes the fixture
+    // either (see MP4_HEADER); what is new is that the element a viewer would
+    // press play on has to exist.
+    await tile.click();
+    await expect(page.locator("video").first()).toBeVisible({
       timeout: budget(15_000),
     });
   });

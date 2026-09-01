@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import type { SiteGallery, SitePhoto } from "@/lib/content-types";
-import { albumCard, buildGalleryIndex, unionBySrc } from "@/lib/media/gallery-index";
+import { albumCard, buildGalleryIndex } from "@/lib/media/gallery-index";
 
 /**
  * U-GALLERYINDEX — what /gallery is sent, and the one rule in it.
@@ -51,7 +51,7 @@ test.describe("U-GALLERYINDEX the wall is a union, not the library", () => {
       [],
     );
 
-    expect(index.photos.map((p) => p.src)).toEqual(["curated.jpg"]);
+    expect(index.items.map((item) => item.src)).toEqual(["curated.jpg"]);
   });
 
   test("U-GALLERYINDEX-2: a file reached by both routes appears once", () => {
@@ -62,18 +62,34 @@ test.describe("U-GALLERYINDEX the wall is a union, not the library", () => {
       [],
     );
 
-    expect(index.photos).toHaveLength(1);
+    expect(index.items).toHaveLength(1);
   });
 
-  test("U-GALLERYINDEX-3: the union is newest-first, across both routes", () => {
-    // The wall's whole premise. Ordering by source rather than by date is what
-    // put a member's newest upload 24th behind every album video.
+  test("U-GALLERYINDEX-3: a newer video outranks an older photo in the one list", () => {
+    // The regression this whole grid exists for. While the wall was two lists
+    // a video could only be ordered relative to other videos, so a member's
+    // newest upload sat 24th behind every album video. One list means one
+    // order, and the order is time — across both kinds.
     const older = photo("older.jpg", { createdAt: "2026-01-01T00:00:00.000Z" });
-    const newer = photo("newer.jpg", { createdAt: "2026-08-01T00:00:00.000Z" });
+    const index = buildGalleryIndex(
+      [],
+      [older],
+      [
+        {
+          mediaId: 9,
+          id: "v9",
+          filename: "newer.mp4",
+          src: "newer.mp4",
+          mimeType: "video/mp4",
+          slug: "newer.mp4",
+          createdAt: "2026-08-01T00:00:00.000Z",
+        },
+      ],
+    );
 
-    expect(unionBySrc([older], [newer]).map((p) => p.src)).toEqual([
-      "newer.jpg",
-      "older.jpg",
+    expect(index.items.map((item) => [item.kind, item.src])).toEqual([
+      ["video", "newer.mp4"],
+      ["photo", "older.jpg"],
     ]);
   });
 
