@@ -11,7 +11,7 @@ type GalleryVideosProps = {
   // Optional: when this strip is rendered inside one album, its share links
   // stay inside that album (/gallery/[slug]/v/[videoId]) so the page a reader
   // lands on can offer a way back to it. Without a slug the link falls back to
-  // /gallery/v/[mediaId], which resolves the video on its own.
+  // /gallery/m/[mediaId], which resolves the video on its own.
   gallerySlug?: string;
   /** Compact strip for gallery index; full width on detail */
   compact?: boolean;
@@ -34,12 +34,14 @@ export function GalleryVideos({
     >
       {videos.map((video, index) => {
         // Falls back to the media id when there is no album around this
-        // video. That is the whole reason /gallery/v/[mediaId] exists: the
+        // video. That is the whole reason /gallery/m/[mediaId] exists: the
         // album-scoped route needs a slug, and a member's own upload is in no
-        // album, so this used to render no share button at all.
+        // album, so this used to render no share button at all. Points at
+        // /gallery/m/ directly rather than the old /gallery/v/ — that path is
+        // now just a compatibility redirect for links already shared under it.
         const shareHref = gallerySlug
           ? `/gallery/${gallerySlug}/v/${video.id}`
-          : `/gallery/v/${video.mediaId}`;
+          : `/gallery/m/${video.mediaId}`;
         const label = mediaDisplayName(video);
 
         return (
