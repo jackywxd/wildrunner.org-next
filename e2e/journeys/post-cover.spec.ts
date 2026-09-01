@@ -21,6 +21,7 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { getWithRetry } from "../helpers/request";
 
 /**
  * The same fixture race-photos.spec.ts uploads, and for a reason worth
@@ -117,7 +118,10 @@ test.describe("M-COVER a member manages their post's cover image", () => {
       timeout: budget(20_000),
     });
 
-    const afterSet = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
+    const afterSet = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
     expect(afterSet.ok()).toBe(true);
     const set = (await afterSet.json()) as { image?: number | null };
     expect(typeof set.image).toBe("number");
@@ -132,7 +136,7 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     // of its own because this test already drives that seam, and the failure
     // is observable at exactly this point: a cover classified as photo-wall
     // content shows up on /gallery with nothing on screen to say so.
-    const coverMedia = await page.request.get(`/api/media/${mediaId}?depth=0`);
+    const coverMedia = await getWithRetry(page.request, `/api/media/${mediaId}?depth=0`);
     expect(coverMedia.ok()).toBe(true);
     expect(((await coverMedia.json()) as { usage?: string }).usage).toBe("attachment");
 
@@ -148,7 +152,10 @@ test.describe("M-COVER a member manages their post's cover image", () => {
       timeout: budget(20_000),
     });
 
-    const afterUntouched = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
+    const afterUntouched = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
     const untouched = (await afterUntouched.json()) as {
       description?: string;
       image?: number | null;
@@ -168,7 +175,10 @@ test.describe("M-COVER a member manages their post's cover image", () => {
       timeout: budget(20_000),
     });
 
-    const afterRemove = await page.request.get(`/api/posts/${postId}?depth=0&draft=true`);
+    const afterRemove = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
     const removed = (await afterRemove.json()) as { image?: number | null };
     expect(removed.image ?? null).toBeNull();
   });
