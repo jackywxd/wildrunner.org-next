@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { TEST_ADMIN } from "./auth";
+import { withTransportRetry } from "./request";
 
 /**
  * Leave the post editor before API teardown.
@@ -22,19 +23,26 @@ export async function deleteCreatedRows(
 ): Promise<void> {
   if (pending.length === 0) return;
 
-  await request.post("/api/users/login", {
-    data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-  });
+  await withTransportRetry("/api/users/login", () =>
+    request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    }),
+  );
 
   for (const row of pending) {
+    const path = `/api/${row.collection}/${row.id}`;
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
-      if (deleted.ok() || deleted.status() === 404) break;
-      if (attempt === 3) {
-        const body = (await deleted.text()).slice(0, 200);
-        throw new Error(
-          `teardown failed to delete ${row.collection}/${row.id}: ${deleted.status()} ${body}`,
-        );
+      try {
+        const deleted = await withTransportRetry(path, () => request.delete(path));
+        if (deleted.ok() || deleted.status() === 404) break;
+        if (attempt === 3) {
+          const body = (await deleted.text()).slice(0, 200);
+          throw new Error(
+            `teardown failed to delete ${row.collection}/${row.id}: ${deleted.status()} ${body}`,
+          );
+        }
+      } catch (error) {
+        if (attempt === 3) throw error;
       }
       await new Promise((resolve) => setTimeout(resolve, 2_000));
     }
