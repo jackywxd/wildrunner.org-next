@@ -161,6 +161,13 @@ test.describe("M-PREVIEW a member previews before publishing", () => {
     // The picture survives the re-render rather than flickering out of a
     // document that gets rebuilt on every keystroke.
     await expect(preview.locator("img")).toHaveCount(1);
+
+    // The typing above marks the document dirty and starts the autosave
+    // timer. Same staging-only 500 as M-SUMMARY-T2 and M-AIIMPROVE-T2:
+    // teardown deletes the post while the PATCH is still in flight.
+    await expect(page.getByTestId("post-message")).toContainText("已自動儲存", {
+      timeout: budget(30_000),
+    });
   });
 
   test("M-PREVIEW-T2: the markdown shortcuts are discoverable", async ({
