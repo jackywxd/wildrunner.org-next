@@ -196,5 +196,14 @@ test.describe("M-SUMMARY the AI writes the 摘要", () => {
     await expect(page.getByTestId("ai-summary-suggestion")).toHaveCount(0);
     // And it is an edit, so the work is not silently unsaved.
     await expect(page.getByTestId("post-dirty")).toBeVisible();
+
+    // Then wait for the autosave that edit started. Same mechanism as
+    // M-AIIMPROVE-T2, same staging-only 500: teardown deletes the post
+    // while the three-second idle timer is still armed, the PATCH lands
+    // on a row that is gone, and Payload answers `Something went wrong.`
+    // T1 dismisses, so the document stays clean and nothing is written.
+    await expect(page.getByTestId("post-message")).toContainText("已自動儲存", {
+      timeout: budget(30_000),
+    });
   });
 });
