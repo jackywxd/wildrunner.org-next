@@ -13,8 +13,12 @@
  * `queued` and hands it to the transcoder, with leases, attempt counting and
  * retries around it. This script therefore does the one thing the queue
  * cannot do for itself — decide which rows belong in it — and stops. The
- * sweep runs on a schedule; `pnpm transcode:sweep:<env>` triggers it by hand
- * if the backfill should not wait.
+ * sweep is the `Transcode sweep` workflow, and STAGING IS NOT ON ITS TIMER:
+ * the schedule only ever sweeps production, so a staging backfill sits at
+ * `queued` until somebody dispatches that workflow with environment=staging.
+ * (There is no `pnpm transcode:sweep` script. An earlier version of this
+ * header named one; it never existed, and the 23 rows a staging backfill
+ * queued had nothing at all that would have picked them up.)
  *
  * The container takes the frame BEFORE it decides whether to encode (see
  * transcode.sh), so a video that is already h264/1080p costs one probe and
@@ -36,7 +40,9 @@
  *        --command "SELECT name FROM payload_migrations ORDER BY id DESC LIMIT 3;"
  *   3. pnpm media:posters:<env>                # report only
  *   4. pnpm media:posters:<env> -- --write
- *   5. Wait for the sweep (or trigger it), then re-query:
+ *   5. Dispatch `.github/workflows/transcode-sweep.yml` against this
+ *      environment — required on staging, optional on production where the
+ *      timer gets there eventually — then re-query:
  *      npx wrangler d1 execute <db> --remote --command \
  *        "SELECT COUNT(*) FROM media WHERE mime_type LIKE 'video/%' AND poster_url IS NOT NULL;"
  *

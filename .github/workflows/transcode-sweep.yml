@@ -19,13 +19,46 @@ name: Transcode sweep
 # job is a single authenticated POST against a query over one indexed column
 # — cheap enough that the frequency is about responsiveness, not cost.
 #
+# THE CRON IS A CEILING, NOT A CADENCE, and the run history says so rather
+# than the docs. Measured over this workflow's first 25 runs, consecutive
+# scheduled fires sat 2h43m, 3h17m, 3h56m, 5h35m and 5h05m apart — GitHub
+# drops scheduled runs under load and never reports the ones it skipped. So
+# "a member waits at most 15 minutes" is not a property this workflow has;
+# hours is the honest number, and anything that needs the queue drained *now*
+# dispatches it by hand below rather than waiting.
+#
 # Not a Cloudflare Cron Trigger, for the same reason race-schedule-maintenance
 # is not: that needs a `scheduled` handler exported from the Worker, and
 # OpenNext generates the entrypoint.
+#
+# ---
+#
+# WHY STAGING IS DISPATCH-ONLY AND NEVER SCHEDULED. The URL below was a
+# hardcoded production hostname, so staging's queue had no dispatcher at all:
+# `pnpm media:posters:staging --write` marked 23 videos `queued` and every one
+# of them would have sat there forever, because the row that says "queued" and
+# the process that acts on it lived in different environments.
+#
+# It is fixed as an input rather than a second schedule on purpose. Almost
+# every queued row on staging is an e2e fixture that
+# `scripts/cleanup-staging-test-data.ts` deletes minutes later at the end of
+# deploy.yml's verify-staging job, so a timer there would spend container time
+# encoding videos that are already condemned — against a staging transcoder
+# capped at `max_instances: 2`. On demand is also the shape the one real use
+# needs: verifying a container change against a real deployment before
+# trusting it in production, which is what staging's transcoder is for.
 on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Which deployment to sweep"
+        type: choice
+        options:
+          - production
+          - staging
+        default: production
 
 jobs:
   sweep:
@@ -35,6 +68,11 @@ jobs:
       - name: Sweep stalled transcodes
         env:
           RACE_MAINTENANCE_SECRET: ${{ secrets.RACE_MAINTENANCE_SECRET }}
+          # `github.event.inputs` is null on a schedule, so the fallback is
+          # what makes the timer keep meaning production. Read here rather
+          # than interpolated into the script below so a crafted input cannot
+          # become shell.
+          TARGET: ${{ github.event.inputs.environment || 'production' }}
         run: |
           # Skipped rather than failed when unset, following
           # race-schedule-maintenance.yml. At four runs an hour a hard
@@ -57,13 +95,39 @@ jobs:
             exit 0
           fi
 
+          # A case rather than a lookup, so an unrecognised value stops here
+          # instead of building a URL out of an empty string and POSTing the
+          # maintenance secret at whatever answers it.
+          case "$TARGET" in
+            production)
+              base='https://wildrunner.org'
+              ;;
+            staging)
+              base='https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev'
+              ;;
+            *)
+              echo "::error::unknown environment '$TARGET'"
+              exit 1
+              ;;
+          esac
+          echo "sweeping $TARGET ($base)"
+
           body=$(mktemp)
           code=$(curl -sS -o "$body" -w '%{http_code}' \
-            -X POST 'https://wildrunner.org/api/members/media/transcode-sweep' \
+            -X POST "$base/api/members/media/transcode-sweep" \
             -H "X-Maintenance-Secret: $RACE_MAINTENANCE_SECRET")
 
           echo "HTTP $code"
           cat "$body"
+
+          # 401 means the deployment has a *different* secret, not a missing
+          # one — worth saying, because staging's env comes from the
+          # STAGING_DOTENV secret rather than from this repo's Actions
+          # secrets, so the two can drift apart with nothing to notice.
+          if [ "$code" = "401" ]; then
+            echo "::error::$TARGET rejected the maintenance secret. Its Worker env and this repo's RACE_MAINTENANCE_SECRET have drifted apart."
+            exit 1
+          fi
 
           if [ "$code" != "200" ]; then
             echo "::error::transcode sweep returned $code"
@@ -71,10 +135,14 @@ jobs:
           fi
 
           # Only summarise a run that did something. At 96 runs a day, a
-          # summary on every quiet one buries the interesting ones.
-          if grep -qE '"(reclaimed|failed|redispatched)":\[[^]]' "$body"; then
+          # summary on every quiet one buries the interesting ones. A
+          # hand-dispatched run always summarises: somebody is standing there
+          # waiting to read what it did, and "nothing" is the answer they most
+          # need to see.
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] \
+            || grep -qE '"(reclaimed|failed|redispatched)":\[[^]]' "$body"; then
             {
-              echo '## Transcode sweep'
+              echo "## Transcode sweep — $TARGET"
               echo '```json'
               cat "$body"
               echo '```'
