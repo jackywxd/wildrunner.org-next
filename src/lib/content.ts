@@ -1039,7 +1039,7 @@ export async function getGalleryBySlug(
  *
  * The media id is tried first because that is what identifies a video now: it
  * is the same in every album the file appears in, and it exists for a file in
- * no album at all (which is what /gallery/v/[mediaId] serves). `v.id` is the
+ * no album at all (which is what /gallery/m/[mediaId] serves). `v.id` is the
  * older per-album identifier, kept working here — it resolves to
  * `media.legacyVideoId` or a filename slug via `mapGalleryVideo`.
  */
@@ -1057,16 +1057,26 @@ export function getGalleryVideo(
 }
 
 /**
- * One public video by its media id, with no album around it.
+ * One public photo or video by its media id, with no album around it.
  *
- * What /gallery/v/[mediaId] serves. A member's upload that is in no album and
- * carries no race tag had no shareable address before this: the share page
- * resolved a video by looking it up inside a gallery, so `GalleryVideos`
- * rendered no share button for it at all.
+ * What /gallery/m/[mediaId] serves. A member's upload that is in no album and
+ * carries no race tag had no shareable address before this route existed for
+ * video: the share page resolved a video by looking it up inside a gallery,
+ * so `GalleryVideos` rendered no share button for it at all. Unified across
+ * both kinds rather than keeping a video-only lookup, because photos never
+ * had an id-based lookup at all.
+ *
+ * `usage: 'gallery'` is not optional here. This is a Local API query
+ * (`payload.find`), which defaults `overrideAccess: true` and bypasses
+ * `mediaPublicRead` (src/access/index.ts) entirely — every id-based lookup in
+ * this file has to carry the filter itself, or it is an oracle that resolves
+ * any of the 568 rows in the table by guessing an id, private and attachment
+ * files included. See Media.ts's header for the incident this filter exists
+ * to prevent.
  */
-export async function getGalleryVideoById(
+export async function getGalleryMediaById(
   mediaId: number,
-): Promise<SiteVideo | null> {
+): Promise<SiteMediaItem | null> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "media",
@@ -1074,15 +1084,17 @@ export async function getGalleryVideoById(
     limit: 1,
     select: GALLERY_MEDIA_SELECT,
     where: {
-      and: [
-        { id: { equals: mediaId } },
-        { mimeType: { like: "video" } },
-        { usage: { equals: "gallery" } },
-      ],
+      and: [{ id: { equals: mediaId } }, { usage: { equals: "gallery" } }],
     },
   });
   const doc = result.docs[0];
-  return doc ? mapGalleryVideo(doc, String(doc.id)) : null;
+  if (!doc) return null;
+  if (doc.mimeType?.startsWith("image/")) {
+    const photo = mapMediaToPhoto(doc, false);
+    return photo ? { kind: "photo", ...photo } : null;
+  }
+  const video = mapGalleryVideo(doc, String(doc.id));
+  return video ? { kind: "video", ...video } : null;
 }
 
 /**
