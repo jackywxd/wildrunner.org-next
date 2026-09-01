@@ -50,6 +50,23 @@ const IGNORED_PATTERNS: { pattern: RegExp; why: string }[] = [
     why: "an expected 4xx the spec asserts on directly; 5xx still fails",
   },
   {
+    // YouTube's own player bundle calls the Compute Pressure API. Our embed
+    // does not delegate `compute-pressure` (src/components/youtube-embed.tsx
+    // and YouTube.tsx list what it may use), so Chromium logs the refusal —
+    // from `youtube-nocookie.com/s/player/.../base.js`, not from us. The
+    // player works; nothing is broken.
+    //
+    // This clears the bar deliberately, not conveniently. The app cannot
+    // cause it: it never calls the API — grep for `compute-pressure`,
+    // `PressureObserver` and `ComputePressure` across src and there is
+    // nothing. And it cannot stop it except by adding `compute-pressure` to
+    // the iframe's `allow`, which hands a third party a CPU side channel to
+    // buy silence. Withholding the permission is the right call, so the
+    // console message is the price of it.
+    pattern: /Permissions policy violation: compute-pressure is not allowed/,
+    why: "YouTube's player probing a permission our embed deliberately withholds",
+  },
+  {
     // src/app/(site)/layout.tsx must inline two scripts in <head>: the
     // esbuild `keepNames` shim and the anti-FOUC theme seed. Both have to run
     // before first paint, which rules out next/script, and React 19 warns
@@ -68,6 +85,38 @@ export const test = base.extend<{ failOnBrowserErrors: void }>({
   failOnBrowserErrors: [
     async ({ page }, use, testInfo) => {
       const problems: string[] = [];
+
+      /**
+       * What the server actually said, for any 5xx the page provoked.
+       *
+       * #106 made a failed subresource name its URL, and the very next
+       * staging run proved how far that gets you and no further:
+       * `M-SUMMARY-T2` failed with `500 () [.../api/posts/18?draft=true]` —
+       * the route at last, and still not one word about why. Reading that
+       * needed the trace out of a CI artifact, which is exactly the loop
+       * #106 was meant to end.
+       *
+       * Collected, never asserted on. Adding a second way to fail would
+       * change which tests go red, and this change is about what a failure
+       * says, not about what counts as one. The bodies are matched onto the
+       * console messages below by URL.
+       */
+      const serverSaid = new Map<string, string>();
+      page.on("response", (response) => {
+        if (response.status() < 500) return;
+        void response
+          .text()
+          .then((body) =>
+            serverSaid.set(
+              response.url(),
+              `${response.status()} ${body.slice(0, 500).replace(/\s+/g, " ").trim()}`,
+            ),
+          )
+          .catch(() => {
+            // A body already consumed, or a connection that died before one
+            // arrived. The URL in the console message still stands.
+          });
+      });
 
       // An uncaught exception in page code. Never acceptable — if a test
       // provokes one deliberately it should assert on it and this guard is
@@ -101,16 +150,25 @@ export const test = base.extend<{ failOnBrowserErrors: void }>({
 
       if (problems.length === 0) return;
 
+      // Read after `use()`, so a body that arrived asynchronously is here by
+      // the time it is needed.
+      const detailed = problems.map((problem) => {
+        for (const [url, said] of serverSaid) {
+          if (problem.includes(url)) return `${problem}\n  server said: ${said}`;
+        }
+        return problem;
+      });
+
       // Attach before asserting: on failure the report should carry every
       // message, not just the first line of the assertion diff.
       await testInfo.attach("browser-errors.txt", {
-        body: problems.join("\n\n"),
+        body: detailed.join("\n\n"),
         contentType: "text/plain",
       });
 
       expect(
-        problems,
-        `The browser reported ${problems.length} error(s) during this test. ` +
+        detailed,
+        `The browser reported ${detailed.length} error(s) during this test. ` +
           `A page that logs errors is not a page that works, even when the ` +
           `assertions pass. See the browser-errors.txt attachment.`,
       ).toEqual([]);
