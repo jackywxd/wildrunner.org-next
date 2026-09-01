@@ -27,6 +27,7 @@ export function MediaDetailDialog({
   onUpdated: () => void;
 }) {
   const [alt, setAlt] = useState(item.alt);
+  const [title, setTitle] = useState(item.title ?? "");
   // `depth=0` on the list this dialog is opened from (MediaLibrary.tsx), so
   // `raceEdition` is always a bare id or null here — never a populated doc.
   const [raceEditionId, setRaceEditionId] = useState(
@@ -62,6 +63,11 @@ export function MediaDetailDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         alt,
+        // Empty string becomes null rather than being sent as "": the field
+        // is nullable with no default specifically so "nobody has named
+        // this" is representable, and mediaDisplayName only falls back to
+        // its filename derivation on null/undefined, not on "".
+        title: title.trim() || null,
         // Always sent, and `null` rather than omitted: picking "不連結比賽"
         // after a race was already set has to clear it, not leave it alone.
         raceEdition: raceEditionId ? Number(raceEditionId) : null,
@@ -164,6 +170,23 @@ export function MediaDetailDialog({
             {transcodeNote(item.transcodeStatus)}
           </p>
         )}
+
+        <label className="block space-y-1">
+          <span className="text-sm">顯示名稱</span>
+          <input
+            data-testid="media-detail-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={item.filename ?? ""}
+            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+          />
+          <span className="block text-xs text-muted-foreground">
+            {isVideo
+              ? "顯示在相片牆的影片卡片和分享頁標題。留空則使用檔名。"
+              : "顯示在分享頁標題。留空則使用檔名。"}
+          </span>
+        </label>
 
         <label className="block space-y-1">
           <span className="text-sm">替代文字</span>

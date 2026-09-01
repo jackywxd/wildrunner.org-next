@@ -37,6 +37,7 @@ export async function notifyTranscodeFailed(args: {
     filename?: string | null
     id: number | string
     owner?: unknown
+    title?: string | null
     url?: string | null
   }
   payload: Payload
@@ -71,7 +72,7 @@ export async function notifyTranscodeFailed(args: {
 
     if (!owner?.email) return false
 
-    const name = mediaDisplayName({ filename: media.filename, src: media.url })
+    const name = mediaDisplayName({ filename: media.filename, src: media.url, title: media.title })
     const link = `${(payload.config.serverURL ?? '').replace(/\/$/, '')}/members/media`
 
     await payload.sendEmail({

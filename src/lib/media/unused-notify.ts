@@ -38,6 +38,7 @@ export type NotifyOutcome = 'failed' | 'sent' | 'skipped'
 export type MarkedFile = {
   filename?: string | null
   id: number
+  title?: string | null
   url?: string | null
 }
 
@@ -62,7 +63,7 @@ export function unusedMediaEmailHTML(
 ): string {
   const list = files
     .map((file) => {
-      const name = mediaDisplayName({ filename: file.filename, src: file.url }) || `媒體 ${file.id}`
+      const name = mediaDisplayName({ filename: file.filename, src: file.url, title: file.title }) || `媒體 ${file.id}`
       return `<li>${escapeHTML(name)}</li>`
     })
     .join('')
