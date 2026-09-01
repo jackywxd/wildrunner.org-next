@@ -212,7 +212,36 @@ test.describe("R what a member does with a race report", () => {
     // (docs/testing-plan.md, "Open, not closed", 2026-08-17) — so `.first()`
     // could select a copy that could never be clicked. Fixed at the source;
     // kept here anyway as a cheap guard against the same shape recurring.
-    await page.goto("/races", { waitUntil: "domcontentloaded" });
+    // The window is chosen from the data, not from the calendar.
+    //
+    // `/races` anchors to the first of the current month (`scheduleWindow`),
+    // and `race-write-report` only renders on a row that has already been
+    // run. So on the 1st the default window can contain no finished race at
+    // all, and this spec fails on a page and a feature that never changed.
+    // That is what happened: green on 2026-08-31, red on 2026-09-01 in three
+    // consecutive runs — deploy run 99 against staging and #105's shard 3
+    // against localhost — while the only commit between them was an e2e
+    // logging change. The September window held 63 races and the earliest
+    // started on the 10th, so it would have stayed red for nine days, once a
+    // month, forever.
+    //
+    // `?from=` is an absolute month precisely so it can be addressed like
+    // this. Anchoring to the month of the most recent race that has actually
+    // been run guarantees the window contains a finished row, and leaves the
+    // claim under test untouched: arrive from the race itself, and the
+    // refusal comes from submitting the second report.
+    const editions = await page.request.get(
+      "/api/race-editions?limit=1&depth=0&sort=-startDate" +
+        `&where[startDate][less_than]=${new Date().toISOString()}`,
+    );
+    expect(editions.ok(), "could not read race editions").toBeTruthy();
+    const ran = ((await editions.json()) as { docs: { startDate: string }[] })
+      .docs[0]?.startDate;
+    if (!ran) throw new Error("the corpus contains no race that has been run");
+
+    await page.goto(`/races?from=${ran.slice(0, 7)}`, {
+      waitUntil: "domcontentloaded",
+    });
     const write = page
       .locator('[data-testid="race-write-report"]:visible')
       .first();
