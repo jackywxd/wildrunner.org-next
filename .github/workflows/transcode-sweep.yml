@@ -74,25 +74,48 @@ jobs:
           # become shell.
           TARGET: ${{ github.event.inputs.environment || 'production' }}
         run: |
-          # Skipped rather than failed when unset, following
-          # race-schedule-maintenance.yml. At four runs an hour a hard
-          # failure would be ~96 red runs a day until somebody configured a
-          # secret — noise that teaches people to ignore this workflow, which
-          # is far worse than no signal, since this is the thing that notices
-          # broken transcodes.
+          # FAILS when unset. It used to warn and `exit 0`, to avoid "~96 red
+          # runs a day until somebody configured a secret" — and that reasoning
+          # is why nothing worked for five days.
+          #
+          # `RACE_MAINTENANCE_SECRET` has never been visible to this job. Every
+          # one of the workflow's first 25 scheduled runs took this branch: the
+          # step finishes in under a second, the run goes green, and the queue's
+          # only healing mechanism has never once executed. It is not this
+          # workflow alone — race-schedule-maintenance's latest run has the same
+          # zero-second step and the same empty variable, and unused-media-sweep
+          # copies the pattern. Three green workflows, none of which has ever
+          # done anything.
+          #
+          # The noise estimate was also wrong by an order of magnitude. The cron
+          # asks for four an hour; GitHub delivered runs 2h43m to 5h35m apart,
+          # so this is ~8 red runs a day, not 96 — until somebody sets one
+          # secret, once, which is the entire remedy.
+          #
+          # A green run that did nothing is worse than a red one that says so.
           if [ -z "$RACE_MAINTENANCE_SECRET" ]; then
-            echo "::warning::RACE_MAINTENANCE_SECRET is not set — skipping. Stalled transcodes will NOT be recovered until it is configured."
             {
-              echo '## Transcode sweep — skipped'
+              echo '## Transcode sweep — NOT RUN'
               echo
-              echo '`RACE_MAINTENANCE_SECRET` is not configured. Unlike the'
-              echo 'race schedule, this one does not degrade gracefully: a'
-              echo 'transcode whose container died has no other way back.'
+              echo '`RACE_MAINTENANCE_SECRET` is not set for this job, so no'
+              echo 'sweep happened. A transcode whose container died has no'
+              echo 'other way back, so the queue is not healing.'
               echo
-              echo 'To enable: `wrangler secret put RACE_MAINTENANCE_SECRET`,'
-              echo 'then add the same value to this repo'"'"'s Actions secrets.'
+              echo 'Set it in **both** places — they are different systems and'
+              echo 'either one missing produces this:'
+              echo
+              echo '  1. the Worker: `wrangler secret put RACE_MAINTENANCE_SECRET`'
+              echo '     (and again with `--env staging`)'
+              echo '  2. this repository: Settings -> Secrets and variables ->'
+              echo '     Actions. A *repository* secret, not an *environment*'
+              echo '     one: no job here declares an `environment:`, so an'
+              echo '     environment secret is invisible to all of them.'
+              echo
+              echo 'race-schedule-maintenance.yml and unused-media-sweep.yml'
+              echo 'read the same secret and still skip silently.'
             } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            echo "::error::RACE_MAINTENANCE_SECRET is not set — nothing was swept. Stalled transcodes are NOT being recovered."
+            exit 1
           fi
 
           # A case rather than a lookup, so an unrecognised value stops here
