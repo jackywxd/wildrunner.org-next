@@ -76,6 +76,7 @@ export function mapMediaToPhoto(
   const { width, height } = mediaDimensions(media);
   const filename = media.filename ?? src.split("/").pop() ?? "image";
   return {
+    mediaId: media.id,
     filename,
     src,
     slug: src,

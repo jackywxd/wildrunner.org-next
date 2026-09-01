@@ -12,6 +12,7 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 import Image from "next/image";
+import { Share2 } from "lucide-react";
 import PhotoAlbum, { type Photo, type RenderImageContext } from "react-photo-album";
 import type { SiteMediaItem } from "@/lib/content-types";
 import type { WallCursor } from "@/lib/media/gallery-index";
@@ -51,6 +52,8 @@ import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsIma
  */
 type GridPhoto = Photo & {
   kind: "photo" | "video";
+  /** The share page's address — see the toolbar button in the lightbox below. */
+  mediaId: number;
   label: string;
   mimeType?: string;
   /** A video's own frame, when the transcoder has taken one. */
@@ -83,6 +86,7 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
           height: item.height,
           blurDataURL: item.blurDataURL,
           kind: "photo" as const,
+          mediaId: item.mediaId,
           label: item.filename,
         }
       : {
@@ -90,6 +94,7 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
           width: VIDEO_W,
           height: VIDEO_H,
           kind: "video" as const,
+          mediaId: item.mediaId,
           label: mediaDisplayName(item),
           mimeType: item.mimeType,
           poster: item.poster,
@@ -131,6 +136,38 @@ function PlayGlyph() {
         d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z"
       />
     </svg>
+  );
+}
+
+/**
+ * The way back out of the grid to a single item's own page.
+ *
+ * WHY THIS EXISTS AT ALL. Videos used to carry a share button on the strip
+ * that `MediaGrid` replaced (#105) — on /gallery and on every album page. The
+ * strip went and the button went with it, so the only share affordance left
+ * anywhere was the race page's own copy of that strip, and
+ * `/gallery/m/[mediaId]` shipped afterwards with nothing linking to it. This
+ * restores the entry point and gives photos, which never had one, the same.
+ *
+ * A link rather than a clipboard write, which is what the old strip did too:
+ * the destination is a real page with its own OG tags, so landing there and
+ * copying the address gives a rich preview — a copied grid URL would not.
+ *
+ * `yarl__button` is the lightbox's own toolbar class. Borrowing it rather
+ * than restyling means this button stays aligned with `close` when the
+ * library changes its toolbar metrics.
+ */
+function ShareButton({ mediaId, label }: { mediaId: number; label: string }) {
+  return (
+    <a
+      className="yarl__button"
+      href={`/gallery/m/${mediaId}`}
+      aria-label={`分享 ${label}`}
+      title="分享"
+      data-testid="gallery-share"
+    >
+      <Share2 className="size-5" />
+    </a>
   );
 }
 
@@ -277,6 +314,12 @@ export function MediaGrid({
     [photos],
   );
 
+  // What the lightbox is showing right now, which is what its share button
+  // must point at. Guarded rather than indexed blindly: `index` is -1 while
+  // the lightbox is closed, and a page arriving mid-view can only ever grow
+  // the array, never shorten it.
+  const shown = index >= 0 ? photos[index] : undefined;
+
   if (photos.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="gallery-all-photos-empty">
@@ -329,6 +372,16 @@ export function MediaGrid({
         open={index >= 0}
         index={index}
         close={() => setIndex(-1)}
+        // Controlled: the share button has to address whatever is on screen
+        // now, not whatever was clicked to open the lightbox, so the index
+        // follows the viewer's own navigation.
+        on={{ view: ({ index: i }) => setIndex(i) }}
+        toolbar={{
+          buttons: [
+            ...(shown ? [<ShareButton key="share" mediaId={shown.mediaId} label={shown.label} />] : []),
+            "close",
+          ],
+        }}
         plugins={[Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
     </>

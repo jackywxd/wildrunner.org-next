@@ -24,6 +24,9 @@ import {
  */
 const photo = (src: string, over: Partial<SitePhoto> = {}): SitePhoto => ({
   src,
+  // Derived from `src` so two fixtures never silently share an id, which is
+  // what would happen with a constant — and the id is the share address.
+  mediaId: src.length,
   filename: src,
   slug: src,
   featured: false,
