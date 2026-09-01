@@ -375,6 +375,29 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      /**
+       * A still frame from a video, so the grid can draw the video instead of
+       * a placeholder.
+       *
+       * Written only by the transcoder's callback, from a frame the container
+       * takes one second in. Videos only: an image is its own poster, and
+       * nothing sets this for one.
+       *
+       * NULLABLE AND EXPECTED TO BE NULL for a long time. Every video that
+       * predates this — 22 of 22 locally, 27 in production — has none until
+       * something re-runs the container over it, so every reader has to have
+       * a fallback and `MediaGrid` keeps its dark card for exactly that.
+       */
+      name: 'posterUrl',
+      type: 'text',
+      label: { en: 'Poster', 'zh-TW': '影片預覽圖' },
+      admin: {
+        readOnly: true,
+        description: 'Extracted from the video by the transcoder. Empty until it has run.',
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'width',
       type: 'number',
       label: { en: 'Width', 'zh-TW': '寬度' },

@@ -33,6 +33,13 @@ export type SiteVideo = {
   streamId?: string | null;
   streamReady?: boolean;
   /**
+   * A still frame from the video, when the transcoder has managed to take
+   * one. Absent on every video that predates posters and on any the container
+   * could not read a frame from, so every consumer needs a fallback — see
+   * `VideoCard` in MediaGrid, which keeps drawing its dark card without one.
+   */
+  poster?: string;
+  /**
    * The media doc's own createdAt, for the same reason `SitePhoto` carries one.
    *
    * Its absence is why /gallery's video strip could not be sorted at all: the

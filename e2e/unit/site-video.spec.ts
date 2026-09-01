@@ -19,6 +19,7 @@ const media = (over: Partial<Parameters<typeof mediaToSiteVideo>[0]> = {}) =>
     filesize: 1234,
     legacyVideoId: null,
     mimeType: "video/mp4",
+    posterUrl: null,
     streamId: null,
     streamReady: false,
     url: "https://images.wildrunner.org/galleries/2023/foo/clip.mp4",
@@ -65,5 +66,23 @@ test.describe("U-SITEVIDEO the share id and what it is built from", () => {
   test("U-SITEVIDEO-5: the extension comes off the filename, or is absent", () => {
     expect(mediaToSiteVideo(media({ filename: "a.mov" }))?.extension).toBe("mov");
     expect(mediaToSiteVideo(media({ filename: "no-extension" }))?.extension).toBeUndefined();
+  });
+
+  test("U-SITEVIDEO-6: the poster comes through, and its absence is undefined rather than null", () => {
+    // The whole read path for a poster is this one line, so it is the one
+    // place worth pinning: everything downstream — MediaGrid's VideoCard, the
+    // share page — only ever sees what this returns.
+    expect(
+      mediaToSiteVideo(media({ posterUrl: "https://images.example.com/posters/7.jpg" }))
+        ?.poster,
+    ).toBe("https://images.example.com/posters/7.jpg");
+
+    // `undefined`, not `null`, and not the empty string. Every video that
+    // predates posters stores NULL, and `VideoCard` decides whether to draw a
+    // frame with a plain truthiness test — a null leaking through would be
+    // falsy and work by accident, while an empty string would render a broken
+    // <img>. Normalising here is what keeps that decision one test long.
+    expect(mediaToSiteVideo(media({ posterUrl: null }))?.poster).toBeUndefined();
+    expect(mediaToSiteVideo(media())?.poster).toBeUndefined();
   });
 });

@@ -1,10 +1,23 @@
 #!/bin/sh
-# Transcode one video to H.264 1080p and write it back to R2.
+# Transcode one video to H.264 1080p and write it back to R2, and grab a
+# poster frame from it on the way past.
 #
-#   transcode.sh <source-url> <r2-key>
+#   transcode.sh <source-url> <r2-key> <poster-key>
 #
 # Prints one line of JSON on success:
-#   {"ok":true,"key":"...","bytes":N,"width":W,"height":H}
+#   {"ok":true,"key":"...","bytes":N,"width":W,"height":H,
+#    "posterKey":"...","posterWidth":W,"posterHeight":H}
+#
+# THE POSTER IS EXTRACTED BEFORE THE SKIP DECISION, and that placement is the
+# whole design rather than an implementation detail. Most of the corpus is
+# already h264/<=1080/yuv420p, so most runs take the skip path below and
+# encode nothing — measured on the local corpus, 22 of 22 videos had never
+# been transcoded at all. A poster step that lived with the encode would
+# therefore never run for the videos that most need one, and /gallery would
+# keep drawing its dark placeholder card forever.
+#
+# It also costs almost nothing here: the source is already on local disk from
+# the curl below, so this is one seek and one frame, not another download.
 #
 # Everything about the shape of this script follows from one fact: Cloudflare
 # "does not guarantee that any container instance will run for any set period
@@ -23,6 +36,10 @@ set -eu
 
 SRC_URL="$1"
 DEST_KEY="$2"
+# Optional third argument, so a container image that is one deploy ahead of
+# the Worker — or behind it — still runs. An empty poster key simply means
+# "no poster this time" rather than an unbound-variable death under `set -u`.
+POSTER_KEY="${3:-}"
 
 WORK="$(mktemp -d)"
 # `trap ... EXIT` and not a SIGTERM handler: this is only about not leaving
@@ -31,10 +48,75 @@ trap 'rm -rf "$WORK"' EXIT
 
 IN="$WORK/in"
 OUT="$WORK/out.mp4"
+POSTER="$WORK/poster.jpg"
 
 # --fail so an HTML error page is never mistaken for a video. --location
 # because R2 public URLs can redirect.
 curl --fail --silent --show-error --location --output "$IN" "$SRC_URL"
+
+# The poster: one frame, one second in, uploaded as its own object.
+#
+# NOTHING HERE MAY FAIL THE RUN. The transcode is the job; a poster is an
+# improvement to how the video is drawn in a grid. `set -e` is suspended for
+# each step and every outcome is checked by hand, so a clip that cannot
+# produce a frame still gets transcoded and still reports success — it simply
+# comes back with no `posterKey`, and the site keeps drawing the placeholder
+# card it draws today.
+#
+# WHY ONE SECOND. Frame zero is very often black or a fade-in; a second in is
+# past that on nearly every real clip. But it is past the END of a clip
+# shorter than a second, and ffmpeg then writes no output at all — so a
+# missing or empty file falls back to the first frame rather than giving up.
+# `-frames:v 1` after the input, `-ss` before it: that order makes the seek an
+# input seek, which jumps rather than decoding a second of video to throw it
+# away.
+POSTER_KEY_OUT=""
+POSTER_W=""
+POSTER_H=""
+
+if [ -n "$POSTER_KEY" ]; then
+  set +e
+  ffmpeg -nostdin -y -ss 00:00:01 -i "$IN" -frames:v 1 -q:v 3 \
+    -loglevel error "$POSTER" 2>/dev/null
+  if [ ! -s "$POSTER" ]; then
+    ffmpeg -nostdin -y -i "$IN" -frames:v 1 -q:v 3 \
+      -loglevel error "$POSTER" 2>/dev/null
+  fi
+
+  if [ -s "$POSTER" ]; then
+    POSTER_DIMS=$(ffprobe -v error -select_streams v:0 \
+      -show_entries stream=width,height -of csv=p=0:nk=1 "$POSTER" \
+      </dev/null | tr -d '\n' | tr ',' ' ')
+    POSTER_W=$(echo "$POSTER_DIMS" | cut -d' ' -f1)
+    POSTER_H=$(echo "$POSTER_DIMS" | cut -d' ' -f2)
+
+    # Uploaded before the encode rather than after, so a container that is
+    # killed mid-encode — which Cloudflare may do at any time, see the header
+    # — still leaves a usable poster behind. There is no half-poster to guard
+    # against the way there is a half-video: it is written whole to local disk
+    # first, and only then put.
+    if aws s3api put-object \
+      --endpoint-url "$R2_S3_ENDPOINT" \
+      --bucket "$R2_BUCKET" \
+      --key "$POSTER_KEY" \
+      --body "$POSTER" \
+      --content-type image/jpeg >/dev/null 2>&1; then
+      POSTER_KEY_OUT="$POSTER_KEY"
+    fi
+  fi
+  set -e
+fi
+
+# Reported on both paths below, so it is built once here. Empty when there is
+# no poster, which `jq -n` would make null — but this script has no jq in its
+# hot path and printf is what the rest of it uses, so the fragment is empty
+# string or a real object tail.
+if [ -n "$POSTER_KEY_OUT" ] && [ -n "$POSTER_W" ] && [ -n "$POSTER_H" ]; then
+  POSTER_JSON=$(printf ',"posterKey":"%s","posterWidth":%s,"posterHeight":%s' \
+    "$POSTER_KEY_OUT" "$POSTER_W" "$POSTER_H")
+else
+  POSTER_JSON=""
+fi
 
 # Probe before encoding, and skip the encode entirely when the source is
 # already what this script would produce.
@@ -62,7 +144,11 @@ if [ "$SRC_CODEC" = "h264" ] && [ "$SRC_PIXFMT" = "yuv420p" ] \
   # Nothing is uploaded and no key is reported: the media row keeps pointing
   # at the file it already had, which is the correct outcome — there is no
   # second object, so nothing to charge for or clean up later.
-  printf '{"ok":true,"skipped":true,"reason":"already h264 %sp yuv420p"}\n' "$SRC_HEIGHT"
+  # The poster still goes back, and this is the path that matters most for
+  # it: an already-compliant file encodes nothing, so this line is the only
+  # report it will ever make.
+  printf '{"ok":true,"skipped":true,"reason":"already h264 %sp yuv420p"%s}\n' \
+    "$SRC_HEIGHT" "$POSTER_JSON"
   exit 0
 fi
 
@@ -108,5 +194,5 @@ HEIGHT=$(echo "$DIMS" | cut -d' ' -f2)
 # Alpine's busybox date, which I have no way to test against while the Docker
 # daemon is down. The Worker brackets the exec() call and knows the duration
 # anyway.
-printf '{"ok":true,"key":"%s","bytes":%s,"width":%s,"height":%s}\n' \
-  "$DEST_KEY" "$BYTES" "$WIDTH" "$HEIGHT"
+printf '{"ok":true,"key":"%s","bytes":%s,"width":%s,"height":%s%s}\n' \
+  "$DEST_KEY" "$BYTES" "$WIDTH" "$HEIGHT" "$POSTER_JSON"

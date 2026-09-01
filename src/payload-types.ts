@@ -254,6 +254,10 @@ export interface Media {
    */
   legacyVideoId?: string | null;
   blurDataURL?: string | null;
+  /**
+   * Extracted from the video by the transcoder. Empty until it has run.
+   */
+  posterUrl?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -711,6 +715,7 @@ export interface MediaSelect<T extends boolean = true> {
   unusedSince?: T;
   legacyVideoId?: T;
   blurDataURL?: T;
+  posterUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
