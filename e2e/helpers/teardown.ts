@@ -18,7 +18,7 @@ export async function leavePostEditor(page: Page): Promise<void> {
 
 export async function deleteCreatedRows(
   request: APIRequestContext,
-  pending: { collection: string; id: number }[],
+  pending: { collection: string; id: number | string }[],
 ): Promise<void> {
   if (pending.length === 0) return;
 

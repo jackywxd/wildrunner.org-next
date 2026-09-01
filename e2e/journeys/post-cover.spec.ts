@@ -22,6 +22,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows, leavePostEditor } from "../helpers/teardown";
 
 /**
  * The same fixture race-photos.spec.ts uploads, and for a reason worth
@@ -52,31 +53,16 @@ test.describe("M-COVER a member manages their post's cover image", () => {
   let postId: string | null = null;
   let mediaId: number | null = null;
 
-  test.afterEach(async ({ request }) => {
+  test.afterEach(async ({ page, request }) => {
     const post = postId;
     const media = mediaId;
     postId = null;
     mediaId = null;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    // The post first: it references the media, and Payload would refuse to
-    // leave a post pointing at a row that no longer exists.
-    if (post) {
-      const deleted = await request.delete(`/api/posts/${post}`);
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(`teardown failed to delete posts/${post}: ${deleted.status()}`);
-      }
-    }
-    if (media !== null) {
-      const deleted = await request.delete(`/api/media/${media}`);
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(`teardown failed to delete media/${media}: ${deleted.status()}`);
-      }
-    }
+    await leavePostEditor(page);
+    const pending: { collection: string; id: number | string }[] = [];
+    if (post) pending.push({ collection: "posts", id: post });
+    if (media !== null) pending.push({ collection: "media", id: media });
+    await deleteCreatedRows(request, pending);
   });
 
   test("M-COVER-T1: sets a cover, keeps it across an untouched save, then clears it", async ({

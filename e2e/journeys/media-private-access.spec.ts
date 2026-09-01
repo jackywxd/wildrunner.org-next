@@ -2,6 +2,7 @@ import { expect, request as playwrightRequest, test } from "@playwright/test";
 
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * M-PRIVATE — a file its owner marked "not on the photo wall" is not served
@@ -34,10 +35,7 @@ test.describe("M-PRIVATE a private file is not served anonymously", () => {
     if (mediaId === null) return;
     const id = mediaId;
     mediaId = null;
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    await request.delete(`/api/media/${id}`);
+    await deleteCreatedRows(request, [{ collection: "media", id }]);
   });
 
   test("M-PRIVATE-T1: anonymous cannot read it; its owner still can", async ({

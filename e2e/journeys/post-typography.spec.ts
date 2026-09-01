@@ -2,6 +2,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * M-TYPO — a published article looks like an article.
@@ -235,32 +236,7 @@ test.describe("M-TYPO a published article is readable", () => {
 
   test.afterEach(async ({ request }) => {
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    // Best effort, and deliberately not asserted on. The `request` fixture
-    // still holds the cookies from the sign-in this test already did, so
-    // this is a second login for a session that already exists — a failure
-    // surface with nothing behind it. One of them answered 500 on a CI
-    // shard, with no server-side log and with the deletes right after it
-    // fine, and failed a test whose own assertions had all passed.
-    //
-    // What has to work here is the delete, so that is what fails the test.
-    // A session that really had lapsed shows up as a 401 on the line below,
-    // which says so.
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-
-    for (const rowToDelete of pending) {
-      const deleted = await request.delete(
-        `/api/${rowToDelete.collection}/${rowToDelete.id}`,
-      );
-      if (!deleted.ok()) {
-        throw new Error(
-          `teardown failed to delete ${rowToDelete.collection}/${rowToDelete.id}`,
-        );
-      }
-    }
+    await deleteCreatedRows(request, pending);
   });
 
   test("M-TYPO-T1: headings, lists, quotes and tables are told apart on the published page", async ({

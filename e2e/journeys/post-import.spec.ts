@@ -38,6 +38,8 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 const SOURCE = [
   "# M-IMPORT 匯入測試文章",
@@ -69,16 +71,7 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     const post = postId;
     postId = null;
     if (!post) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    const deleted = await request.delete(`/api/posts/${post}`);
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(`teardown failed to delete posts/${post}: ${deleted.status()}`);
-    }
+    await deleteCreatedRows(request, [{ collection: "posts", id: post }]);
   });
 
   test("M-IMPORT-T1: imports a document and publishes it", async ({ page }) => {
@@ -141,7 +134,7 @@ test.describe("M-IMPORT a member imports a markdown document", () => {
     // `/members/posts` is a prefix of `/members/posts/<id>`.
     await expect(page).toHaveURL(/\/members\/posts$/, { timeout: budget(20_000) });
 
-    const doc = await page.request.get(`/api/posts/${postId}?depth=0`);
+    const doc = await getWithRetry(page.request, `/api/posts/${postId}?depth=0`);
     expect(doc.ok()).toBe(true);
     const body = (await doc.json()) as { _status?: string; slug?: string };
     expect(body._status).toBe("published");

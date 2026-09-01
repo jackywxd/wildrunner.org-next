@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * W-WALL — /api/gallery/wall serves exactly the union /gallery's own first
@@ -28,21 +29,8 @@ test.describe("W-WALL the wall endpoint serves the same union /gallery does, and
   const created: { collection: string; id: number }[] = [];
 
   test.afterEach(async ({ request }) => {
-    // Reversed: a gallery may reference the media, so it goes first.
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    for (const row of pending) {
-      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(`teardown failed to delete ${row.collection}/${row.id}`);
-      }
-    }
+    await deleteCreatedRows(request, pending);
   });
 
   test("W-WALL-T1: a file that is neither gallery usage nor curated into any album never appears", async ({
