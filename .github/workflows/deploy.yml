@@ -141,12 +141,31 @@ jobs:
       # this with the same value. But a secret's contents cannot be reviewed
       # or diffed, so the one setting that decides which database a build
       # writes to lives where it can be read.
+      # Retried on the same transient-D1 signatures as "Deploy to production"
+      # below. Run 33535522253 (PR #110) got "Failed to parse body as JSON,
+      # got: error code: 1031" ~5s into "Collecting page data" with three
+      # workers each opening remote staging D1 — production already had this
+      # loop; staging did not.
       - name: Deploy to staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ENV: staging
-        run: pnpm deploy:staging
+          NEXT_BUILD_CPUS: "1"
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if pnpm deploy:staging 2>&1 | tee deploy-staging.log; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ] && grep -qE 'D1_ERROR: Failed to parse body as JSON|too much load on D1' deploy-staging.log; then
+              echo "::warning::deploy:staging attempt $attempt hit a transient D1 condition, retrying"
+              sleep 60
+              continue
+            fi
+            echo "::error::deploy:staging failed on attempt $attempt"
+            exit 1
+          done
 
   verify-staging:
     name: E2E against staging
