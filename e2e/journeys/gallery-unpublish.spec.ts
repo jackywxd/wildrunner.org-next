@@ -54,6 +54,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /** 1×1 transparent GIF, answered in-process so no request reaches the server. */
 const PIXEL = Buffer.from(
@@ -69,16 +70,7 @@ test.describe("V-UNPUBLISH a withdrawn photo leaves the wall", () => {
     if (!createdMediaId) return;
     const id = createdMediaId;
     createdMediaId = null;
-
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    const deleted = await request.delete(`/api/media/${id}`);
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(
-        `teardown failed to delete media/${id}: ${deleted.status()}`,
-      );
-    }
+    await deleteCreatedRows(request, [{ collection: "media", id }]);
   });
 
   test("V-UNPUBLISH-T1: on the wall, then off it", async ({ page, request }) => {

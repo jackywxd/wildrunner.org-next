@@ -30,6 +30,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /** Same fixture shape as gallery-videos.spec.ts: a real ftyp box, sniffed as video/mp4. */
 const MP4_HEADER = Buffer.concat([
@@ -53,13 +54,7 @@ test.describe("V-MEDIASHARE /gallery/m/[mediaId] serves one public photo or vide
     if (mediaId === null) return;
     const id = mediaId;
     mediaId = null;
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    const deleted = await request.delete(`/api/media/${id}`);
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(`teardown failed to delete media/${id}: ${deleted.status()}`);
-    }
+    await deleteCreatedRows(request, [{ collection: "media", id }]);
   });
 
   test("V-MEDIASHARE-T1: a gallery photo's share page renders it", async ({

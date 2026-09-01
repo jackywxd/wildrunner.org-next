@@ -21,6 +21,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /** 1×1 GIF, answered in-process — see gallery-unpublish.spec.ts for why. */
 const PIXEL = Buffer.from(
@@ -44,19 +45,7 @@ test.describe("V-ALBUMORDER an album keeps its curated order on screen", () => {
 
   test.afterEach(async ({ request }) => {
     const doomed = created.splice(0, created.length).reverse();
-    if (doomed.length === 0) return;
-
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    for (const row of doomed) {
-      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(
-          `teardown failed to delete ${row.collection}/${row.id}: ${deleted.status()}`,
-        );
-      }
-    }
+    await deleteCreatedRows(request, doomed);
   });
 
   test("V-ALBUMORDER-T1: video, photo, video survives to the page", async ({

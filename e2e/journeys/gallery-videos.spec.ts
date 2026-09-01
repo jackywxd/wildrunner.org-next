@@ -2,6 +2,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * V-GALLERYVIDEO — a gallery's video is visible on /gallery without
@@ -48,21 +49,8 @@ test.describe("V-GALLERYVIDEO a gallery video is visible on /gallery", () => {
   const created: { collection: string; id: number }[] = [];
 
   test.afterEach(async ({ request }) => {
-    // Reversed: the gallery references the media, so it goes first.
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    for (const row of pending) {
-      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
-      if (!deleted.ok()) {
-        throw new Error(`teardown failed to delete ${row.collection}/${row.id}`);
-      }
-    }
+    await deleteCreatedRows(request, pending);
   });
 
   test("V-GALLERYVIDEO-T1: an album's video shows on the landing view, unclicked", async ({

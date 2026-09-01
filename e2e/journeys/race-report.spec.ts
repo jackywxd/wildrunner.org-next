@@ -24,6 +24,8 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows, leavePostEditor } from "../helpers/teardown";
 
 test.describe("R what a member does with a race report", () => {
   /**
@@ -42,33 +44,16 @@ test.describe("R what a member does with a race report", () => {
   let postId: string | null = null;
   let raceRecordId: string | null = null;
 
-  test.afterEach(async ({ request }) => {
+  test.afterEach(async ({ page, request }) => {
     const post = postId;
     const record = raceRecordId;
     postId = null;
     raceRecordId = null;
-    if (!post && !record) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    for (const [collection, id] of [
-      ["posts", post],
-      ["race-records", record],
-    ] as const) {
-      if (!id) continue;
-      const deleted = await request.delete(`/api/${collection}/${id}`);
-      // 404 means the test's own steps got there first. Anything else leaves a
-      // row behind, and saying so here is cheaper than the next run failing
-      // for a reason it cannot explain.
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(
-          `teardown failed to delete ${collection}/${id}: ${deleted.status()}`,
-        );
-      }
-    }
+    await leavePostEditor(page);
+    const pending: { collection: string; id: number | string }[] = [];
+    if (post) pending.push({ collection: "posts", id: post });
+    if (record) pending.push({ collection: "race-records", id: record });
+    await deleteCreatedRows(request, pending);
   });
 
   test("R-REPORT: writes a report, attaches a race, and it publishes", async ({
@@ -163,7 +148,7 @@ test.describe("R what a member does with a race report", () => {
     // `page.request`, not the `request` fixture: the fixture has its own
     // context and no session, so it would read as an anonymous visitor and
     // report a draft as missing rather than as unpublished.
-    const doc = await page.request.get(`/api/posts/${postId}?depth=0`);
+    const doc = await getWithRetry(page.request, `/api/posts/${postId}?depth=0`);
     expect(doc.ok(), "the post should be readable after publishing").toBe(true);
     const body = (await doc.json()) as {
       _status?: string;
@@ -230,7 +215,8 @@ test.describe("R what a member does with a race report", () => {
     // been run guarantees the window contains a finished row, and leaves the
     // claim under test untouched: arrive from the race itself, and the
     // refusal comes from submitting the second report.
-    const editions = await page.request.get(
+    const editions = await getWithRetry(
+      page.request,
       "/api/race-editions?limit=1&depth=0&sort=-startDate" +
         `&where[startDate][less_than]=${new Date().toISOString()}`,
     );
@@ -264,7 +250,7 @@ test.describe("R what a member does with a race report", () => {
     const created = page.url().match(/\/members\/posts\/(\d+)/);
     if (!created) throw new Error(`no post id in ${page.url()}`);
     postId = created[1];
-    const doc = await page.request.get(`/api/posts/${postId}?depth=0`);
+    const doc = await getWithRetry(page.request, `/api/posts/${postId}?depth=0`);
     const body = (await doc.json()) as { raceRecord?: number | string | null };
     if (body.raceRecord) raceRecordId = String(body.raceRecord);
 

@@ -2,6 +2,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows, leavePostEditor } from "../helpers/teardown";
 
 /**
  * M-SUMMARY — the AI writes the 摘要, and never writes over one.
@@ -111,24 +112,11 @@ test.describe("M-SUMMARY the AI writes the 摘要", () => {
     recordCreated({ collection: "posts", id: postId, note: "M-SUMMARY probe post" });
   });
 
-  test.afterEach(async ({ request }) => {
+  test.afterEach(async ({ page, request }) => {
     // Reversed: the post references the media.
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    // Best effort, and deliberately not asserted on — the fixture already
-    // signed this context in, and a redundant second login is a failure
-    // surface with nothing behind it. The delete is what has to work.
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-
-    for (const doomed of pending) {
-      const deleted = await request.delete(`/api/${doomed.collection}/${doomed.id}`);
-      if (!deleted.ok()) {
-        throw new Error(`teardown failed to delete ${doomed.collection}/${doomed.id}`);
-      }
-    }
+    await leavePostEditor(page);
+    await deleteCreatedRows(request, pending);
   });
 
   test("M-SUMMARY-T1: a suggestion appears, and the member's own summary survives it", async ({

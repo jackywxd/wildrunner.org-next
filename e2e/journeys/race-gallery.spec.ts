@@ -20,6 +20,8 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 const RACE_SLUG_RE = /^race-.+-\d{4}$/;
 
@@ -46,22 +48,7 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
 
   test.afterEach(async ({ request }) => {
     const pending = created.splice(0, created.length);
-    if (pending.length === 0) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    for (const row of pending) {
-      const deleted = await request.delete(`/api/${row.collection}/${row.id}`);
-      // 404 means the test's own steps got there first.
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(
-          `teardown failed to delete ${row.collection}/${row.id}: ${deleted.status()}`,
-        );
-      }
-    }
+    await deleteCreatedRows(request, pending);
   });
 
   test("V-RACEALBUM-T1: tagged media becomes an album, and its video can be shared", async ({
@@ -97,7 +84,7 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     // Act 0 — the negative, taken BEFORE anything is tagged. Without this
     // the test could pass against an album that was already there, and
     // would prove nothing about tagging.
-    const before = await page.request.get(`/gallery/${slug}`);
+    const before = await getWithRetry(page.request, `/gallery/${slug}`);
     expect(before.status()).toBe(404);
 
     // One photo and one video, so the album exercises both halves — uploaded
@@ -150,7 +137,7 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     }
 
     // Act 1 — the album now exists and is named after the race, not the slug.
-    const album = await page.request.get(`/gallery/${slug}`);
+    const album = await getWithRetry(page.request, `/gallery/${slug}`);
     expect(album.status()).toBe(200);
 
     // Act 2 — and it is reachable by clicking, from the albums shelf, rather

@@ -2,6 +2,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * V-POSTVIDEO — a video inside an article plays.
@@ -76,17 +77,8 @@ test.describe("V-POSTVIDEO a video in an article plays", () => {
   const created: { collection: string; id: number }[] = [];
 
   test.afterEach(async ({ request }) => {
-    // Reverse order, by the ids captured at creation — the post references
-    // the media, and neither is ever matched by name or prefix.
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    for (const row of pending) {
-      await request.delete(`/api/${row.collection}/${row.id}`);
-    }
+    await deleteCreatedRows(request, pending);
   });
 
   test("V-POSTVIDEO-T1: an uploaded video in a post body renders a player", async ({

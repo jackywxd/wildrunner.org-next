@@ -23,6 +23,8 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 const FIXTURE = "public/static/brand/mark-purple.svg";
 
@@ -34,18 +36,7 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
     if (!createdMediaId) return;
     const id = createdMediaId;
     createdMediaId = null;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    const deleted = await request.delete(`/api/media/${id}`);
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(
-        `teardown failed to delete media/${id}: ${deleted.status()} ${await deleted.text()}`,
-      );
-    }
+    await deleteCreatedRows(request, [{ collection: "media", id }]);
   });
 
   async function signIn(page: import("@playwright/test").Page) {
@@ -90,7 +81,7 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
       timeout: budget(20_000),
     });
 
-    const stored = await page.request.get(`/api/media/${body.doc.id}?depth=0`);
+    const stored = await getWithRetry(page.request, `/api/media/${body.doc.id}?depth=0`);
     expect(stored.ok()).toBe(true);
     const doc = (await stored.json()) as { raceEdition?: unknown; usage?: string };
     expect(doc.raceEdition ?? null).toBeNull();
@@ -139,7 +130,7 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
     // not among them" is a claim about a haystack, and a selector that found
     // nothing would pass whether or not the rule works. What is ours to check
     // is that the control writes the value the query filters on.
-    const stored = await page.request.get(`/api/media/${body.doc.id}?depth=0`);
+    const stored = await getWithRetry(page.request, `/api/media/${body.doc.id}?depth=0`);
     expect(stored.ok()).toBe(true);
     expect(((await stored.json()) as { usage?: string }).usage).toBe("private");
   });

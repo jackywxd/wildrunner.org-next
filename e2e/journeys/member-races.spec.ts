@@ -21,6 +21,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
 import { budget } from "../helpers/budget";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 /**
  * The public directory is where a record stops being private bookkeeping and
@@ -102,39 +103,16 @@ test.describe("M what a member does with race records", () => {
   let createdEditionId: string | null = null;
 
   test.afterEach(async ({ request }) => {
-    if (!createdRecordId && !createdEditionId) return;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) {
-      throw new Error(`teardown could not sign in: ${login.status()}`);
-    }
-
+    const pending: { collection: string; id: number | string }[] = [];
     if (createdRecordId) {
-      const id = createdRecordId;
+      pending.push({ collection: "race-records", id: createdRecordId });
       createdRecordId = null;
-      const deleted = await request.delete(`/api/race-records/${id}`);
-      // 404 is fine — the test's own step 6 got there first. Anything else
-      // means a row is still sitting in the database, and saying so here is
-      // cheaper than the next run failing for a reason it cannot explain.
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(
-          `teardown failed to delete race record ${id}: ${deleted.status()} ${await deleted.text()}`,
-        );
-      }
     }
-
     if (createdEditionId) {
-      const id = createdEditionId;
+      pending.push({ collection: "race-editions", id: createdEditionId });
       createdEditionId = null;
-      const deleted = await request.delete(`/api/race-editions/${id}`);
-      if (!deleted.ok() && deleted.status() !== 404) {
-        throw new Error(
-          `teardown failed to delete race edition ${id}: ${deleted.status()} ${await deleted.text()}`,
-        );
-      }
     }
+    await deleteCreatedRows(request, pending);
   });
 
   test("M-RACES: records a race, it reaches the public directory, removes it", async ({

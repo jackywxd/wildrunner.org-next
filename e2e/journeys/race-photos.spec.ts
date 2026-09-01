@@ -17,6 +17,8 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { getWithRetry } from "../helpers/request";
+import { deleteCreatedRows } from "../helpers/teardown";
 
 test.describe("P a member tags a photo with a race", () => {
   /**
@@ -52,18 +54,7 @@ test.describe("P a member tags a photo with a race", () => {
     if (!createdMediaId) return;
     const id = createdMediaId;
     createdMediaId = null;
-
-    const login = await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-    if (!login.ok()) throw new Error(`teardown could not sign in: ${login.status()}`);
-
-    const deleted = await request.delete(`/api/media/${id}`);
-    if (!deleted.ok() && deleted.status() !== 404) {
-      throw new Error(
-        `teardown failed to delete media/${id}: ${deleted.status()} ${await deleted.text()}`,
-      );
-    }
+    await deleteCreatedRows(request, [{ collection: "media", id }]);
   });
 
   test("P-PHOTO: uploads a photo tagged with a race, and it appears on that race's wall", async ({
@@ -116,7 +107,7 @@ test.describe("P a member tags a photo with a race", () => {
 
     // Resolve which race this edition actually is — the select only carries
     // the id, and the public wall lives at `/races/[event-key]/[year]`.
-    const edition = await page.request.get(`/api/race-editions/${editionId}?depth=1`);
+    const edition = await getWithRetry(page.request, `/api/race-editions/${editionId}?depth=1`);
     expect(edition.ok(), "the edition just offered in the picker should be readable").toBe(true);
     const editionBody = (await edition.json()) as {
       year: number;

@@ -2,6 +2,7 @@ import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows, leavePostEditor } from "../helpers/teardown";
 
 /**
  * M-AIIMPROVE — the AI improves the article, and gives it back with the
@@ -125,31 +126,11 @@ test.describe("M-AIIMPROVE the AI improves an article in place", () => {
     recordCreated({ collection: "posts", id: postId, note: "M-AIIMPROVE probe post" });
   });
 
-  test.afterEach(async ({ request }) => {
+  test.afterEach(async ({ page, request }) => {
     // Reversed: the post references the media.
     const pending = created.splice(0, created.length).reverse();
-    if (pending.length === 0) return;
-
-    // Best effort, and deliberately not asserted on. The `request` fixture
-    // still holds the cookies from the sign-in this test already did, so
-    // this is a second login for a session that already exists — a failure
-    // surface with nothing behind it. One of them answered 500 on a CI
-    // shard, with no server-side log and with the deletes right after it
-    // fine, and failed a test whose own assertions had all passed.
-    //
-    // What has to work here is the delete, so that is what fails the test.
-    // A session that really had lapsed shows up as a 401 on the line below,
-    // which says so.
-    await request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    });
-
-    for (const doomed of pending) {
-      const deleted = await request.delete(`/api/${doomed.collection}/${doomed.id}`);
-      if (!deleted.ok()) {
-        throw new Error(`teardown failed to delete ${doomed.collection}/${doomed.id}`);
-      }
-    }
+    await leavePostEditor(page);
+    await deleteCreatedRows(request, pending);
   });
 
   test("M-AIIMPROVE-T1: the AI version sits beside the original with the picture still in the middle", async ({
