@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Lightbox, { type Slide } from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
@@ -13,6 +13,7 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 import PhotoAlbum, { type Photo, type RenderImageContext } from "react-photo-album";
 import type { SiteMediaItem } from "@/lib/content-types";
+import type { WallCursor } from "@/lib/media/gallery-index";
 import { mediaDisplayName } from "@/lib/media-name";
 import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
 
@@ -50,8 +51,13 @@ type GridPhoto = Photo & {
   mimeType?: string;
 };
 
-/** Paint the first screenful immediately, then swap the rest in. */
-const SEED_COUNT = 24;
+/**
+ * How far below the viewport the sentinel triggers the next fetch, so the
+ * next page is already in hand by the time a visitor's scroll reaches it
+ * rather than after — a positive margin front-loads the request instead of
+ * racing it against the scroll.
+ */
+const PREFETCH_MARGIN = "800px";
 
 /**
  * The box a video gets in the justified layout.
@@ -156,28 +162,75 @@ function VideoCard({
 
 export function MediaGrid({
   items,
+  nextCursor,
   targetRowHeight = 220,
 }: {
   items: SiteMediaItem[];
+  /**
+   * Omit for a bounded list that never paginates — an album's own contents,
+   * which PhotoGallery already has in full and always will (an album is
+   * curator-sized, not visitor-scale). Pass it — `null` included, meaning
+   * there is no next page yet — for the wall, and this turns on
+   * scroll-triggered fetching against /api/gallery/wall. See that route's
+   * header for why a page of the wall can only come from there.
+   */
+  nextCursor?: WallCursor | null;
   targetRowHeight?: number;
 }) {
   const [index, setIndex] = useState(-1);
+  const paginated = nextCursor !== undefined;
 
-  const all = useMemo(() => toGridPhotos(items), [items]);
-  const [shown, setShown] = useState<GridPhoto[]>(() => all.slice(0, SEED_COUNT));
+  const [accumulated, setAccumulated] = useState<SiteMediaItem[]>(items);
+  const [cursor, setCursor] = useState<WallCursor | null>(nextCursor ?? null);
+  const loadingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current || !cursor) return;
+    loadingRef.current = true;
+    try {
+      const params = new URLSearchParams({
+        createdAt: cursor.createdAt,
+        src: cursor.src,
+      });
+      const response = await fetch(`/api/gallery/wall?${params}`);
+      if (!response.ok) return;
+      const page = (await response.json()) as {
+        items: SiteMediaItem[];
+        nextCursor: WallCursor | null;
+      };
+      setAccumulated((prev) => [...prev, ...page.items]);
+      setCursor(page.nextCursor);
+    } finally {
+      loadingRef.current = false;
+    }
+  }, [cursor]);
+
+  // Not re-armed on `items`/`nextCursor` changing identity: GalleryPageClient
+  // only ever mounts this fresh (the "全部相片" tab conditionally renders it,
+  // so switching away and back remounts rather than re-props an existing
+  // instance), so the lazy initial state above is the only sync this needs.
   useEffect(() => {
-    setShown(all.slice(0, SEED_COUNT));
-    if (all.length <= SEED_COUNT) return;
-    const timer = setTimeout(() => setShown(all), 100);
-    return () => clearTimeout(timer);
-  }, [all]);
+    if (!paginated || !cursor) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void loadMore();
+      },
+      { rootMargin: PREFETCH_MARGIN },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [paginated, cursor, loadMore]);
 
-  // The lightbox indexes into exactly what the grid shows, so the two cannot
-  // drift while the second stage is still pending.
+  const photos = useMemo(() => toGridPhotos(accumulated), [accumulated]);
+
+  // The lightbox indexes into exactly what the grid shows, so a page that
+  // arrives mid-view never shifts an index already open.
   const slides: Slide[] = useMemo(
     () =>
-      shown.map((item) =>
+      photos.map((item) =>
         item.kind === "video"
           ? {
               type: "video" as const,
@@ -187,10 +240,10 @@ export function MediaGrid({
             }
           : { src: item.src, width: item.width, height: item.height },
       ),
-    [shown],
+    [photos],
   );
 
-  if (shown.length === 0) {
+  if (photos.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="gallery-all-photos-empty">
         還沒有相片或影片。
@@ -203,7 +256,7 @@ export function MediaGrid({
       <PhotoAlbum
         layout="rows"
         targetRowHeight={targetRowHeight}
-        photos={shown}
+        photos={photos}
         render={{
           image: (props, context: RenderImageContext<GridPhoto>) =>
             context.photo.kind === "video" ? (
@@ -228,6 +281,14 @@ export function MediaGrid({
         }}
         onClick={({ index: i }) => setIndex(i)}
       />
+
+      {/* Invisible, and only present at all while there is somewhere to
+          scroll to — `paginated && cursor` both drop once the wall is
+          exhausted, which stops the observer effect above from re-arming
+          against a node that no longer exists. */}
+      {paginated && cursor && (
+        <div ref={sentinelRef} aria-hidden="true" className="h-px" data-testid="gallery-wall-sentinel" />
+      )}
 
       <Lightbox
         slides={slides}

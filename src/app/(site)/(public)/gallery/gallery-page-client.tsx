@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { SiteAlbumCard, SiteMediaItem, SitePhoto } from "@/lib/content-types";
+import type { WallCursor } from "@/lib/media/gallery-index";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
 import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
 import { AlbumCards } from "@/app/(site)/(public)/gallery/_components/AlbumCards";
@@ -20,12 +21,14 @@ type GalleryPageClientProps = {
   albums: SiteAlbumCard[];
   featuredPhotos: SitePhoto[];
   /**
-   * Album membership ∪ media.usage, deduped and newest-first — see
-   * unionBySrc. Photos and videos in one list because the page draws them in
-   * one grid; a separate video rail was a separate order, and two orders is
-   * what buried a member's newest upload at position 24.
+   * The wall's first page only — album membership ∪ media.usage, deduped and
+   * newest-first, see unionBySrc — not the whole thing. MediaGrid fetches
+   * the rest from /api/gallery/wall as the visitor scrolls, using
+   * `nextCursor` below to pick up where this page left off.
    */
   items: SiteMediaItem[];
+  /** `null` means the first page was the only page. */
+  nextCursor: WallCursor | null;
 };
 
 type GalleryView = "all" | "albums";
@@ -75,6 +78,7 @@ export default function GalleryPageClient({
   albums,
   featuredPhotos,
   items,
+  nextCursor,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -112,7 +116,7 @@ export default function GalleryPageClient({
 
           {view === "all" && (
             <div className="mt-8" data-testid="gallery-all-photos">
-              <MediaGrid items={items} />
+              <MediaGrid items={items} nextCursor={nextCursor} />
             </div>
           )}
         </section>

@@ -25,8 +25,21 @@ import { photosOf, videosOf } from '@/lib/media/gallery-items'
 /** The featured shelf has always been capped; the cap moves here with it. */
 const FEATURED_LIMIT = 20
 
-const newestFirst = (a: { createdAt: string }, b: { createdAt: string }) =>
-  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+/**
+ * `src` is an optional tiebreak, not just the sort key `unionBySrc` already
+ * requires it for: a batch import can give several rows the exact same
+ * `createdAt`, and without a deterministic second key the array has no single
+ * stable order — which `wallPage`'s cursor depends on to find its place
+ * exactly rather than guessing.
+ */
+const newestFirst = (
+  a: { createdAt: string; src?: string },
+  b: { createdAt: string; src?: string },
+) => {
+  const byTime = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  if (byTime !== 0) return byTime
+  return (a.src ?? '').localeCompare(b.src ?? '')
+}
 
 /**
  * One album's card. The contents stay behind, at /gallery/[slug].
@@ -82,6 +95,65 @@ export type GalleryIndexData = {
    * the order is time.
    */
   items: SiteMediaItem[]
+}
+
+/** Where a page of the wall left off — the last item's own identity, not an offset. */
+export type WallCursor = { createdAt: string; src: string }
+
+export type WallPage = {
+  items: SiteMediaItem[]
+  /** `null` means there is nothing more. */
+  nextCursor: WallCursor | null
+}
+
+/** How many items `/api/gallery/wall` and the initial page both hand out at once. */
+export const WALL_PAGE_SIZE = 60
+
+/**
+ * One page of the wall, sliced from the array `buildGalleryIndex` already
+ * produced — never a second query. See this file's header: the wall is a
+ * union of two sources, and only `buildGalleryIndex` gets that union right.
+ * A route that paginated `media.find` on its own would quietly drop every
+ * album-curated item whose own `usage` is not `gallery` past page one — not
+ * a performance bug, a content-correctness one, and nothing would catch it
+ * on a corpus that doesn't happen to have such a row.
+ *
+ * The cursor is the last item's own `(createdAt, src)`, not an offset. Two
+ * requests a visitor makes can be minutes apart, and a photo can publish or
+ * get withdrawn in that window; an offset shifts under that and produces a
+ * skipped or repeated row. This cursor re-finds its place in whatever the
+ * array looks like *now* and returns what comes after — the only definition
+ * of "next page" that survives concurrent writes. If the cursor's own item
+ * is gone (withdrawn since the last page was fetched), it falls back to the
+ * first item that would sort after it, using the same comparator the array
+ * is already sorted by.
+ */
+export function wallPage(
+  items: SiteMediaItem[],
+  cursor: WallCursor | null,
+  pageSize: number = WALL_PAGE_SIZE,
+): WallPage {
+  let start = 0
+  if (cursor) {
+    const at = items.findIndex(
+      (item) => item.createdAt === cursor.createdAt && item.src === cursor.src,
+    )
+    if (at >= 0) {
+      start = at + 1
+    } else {
+      const after = items.findIndex((item) => newestFirst(item, cursor) > 0)
+      start = after >= 0 ? after : items.length
+    }
+  }
+
+  const page = items.slice(start, start + pageSize)
+  const last = page[page.length - 1]
+  const nextCursor: WallCursor | null =
+    last && start + pageSize < items.length
+      ? { createdAt: last.createdAt, src: last.src }
+      : null
+
+  return { items: page, nextCursor }
 }
 
 export function buildGalleryIndex(

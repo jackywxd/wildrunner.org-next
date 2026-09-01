@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import type { SiteGallery, SitePhoto } from "@/lib/content-types";
-import { albumCard, buildGalleryIndex } from "@/lib/media/gallery-index";
+import type { SiteGallery, SiteMediaItem, SitePhoto } from "@/lib/content-types";
+import {
+  albumCard,
+  buildGalleryIndex,
+  wallPage,
+  type WallCursor,
+} from "@/lib/media/gallery-index";
 
 /**
  * U-GALLERYINDEX — what /gallery is sent, and the one rule in it.
@@ -120,5 +125,93 @@ test.describe("U-GALLERYINDEX the wall is a union, not the library", () => {
 
   test("U-GALLERYINDEX-5: an empty album is not carded", () => {
     expect(buildGalleryIndex([album("empty", [])], [], []).albums).toEqual([]);
+  });
+
+  test("U-GALLERYINDEX-6: two items sharing one createdAt still get one deterministic order", () => {
+    // No secondary key before this, two rows with an identical `createdAt`
+    // — a batch import, say — had no defined order at all. `newestFirst`
+    // breaks the tie on `src`, which is what lets wallPage's cursor find an
+    // exact, unambiguous position at a boundary like this one.
+    const index = buildGalleryIndex([], [photo("z.jpg"), photo("a.jpg")], []);
+    expect(index.items.map((item) => item.src)).toEqual(["a.jpg", "z.jpg"]);
+  });
+});
+
+test.describe("U-WALLPAGE a page of the wall, sliced from the array buildGalleryIndex already produced", () => {
+  const item = (src: string, createdAt: string): SiteMediaItem => ({
+    kind: "photo",
+    ...photo(src, { createdAt }),
+  });
+
+  // Newest first — the order buildGalleryIndex itself would hand wallPage.
+  // wallPage does not sort; it only slices what it is given.
+  const five = [
+    item("e.jpg", "2026-01-05T00:00:00.000Z"),
+    item("d.jpg", "2026-01-04T00:00:00.000Z"),
+    item("c.jpg", "2026-01-03T00:00:00.000Z"),
+    item("b.jpg", "2026-01-02T00:00:00.000Z"),
+    item("a.jpg", "2026-01-01T00:00:00.000Z"),
+  ];
+
+  test("U-WALLPAGE-1: the first page stops at pageSize and points a cursor at its own last item", () => {
+    const result = wallPage(five, null, 2);
+    expect(result.items.map((i) => i.src)).toEqual(["e.jpg", "d.jpg"]);
+    expect(result.nextCursor).toEqual({
+      createdAt: "2026-01-04T00:00:00.000Z",
+      src: "d.jpg",
+    });
+  });
+
+  test("U-WALLPAGE-2: the returned cursor continues from exactly the next item — no skip, no repeat", () => {
+    const first = wallPage(five, null, 2);
+    const second = wallPage(five, first.nextCursor, 2);
+    expect(second.items.map((i) => i.src)).toEqual(["c.jpg", "b.jpg"]);
+  });
+
+  test("U-WALLPAGE-3: the last page's cursor is null — nothing left to ask for", () => {
+    const first = wallPage(five, null, 2);
+    const second = wallPage(five, first.nextCursor, 2);
+    const third = wallPage(five, second.nextCursor, 2);
+    expect(third.items.map((i) => i.src)).toEqual(["a.jpg"]);
+    expect(third.nextCursor).toBeNull();
+  });
+
+  test("U-WALLPAGE-4: fewer items than a page — everything comes back at once, no cursor", () => {
+    const result = wallPage(five.slice(0, 2), null, 10);
+    expect(result.items).toHaveLength(2);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  test("U-WALLPAGE-5: a cursor whose own item was withdrawn since the last page still resumes at the right place", () => {
+    // "d.jpg" was the previous page's boundary; by the time this request
+    // lands, its owner has taken it off the wall. The array wallPage sees no
+    // longer contains it at all — the exact case a plain offset gets wrong,
+    // because every index after the gap has shifted by one.
+    const withdrawn = five.filter((row) => row.src !== "d.jpg");
+    const cursor: WallCursor = {
+      createdAt: "2026-01-04T00:00:00.000Z",
+      src: "d.jpg",
+    };
+    const result = wallPage(withdrawn, cursor, 2);
+    expect(result.items.map((i) => i.src)).toEqual(["c.jpg", "b.jpg"]);
+  });
+
+  test("U-WALLPAGE-6: an exact cursor match disambiguates rows that share a timestamp", () => {
+    // Already in the order buildGalleryIndex's tie-break (U-GALLERYINDEX-6)
+    // would produce it in.
+    const tied = [
+      item("x.jpg", "2026-01-01T00:00:00.000Z"),
+      item("y.jpg", "2026-01-01T00:00:00.000Z"),
+      item("z.jpg", "2026-01-01T00:00:00.000Z"),
+    ];
+    const first = wallPage(tied, null, 1);
+    const second = wallPage(tied, first.nextCursor, 1);
+    const third = wallPage(tied, second.nextCursor, 1);
+    expect([first, second, third].map((p) => p.items[0]?.src)).toEqual([
+      "x.jpg",
+      "y.jpg",
+      "z.jpg",
+    ]);
+    expect(third.nextCursor).toBeNull();
   });
 });
