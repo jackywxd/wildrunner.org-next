@@ -39,6 +39,7 @@ export type VideoMediaDoc = Pick<
   | 'posterUrl'
   | 'streamId'
   | 'streamReady'
+  | 'title'
   | 'url'
 >
 
@@ -70,6 +71,7 @@ export function mediaToSiteVideo(
     mimeType: media.mimeType ?? 'video/mp4',
     size: media.filesize ?? undefined,
     extension: filename.includes('.') ? filename.split('.').pop()! : undefined,
+    title: media.title ?? undefined,
     poster: media.posterUrl ?? undefined,
     streamId: media.streamId,
     streamReady: Boolean(media.streamReady),

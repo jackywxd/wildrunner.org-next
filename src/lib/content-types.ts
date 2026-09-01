@@ -49,6 +49,12 @@ export type SiteVideo = {
    */
   poster?: string;
   /**
+   * What a person named the file, when they have. `undefined` means nobody
+   * has — `mediaDisplayName` then derives a label from the URL, exactly as
+   * every video without a title already gets.
+   */
+  title?: string;
+  /**
    * The media doc's own createdAt, for the same reason `SitePhoto` carries one.
    *
    * Its absence is why /gallery's video strip could not be sorted at all: the

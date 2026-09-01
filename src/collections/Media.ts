@@ -77,6 +77,36 @@ export const Media: CollectionConfig = {
       required: true,
     },
     {
+      /**
+       * What this file is called on screen, when somebody has said.
+       *
+       * A NAME IS NOT ALT TEXT, and this field exists because the two were
+       * about to be conflated. `alt` describes the *content* for a screen
+       * reader and is required; a title is what a visitor reads under a video
+       * tile. Sharing one field means an edit made for accessibility silently
+       * renames the thing on screen — and the corpus shows they are not even
+       * the same string: `alt` on the migrated videos is the album name plus
+       * the original filename with its extension
+       * (`2023 - UTMB UTMB 2023 Vertical.m4v`), while new uploads get
+       * `defaultAltFor(filename)`, which is the stem `mediaDisplayName`
+       * already derives.
+       *
+       * OPTIONAL, AND EXPECTED TO BE EMPTY on almost every row. Empty means
+       * "nobody has named this", and `mediaDisplayName` then derives a label
+       * from the URL exactly as it does today — so nothing regresses and
+       * there is no backfill. Filling it in is a member editing one field in
+       * their library, which is the only source that can do better than a
+       * guess at a filename.
+       */
+      name: 'title',
+      type: 'text',
+      label: { en: 'Display name', 'zh-TW': '顯示名稱' },
+      admin: {
+        description:
+          'Shown under a video in the gallery and as its share page heading. Leave empty to use the file name.',
+      },
+    },
+    {
       name: 'raceEdition',
       type: 'relationship',
       relationTo: 'race-editions',

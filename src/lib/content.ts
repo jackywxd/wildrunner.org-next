@@ -904,6 +904,7 @@ const GALLERY_MEDIA_SELECT = {
   raceEdition: true,
   streamId: true,
   streamReady: true,
+  title: true,
   url: true,
   width: true,
 } as const satisfies MediaSelect<true>;
