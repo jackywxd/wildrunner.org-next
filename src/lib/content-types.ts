@@ -11,6 +11,15 @@ export type SiteImage = {
 };
 
 export type SitePhoto = SiteImage & {
+  /**
+   * The media doc's own id, carried for the same reason `SiteVideo` carries
+   * one: it is the address of the share page, `/gallery/m/[mediaId]`.
+   *
+   * A photo had no id here at all until the grid grew a share button, because
+   * nothing resolved a photo by anything but its `src`. Videos had one only
+   * because their share route predates the unified one.
+   */
+  mediaId: number;
   filename: string;
   slug: string;
   featured: boolean;
