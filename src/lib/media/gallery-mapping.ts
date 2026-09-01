@@ -35,6 +35,7 @@ export type MediaCardDoc = Pick<
   | "id"
   | "legacyVideoId"
   | "mimeType"
+  | "posterUrl"
   | "raceEdition"
   | "streamId"
   | "streamReady"

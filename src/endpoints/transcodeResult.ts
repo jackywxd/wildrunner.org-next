@@ -3,7 +3,7 @@ import { APIError } from 'payload'
 
 import type { Media } from '@/payload-types'
 import { publicMediaUrl } from '@/lib/media-url'
-import { transcodedKey } from '@/lib/media/transcode-state'
+import { posterKey, transcodedKey } from '@/lib/media/transcode-state'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 
@@ -47,6 +47,9 @@ export const transcodeResultEndpoint: Endpoint = {
           height?: number
           key?: string
           message?: string
+          posterHeight?: number
+          posterKey?: string
+          posterWidth?: number
           status?: string
           width?: number
         }
@@ -70,6 +73,31 @@ export const transcodeResultEndpoint: Endpoint = {
       throw new APIError('status must be running, queued, skipped, done or failed', 400)
     }
 
+    // The poster, if the container managed to take one.
+    //
+    // Computed before the status branch because it arrives on BOTH of them,
+    // and the one that matters most is `skipped`: a video that is already
+    // h264/1080p encodes nothing, so `skipped` is the only report it will
+    // ever make, and a poster written only on `done` would never reach the
+    // files that make up most of the corpus.
+    //
+    // The key is checked against what this id is allowed to occupy, exactly
+    // as `body.key` is below and for the same reason — the value lands in a
+    // URL the site will serve, so an arbitrary one repoints the poster at an
+    // arbitrary object. A mismatch drops the poster rather than failing the
+    // report: the transcode itself is the job, and it has already happened.
+    let posterData: { posterUrl?: string } = {}
+    if (body?.posterKey) {
+      const expectedPosterKey = posterKey(id)
+      if (body.posterKey === expectedPosterKey) {
+        posterData = { posterUrl: publicMediaUrl(body.posterKey) }
+      } else {
+        req.payload.logger.warn(
+          `ignoring poster for media ${id}: key was ${body.posterKey}, expected ${expectedPosterKey}`,
+        )
+      }
+    }
+
     // `running` is the lease being taken out, and it carries no results.
     // Touching the row is the point: `updatedAt` moves, which is what the
     // sweep measures staleness against.
@@ -77,7 +105,7 @@ export const transcodeResultEndpoint: Endpoint = {
       const updated = await req.payload.update({
         collection: 'media',
         id,
-        data: { transcodeStatus: status },
+        data: { ...posterData, transcodeStatus: status },
         overrideAccess: true,
         req,
       })
@@ -147,6 +175,12 @@ export const transcodeResultEndpoint: Endpoint = {
 
     if (!existing) {
       await deleteOrphanedTranscode(body.key, req)
+      // The poster is orphaned by exactly the same event and for exactly the
+      // same reason — it was written before the report, and this is the only
+      // moment anything knows both that it exists and that its row does not.
+      if (posterData.posterUrl) {
+        await deleteOrphanedTranscode(posterKey(id), req)
+      }
       return Response.json({ ok: true, orphanDeleted: true, status: 'gone' })
     }
 
@@ -154,6 +188,7 @@ export const transcodeResultEndpoint: Endpoint = {
       collection: 'media',
       id,
       data: {
+        ...posterData,
         filename: body.key,
         // The container always writes H.264/AAC in an .mp4 container, so
         // after a successful run this row's old type is simply wrong: a

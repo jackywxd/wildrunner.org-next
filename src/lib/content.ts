@@ -900,6 +900,7 @@ const GALLERY_MEDIA_SELECT = {
   height: true,
   legacyVideoId: true,
   mimeType: true,
+  posterUrl: true,
   raceEdition: true,
   streamId: true,
   streamReady: true,

@@ -114,6 +114,19 @@ export function transcodedKey(mediaId: number | string): string {
 }
 
 /**
+ * The R2 key the poster frame is written to.
+ *
+ * This side's copy of `posterKeyFor()` in workers/transcoder/src/index.ts —
+ * the same hand-kept pair `transcodedKey` above describes, and for the same
+ * reason: a separate Worker cannot import from the app. The callback checks
+ * the reported key against this, so if the two drift the poster is refused
+ * rather than silently written to a key nothing reads.
+ */
+export function posterKey(mediaId: number | string): string {
+  return `posters/${mediaId}.jpg`;
+}
+
+/**
  * The exact job the transcoder Worker expects, or `null` if this row cannot
  * produce one.
  *

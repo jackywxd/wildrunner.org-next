@@ -11,6 +11,7 @@ import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
+import Image from "next/image";
 import { Share2 } from "lucide-react";
 import PhotoAlbum, { type Photo, type RenderImageContext } from "react-photo-album";
 import type { SiteMediaItem } from "@/lib/content-types";
@@ -35,16 +36,19 @@ import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsIma
  * 16:9 entry and is rendered as a card. That is what makes the interleaving
  * real rather than two containers stacked.
  *
- * WHY THE CARD DRAWS NO FRAME. Measured before this was written: of 27
- * gallery videos in production, 26 have no `width`/`height` and 27 have no
- * `blurDataURL`; the local corpus is 22 out of 22 for both. There is nothing
- * stored to draw. The alternatives were a `<video preload="metadata">` tile
- * showing its own first frame — 27 range requests on one page, and
- * unverifiable in this sandbox because every corpus video lives on a host it
- * cannot reach — or a real poster, which needs the transcoder container, a
- * field, a migration and a backfill. So the card is deliberately a card: dark,
- * labelled, unmistakably a video. A poster upgrades it later without moving
- * anything else.
+ * WHAT A VIDEO'S CARD DRAWS. A real frame when one has been extracted —
+ * `media.posterUrl`, taken by the transcoder container a second into the
+ * video — and otherwise the dark, labelled card this started as.
+ *
+ * Both halves are load-bearing, and the fallback is not a leftover. Measured
+ * when the card was written: of 27 gallery videos in production, 26 have no
+ * `width`/`height` and 27 have no `blurDataURL`; locally it was 22 out of 22.
+ * A poster only exists for a video the container has run over since posters
+ * shipped, so on any database with history there are videos with none, and
+ * `scripts/backfill-video-posters.ts` fills them in over time rather than at
+ * once. The rejected alternative is still rejected: a `<video
+ * preload="metadata">` tile showing its own first frame is one range request
+ * per video on the page.
  */
 type GridPhoto = Photo & {
   kind: "photo" | "video";
@@ -52,6 +56,8 @@ type GridPhoto = Photo & {
   mediaId: number;
   label: string;
   mimeType?: string;
+  /** A video's own frame, when the transcoder has taken one. */
+  poster?: string;
 };
 
 /**
@@ -91,6 +97,7 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
           mediaId: item.mediaId,
           label: mediaDisplayName(item),
           mimeType: item.mimeType,
+          poster: item.poster,
         },
   );
 }
@@ -187,12 +194,39 @@ function VideoCard({
 }) {
   return (
     <div
-      className="flex cursor-pointer flex-col items-center justify-center gap-2 bg-neutral-900 text-white/80 transition-colors hover:bg-neutral-800"
+      className="relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden bg-neutral-900 text-white/80 transition-colors hover:bg-neutral-800"
       data-testid="gallery-video-tile"
       style={{ width: "100%", aspectRatio: `${width} / ${height}` }}
     >
-      <PlayGlyph />
-      <p className="max-w-[85%] truncate px-2 text-center text-xs">{photo.label}</p>
+      {/*
+        The frame itself, when there is one.
+
+        Through `next/image` rather than a bare <img>, for the same reason
+        every photo in this grid is: the poster is the video's full frame —
+        1920x1080 for anything the transcoder has touched — and this tile is a
+        few hundred pixels wide. src/lib/image-loader.ts rewrites it to a
+        `/cdn-cgi/image/width=…` URL when it is on the R2 CDN, so the browser
+        fetches a thumbnail instead of a full frame per video on the page.
+
+        `absolute inset-0` UNDER the glyph rather than replacing it: the tile
+        still has to read as a video at a glance, and a bare still frame is
+        indistinguishable from a photo in a grid that holds both.
+      */}
+      {photo.poster && (
+        <Image
+          src={photo.poster}
+          alt=""
+          aria-hidden="true"
+          fill
+          sizes="(max-width: 768px) 100vw, 400px"
+          className="object-cover"
+          data-testid="gallery-video-poster"
+        />
+      )}
+      <div className="relative flex flex-col items-center gap-2 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+        <PlayGlyph />
+        <p className="max-w-[85%] truncate px-2 text-center text-xs">{photo.label}</p>
+      </div>
     </div>
   );
 }

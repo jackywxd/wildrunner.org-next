@@ -22,6 +22,7 @@ import {
   nextStatusForRequest,
   reclaim,
   transcodeJob,
+  posterKey,
   transcodedKey,
 } from "@/lib/media/transcode-state";
 
@@ -137,5 +138,22 @@ test.describe("U-TRANSCODE the transcode queue's rules", () => {
     expect(transcodedKey(672)).toBe("transcoded/672-1080p.mp4");
     expect(transcodedKey(672)).toBe(transcodedKey("672"));
     expect(transcodedKey(1)).not.toBe(transcodedKey(2));
+  });
+
+  test("U-TRANSCODE-9: the poster key is derived the same way, under its own prefix", () => {
+    // This side's copy of `posterKeyFor()` in workers/transcoder/src/index.ts.
+    // The callback refuses any reported key that does not equal this one, so
+    // the two drifting apart means posters stop being accepted rather than
+    // landing somewhere unread — which is why the exact string is pinned here
+    // rather than just its shape.
+    expect(posterKey(672)).toBe("posters/672.jpg");
+    expect(posterKey(672)).toBe(posterKey("672"));
+    expect(posterKey(1)).not.toBe(posterKey(2));
+
+    // A separate prefix from the transcode, not a sibling extension: the
+    // unused-media sweep and any bucket rule can then tell one kind of
+    // derived object from the other without parsing a filename.
+    expect(posterKey(672).startsWith("posters/")).toBe(true);
+    expect(transcodedKey(672).startsWith("transcoded/")).toBe(true);
   });
 });

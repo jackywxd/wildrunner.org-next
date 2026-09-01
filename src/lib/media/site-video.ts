@@ -36,6 +36,7 @@ export type VideoMediaDoc = Pick<
   | 'id'
   | 'legacyVideoId'
   | 'mimeType'
+  | 'posterUrl'
   | 'streamId'
   | 'streamReady'
   | 'url'
@@ -69,6 +70,7 @@ export function mediaToSiteVideo(
     mimeType: media.mimeType ?? 'video/mp4',
     size: media.filesize ?? undefined,
     extension: filename.includes('.') ? filename.split('.').pop()! : undefined,
+    poster: media.posterUrl ?? undefined,
     streamId: media.streamId,
     streamReady: Boolean(media.streamReady),
   }

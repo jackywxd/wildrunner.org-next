@@ -48,6 +48,16 @@ type ScriptResult = {
   bytes?: number
   width?: number
   height?: number
+  /**
+   * Absent when the frame could not be taken or could not be uploaded. The
+   * script treats a poster as an improvement rather than part of the job, so
+   * these three are optional on BOTH outcomes — including `skipped`, which is
+   * the path most of the corpus takes and therefore the one that matters most
+   * for ever getting a poster at all.
+   */
+  posterKey?: string
+  posterWidth?: number
+  posterHeight?: number
 }
 
 export class TranscodeContainer extends Container<Env> {
@@ -167,6 +177,7 @@ export class TranscodeContainer extends Container<Env> {
           '/usr/local/bin/transcode.sh',
           job.sourceUrl,
           destKeyFor(job.mediaId),
+          posterKeyFor(job.mediaId),
         ],
         { env: containerEnv },
       )
@@ -206,17 +217,30 @@ export class TranscodeContainer extends Container<Env> {
       const line = stdout.trim().split('\n').pop() ?? ''
       const result = JSON.parse(line) as ScriptResult
 
+      // Reported on both outcomes, because the script takes the frame before
+      // it decides whether to encode. Spread rather than always sent, so a
+      // run that could not produce one leaves whatever the row already has
+      // alone instead of writing nulls over it.
+      const poster = result.posterKey
+        ? {
+            posterKey: result.posterKey,
+            posterHeight: result.posterHeight,
+            posterWidth: result.posterWidth,
+          }
+        : {}
+
       if (result.skipped) {
         // No new object exists, so there is nothing to repoint the row at.
         // `skipped` is the honest state and the media keeps serving the file
         // it already had — which is why this is the cheapest possible
         // outcome rather than a special case to work around.
-        await this.report(job.mediaId, { status: 'skipped' })
+        await this.report(job.mediaId, { ...poster, status: 'skipped' })
         console.log(
           `media ${job.mediaId} needed no transcode (${result.reason ?? 'already compliant'})`,
         )
       } else {
         await this.report(job.mediaId, {
+          ...poster,
           bytes: result.bytes,
           height: result.height,
           key: result.key,
@@ -353,6 +377,19 @@ export class TranscodeContainer extends Container<Env> {
  */
 function destKeyFor(mediaId: number | string): string {
   return `transcoded/${mediaId}-1080p.mp4`
+}
+
+/**
+ * Where the poster frame is written — derived here for exactly the reason
+ * `destKeyFor` is, and kept in step with `posterKey()` in
+ * src/lib/media/transcode-state.ts by hand.
+ *
+ * A separate prefix from `transcoded/`, not a sibling extension, so the
+ * unused-media sweep and any bucket-level rule can tell one from the other
+ * without parsing a filename.
+ */
+function posterKeyFor(mediaId: number | string): string {
+  return `posters/${mediaId}.jpg`
 }
 
 export default {
