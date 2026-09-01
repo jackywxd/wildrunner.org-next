@@ -5,7 +5,7 @@ import {
   getPublishedGalleries,
   getRaceGalleries,
 } from "@/lib/content";
-import { buildGalleryIndex } from "@/lib/media/gallery-index";
+import { buildGalleryIndex, wallPage } from "@/lib/media/gallery-index";
 import GalleryPageClient from "./gallery-page-client";
 
 /**
@@ -57,5 +57,19 @@ export default async function GalleryPage() {
     libraryVideos,
   );
 
-  return <GalleryPageClient {...index} />;
+  // The next step of that same fix: the wall itself no longer ships whole.
+  // Only the first page of `items` goes into this payload; MediaGrid fetches
+  // the rest from /api/gallery/wall as the visitor scrolls to it. See
+  // wallPage's header for why that has to run the same reduction rather than
+  // paginate a `media` query on its own.
+  const firstPage = wallPage(index.items, null);
+
+  return (
+    <GalleryPageClient
+      albums={index.albums}
+      featuredPhotos={index.featuredPhotos}
+      items={firstPage.items}
+      nextCursor={firstPage.nextCursor}
+    />
+  );
 }
