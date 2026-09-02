@@ -37,14 +37,41 @@ import type { APIRequestContext, APIResponse } from "@playwright/test";
  * dev server is inferred, not demonstrated, and both layers below are kept
  * for that reason rather than only the tidier one.
  *
- * TWO LAYERS.
+ * THE FIX IS THE RETRY, AND ONLY THE RETRY. `withRetries` wraps the context so
+ * a transport error is retried wherever it happens.
  *
- *   1. `apiHeaders` sends `Connection: close`, so no socket is ever reused and
- *      the stale-socket race cannot arise. Measured through the public API:
- *      five requests share one socket by default and use five distinct ones
- *      with this header.
- *   2. `withRetries` wraps the context so a transport error is retried
- *      wherever it happens.
+ * IT WAS TWO LAYERS FOR ONE DEPLOY, AND THE SECOND ONE HAD TO GO. `apiHeaders`
+ * also sent `Connection: close`, so that no socket was reused and the race
+ * above could not arise at all. It did what it claimed — five requests share
+ * one socket by default and used five distinct ones with the header — and
+ * against staging it broke something worse.
+ *
+ * Deploy run 33577524228, the first staging run to carry it: 13 failed, 37
+ * passed, and the failures were not transport errors at all. They were the
+ * Worker answering
+ *
+ *   500 {"message":"There was an error initializing Payload"}
+ *
+ * for the first ninety seconds — `Failed to create admin user`, `race-events
+ * is not readable`, then `fixture setup could not sign in` nine times — after
+ * which every remaining test passed.
+ *
+ * That PR changed nothing but files under e2e/, so the deployed Worker was
+ * functionally identical to the one that had just passed 58/58 in run 111
+ * starting 45 seconds after its own deploy. The one thing that differed was
+ * this header. With keep-alive a whole run rides a handful of connections and
+ * therefore a handful of already-warm isolates; with a fresh connection per
+ * call each one can land on a cold isolate, and a cold start here boots
+ * Payload — which acquires the Cloudflare context in a top-level await and is
+ * anything but cheap. The failures clustering in the first ninety seconds and
+ * then stopping is what warming up looks like.
+ *
+ * Not proven, and worth saying so: `workers: 1` means the suite is sequential,
+ * so this is not a thundering herd, and Cloudflare's isolate reuse is not
+ * something this repo can observe. But it was the only behavioural change
+ * against staging, it correlates exactly, and it was already the half that
+ * could never be shown to fix anything. The retry is the half that was
+ * measured to work.
  *
  * WHY THE SECOND LAYER IS A WRAPPER AND NOT A HABIT. `withTransportRetry` has
  * existed since #112 and was applied by hand, one call site per incident —
@@ -86,16 +113,13 @@ export function isTransportError(error: unknown): boolean {
  * `serverURL` is set). Contexts made with `request.newContext()` do not
  * inherit `use.extraHTTPHeaders`, so it has to be repeated here.
  *
- * `Connection: close` for the reason in the header above. It costs a fresh
- * handshake per call — about 100 of them in a full run, against a suite that
- * takes 13 to 21 minutes — which is a price worth paying to delete a class of
- * failure rather than retry through it.
+ * It carried `Connection: close` for one deploy; the header comment above
+ * records what that cost and why it is gone. Adding anything here again means
+ * changing how every API request reaches a deployed Worker, which is a bigger
+ * blast radius than it looks.
  */
 export function apiHeaders(baseURL: string | undefined): Record<string, string> {
-  return {
-    ...(baseURL ? { Origin: baseURL } : {}),
-    Connection: "close",
-  };
+  return baseURL ? { Origin: baseURL } : {};
 }
 
 /**
@@ -143,9 +167,8 @@ const REQUEST_METHODS = new Set(["get", "post", "put", "patch", "delete", "head"
  * response was lost, which a retry would duplicate. Under the mechanism
  * described above the request never reaches the application at all — it is
  * written to a socket the server has already closed — so a retry is the
- * correct recovery, and `Connection: close` removes that case anyway. A
- * duplicate fixture row is also bounded and visible: cleanup reports rows the
- * ledger does not claim.
+ * correct recovery. A duplicate fixture row is also bounded and visible:
+ * cleanup reports rows the ledger does not claim.
  *
  * Every method is invoked against `target`, never against the proxy. Playwright's
  * context is a class with private fields, and calling one with `this` bound to
