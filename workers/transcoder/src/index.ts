@@ -39,6 +39,21 @@ type TranscodeJob = {
   sourceUrl: string
 }
 
+/**
+ * A member picked a frame and wants it as the cover.
+ *
+ * `seconds` is the only caller-supplied value that reaches ffmpeg, and it is
+ * re-validated here rather than trusted from the site — this Worker answers
+ * on a public hostname, so "the site checked it" is not a property this code
+ * can rely on. Where the frame is written is still derived from the media id,
+ * never sent.
+ */
+type PosterJob = {
+  mediaId: number | string
+  sourceUrl: string
+  seconds: number
+}
+
 type ScriptResult = {
   ok: true
   /** Set when the source already met the target and nothing was encoded. */
@@ -126,6 +141,89 @@ export class TranscodeContainer extends Container<Env> {
    */
   async accept(job: TranscodeJob): Promise<void> {
     void this.run(job)
+  }
+
+  /** The poster-only equivalent of `accept`, and detached for the same reason. */
+  async acceptPoster(job: PosterJob): Promise<void> {
+    void this.runPoster(job)
+  }
+
+  /**
+   * Take one frame at the time a member chose, and report it.
+   *
+   * Deliberately does NOT touch `transcodeStatus` at either end — no
+   * `running`, no `done`. Choosing a cover picture says nothing about whether
+   * the video was transcoded, and routing this through the transcode callback
+   * would relabel a genuinely transcoded video as `skipped`, which is the trap
+   * scripts/backfill-video-posters.ts already refuses to walk into.
+   *
+   * The consequence is that there is no lease and therefore no sweep to
+   * recover this: if the container dies mid-frame, nothing retries. That is
+   * the right trade for work a member started by pressing a button and can
+   * simply press again — a lease exists so an upload nobody is watching still
+   * finishes, and this is the opposite situation.
+   */
+  async runPoster(job: PosterJob): Promise<void> {
+    try {
+      const containerEnv = {
+        AWS_ACCESS_KEY_ID: this.env.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: this.env.AWS_SECRET_ACCESS_KEY,
+        R2_BUCKET: this.env.R2_BUCKET,
+        R2_S3_ENDPOINT: this.env.R2_S3_ENDPOINT,
+      }
+
+      if (!this.ctx.container?.running) {
+        await this.start({ envVars: containerEnv })
+      }
+
+      const process = await this.ctx.container!.exec(
+        [
+          '/usr/local/bin/poster.sh',
+          job.sourceUrl,
+          posterKeyFor(job.mediaId),
+          String(job.seconds),
+        ],
+        { env: containerEnv },
+      )
+
+      // Same heartbeat as `run`, same reason: `exec()` is the raw container
+      // API, so the library's inactivity timer would otherwise stop the
+      // container while ffmpeg is still seeking a long file.
+      const heartbeat = setInterval(() => this.renewActivityTimeout(), 30_000)
+      let exitCode: number
+      let stdout: string
+      try {
+        stdout = await new Response(process.stdout).text()
+        exitCode = await process.exitCode
+      } finally {
+        clearInterval(heartbeat)
+      }
+
+      if (exitCode !== 0) {
+        const stderr = await new Response(process.stderr).text()
+        throw new Error(`poster.sh exited ${exitCode}: ${stderr.slice(0, 500)}`)
+      }
+
+      const line = stdout.trim().split('\n').filter(Boolean).pop() ?? ''
+      const result = JSON.parse(line) as ScriptResult
+      if (!result?.posterKey) {
+        throw new Error('poster.sh reported no posterKey')
+      }
+
+      await this.reportPoster(job.mediaId, {
+        ok: true,
+        posterHeight: result.posterHeight,
+        posterKey: result.posterKey,
+        posterWidth: result.posterWidth,
+        seconds: job.seconds,
+      })
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      await this.ctx.container?.destroy(reason).catch(() => {})
+      // Best effort, like `run`'s: the member sees the poster not change and
+      // can press again, which is the whole recovery story for this path.
+      await this.reportPoster(job.mediaId, { message: reason, ok: false }).catch(() => {})
+    }
   }
 
   /**
@@ -339,6 +437,34 @@ export class TranscodeContainer extends Container<Env> {
     }
   }
 
+  /**
+   * A separate callback from `report`, addressed to a separate endpoint.
+   *
+   * The site's `/transcode-result` requires a transcode status and writes it;
+   * there is no value of that field which means "I only chose a picture". So
+   * the poster path reports to `/poster-result`, which touches `posterUrl`
+   * and nothing else.
+   */
+  private async reportPoster(
+    mediaId: number | string,
+    body: Record<string, unknown>,
+  ): Promise<void> {
+    const response = await fetch(
+      `${this.env.APP_ORIGIN}/api/members/media/${mediaId}/poster-result`,
+      {
+        body: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-transcode-secret': this.env.TRANSCODE_SECRET,
+        },
+        method: 'POST',
+      },
+    )
+    if (!response.ok) {
+      throw new Error(`poster callback for media ${mediaId} returned ${response.status}`)
+    }
+  }
+
   private async report(
     mediaId: number | string,
     body: Record<string, unknown>,
@@ -395,7 +521,9 @@ function posterKeyFor(mediaId: number | string): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
-    if (request.method !== 'POST' || url.pathname !== '/transcode') {
+    const isTranscode = request.method === 'POST' && url.pathname === '/transcode'
+    const isPoster = request.method === 'POST' && url.pathname === '/poster'
+    if (!isTranscode && !isPoster) {
       return new Response('Not found', { status: 404 })
     }
 
@@ -408,7 +536,7 @@ export default {
       return new Response('Unauthorized', { status: 401 })
     }
 
-    const job = (await request.json()) as TranscodeJob
+    const job = (await request.json()) as TranscodeJob & { seconds?: unknown }
     if (job?.mediaId === undefined || !job.sourceUrl) {
       return new Response('mediaId and sourceUrl are required', { status: 400 })
     }
@@ -420,16 +548,37 @@ export default {
       return new Response('sourceUrl must be https', { status: 400 })
     }
 
+    // Re-validated here, not trusted from the site: `seconds` is the one
+    // caller-supplied value that reaches ffmpeg's argv, and this handler is
+    // on the open internet. Finite, non-negative, and bounded well past any
+    // plausible club video — a NaN or an Infinity would otherwise be
+    // stringified straight into the command.
+    let seconds = 0
+    if (isPoster) {
+      const raw = typeof job.seconds === 'number' ? job.seconds : Number(job.seconds)
+      if (!Number.isFinite(raw) || raw < 0 || raw > 86_400) {
+        return new Response('seconds must be a finite number between 0 and 86400', {
+          status: 400,
+        })
+      }
+      seconds = Math.round(raw * 1000) / 1000
+    }
+
     // One Durable Object per media id, so two dispatches for the same video
-    // — a double-click, or the sweep racing a retry — land on the same
-    // object and serialize instead of starting two containers on one file.
+    // — a double-click, or the sweep racing a retry, or a poster request
+    // arriving mid-encode — land on the same object and serialize instead of
+    // starting two containers on one file.
     const id = env.TRANSCODER.idFromName(String(job.mediaId))
     const stub = env.TRANSCODER.get(id)
 
     // Awaited, and `accept` is the fast half on purpose — see its header. The
     // previous version called `run` here without awaiting it and every
     // transcode was silently dropped.
-    await stub.accept(job)
+    if (isPoster) {
+      await stub.acceptPoster({ mediaId: job.mediaId, seconds, sourceUrl: job.sourceUrl })
+    } else {
+      await stub.accept(job)
+    }
 
     return Response.json({ accepted: true })
   },
