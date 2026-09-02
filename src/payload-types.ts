@@ -493,6 +493,10 @@ export interface Gallery {
   featured?: boolean | null;
   eventDate?: string | null;
   cover?: (number | null) | Media;
+  /**
+   * A YouTube video link. Plays while a visitor runs this album as a slideshow; they can always mute it.
+   */
+  musicUrl?: string | null;
   items?:
     | {
         media: number | Media;
@@ -780,6 +784,7 @@ export interface GalleriesSelect<T extends boolean = true> {
   featured?: T;
   eventDate?: T;
   cover?: T;
+  musicUrl?: T;
   items?:
     | T
     | {

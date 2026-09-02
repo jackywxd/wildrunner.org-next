@@ -90,7 +90,11 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
 
   return (
     <div className="container relative max-w-7xl py-6 lg:py-10">
-      <div className="flex flex-col gap-4">
+      {/* Named so a test can address this album's own photos. Without it the
+          only handle is `img`, which on this page first matches the site
+          logo in the header — a click that navigates home and then fails as
+          "the lightbox did not open". */}
+      <div className="flex flex-col gap-4" data-testid="gallery-album">
         <h1 className="text-4xl font-black leading-[1.12] text-foreground">
           {gallery.name}
         </h1>

@@ -23,6 +23,7 @@ import * as migration_20260830_090500_merge_gallery_items from './20260830_09050
 import * as migration_20260901_200000_add_media_poster_url from './20260901_200000_add_media_poster_url';
 import * as migration_20260901_213000_add_media_title from './20260901_213000_add_media_title';
 import * as migration_20260902_120000_add_media_description from './20260902_120000_add_media_description';
+import * as migration_20260902_160000_add_gallery_music_url from './20260902_160000_add_gallery_music_url';
 
 export const migrations = [
   {
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20260902_120000_add_media_description.up,
     down: migration_20260902_120000_add_media_description.down,
     name: '20260902_120000_add_media_description',
+  },
+  {
+    up: migration_20260902_160000_add_gallery_music_url.up,
+    down: migration_20260902_160000_add_gallery_music_url.down,
+    name: '20260902_160000_add_gallery_music_url',
   },
 ];

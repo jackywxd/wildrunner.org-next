@@ -25,7 +25,12 @@ export const PhotoGallery: React.FC<{
    *  exactly one for a virtual race album, which is why it is often absent. */
   races?: RaceFilterOption[];
 }> = ({ gallery, races }) => (
-  <MediaGrid items={gallery.items} races={races} targetRowHeight={350} />
+  <MediaGrid
+    items={gallery.items}
+    musicVideoId={gallery.musicVideoId}
+    races={races}
+    targetRowHeight={350}
+  />
 );
 
 export default PhotoGallery;
