@@ -42,6 +42,21 @@ export const MAX_TRANSCODE_ATTEMPTS = 3;
  */
 export const LEASE_TIMEOUT_MS = 15 * 60 * 1000;
 
+/**
+ * How many containers the transcoder Worker may run at once.
+ *
+ * THIS SIDE'S COPY of `max_instances` in workers/transcoder/wrangler.jsonc,
+ * kept in step by hand for the same reason `posterKey` mirrors the Worker's
+ * `posterKeyFor`: nothing at build time connects the two files, and the site
+ * has no way to ask Cloudflare what the limit is. Change one, change the
+ * other — the Worker's config carries a note pointing back here.
+ *
+ * Being wrong in the low direction only slows the queue down; being wrong in
+ * the high direction reproduces the bug this constant exists to fix, so when
+ * in doubt this stays under the Worker's number.
+ */
+export const MAX_CONCURRENT_TRANSCODES = 3;
+
 type MediaRow = {
   mimeType?: string | null;
   transcodeAttempts?: number | null;
@@ -96,6 +111,82 @@ export function reclaim(media: MediaRow): {
   return {
     attempts,
     status: attempts >= MAX_TRANSCODE_ATTEMPTS ? "failed" : "queued",
+  };
+}
+
+/**
+ * What one sweep should do, decided before it does any of it.
+ *
+ * THE BUG THIS EXISTS FOR, measured on production 2026-09-02 with two queries
+ * fifteen seconds apart. The sweep dispatched all ten queued videos at once —
+ * `limit: 100`, a `startTranscode` per row, no notion of capacity anywhere.
+ * At 17:14:47-57 all ten rows read `running`; by 17:15:08 nine of them were
+ * back to `queued`. Nine containers had been asked for, refused with "Maximum
+ * number of running container instances exceeded", and bounced. One ran.
+ *
+ * Every part of that was working as written. The Worker is right to treat the
+ * refusal as transient and hand the row back rather than failing a member's
+ * video for a busy account; the sweep is right to re-dispatch a `queued` row.
+ * Together they make a retry storm: each sweep spends ten dispatches to start
+ * one job, and the nine losers go to the back of the queue having achieved
+ * nothing but a round trip.
+ *
+ * So the sweep now asks for as many jobs as there are free containers, and no
+ * more. The rest stay `queued`, which is what they already were — the queue is
+ * `media.transcodeStatus`, so leaving a row alone IS leaving it in the queue.
+ *
+ * `inFlight` is counted from unexpired `running` leases, which is the only
+ * signal this side has. It over-counts for a few seconds after a dispatch that
+ * is about to bounce — a row reads `running` before the container refuses it —
+ * and that error is in the safe direction: it dispatches fewer, never more.
+ *
+ * Pure, and taking `now` and `capacity` as parameters, so the whole rule can
+ * be exercised without a container or a clock — the reason this file exists.
+ */
+export type SweepPlan<T> = {
+  /** Live leases, counted against capacity. */
+  inFlight: number;
+  /** Expired leases, with the state each should move to. */
+  reclaim: { attempts: number; row: T; status: TranscodeStatus }[];
+  /** Rows to hand the transcoder now. Never longer than the free capacity. */
+  dispatch: T[];
+  /** Rows left queued because no container is free for them. Not an error. */
+  waiting: number;
+};
+
+export function planSweep<T extends MediaRow>(
+  rows: T[],
+  now: Date,
+  capacity: number = MAX_CONCURRENT_TRANSCODES,
+): SweepPlan<T> {
+  const reclaim_: SweepPlan<T>["reclaim"] = [];
+  const queued: T[] = [];
+  let inFlight = 0;
+
+  for (const row of rows) {
+    if (row.transcodeStatus === "running") {
+      if (!leaseExpired(row, now)) {
+        inFlight += 1;
+        continue;
+      }
+      const next = reclaim(row);
+      reclaim_.push({ attempts: next.attempts, row, status: next.status });
+      // Back in the queue and eligible again in this same sweep, at the front:
+      // callers hand rows over oldest-first, and a row whose lease expired has
+      // by definition waited longer than anything still running. A row the
+      // reclaim gave up on is `failed` and is not queued for anything.
+      if (next.status === "queued") queued.push(row);
+      continue;
+    }
+    queued.push(row);
+  }
+
+  const budget = Math.max(0, capacity - inFlight);
+  return {
+    dispatch: queued.slice(0, budget),
+    inFlight,
+    reclaim: reclaim_,
+    waiting: Math.max(0, queued.length - budget),
   };
 }
 

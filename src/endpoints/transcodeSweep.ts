@@ -6,9 +6,9 @@ import { startTranscode } from '@/lib/media/transcode-dispatch'
 import { notifyTranscodeFailed } from '@/lib/media/transcode-notify'
 import {
   LEASE_TIMEOUT_MS,
+  MAX_CONCURRENT_TRANSCODES,
   MAX_TRANSCODE_ATTEMPTS,
-  leaseExpired,
-  reclaim,
+  planSweep,
 } from '@/lib/media/transcode-state'
 
 /**
@@ -29,6 +29,13 @@ import {
  * Also re-dispatches rows that are merely `queued`: the dispatch call in
  * `transcodeMediaEndpoint` is best-effort, so a transcoder that was down at
  * upload time leaves a correctly-queued row nobody has picked up.
+ *
+ * PACED TO THE CONTAINER LIMIT, and `planSweep` decides that rather than this
+ * handler — read its header for the production measurement that made it
+ * necessary. The short version: this loop used to dispatch every queued row
+ * on every run, so ten videos against three container slots produced nine
+ * refusals and one transcode, over and over. What it dispatches now is bounded
+ * by how many containers are actually free.
  *
  * TRIGGERED BY GitHub Actions, like raceScheduleMaintenance — and for the
  * reason its header records: a Cloudflare Cron Trigger needs a `scheduled`
@@ -84,60 +91,64 @@ export const transcodeSweepEndpoint: Endpoint = {
       req,
     })
 
+    // Decided in one pass, before anything is written, so the dispatch budget
+    // is computed against a single consistent view of the queue.
+    const plan = planSweep(candidates.docs, now)
+
     const reclaimed: number[] = []
     const failed: number[] = []
     const redispatched: number[] = []
 
-    for (const doc of candidates.docs) {
-      if (doc.transcodeStatus === 'running') {
-        if (!leaseExpired(doc, now)) continue
+    for (const { attempts, row, status } of plan.reclaim) {
+      await req.payload.update({
+        collection: 'media',
+        id: row.id,
+        data: { transcodeAttempts: attempts, transcodeStatus: status },
+        overrideAccess: true,
+        req,
+      })
 
-        const next = reclaim(doc)
-        await req.payload.update({
-          collection: 'media',
-          id: doc.id,
-          data: {
-            transcodeAttempts: next.attempts,
-            transcodeStatus: next.status,
-          },
-          overrideAccess: true,
+      if (status === 'failed') {
+        // The other way a transcode ends up failed, and the quieter one:
+        // the container died without reporting, so nothing has told the
+        // member anything at all. Same notice as the reported failure —
+        // from where they sit the outcome is identical.
+        await notifyTranscodeFailed({
+          media: row,
+          // The container never reported, so there is no message from it
+          // — this is the sweep's own account of what happened, which is
+          // more useful to a member than an empty reason block.
+          message: `轉檔逾時，已重試 ${MAX_TRANSCODE_ATTEMPTS} 次仍未完成。`,
+          payload: req.payload,
           req,
         })
-
-        if (next.status === 'failed') {
-          // The other way a transcode ends up failed, and the quieter one:
-          // the container died without reporting, so nothing has told the
-          // member anything at all. Same notice as the reported failure —
-          // from where they sit the outcome is identical.
-          await notifyTranscodeFailed({
-            media: doc,
-            // The container never reported, so there is no message from it
-            // — this is the sweep's own account of what happened, which is
-            // more useful to a member than an empty reason block.
-            message: `轉檔逾時，已重試 ${MAX_TRANSCODE_ATTEMPTS} 次仍未完成。`,
-            payload: req.payload,
-            req,
-          })
-          failed.push(doc.id)
-          continue
-        }
-        reclaimed.push(doc.id)
+        failed.push(row.id)
+        continue
       }
+      reclaimed.push(row.id)
+    }
 
-      // Reaches here for a row that was already `queued`, or one just
-      // handed back to `queued` above.
+    for (const doc of plan.dispatch) {
       if (await startTranscode(doc)) {
         redispatched.push(doc.id)
       }
     }
 
     return Response.json({
+      capacity: MAX_CONCURRENT_TRANSCODES,
       checked: candidates.docs.length,
       failed,
+      // Counted and reported because the old numbers could not distinguish a
+      // quiet queue from a saturated one: `redispatched` only ever meant "the
+      // Worker accepted the request", and `accept` is fire-and-forget, so a
+      // run that started one job and bounced nine reported ten. `waiting` is
+      // the backlog this run deliberately did not touch.
+      inFlight: plan.inFlight,
       leaseTimeoutMs: LEASE_TIMEOUT_MS,
       maxAttempts: MAX_TRANSCODE_ATTEMPTS,
       reclaimed,
       redispatched,
+      waiting: plan.waiting,
     })
   },
 }
