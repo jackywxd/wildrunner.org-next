@@ -31,6 +31,7 @@ import { videoIdFromFilename } from '@/lib/videoId'
 export type VideoMediaDoc = Pick<
   Media,
   | 'createdAt'
+  | 'description'
   | 'filename'
   | 'filesize'
   | 'id'
@@ -72,6 +73,7 @@ export function mediaToSiteVideo(
     size: media.filesize ?? undefined,
     extension: filename.includes('.') ? filename.split('.').pop()! : undefined,
     title: media.title ?? undefined,
+    description: media.description ?? undefined,
     poster: media.posterUrl ?? undefined,
     streamId: media.streamId,
     streamReady: Boolean(media.streamReady),

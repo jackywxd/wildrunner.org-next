@@ -217,6 +217,10 @@ export interface Media {
    */
   title?: string | null;
   /**
+   * What this photo or video is about. Shown in the lightbox caption and on its share page. Not alt text — see the field header.
+   */
+  description?: string | null;
+  /**
    * Optional. Which race this photo is from. Shown on that race’s photo wall when Usage is “Photo wall”.
    */
   raceEdition?: (number | null) | RaceEdition;
@@ -708,6 +712,7 @@ export interface MediaSelect<T extends boolean = true> {
   owner?: T;
   alt?: T;
   title?: T;
+  description?: T;
   raceEdition?: T;
   usage?: T;
   streamId?: T;

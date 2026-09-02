@@ -895,6 +895,7 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
 const GALLERY_MEDIA_SELECT = {
   blurDataURL: true,
   createdAt: true,
+  description: true,
   filename: true,
   filesize: true,
   height: true,
@@ -1431,6 +1432,7 @@ export async function getRaceEditionPhotos(
       height,
       blurDataURL: doc.blurDataURL ?? undefined,
       alt: doc.alt,
+      description: doc.description ?? undefined,
       uploaderName: author?.name,
       uploaderSlug: author?.slug,
     });

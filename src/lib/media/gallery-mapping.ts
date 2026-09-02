@@ -29,6 +29,7 @@ export type MediaCardDoc = Pick<
   Media,
   | "blurDataURL"
   | "createdAt"
+  | "description"
   | "filename"
   | "filesize"
   | "height"
@@ -85,6 +86,7 @@ export function mapMediaToPhoto(
     width,
     height,
     blurDataURL: media.blurDataURL ?? undefined,
+    description: media.description ?? undefined,
     blurWidth: 20,
     blurHeight: Math.max(1, Math.round((height / width) * 20)),
     createdAt: media.createdAt,

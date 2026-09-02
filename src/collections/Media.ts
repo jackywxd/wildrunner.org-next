@@ -107,6 +107,42 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      /**
+       * What this photo or video is about, when somebody has said.
+       *
+       * THE THIRD STRING ON THIS ROW, AND THE THREE ARE THREE THINGS. `alt`
+       * is required and describes the picture for a screen reader; `title` is
+       * the short label under a tile; this is the caption — the sentence
+       * somebody would say about the photo. The `title` field's own header
+       * records why conflating the first two was refused, and the same
+       * argument applies here with an extra edge: on the migrated corpus `alt`
+       * holds the album name plus the original filename
+       * (`2023 - UTMB UTMB 2023 Vertical.m4v`), so reusing it as a caption
+       * would publish that string as prose under 546 files.
+       *
+       * `textarea`, not `text`: a caption wraps, and a single-line input tells
+       * a member to write a label when what is wanted is a sentence or two.
+       *
+       * `maxLength` IS ALSO A PAYLOAD BUDGET, not only a content rule. The
+       * photo wall ships sixty items per page and the lightbox reads this from
+       * the item it is given, so every character here is carried by every
+       * visitor who loads /gallery — the same cost `gallery-index.ts`'s header
+       * records paying once already, at 663 KB.
+       *
+       * OPTIONAL, AND EXPECTED TO BE EMPTY on almost every row. Empty means
+       * "nobody has written one", which every reader treats as absent rather
+       * than as a blank caption, so nothing regresses and there is no backfill.
+       */
+      name: 'description',
+      type: 'textarea',
+      maxLength: 500,
+      label: { en: 'Description', 'zh-TW': '描述' },
+      admin: {
+        description:
+          'What this photo or video is about. Shown in the lightbox caption and on its share page. Not alt text — see the field header.',
+      },
+    },
+    {
       name: 'raceEdition',
       type: 'relationship',
       relationTo: 'race-editions',

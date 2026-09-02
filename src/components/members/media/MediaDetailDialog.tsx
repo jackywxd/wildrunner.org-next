@@ -36,6 +36,7 @@ export function MediaDetailDialog({
 }) {
   const [alt, setAlt] = useState(item.alt);
   const [title, setTitle] = useState(item.title ?? "");
+  const [description, setDescription] = useState(item.description ?? "");
   /**
    * Which race this file is from, asked the way the upload dropzone and the
    * post editor ask it — series, event, year — rather than as one select over
@@ -196,6 +197,10 @@ export function MediaDetailDialog({
         // this" is representable, and mediaDisplayName only falls back to
         // its filename derivation on null/undefined, not on "".
         title: title.trim() || null,
+        // Same `|| null` reason as `title`: the column is nullable so that
+        // "nobody has written one" is representable, and every reader treats
+        // null as absent rather than as an empty caption.
+        description: description.trim() || null,
         // `null` rather than omitted: clearing the picker after a race was
         // already set has to clear the column, not leave it alone. The one
         // exception is `unreadable` — see the state's own note; there the key
@@ -347,6 +352,22 @@ export function MediaDetailDialog({
             {isVideo
               ? "顯示在相片牆的影片卡片和分享頁標題。留空則使用檔名。"
               : "顯示在分享頁標題。留空則使用檔名。"}
+          </span>
+        </label>
+
+        <label className="block space-y-1">
+          <span className="text-sm">描述</span>
+          <textarea
+            data-testid="media-detail-description"
+            rows={3}
+            maxLength={500}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+          />
+          <span className="block text-xs text-muted-foreground">
+            這張照片在講什麼。會顯示在燈箱和分享頁。和替代文字不一樣 —— 替代文字是給
+            螢幕閱讀器描述畫面內容的。
           </span>
         </label>
 

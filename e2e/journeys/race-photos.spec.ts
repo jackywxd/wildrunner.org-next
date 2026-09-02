@@ -146,5 +146,20 @@ test.describe("P a member tags a photo with a race", () => {
     // of leak `posts.raceRecord` guards against at depth. This is the new
     // page with the same risk, so it gets the same assertion.
     expect(await page.content()).not.toContain("sessions");
+
+    // The caption is drawn at all. This wall has been *computing* a
+    // `description` for every slide since the file was written and rendering
+    // none of them, because `Captions` was never in its `plugins` — a string
+    // built, passed and dropped, with nothing to notice. One assertion that
+    // the plugin is loaded is worth having; what the plugin then does with
+    // the text is the vendor's.
+    // `load`, not just `domcontentloaded`: the album's onClick is React's, and
+    // a click that lands before hydration is silently dropped — the failure
+    // AGENTS.md records for the gallery view toggle.
+    await page.waitForLoadState("load");
+    await page.getByTestId("race-photo-wall").locator("img").first().click();
+    await expect(page.locator(".yarl__slide_description").first()).toBeVisible({
+      timeout: budget(10_000),
+    });
   });
 });

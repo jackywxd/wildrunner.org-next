@@ -17,6 +17,12 @@
  *           whether the row is on the photo wall in the first place.
  *   alt     rendered by RacePhotoWall and by the rich-text upload converter.
  *
+ * `description` is in `MediaCardDoc` and so arrives with the list, but it is
+ * worth naming here anyway: it is the one field a member edits *expecting* to
+ * see the result on a cached page, and /gallery caches for an hour. Left out,
+ * a caption written now would appear at some point within the hour with
+ * nothing to explain the wait.
+ *
  * Kept here rather than inline in the hook because the hook file imports
  * `next/cache` transitively, and this is the half with branches worth pinning.
  *
@@ -31,6 +37,7 @@
 export const PUBLIC_MEDIA_FIELDS = [
   'alt',
   'blurDataURL',
+  'description',
   'filename',
   'filesize',
   'height',
