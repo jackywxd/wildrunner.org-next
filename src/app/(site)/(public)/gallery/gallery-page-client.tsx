@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import type { SiteAlbumCard, SiteMediaItem, SitePhoto } from "@/lib/content-types";
+import type {
+  SiteAlbumCard,
+  SiteMediaItem,
+  SitePhoto,
+} from "@/lib/content-types";
 import type { WallCursor } from "@/lib/media/gallery-index";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
 import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
 import { AlbumCards } from "@/app/(site)/(public)/gallery/_components/AlbumCards";
-import { cn } from "@/lib/utils";
+import { FilterChip } from "@/components/media/filters";
 
 /**
  * Everything here arrives already reduced — deduped, sorted, capped, counted.
@@ -33,47 +37,6 @@ type GalleryPageClientProps = {
 
 type GalleryView = "all" | "albums";
 
-function ViewChip({
-  active,
-  children,
-  onClick,
-  // Named for the attribute rather than something like `testId` so the
-  // attribute itself appears literally at each call site, which is what
-  // `scripts/assert-schema-screen.mjs` greps for. A renamed prop passes
-  // typecheck and fails that check — correctly, since its whole job is to
-  // prove a selector a test uses really exists. (Deliberately not spelling
-  // the attribute out in this comment: a checker that matches its own
-  // documentation is the false positive VERIFICATION.md warns about.)
-  "data-testid": testId,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-  "data-testid": string;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      onClick={onClick}
-      className={cn(
-        "border px-3 py-1 text-xs leading-tight transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background text-muted-foreground hover:text-foreground",
-      )}
-      // The only signal that the view has actually switched. These chips
-      // are server-rendered, so a click landing before hydration is
-      // silently dropped and the shelf never appears — which is exactly how
-      // this failed in CI while passing locally, where a warm dev server
-      // hydrates before a test can click.
-      data-active={active}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function GalleryPageClient({
   albums,
   featuredPhotos,
@@ -92,26 +55,24 @@ export default function GalleryPageClient({
         <section className="border-t-2 border-border pt-8">
           <h1 className="text-4xl font-extrabold text-foreground">相册</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {view === "all"
-              ? "所有相片與影片,依時間排序"
-              : "依相簿瀏覽"}
+            {view === "all" ? "所有相片與影片,依時間排序" : "依相簿瀏覽"}
           </p>
 
           <div className="mt-4 flex gap-2" data-testid="gallery-view-toggle">
-            <ViewChip
+            <FilterChip
               active={view === "all"}
               onClick={() => setView("all")}
               data-testid="gallery-view-all"
             >
               全部相片
-            </ViewChip>
-            <ViewChip
+            </FilterChip>
+            <FilterChip
               active={view === "albums"}
               onClick={() => setView("albums")}
               data-testid="gallery-view-albums"
             >
               依相簿
-            </ViewChip>
+            </FilterChip>
           </div>
 
           {view === "all" && (

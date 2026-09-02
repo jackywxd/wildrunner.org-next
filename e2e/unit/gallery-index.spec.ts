@@ -1,8 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import type { SiteGallery, SiteMediaItem, SitePhoto } from "@/lib/content-types";
+import type {
+  SiteGallery,
+  SiteMediaItem,
+  SitePhoto,
+} from "@/lib/content-types";
 import {
   albumCard,
+  arrangeMedia,
   buildGalleryIndex,
   wallPage,
   type WallCursor,
@@ -216,5 +221,129 @@ test.describe("U-WALLPAGE a page of the wall, sliced from the array buildGallery
       "z.jpg",
     ]);
     expect(third.nextCursor).toBeNull();
+  });
+});
+
+test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in two places", () => {
+  const p = (src: string, createdAt: string): SiteMediaItem => ({
+    kind: "photo",
+    ...photo(src, { createdAt }),
+  });
+  const v = (src: string, createdAt: string): SiteMediaItem => ({
+    kind: "video",
+    mediaId: src.length,
+    id: src,
+    filename: src,
+    src,
+    mimeType: "video/mp4",
+    slug: src,
+    createdAt,
+  });
+
+  // Deliberately NOT in date order: an album's `items` arrive in whatever
+  // order its curator arranged them, and that is the input `curated` has to
+  // hand back untouched.
+  const mixed: SiteMediaItem[] = [
+    v("second.mp4", "2026-01-02T00:00:00.000Z"),
+    p("third.jpg", "2026-01-03T00:00:00.000Z"),
+    p("first.jpg", "2026-01-01T00:00:00.000Z"),
+  ];
+
+  test("U-ARRANGE-1: 'curated' returns the curator's own order, unsorted and uncopied in meaning", () => {
+    // The regression this guards is the expensive one. #95 created a single
+    // `galleries_items` table because "ordering cannot be expressed across two
+    // tables" and #102 stopped the mapping splitting it apart again; a sort
+    // default of `newest` on the album page would have thrown all of that away
+    // silently, on every album, the day filtering shipped.
+    expect(
+      arrangeMedia(mixed, { kind: "all", sort: "curated" }).map((i) => i.src),
+    ).toEqual(["second.mp4", "third.jpg", "first.jpg"]);
+  });
+
+  test("U-ARRANGE-2: sorting does not mutate the array it was given", () => {
+    // The album path calls this with a prop. Sorting in place would reorder
+    // React's own copy, so the next render with a different filter would start
+    // from an order the curator never chose — a corruption that survives the
+    // filter being switched back.
+    const before = mixed.map((i) => i.src);
+    arrangeMedia(mixed, { kind: "all", sort: "newest" });
+    expect(mixed.map((i) => i.src)).toEqual(before);
+  });
+
+  test("U-ARRANGE-3: kind narrows across both discriminants", () => {
+    expect(
+      arrangeMedia(mixed, { kind: "video", sort: "curated" }).map((i) => i.src),
+    ).toEqual(["second.mp4"]);
+    expect(
+      arrangeMedia(mixed, { kind: "photo", sort: "curated" }).map((i) => i.src),
+    ).toEqual(["third.jpg", "first.jpg"]);
+  });
+
+  test("U-ARRANGE-4: newest and oldest are exact reversals of each other", () => {
+    const newest = arrangeMedia(mixed, { kind: "all", sort: "newest" }).map(
+      (i) => i.src,
+    );
+    const oldest = arrangeMedia(mixed, { kind: "all", sort: "oldest" }).map(
+      (i) => i.src,
+    );
+    expect(newest).toEqual(["third.jpg", "second.mp4", "first.jpg"]);
+    expect(oldest).toEqual([...newest].reverse());
+  });
+
+  test("U-ARRANGE-5: the tiebreak reverses too, so a tied group has one order per direction", () => {
+    // Not cosmetic. wallPage's fallback re-finds a withdrawn cursor with the
+    // comparator the array was sorted by, so an ascending sort that left `src`
+    // ascending would order a batch-imported group one way and search it the
+    // other — and only on a corpus with duplicate timestamps, which the seeded
+    // one has.
+    const tied = [
+      p("a.jpg", "2026-01-01T00:00:00.000Z"),
+      p("b.jpg", "2026-01-01T00:00:00.000Z"),
+      p("c.jpg", "2026-01-01T00:00:00.000Z"),
+    ];
+    expect(
+      arrangeMedia(tied, { kind: "all", sort: "newest" }).map((i) => i.src),
+    ).toEqual(["a.jpg", "b.jpg", "c.jpg"]);
+    expect(
+      arrangeMedia(tied, { kind: "all", sort: "oldest" }).map((i) => i.src),
+    ).toEqual(["c.jpg", "b.jpg", "a.jpg"]);
+  });
+
+  test("U-ARRANGE-6: an oldest-first page resumes correctly after its cursor's item is withdrawn", () => {
+    // The whole reason wallPage takes the sort. Told `newest` over an array
+    // ordered oldest-first, the fallback picks the first item sorting BEFORE
+    // the missing cursor — index 0 — and hands back the first page a second
+    // time, forever. Nothing errors; the visitor just scrolls through the same
+    // photos again.
+    const ascending = arrangeMedia(
+      [
+        p("a.jpg", "2026-01-01T00:00:00.000Z"),
+        p("b.jpg", "2026-01-02T00:00:00.000Z"),
+        p("c.jpg", "2026-01-03T00:00:00.000Z"),
+        p("d.jpg", "2026-01-04T00:00:00.000Z"),
+      ],
+      { kind: "all", sort: "oldest" },
+    );
+    expect(ascending.map((i) => i.src)).toEqual([
+      "a.jpg",
+      "b.jpg",
+      "c.jpg",
+      "d.jpg",
+    ]);
+
+    const cursor: WallCursor = {
+      createdAt: "2026-01-02T00:00:00.000Z",
+      src: "b.jpg",
+    };
+    const withdrawn = ascending.filter((row) => row.src !== "b.jpg");
+
+    expect(
+      wallPage(withdrawn, cursor, 2, "oldest").items.map((i) => i.src),
+    ).toEqual(["c.jpg", "d.jpg"]);
+    // Left at the default, the same call walks backwards to the top instead.
+    expect(wallPage(withdrawn, cursor, 2).items.map((i) => i.src)).toEqual([
+      "a.jpg",
+      "c.jpg",
+    ]);
   });
 });
