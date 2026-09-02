@@ -96,10 +96,16 @@ export function MediaGrid({
               <div className="text-foreground/40">
                 {item.filesize ? formatBytes(item.filesize) : ""}
                 {showUsage && item.usage ? (
-                  <span data-testid="media-item-usage">
+                  <>
                     {item.filesize ? " · " : ""}
-                    {USAGE_LABELS[item.usage]}
-                  </span>
+                    {/* The separator sits outside the labelled span: an
+                        element named for the usage should hold the usage and
+                        nothing else, or an assertion on it is really an
+                        assertion about punctuation. */}
+                    <span data-testid="media-item-usage">
+                      {USAGE_LABELS[item.usage]}
+                    </span>
+                  </>
                 ) : null}
               </div>
             </div>
