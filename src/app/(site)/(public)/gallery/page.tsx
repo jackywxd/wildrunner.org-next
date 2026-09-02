@@ -41,7 +41,7 @@ export default async function GalleryPage() {
   const [galleries, raceGalleries, libraryPhotos, libraryVideos] =
     await Promise.all([
       getPublishedGalleries(),
-      getRaceGalleries(new Date()),
+      getRaceGalleries(),
       getGalleryPhotos(),
       getGalleryVideos(),
     ]);

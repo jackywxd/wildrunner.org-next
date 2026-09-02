@@ -34,6 +34,7 @@ import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
+import { resolveRaceEditionEndpoint } from './endpoints/resolveRaceEdition'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { processMediaImageEndpoint } from './endpoints/processMediaImage'
@@ -216,6 +217,7 @@ export default buildConfig({
     transcodeSweepEndpoint,
     unusedMediaSweepEndpoint,
     raceScheduleMaintenanceEndpoint,
+    resolveRaceEditionEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the
   // console, and the invite endpoint hands the admin a link instead.

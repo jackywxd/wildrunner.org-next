@@ -19,6 +19,7 @@ import { publicMediaFieldsChanged } from "@/lib/media/public-fields";
 const row = (over: Record<string, unknown> = {}) => ({
   alt: "a photo",
   blurDataURL: "data:image/png;base64,xx",
+  description: null,
   filename: "photo.jpg",
   filesize: 1000,
   height: 800,
@@ -86,7 +87,20 @@ test.describe("U-MEDIAFIELDS a media write only counts if a page shows it", () =
     ).toBe(true);
   });
 
-  test("U-MEDIAFIELDS-5: a create always counts", () => {
+  test("U-MEDIAFIELDS-5: writing a caption counts", () => {
+    // The field a member edits most expecting to see the result: /gallery
+    // caches for an hour, so if this is not in the list the caption they just
+    // wrote appears at some unexplained point within it. Both directions,
+    // because a caption is as removable as it is addable.
+    expect(
+      publicMediaFieldsChanged(row({ description: "終點前最後一個彎" }), row()),
+    ).toBe(true);
+    expect(
+      publicMediaFieldsChanged(row(), row({ description: "終點前最後一個彎" })),
+    ).toBe(true);
+  });
+
+  test("U-MEDIAFIELDS-6: a create always counts", () => {
     // No previousDoc. A newly uploaded public photo is the other half of what
     // the hook is for.
     expect(publicMediaFieldsChanged(row(), undefined)).toBe(true);

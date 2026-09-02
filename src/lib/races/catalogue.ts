@@ -415,3 +415,31 @@ export function raceYearOptions(now: Date): number[] {
   }
   return years;
 }
+
+/**
+ * The same bound as a predicate, for the caller that renders no select.
+ *
+ * `/api/members/race-editions/resolve` takes a year over HTTP and hands it to
+ * `resolveRaceRecordRefs`, which find-or-*creates* a `race-editions` row.
+ *
+ * IT IS NOT THE ONLY THING STOPPING A BAD YEAR, and the first version of this
+ * comment claimed it was. Measured against a running server: with this check
+ * removed, `{ year: 9999 }` still writes nothing, because `race-editions.year`
+ * carries the identical bound in its own `validate` (RaceEditions.ts) and
+ * `payload.create` throws. What changes is the *answer* — the throw is
+ * swallowed by the helper's duplicate-retry, so the endpoint reports 404 "no
+ * race in the catalogue has that key", which is false and points at the wrong
+ * field. Checking here is what turns that into a 400 that says what is wrong.
+ *
+ * The value of having the bound in one named function is that the picker's
+ * list and the endpoint's refusal cannot drift apart — U-CLAIMYEAR pins them
+ * to each other. Next year is allowed on purpose, for the reason
+ * `RaceRecords.ts` gives: entries open well ahead of the race.
+ */
+export function isRaceYearClaimable(year: number, now: Date): boolean {
+  return (
+    Number.isInteger(year) &&
+    year >= EARLIEST_RACE_YEAR &&
+    year <= now.getUTCFullYear() + 1
+  );
+}

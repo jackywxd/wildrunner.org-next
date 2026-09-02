@@ -23,6 +23,12 @@ export type SitePhoto = SiteImage & {
   filename: string;
   slug: string;
   featured: boolean;
+  /**
+   * `media.description` — what this picture is about, when somebody has
+   * written it. `undefined` means nobody has; every reader renders nothing
+   * rather than an empty caption.
+   */
+  description?: string;
   blurWidth?: number;
   blurHeight?: number;
   /** The underlying media doc's own createdAt — for sorting a flat, cross-gallery photo list by time. */
@@ -54,6 +60,8 @@ export type SiteVideo = {
    * every video without a title already gets.
    */
   title?: string;
+  /** `media.description`, as on `SitePhoto`. */
+  description?: string;
   /**
    * The media doc's own createdAt, for the same reason `SitePhoto` carries one.
    *
@@ -118,6 +126,8 @@ export type SiteRaceEditionDetail = {
 export type SiteRaceEditionPhoto = SiteImage & {
   id: number;
   alt: string;
+  /** `media.description` — the caption, distinct from `alt`. */
+  description?: string;
   uploaderName?: string;
   uploaderSlug?: string;
 };

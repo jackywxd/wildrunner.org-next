@@ -51,6 +51,15 @@ export async function generateMetadata({
 
   const title = mediaDisplayName(item);
   const url = `${baseURL}/gallery/m/${id}`;
+  /**
+   * The uploader's own words about this file, when they wrote any.
+   *
+   * Falls back to the site's blurb, which is what every share of every photo
+   * used to carry — the same sentence about the club under a picture of a
+   * finish line. A caption is the one thing that can do better, and this page
+   * exists to be shared, so it is the place that gains most from having one.
+   */
+  const summary = item.description?.trim() || siteConfig.description;
 
   if (item.kind === "video") {
     if (item.streamId && !item.streamReady) {
@@ -67,10 +76,10 @@ export async function generateMetadata({
 
     return {
       title: `${title} · ${siteConfig.name}`,
-      description: siteConfig.description,
+      description: summary,
       openGraph: {
         title,
-        description: siteConfig.description,
+        description: summary,
         type: "video.other",
         url,
         images: [{ url: ogImage, alt: title }],
@@ -81,7 +90,7 @@ export async function generateMetadata({
       twitter: {
         card: "summary_large_image",
         title,
-        description: siteConfig.description,
+        description: summary,
         images: [ogImage],
       },
     };
@@ -93,17 +102,17 @@ export async function generateMetadata({
 
   return {
     title: `${title} · ${siteConfig.name}`,
-    description: siteConfig.description,
+    description: summary,
     openGraph: {
       title,
-      description: siteConfig.description,
+      description: summary,
       url,
       images: [{ url: ogImage, alt: title, width: item.width, height: item.height }],
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description: siteConfig.description,
+      description: summary,
       images: [ogImage],
     },
   };
@@ -139,6 +148,18 @@ export default async function GalleryMediaByIdPage({
       <h1 className="!mb-0 text-4xl font-black leading-[1.12] text-foreground">
         {title}
       </h1>
+
+      {/* `whitespace-pre-line` because the control is a textarea: a member who
+          pressed return meant a line break, and collapsing it would render
+          their two sentences as one. */}
+      {item.description && (
+        <p
+          data-testid="media-description"
+          className="whitespace-pre-line text-base text-muted-foreground"
+        >
+          {item.description}
+        </p>
+      )}
 
       {item.kind === "video" ? (
         <div className="w-full overflow-hidden rounded-none border border-border bg-black">

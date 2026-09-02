@@ -158,7 +158,7 @@ export interface User {
   invitedAt?: string | null;
   invitedBy?: (number | null) | User;
   /**
-   * Overrides the default (10240 MB) for this account. Leave blank to use the default.
+   * Overrides the default (102400 MB) for this account. Leave blank to use the default.
    */
   storageQuotaMb?: number | null;
   /**
@@ -216,6 +216,10 @@ export interface Media {
    * Shown under a video in the gallery and as its share page heading. Leave empty to use the file name.
    */
   title?: string | null;
+  /**
+   * What this photo or video is about. Shown in the lightbox caption and on its share page. Not alt text — see the field header.
+   */
+  description?: string | null;
   /**
    * Optional. Which race this photo is from. Shown on that race’s photo wall when Usage is “Photo wall”.
    */
@@ -708,6 +712,7 @@ export interface MediaSelect<T extends boolean = true> {
   owner?: T;
   alt?: T;
   title?: T;
+  description?: T;
   raceEdition?: T;
   usage?: T;
   streamId?: T;

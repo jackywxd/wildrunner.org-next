@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Lightbox, { type Slide } from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
+import Captions from "yet-another-react-lightbox/plugins/captions";
+import "yet-another-react-lightbox/plugins/captions.css";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -33,9 +35,21 @@ export function RacePhotoWall({ photos }: { photos: SiteRaceEditionPhoto[] }) {
         src: photo.src,
         width: photo.width,
         height: photo.height,
-        description: photo.uploaderName
-          ? `${photo.alt} · ${photo.uploaderName}`
-          : photo.alt,
+        /**
+         * THIS WAS BEING COMPUTED AND NEVER SHOWN. The `description` slot is
+         * rendered by the Captions plugin, which this lightbox did not load,
+         * so the string built here went nowhere for as long as the file has
+         * existed. Loading the plugin is what makes it appear — a visible
+         * change, not a refactor.
+         *
+         * `media.description` first, because that is somebody writing about
+         * the photo; `alt` is the fallback and is a screen-reader description
+         * of the picture, which reads oddly as a caption but is better than
+         * an unattributed photo. The uploader's name is appended either way.
+         */
+        description: [photo.description?.trim() || photo.alt, photo.uploaderName]
+          .filter(Boolean)
+          .join(" · "),
       })),
     [photos],
   );
@@ -74,7 +88,8 @@ export function RacePhotoWall({ photos }: { photos: SiteRaceEditionPhoto[] }) {
         open={index >= 0}
         index={index}
         close={() => setIndex(-1)}
-        plugins={[Fullscreen, Slideshow, Thumbnails, Zoom]}
+        captions={{ showToggle: true, descriptionTextAlign: "start" }}
+        plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Zoom]}
       />
     </div>
   );

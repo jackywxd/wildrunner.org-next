@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Lightbox, { type Slide } from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
+import Captions from "yet-another-react-lightbox/plugins/captions";
+import "yet-another-react-lightbox/plugins/captions.css";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -60,6 +62,8 @@ type GridPhoto = Photo & {
   /** The share page's address — see the toolbar button in the lightbox below. */
   mediaId: number;
   label: string;
+  /** `media.description`, shown as the lightbox caption. Usually absent. */
+  description?: string;
   mimeType?: string;
   /** A video's own frame, when the transcoder has taken one. */
   poster?: string;
@@ -93,6 +97,7 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
           kind: "photo" as const,
           mediaId: item.mediaId,
           label: item.filename,
+          description: item.description,
         }
       : {
           src: item.src,
@@ -101,6 +106,7 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
           kind: "video" as const,
           mediaId: item.mediaId,
           label: mediaDisplayName(item),
+          description: item.description,
           mimeType: item.mimeType,
           poster: item.poster,
         },
@@ -331,8 +337,14 @@ export function MediaGrid({
               width: item.width,
               height: item.height,
               sources: [{ src: item.src, type: item.mimeType ?? "video/mp4" }],
+              description: item.description,
             }
-          : { src: item.src, width: item.width, height: item.height },
+          : {
+              src: item.src,
+              width: item.width,
+              height: item.height,
+              description: item.description,
+            },
       ),
     [photos],
   );
@@ -464,7 +476,12 @@ export function MediaGrid({
             "close",
           ],
         }}
-        plugins={[Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
+        // `showToggle` rather than a caption that cannot be dismissed: the
+        // text sits over the picture, and somebody who came to look at the
+        // picture has to be able to get it out of the way. `hidden` is left
+        // false so a caption somebody wrote is seen at least once.
+        captions={{ showToggle: true, descriptionTextAlign: "start" }}
+        plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
     </>
   );
