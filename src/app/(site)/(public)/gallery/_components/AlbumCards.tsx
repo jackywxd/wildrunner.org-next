@@ -17,11 +17,21 @@ import type { SiteAlbumCard } from "@/lib/content-types";
  * question it answers is "which albums exist", and the previous layout
  * answered "here are ten photos from each" in a strip that never fitted.
  */
-export function AlbumCards({ albums }: { albums: SiteAlbumCard[] }) {
+export function AlbumCards({
+  albums,
+  filtered = false,
+}: {
+  albums: SiteAlbumCard[];
+  /** Whether a filter is narrowing this list — it decides what empty means. */
+  filtered?: boolean;
+}) {
   if (albums.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="gallery-albums-empty">
-        還沒有相簿。
+        {/* "還沒有相簿" is a claim about the site, and it is false the moment a
+            race is selected: a visitor who filtered to a race with no album
+            has not discovered that the site has no albums. */}
+        {filtered ? "這場比賽還沒有相簿。" : "還沒有相簿。"}
       </p>
     );
   }

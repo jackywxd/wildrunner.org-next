@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getGalleryPhotos,
+  getGalleryRaceEditions,
   getGalleryVideos,
   getPublishedGalleries,
   getRaceGalleries,
@@ -67,12 +68,28 @@ const KINDS: MediaKindFilter[] = ["all", "photo", "video"];
  */
 const SORTS: WallSort[] = ["newest", "oldest"];
 
+/**
+ * `race` is a `race-editions` id or nothing.
+ *
+ * Anything unparseable becomes "every race" rather than an error, for the
+ * same reason an unknown `sort` does: a query string is not a contract a
+ * visitor signed, and a stale bookmark should still show them the wall. An id
+ * that exists but has no media simply matches nothing — the filter's own
+ * options are derived from the items, so the UI cannot offer such a value.
+ */
+function parseRace(raw: string | null): number | null {
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 function parseArrangement(searchParams: URLSearchParams) {
   const kind = searchParams.get("kind") as MediaKindFilter | null;
   const sort = searchParams.get("sort") as WallSort | null;
   return {
     kind: kind && KINDS.includes(kind) ? kind : ("all" as const),
     sort: sort && SORTS.includes(sort) ? sort : ("newest" as const),
+    race: parseRace(searchParams.get("race")),
   };
 }
 
@@ -81,18 +98,20 @@ export async function GET(request: Request) {
   const cursor = parseCursor(searchParams);
   const arrangement = parseArrangement(searchParams);
 
-  const [galleries, raceGalleries, libraryPhotos, libraryVideos] =
+  const [galleries, raceGalleries, libraryPhotos, libraryVideos, editions] =
     await Promise.all([
       getPublishedGalleries(),
       getRaceGalleries(),
       getGalleryPhotos(),
       getGalleryVideos(),
+      getGalleryRaceEditions(),
     ]);
 
   const { items } = buildGalleryIndex(
     [...galleries, ...raceGalleries],
     libraryPhotos,
     libraryVideos,
+    editions,
   );
 
   // Arranged before sliced, and `wallPage` is told the order it is looking at

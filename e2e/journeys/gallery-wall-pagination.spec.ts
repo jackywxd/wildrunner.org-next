@@ -1,6 +1,7 @@
 import { apiTest as test, expect } from "../helpers/api-test";
 
 import { TEST_ADMIN } from "../helpers/auth";
+import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
 import { deleteCreatedRows } from "../helpers/teardown";
 
@@ -188,5 +189,88 @@ test.describe("W-WALL the wall endpoint serves the same union /gallery does, and
       afterBody.items.some((item) => item.src.includes(filename)),
       "a withdrawn photo must not survive on a force-dynamic route",
     ).toBe(false);
+  });
+
+  test("W-WALL-T4: ?race narrows the whole wall, not just the page that is returned", async ({
+    request,
+  }) => {
+    test.setTimeout(budget(45_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    // A race of this test's own making, so the assertion below can be an
+    // equality rather than a "contains" — the seeded corpus tags nothing.
+    const resolved = await request.post("/api/members/race-editions/resolve", {
+      data: { eventId: "other-wasatch", year: 2013 },
+    });
+    expect(resolved.ok(), await resolved.text()).toBeTruthy();
+    const editionId = ((await resolved.json()) as { id: number }).id;
+
+    const stamp = Date.now();
+    const mine: string[] = [];
+    for (const tagged of [true, false]) {
+      const name = `w-wall-race-${tagged ? "in" : "out"}-${stamp}.svg`;
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file: {
+            name,
+            mimeType: "image/svg+xml",
+            buffer: Buffer.from(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"></svg>',
+            ),
+          },
+          _payload: JSON.stringify({
+            alt: `W-WALL race probe ${stamp}`,
+            usage: "gallery",
+            ...(tagged ? { raceEdition: editionId } : {}),
+          }),
+        },
+      });
+      expect(uploaded.ok(), `fixture upload failed: ${uploaded.status()}`).toBeTruthy();
+      const doc = (await uploaded.json()).doc as { id: number; url: string };
+      created.push({ collection: "media", id: doc.id });
+      recordCreated({ collection: "media", id: doc.id, note: "W-WALL race probe" });
+      // The filename, not `doc.url`: the create response returns an absolute
+      // URL and `mapMediaToPhoto` maps a relative `src`, so comparing the two
+      // whole strings fails on the origin rather than on the filter.
+      if (tagged) mine.push(name);
+    }
+
+    const response = await request.get(`/api/gallery/wall?race=${editionId}`);
+    expect(response.ok(), await response.text()).toBeTruthy();
+    // Named `body`, not `page`: scripts/assert-test-strategy.mjs decides
+    // whether a spec drives a browser by looking for `page.`, and a local
+    // variable called `page` makes an API-only spec look like a journey that
+    // skipped the console guard.
+    const body = (await response.json()) as {
+      items: { src: string }[];
+      nextCursor: unknown;
+    };
+
+    // fixture-scoped: this race exists only because this test made it, so the
+    // whole filtered wall is exactly the one file it tagged. That is the point
+    // — a filter applied to the page instead of to the wall would return the
+    // untagged sibling too, and a "contains" assertion could not tell.
+    expect(
+      body.items.map((item) => item.src.split("/").pop()),
+    ).toEqual(mine);
+    expect(body.nextCursor, "one item is not a paged wall").toBeNull();
+
+    // An id nothing carries narrows to nothing rather than to everything —
+    // the failure mode where the parameter is read and then ignored.
+    const empty = await request.get("/api/gallery/wall?race=999999");
+    expect(empty.ok()).toBeTruthy();
+    expect(((await empty.json()) as { items: unknown[] }).items).toEqual([]);
+
+    // ...and a value that is not an id at all is "every race", not an error:
+    // a query string is not a contract a visitor signed.
+    const garbage = await request.get("/api/gallery/wall?race=not-a-number");
+    expect(garbage.ok()).toBeTruthy();
+    expect(
+      ((await garbage.json()) as { items: unknown[] }).items.length,
+    ).toBeGreaterThan(1);
   });
 });

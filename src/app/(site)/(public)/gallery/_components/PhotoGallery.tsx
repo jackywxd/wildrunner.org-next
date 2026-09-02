@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { SiteGallery } from "@/lib/content-types";
+import type { RaceFilterOption } from "@/lib/media/gallery-index";
 import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
 
 /**
@@ -18,8 +19,13 @@ import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
  * The two-stage seed and the lightbox setup moved there with it — this file
  * had its own copy of both, as did AllPhotosView, as does RacePhotoWall.
  */
-export const PhotoGallery: React.FC<{ gallery: SiteGallery }> = ({ gallery }) => (
-  <MediaGrid items={gallery.items} targetRowHeight={350} />
+export const PhotoGallery: React.FC<{
+  gallery: SiteGallery;
+  /** Only the races this album's own contents carry — usually none, and
+   *  exactly one for a virtual race album, which is why it is often absent. */
+  races?: RaceFilterOption[];
+}> = ({ gallery, races }) => (
+  <MediaGrid items={gallery.items} races={races} targetRowHeight={350} />
 );
 
 export default PhotoGallery;

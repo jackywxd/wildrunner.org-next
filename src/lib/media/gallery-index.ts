@@ -20,6 +20,7 @@ import type {
   SitePhoto,
   SiteVideo,
 } from '@/lib/content-types'
+import type { SiteRaceEditionOption } from '@/lib/content-types'
 import type { MediaKindFilter } from '@/lib/media/filters'
 import { photosOf, videosOf } from '@/lib/media/gallery-items'
 
@@ -72,7 +73,66 @@ export function albumCard(gallery: SiteGallery): SiteAlbumCard {
     photoCount: photosOf(gallery.items).length,
     videoCount: videosOf(gallery.items).length,
     created: gallery.created,
+    raceEditionIds: raceIdsOf(gallery.items),
   }
+}
+
+/** Every race the items are tagged with, deduped, in first-seen order. */
+function raceIdsOf(items: SiteMediaItem[]): number[] {
+  const ids = new Set<number>()
+  for (const item of items) {
+    if (item.raceEditionId !== undefined) ids.add(item.raceEditionId)
+  }
+  return [...ids]
+}
+
+/**
+ * One entry in the 賽事 filter: a race that actually has something to show.
+ *
+ * `count` is what stops the select becoming a list of every race in the
+ * catalogue — 154 rows, of which two have media. The options are derived from
+ * the items themselves rather than from `race-editions`, so an option can
+ * never lead to an empty grid.
+ */
+export type RaceFilterOption = { id: number; label: string; count: number }
+
+/**
+ * The races present in `items`, named.
+ *
+ * `editions` supplies only the names, and an id with no matching edition is
+ * dropped rather than shown as a blank option — that can happen while an
+ * edition is being renamed or deleted, and an unlabelled entry in a select is
+ * indistinguishable from a bug.
+ *
+ * Ordered by year, newest first, matching every other race list on the site.
+ */
+export function raceFilterOptions(
+  items: SiteMediaItem[],
+  editions: SiteRaceEditionOption[],
+): RaceFilterOption[] {
+  const counts = new Map<number, number>()
+  for (const item of items) {
+    if (item.raceEditionId === undefined) continue
+    counts.set(item.raceEditionId, (counts.get(item.raceEditionId) ?? 0) + 1)
+  }
+
+  const options: (RaceFilterOption & { year: number })[] = []
+  for (const edition of editions) {
+    const count = counts.get(edition.id)
+    if (!count) continue
+    options.push({
+      id: edition.id,
+      // The same shape the upload picker and the album title use, so one race
+      // reads the same wherever a member meets it.
+      label: `${edition.year}　${edition.nameZh ?? edition.name}`,
+      count,
+      year: edition.year,
+    })
+  }
+
+  return options
+    .sort((a, b) => b.year - a.year || a.label.localeCompare(b.label))
+    .map(({ id, label, count }) => ({ id, label, count }))
 }
 
 /**
@@ -102,6 +162,8 @@ export function unionBySrc<T extends { src: string; createdAt: string }>(
 export type GalleryIndexData = {
   albums: SiteAlbumCard[]
   featuredPhotos: SitePhoto[]
+  /** What the 賽事 filter offers, on both the wall and the album shelf. */
+  races: RaceFilterOption[]
   /**
    * The wall, photos and videos in one list, newest first.
    *
@@ -138,6 +200,8 @@ export type WallSort = 'curated' | 'newest' | 'oldest'
 export type WallArrangement = {
   kind: MediaKindFilter
   sort: WallSort
+  /** `null` is every race *and* everything with no race — not "untagged". */
+  race: number | null
 }
 
 /**
@@ -156,9 +220,12 @@ export type WallArrangement = {
  */
 export function arrangeMedia(
   items: SiteMediaItem[],
-  { kind, sort }: WallArrangement,
+  { kind, sort, race }: WallArrangement,
 ): SiteMediaItem[] {
-  const filtered = kind === 'all' ? items : items.filter((item) => item.kind === kind)
+  const byRace =
+    race === null ? items : items.filter((item) => item.raceEditionId === race)
+  const filtered =
+    kind === 'all' ? byRace : byRace.filter((item) => item.kind === kind)
   if (sort === 'curated') return filtered
   // Copied before sorting: the input is an album's own `items` on the client
   // path, and sorting in place would mutate a prop.
@@ -227,9 +294,27 @@ export function buildGalleryIndex(
   galleries: SiteGallery[],
   libraryPhotos: SitePhoto[],
   libraryVideos: SiteVideo[],
+  /**
+   * Names for the 賽事 filter. Optional and defaulting to none, which is the
+   * honest answer for a caller that has not fetched them: no options, so no
+   * control is drawn — rather than a select full of ids.
+   */
+  editions: SiteRaceEditionOption[] = [],
 ): GalleryIndexData {
   const albumPhotos = galleries.flatMap((gallery) => photosOf(gallery.items))
   const albumVideos = galleries.flatMap((gallery) => videosOf(gallery.items))
+
+  // Unioned per kind first, because dedupe is by `src` and a photo and a
+  // video can never collide on one; then merged and re-sorted so the wall
+  // is one sequence in time rather than two lists stapled together.
+  const items: SiteMediaItem[] = [
+    ...unionBySrc(albumPhotos, libraryPhotos).map(
+      (photo): SiteMediaItem => ({ kind: 'photo', ...photo }),
+    ),
+    ...unionBySrc(albumVideos, libraryVideos).map(
+      (video): SiteMediaItem => ({ kind: 'video', ...video }),
+    ),
+  ].sort(newestFirst)
 
   return {
     albums: galleries
@@ -239,16 +324,10 @@ export function buildGalleryIndex(
     featuredPhotos: albumPhotos
       .filter((photo) => photo.featured)
       .slice(0, FEATURED_LIMIT),
-    // Unioned per kind first, because dedupe is by `src` and a photo and a
-    // video can never collide on one; then merged and re-sorted so the wall
-    // is one sequence in time rather than two lists stapled together.
-    items: [
-      ...unionBySrc(albumPhotos, libraryPhotos).map(
-        (photo): SiteMediaItem => ({ kind: 'photo', ...photo }),
-      ),
-      ...unionBySrc(albumVideos, libraryVideos).map(
-        (video): SiteMediaItem => ({ kind: 'video', ...video }),
-      ),
-    ].sort(newestFirst),
+    // Counted over the deduped wall, not over the raw inputs: a photo that is
+    // both in an album and on the wall is one photo, and the option's count
+    // has to match what selecting it will show.
+    races: raceFilterOptions(items, editions),
+    items,
   }
 }
