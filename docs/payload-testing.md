@@ -32,15 +32,20 @@ This means `PLAYWRIGHT_BASE_URL` must match the target's `serverURL`
 
 ## Suites
 
-| Path | Covers |
-|------|--------|
-| `e2e/smoke.spec.ts` | P0 home/admin smoke |
-| `e2e/scaffold.spec.ts` | P0 bindings/branch + P3 dry-run/LFS docs |
-| `e2e/access.spec.ts` / `e2e/admin-auth.spec.ts` | P1 auth/access |
-| `e2e/admin/media-gallery.spec.ts` | P1 upload + global hero |
-| `e2e/public/*` | P2 publish visibility / revalidate / og |
-| `e2e/media/*` | P2 Images + P5 gallery/Stream |
-| `e2e/ai/*` | P4 AI API + Admin UI |
+Every path this table used to list (`e2e/smoke.spec.ts`, `e2e/access.spec.ts`,
+`e2e/public/`, `e2e/media/`, `e2e/ai/`) had been deleted, and the table was
+left describing a suite that no longer existed. What is actually there:
+
+| Path | Level | Runs where |
+|------|-------|------------|
+| `e2e/unit/` | pure functions, no server or database | `checks` job, `pnpm test:unit`, ~6s |
+| `e2e/journeys/` | one test per use case, browser + database | `e2e` job, 3 shards, each with its own local D1 |
+| `e2e/corpus/` | assertions about the data that is actually there | same shards |
+| `e2e/deployed/` | is the deployment wired up and alive | `verify-staging` after a deploy, `pnpm test:smoke` |
+
+`e2e/deployed/` is deliberately six checks and not the whole suite —
+`docs/release-pipeline.md` has the run-history numbers behind that, and
+`docs/testing-strategy.md` §4 has the rules for what may be added to it.
 
 ## Traces
 
