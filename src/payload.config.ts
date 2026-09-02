@@ -37,6 +37,8 @@ import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { processMediaImageEndpoint } from './endpoints/processMediaImage'
+import { posterFrameEndpoint } from './endpoints/posterFrame'
+import { posterResultEndpoint } from './endpoints/posterResult'
 import { transcodeMediaEndpoint } from './endpoints/transcodeMedia'
 import { transcodeResultEndpoint } from './endpoints/transcodeResult'
 import { transcodeSweepEndpoint } from './endpoints/transcodeSweep'
@@ -207,6 +209,8 @@ export default buildConfig({
     storageUsageEndpoint,
     directUploadInitEndpoint,
     processMediaImageEndpoint,
+    posterFrameEndpoint,
+    posterResultEndpoint,
     transcodeMediaEndpoint,
     transcodeResultEndpoint,
     transcodeSweepEndpoint,

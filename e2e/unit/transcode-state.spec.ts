@@ -16,14 +16,17 @@ import { expect, test } from "@playwright/test";
 
 import {
   LEASE_TIMEOUT_MS,
+  MAX_POSTER_SECONDS,
   MAX_TRANSCODE_ATTEMPTS,
   leaseExpired,
   needsTranscode,
   nextStatusForRequest,
+  posterFrameJob,
+  posterKey,
   reclaim,
   transcodeJob,
-  posterKey,
   transcodedKey,
+  versionedPosterUrl,
 } from "@/lib/media/transcode-state";
 
 const NOW = new Date("2026-08-26T12:00:00.000Z");
@@ -155,5 +158,58 @@ test.describe("U-TRANSCODE the transcode queue's rules", () => {
     // derived object from the other without parsing a filename.
     expect(posterKey(672).startsWith("posters/")).toBe(true);
     expect(transcodedKey(672).startsWith("transcoded/")).toBe(true);
+  });
+
+  test("U-TRANSCODE-10: a picked frame is clamped, and a non-number is refused", () => {
+    const media = { id: 672, url: "https://cdn.example.com/a.mp4" };
+
+    // The ordinary case: whatever the player reported, carried through.
+    expect(posterFrameJob(media, 12.5)?.seconds).toBe(12.5);
+
+    // Scrubbed to the very start. A real thing a member does, so 0 is a
+    // value and not an error — and a negative currentTime (some players
+    // report a tiny one while seeking) means the same intent.
+    expect(posterFrameJob(media, 0)?.seconds).toBe(0);
+    expect(posterFrameJob(media, -3)?.seconds).toBe(0);
+
+    // Bounded, because this ends up in ffmpeg's argv. The Worker enforces
+    // the same ceiling; this is the copy that keeps a nonsense value from
+    // leaving the site at all.
+    expect(posterFrameJob(media, 1e9)?.seconds).toBe(MAX_POSTER_SECONDS);
+
+    // Rounded to milliseconds: `currentTime` is a float with far more
+    // precision than a frame, and the extra digits only make the argv
+    // longer and the log harder to read.
+    expect(posterFrameJob(media, 3.14159265)?.seconds).toBe(3.142);
+
+    // NaN is the player never having reported a time. Refused outright
+    // rather than defaulting to 0 — guessing which frame the member wanted
+    // is worse than telling them it did not work.
+    expect(posterFrameJob(media, Number.NaN)).toBeNull();
+    expect(posterFrameJob(media, Number.POSITIVE_INFINITY)).toBeNull();
+
+    // Same source rule as a transcode: no absolute URL, no job.
+    expect(posterFrameJob({ id: 672, url: "/relative.mp4" }, 5)).toBeNull();
+    expect(posterFrameJob({ id: 672, url: null }, 5)).toBeNull();
+  });
+
+  test("U-TRANSCODE-11: a re-picked poster gets a URL that is actually re-fetched", () => {
+    // The object key never changes, so without this the browser and the
+    // Cloudflare edge both go on serving the previous frame — for a feature
+    // whose whole point is choosing the picture, indistinguishable from
+    // broken.
+    const base = "https://images.wildrunner.org/posters/672.jpg";
+    const first = versionedPosterUrl(base, 1_700_000_000_000);
+    const later = versionedPosterUrl(base, 1_700_000_060_000);
+
+    expect(first).toBe(`${base}?v=1700000000`);
+    expect(first).not.toBe(later);
+
+    // A base that already carries a query keeps it. Nothing produces one
+    // today, but the alternative is a URL with two `?` in it, which fails
+    // silently as a 404 rather than loudly.
+    expect(versionedPosterUrl(`${base}?x=1`, 1_700_000_000_000)).toBe(
+      `${base}?x=1&v=1700000000`,
+    );
   });
 });

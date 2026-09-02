@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";
 import { streamIframeSrc } from "@/lib/stream";
@@ -20,6 +20,18 @@ type StreamVideoPlayerProps = {
    * would silently lose it.
    */
   style?: CSSProperties;
+  /**
+   * Handed through to the `<video>` element on the R2 path, so a caller can
+   * read what the member is actually looking at — `currentTime` is the only
+   * place the chosen poster frame exists (MediaDetailDialog).
+   *
+   * Deliberately not forwarded to the Stream `<iframe>` branch: an iframe on
+   * another origin exposes no playback position, so a caller holding this ref
+   * gets `null` there and must say the feature is unavailable rather than
+   * guess a time. `streamId` is null for every video today, so that branch is
+   * theoretical — but silently reading 0 would not be.
+   */
+  videoRef?: RefObject<HTMLVideoElement | null>;
 };
 
 /**
@@ -38,6 +50,7 @@ export function StreamVideoPlayer({
   className,
   compact = false,
   style,
+  videoRef,
 }: StreamVideoPlayerProps) {
   const streamSrc = streamIframeSrc(video.streamId);
   const label = mediaDisplayName(video);
@@ -62,6 +75,7 @@ export function StreamVideoPlayer({
   if (video.src) {
     return (
       <video
+        ref={videoRef}
         data-testid="direct-video"
         src={video.src}
         controls
