@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAuthenticated, isOwner, ownedOnly } from '../access'
 import { ownerField } from '../fields/owner'
+import { youTubeVideoId } from '../lib/youtube'
 import { setOwner } from './hooks/owner'
 import { revalidateGalleries } from './hooks/revalidate'
 
@@ -71,6 +72,53 @@ export const Galleries: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       label: { en: 'Cover Image', 'zh-TW': '封面圖片' },
+    },
+    /**
+     * A YouTube link this album plays while its slideshow runs.
+     *
+     * STORED AS THE URL SOMEBODY PASTED, not as the id. The id is re-derived
+     * on every read (`mapPayloadGallery`) so that the rule
+     * `src/lib/youtube.ts` exists for has exactly one place to hold: the
+     * author's own string never reaches an `<iframe src>`, because the only
+     * thing that crosses to the client is eleven characters this codebase
+     * parsed out itself. Storing the id instead would make the round trip
+     * lossy for no gain — an admin who wants to check what they pasted would
+     * be shown something they did not type.
+     *
+     * `validate` REFUSES ANYTHING THAT IS NOT ONE VIDEO. A playlist or channel
+     * URL has no single video, so `youTubeVideoId` returns null for it and it
+     * is rejected at save time rather than stored and silently ignored — the
+     * failure where an admin sets background music, sees no error, and hears
+     * nothing.
+     *
+     * ADMIN-ONLY BY CONSTRUCTION. There is no member-facing album editor
+     * (nothing under src/app/(site)/members touches `galleries`), so this
+     * control is the one Payload generates from this field and there is no
+     * second screen for it to drift from. `scripts/assert-schema-screen.mjs`
+     * covers member-facing forms only, and correctly does not reach here.
+     *
+     * The virtual race albums have no row and therefore no music; see
+     * `src/lib/race-gallery.ts` for why they are derived rather than stored.
+     */
+    {
+      name: 'musicUrl',
+      type: 'text',
+      label: { en: 'Background music (YouTube)', 'zh-TW': '背景音樂（YouTube）' },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'A YouTube video link. Plays while a visitor runs this album as a slideshow; they can always mute it.',
+          'zh-TW':
+            '貼一個 YouTube 影片連結。訪客播放這本相簿的投影片時當背景音樂，隨時可以關掉。',
+        },
+      },
+      validate: (value: unknown) => {
+        if (value === null || value === undefined || value === '') return true
+        if (typeof value !== 'string') return 'Enter a YouTube video link.'
+        return youTubeVideoId(value) !== null
+          ? true
+          : '請貼一個 YouTube 影片連結（播放清單或頻道沒有單一影片，不能用）'
+      },
     },
     /**
      * Everything in this album, photos and videos in one ordered list.
