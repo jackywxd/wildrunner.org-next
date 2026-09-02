@@ -155,6 +155,20 @@ export type SiteGallery = {
   featured: string[];
   cover?: SiteImage | null;
   /**
+   * The eleven-character YouTube id this album plays as background music, or
+   * `null`.
+   *
+   * An ID, NOT A URL, and that is the only shape allowed to cross to the
+   * client: the `src` of a third-party frame is the one place a stray string
+   * in the database would become an arbitrary embedded origin on our own
+   * page. `mapPayloadGallery` parses it out of `galleries.musicUrl` with
+   * `youTubeVideoId`; the renderer rebuilds the URL from it.
+   *
+   * `null` on every album until an admin sets one, and on a virtual race
+   * album always — those have no row to store it on.
+   */
+  musicVideoId?: string | null;
+  /**
    * The album, as one ordered list.
    *
    * Was `images: SitePhoto[]` and `videos: SiteVideo[]`. Those two came from
