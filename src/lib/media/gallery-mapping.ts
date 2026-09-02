@@ -14,7 +14,7 @@ import type { Gallery, Media } from '@/payload-types'
 
 import { mediaDimensions, mediaImageSrc } from '@/lib/cf-image'
 import type { SiteGallery, SiteMediaItem, SitePhoto, SiteVideo } from '@/lib/content-types'
-import { mediaToSiteVideo } from '@/lib/media/site-video'
+import { editionIdOf, mediaToSiteVideo } from '@/lib/media/site-video'
 
 /**
  * Exactly the media fields the public mappers below read, and no more.
@@ -62,6 +62,7 @@ export function isMedia(value: unknown): value is Media {
   return Boolean(value && typeof value === "object" && "url" in value);
 }
 
+
 export function mapMediaToSiteImage(media: Media | null | undefined) {
   const src = mediaImageSrc(media);
   if (!src) return undefined;
@@ -87,6 +88,7 @@ export function mapMediaToPhoto(
     height,
     blurDataURL: media.blurDataURL ?? undefined,
     description: media.description ?? undefined,
+    raceEditionId: editionIdOf(media.raceEdition),
     blurWidth: 20,
     blurHeight: Math.max(1, Math.round((height / width) * 20)),
     createdAt: media.createdAt,

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   getGalleryPhotos,
+  getGalleryRaceEditions,
   getGalleryVideos,
   getPublishedGalleries,
   getRaceGalleries,
@@ -38,12 +39,13 @@ import GalleryPageClient from "./gallery-page-client";
 export const revalidate = 3600;
 
 export default async function GalleryPage() {
-  const [galleries, raceGalleries, libraryPhotos, libraryVideos] =
+  const [galleries, raceGalleries, libraryPhotos, libraryVideos, editions] =
     await Promise.all([
       getPublishedGalleries(),
       getRaceGalleries(),
       getGalleryPhotos(),
       getGalleryVideos(),
+      getGalleryRaceEditions(),
     ]);
 
   // Reduced here rather than in the browser. The client used to receive every
@@ -55,6 +57,7 @@ export default async function GalleryPage() {
     [...galleries, ...raceGalleries],
     libraryPhotos,
     libraryVideos,
+    editions,
   );
 
   // The next step of that same fix: the wall itself no longer ships whole.
@@ -70,6 +73,7 @@ export default async function GalleryPage() {
       featuredPhotos={index.featuredPhotos}
       items={firstPage.items}
       nextCursor={firstPage.nextCursor}
+      races={index.races}
     />
   );
 }

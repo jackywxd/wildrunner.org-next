@@ -33,6 +33,7 @@ export type VideoMediaDoc = Pick<
   | 'createdAt'
   | 'description'
   | 'filename'
+  | 'raceEdition'
   | 'filesize'
   | 'id'
   | 'legacyVideoId'
@@ -43,6 +44,29 @@ export type VideoMediaDoc = Pick<
   | 'title'
   | 'url'
 >
+
+/**
+ * A relationship's id, whichever shape the query left it in.
+ *
+ * `media.raceEdition` arrives as a bare number at depth 0 (the wall's own
+ * query) and as a populated document at depth 1 (an album's `items[].media`),
+ * and both reach the same mappers. Reading `.id` off a number silently yields
+ * `undefined`, which is a photo quietly falling out of its race's filter.
+ *
+ * HERE RATHER THAN IN gallery-mapping.ts, WHICH IS THE FILE THAT READS IT
+ * MOST. That file already imports `mediaToSiteVideo` from this one; defining
+ * it there and importing it back would make the pair circular for a
+ * three-line helper.
+ */
+export function editionIdOf(
+  value: Media['raceEdition'],
+): number | undefined {
+  if (typeof value === 'number') return value
+  if (value && typeof value === 'object' && typeof value.id === 'number') {
+    return value.id
+  }
+  return undefined
+}
 
 /**
  * `videoId` is the share-page id and the caller decides it.
@@ -74,6 +98,7 @@ export function mediaToSiteVideo(
     extension: filename.includes('.') ? filename.split('.').pop()! : undefined,
     title: media.title ?? undefined,
     description: media.description ?? undefined,
+    raceEditionId: editionIdOf(media.raceEdition),
     poster: media.posterUrl ?? undefined,
     streamId: media.streamId,
     streamReady: Boolean(media.streamReady),

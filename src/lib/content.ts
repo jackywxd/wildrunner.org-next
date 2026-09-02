@@ -1125,21 +1125,10 @@ export async function getGalleryMediaById(
  */
 export async function getRaceGalleries(): Promise<SiteGallery[]> {
   const docs = await getGalleryMedia();
+  const editions = await getGalleryRaceEditions();
+  if (editions.length === 0) return [];
 
-  const editionIds = [
-    ...new Set(
-      docs
-        .map((doc) =>
-          typeof doc.raceEdition === "number" ? doc.raceEdition : doc.raceEdition?.id,
-        )
-        .filter((id): id is number => typeof id === "number"),
-    ),
-  ];
-  if (editionIds.length === 0) return [];
-
-  const byId = new Map(
-    (await getRaceEditionsByIds(editionIds)).map((edition) => [edition.id, edition]),
-  );
+  const byId = new Map(editions.map((edition) => [edition.id, edition]));
 
   const grouped = new Map<number, SiteMediaItem[]>();
   for (const doc of docs) {
@@ -1168,6 +1157,31 @@ export async function getRaceGalleries(): Promise<SiteGallery[]> {
   }
   return galleries;
 }
+
+/**
+ * Every race the public media points at, named.
+ *
+ * `React.cache`'d because one request asks twice — `getRaceGalleries` builds
+ * the virtual albums from it, and `buildGalleryIndex` labels the 賽事 filter
+ * from it — and those two must agree in any case: a race with an album and no
+ * filter option, or the reverse, is a filter that lies about the shelf it
+ * sits above.
+ */
+export const getGalleryRaceEditions = cache(
+  async (): Promise<SiteRaceEditionOption[]> => {
+    const docs = await getGalleryMedia();
+    const ids = [
+      ...new Set(
+        docs
+          .map((doc) =>
+            typeof doc.raceEdition === "number" ? doc.raceEdition : doc.raceEdition?.id,
+          )
+          .filter((id): id is number => typeof id === "number"),
+      ),
+    ];
+    return getRaceEditionsByIds(ids);
+  },
+);
 
 /**
  * One race's album, or null when that race has no media.

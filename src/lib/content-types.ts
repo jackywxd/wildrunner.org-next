@@ -29,6 +29,16 @@ export type SitePhoto = SiteImage & {
    * rather than an empty caption.
    */
   description?: string;
+  /**
+   * `media.raceEdition`, as a bare id — never the edition's name.
+   *
+   * The wall's race filter needs to know which race each item belongs to, and
+   * it needs it on every item; the *names* it needs once, in the filter's own
+   * option list (`RaceFilterOption`). Carrying a label here instead would put
+   * the same string on hundreds of items in one RSC payload, which is the
+   * duplication `gallery-index.ts`'s header records paying for once already.
+   */
+  raceEditionId?: number;
   blurWidth?: number;
   blurHeight?: number;
   /** The underlying media doc's own createdAt — for sorting a flat, cross-gallery photo list by time. */
@@ -62,6 +72,8 @@ export type SiteVideo = {
   title?: string;
   /** `media.description`, as on `SitePhoto`. */
   description?: string;
+  /** `media.raceEdition` as a bare id, as on `SitePhoto`. */
+  raceEditionId?: number;
   /**
    * The media doc's own createdAt, for the same reason `SitePhoto` carries one.
    *
@@ -180,6 +192,17 @@ export type SiteAlbumCard = {
   videoCount: number;
   /** Sort key for the shelf — the album's own createdAt, or its newest media. */
   created: string;
+  /**
+   * Every race its contents are tagged with — derived, never stored.
+   *
+   * `galleries` has no `raceEdition` column and deliberately gains none. A
+   * curated album's race is a property of what is in it, and storing it
+   * alongside would be a second source for the same truth that diverges the
+   * first time somebody retags a photo — the split-brain `race-gallery.ts`
+   * exists to avoid, and the reason a race album is virtual in the first
+   * place. A virtual race album naturally carries exactly one id here.
+   */
+  raceEditionIds: number[];
 };
 
 export type SitePost = {

@@ -5,7 +5,12 @@ import PhotoGallery from "@/app/(site)/(public)/gallery/_components/PhotoGallery
 import { siteConfig } from "@/config/site";
 import { resolveGalleryOgImage } from "@/lib/galleryOg";
 import { photosOf, videosOf } from "@/lib/media/gallery-items";
-import { getGalleryBySlug, getSiteGlobals } from "@/lib/content";
+import { raceFilterOptions } from "@/lib/media/gallery-index";
+import {
+  getGalleryBySlug,
+  getGalleryRaceEditions,
+  getSiteGlobals,
+} from "@/lib/content";
 
 // No `generateStaticParams` here, deliberately. This route is force-dynamic,
 // so nothing it returned could ever be prerendered — but Next asks for it
@@ -77,6 +82,11 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
 
   const photoCount = photosOf(gallery.items).length;
   const videoCount = videosOf(gallery.items).length;
+  // Named from the same list the wall labels its filter from, so one race
+  // reads identically in both places. Restricted to this album's own items,
+  // so an option can never empty the grid it sits above — and a virtual race
+  // album, whose items are all one race, correctly offers nothing to choose.
+  const races = raceFilterOptions(gallery.items, await getGalleryRaceEditions());
 
   return (
     <div className="container relative max-w-7xl py-6 lg:py-10">
@@ -88,7 +98,7 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {photoCount}张照片
           {videoCount > 0 ? ` · ${videoCount}个视频` : null}
         </div>
-        <PhotoGallery gallery={gallery} />
+        <PhotoGallery gallery={gallery} races={races} />
       </div>
     </div>
   );

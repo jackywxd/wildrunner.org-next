@@ -22,6 +22,7 @@ import type { SiteMediaItem } from "@/lib/content-types";
 import type { MediaKindFilter } from "@/lib/media/filters";
 import {
   arrangeMedia,
+  type RaceFilterOption,
   type WallCursor,
   type WallSort,
 } from "@/lib/media/gallery-index";
@@ -201,12 +202,27 @@ const ALBUM_SORTS: { value: WallSort; label: string }[] = [
   ...WALL_SORTS,
 ];
 
+/** The 賽事 select's "no filter" value — a string, because a `<select>` has
+ *  no other kind of value, and `null` is what the arrangement wants. */
+const ANY_RACE = "";
+
 export function MediaGrid({
   items,
   nextCursor,
+  races = [],
   targetRowHeight = 220,
 }: {
   items: SiteMediaItem[];
+  /**
+   * The races present in what this grid is showing.
+   *
+   * Empty means no control is drawn, which is the right answer for a grid
+   * whose items carry no race at all — and the state a freshly seeded
+   * database is in. Passed in rather than derived here because deriving it
+   * needs the editions' *names*, which only the server has; the items carry
+   * ids alone, on purpose (see `SitePhoto.raceEditionId`).
+   */
+  races?: RaceFilterOption[];
   /**
    * Omit for a bounded list that never paginates — an album's own contents,
    * which PhotoGallery already has in full and always will (an album is
@@ -224,6 +240,7 @@ export function MediaGrid({
   const [accumulated, setAccumulated] = useState<SiteMediaItem[]>(items);
   const [cursor, setCursor] = useState<WallCursor | null>(nextCursor ?? null);
   const [kind, setKind] = useState<MediaKindFilter>("all");
+  const [race, setRace] = useState<number | null>(null);
   // The wall arrives newest-first and an album arrives in its curator's order,
   // so each starts at whatever its incoming list already is — the initial
   // render must not reorder anything.
@@ -244,6 +261,7 @@ export function MediaGrid({
         // and unsorted and lands underneath the first.
         kind,
         sort,
+        ...(race === null ? {} : { race: String(race) }),
       });
       const response = await fetch(`/api/gallery/wall?${params}`);
       if (!response.ok) return;
@@ -256,7 +274,7 @@ export function MediaGrid({
     } finally {
       loadingRef.current = false;
     }
-  }, [cursor, kind, sort]);
+  }, [cursor, kind, sort, race]);
 
   /**
    * A filter changing is a new list, not a filtered old one.
@@ -269,9 +287,14 @@ export function MediaGrid({
    * change because somebody clicked, so the click is where the work belongs.
    */
   const applyArrangement = useCallback(
-    async (nextKind: MediaKindFilter, nextSort: WallSort) => {
+    async (
+      nextKind: MediaKindFilter,
+      nextSort: WallSort,
+      nextRace: number | null,
+    ) => {
       setKind(nextKind);
       setSort(nextSort);
+      setRace(nextRace);
       if (!paginated) return;
 
       // Reset before the fetch, not after: the grid must not keep showing
@@ -281,7 +304,11 @@ export function MediaGrid({
       setIndex(-1);
       loadingRef.current = true;
       try {
-        const params = new URLSearchParams({ kind: nextKind, sort: nextSort });
+        const params = new URLSearchParams({
+          kind: nextKind,
+          sort: nextSort,
+          ...(nextRace === null ? {} : { race: String(nextRace) }),
+        });
         const response = await fetch(`/api/gallery/wall?${params}`);
         if (!response.ok) return;
         const page = (await response.json()) as {
@@ -302,8 +329,8 @@ export function MediaGrid({
   // `curated` returns the list untouched, which is what the first render of an
   // album must be.
   const shown = useMemo(
-    () => (paginated ? accumulated : arrangeMedia(items, { kind, sort })),
-    [paginated, accumulated, items, kind, sort],
+    () => (paginated ? accumulated : arrangeMedia(items, { kind, sort, race })),
+    [paginated, accumulated, items, kind, sort, race],
   );
 
   // Not re-armed on `items`/`nextCursor` changing identity: GalleryPageClient
@@ -370,21 +397,21 @@ export function MediaGrid({
         <div className="flex gap-2">
           <FilterChip
             active={kind === "all"}
-            onClick={() => void applyArrangement("all", sort)}
+            onClick={() => void applyArrangement("all", sort, race)}
             data-testid="gallery-filter-kind-all"
           >
             {KIND_LABELS.all}
           </FilterChip>
           <FilterChip
             active={kind === "photo"}
-            onClick={() => void applyArrangement("photo", sort)}
+            onClick={() => void applyArrangement("photo", sort, race)}
             data-testid="gallery-filter-kind-photo"
           >
             {KIND_LABELS.photo}
           </FilterChip>
           <FilterChip
             active={kind === "video"}
-            onClick={() => void applyArrangement("video", sort)}
+            onClick={() => void applyArrangement("video", sort, race)}
             data-testid="gallery-filter-kind-video"
           >
             {KIND_LABELS.video}
@@ -393,10 +420,33 @@ export function MediaGrid({
         <FilterSelect
           label="排序"
           value={sort}
-          onChange={(next) => void applyArrangement(kind, next)}
+          onChange={(next) => void applyArrangement(kind, next, race)}
           options={paginated ? WALL_SORTS : ALBUM_SORTS}
           data-testid="gallery-filter-sort"
         />
+        {/* Only when there is something to choose between. A select holding
+            one option is a control that cannot change the answer. */}
+        {races.length > 0 && (
+          <FilterSelect
+            label="賽事"
+            value={race === null ? ANY_RACE : String(race)}
+            onChange={(next) =>
+              void applyArrangement(
+                kind,
+                sort,
+                next === ANY_RACE ? null : Number(next),
+              )
+            }
+            options={[
+              { value: ANY_RACE, label: "所有比賽" },
+              ...races.map((option) => ({
+                value: String(option.id),
+                label: `${option.label}（${option.count}）`,
+              })),
+            ]}
+            data-testid="gallery-filter-race"
+          />
+        )}
       </div>
 
       {photos.length === 0 ? (
@@ -407,7 +457,9 @@ export function MediaGrid({
           {/* "還沒有" is a claim about the site, and it is wrong the moment a
               filter is on: a visitor who picked 影片 on an album of photos has
               not discovered that the site has no videos. */}
-          {kind === "all" ? "還沒有相片或影片。" : "沒有符合條件的項目。"}
+          {kind === "all" && race === null
+            ? "還沒有相片或影片。"
+            : "沒有符合條件的項目。"}
         </p>
       ) : (
         <PhotoAlbum

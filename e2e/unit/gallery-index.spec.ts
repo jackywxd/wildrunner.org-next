@@ -9,6 +9,7 @@ import {
   albumCard,
   arrangeMedia,
   buildGalleryIndex,
+  raceFilterOptions,
   wallPage,
   type WallCursor,
 } from "@/lib/media/gallery-index";
@@ -256,7 +257,7 @@ test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in tw
     // default of `newest` on the album page would have thrown all of that away
     // silently, on every album, the day filtering shipped.
     expect(
-      arrangeMedia(mixed, { kind: "all", sort: "curated" }).map((i) => i.src),
+      arrangeMedia(mixed, { kind: "all", sort: "curated", race: null }).map((i) => i.src),
     ).toEqual(["second.mp4", "third.jpg", "first.jpg"]);
   });
 
@@ -266,24 +267,24 @@ test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in tw
     // from an order the curator never chose — a corruption that survives the
     // filter being switched back.
     const before = mixed.map((i) => i.src);
-    arrangeMedia(mixed, { kind: "all", sort: "newest" });
+    arrangeMedia(mixed, { kind: "all", sort: "newest", race: null });
     expect(mixed.map((i) => i.src)).toEqual(before);
   });
 
   test("U-ARRANGE-3: kind narrows across both discriminants", () => {
     expect(
-      arrangeMedia(mixed, { kind: "video", sort: "curated" }).map((i) => i.src),
+      arrangeMedia(mixed, { kind: "video", sort: "curated", race: null }).map((i) => i.src),
     ).toEqual(["second.mp4"]);
     expect(
-      arrangeMedia(mixed, { kind: "photo", sort: "curated" }).map((i) => i.src),
+      arrangeMedia(mixed, { kind: "photo", sort: "curated", race: null }).map((i) => i.src),
     ).toEqual(["third.jpg", "first.jpg"]);
   });
 
   test("U-ARRANGE-4: newest and oldest are exact reversals of each other", () => {
-    const newest = arrangeMedia(mixed, { kind: "all", sort: "newest" }).map(
+    const newest = arrangeMedia(mixed, { kind: "all", sort: "newest", race: null }).map(
       (i) => i.src,
     );
-    const oldest = arrangeMedia(mixed, { kind: "all", sort: "oldest" }).map(
+    const oldest = arrangeMedia(mixed, { kind: "all", sort: "oldest", race: null }).map(
       (i) => i.src,
     );
     expect(newest).toEqual(["third.jpg", "second.mp4", "first.jpg"]);
@@ -302,10 +303,10 @@ test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in tw
       p("c.jpg", "2026-01-01T00:00:00.000Z"),
     ];
     expect(
-      arrangeMedia(tied, { kind: "all", sort: "newest" }).map((i) => i.src),
+      arrangeMedia(tied, { kind: "all", sort: "newest", race: null }).map((i) => i.src),
     ).toEqual(["a.jpg", "b.jpg", "c.jpg"]);
     expect(
-      arrangeMedia(tied, { kind: "all", sort: "oldest" }).map((i) => i.src),
+      arrangeMedia(tied, { kind: "all", sort: "oldest", race: null }).map((i) => i.src),
     ).toEqual(["c.jpg", "b.jpg", "a.jpg"]);
   });
 
@@ -322,7 +323,7 @@ test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in tw
         p("c.jpg", "2026-01-03T00:00:00.000Z"),
         p("d.jpg", "2026-01-04T00:00:00.000Z"),
       ],
-      { kind: "all", sort: "oldest" },
+      { kind: "all", sort: "oldest", race: null },
     );
     expect(ascending.map((i) => i.src)).toEqual([
       "a.jpg",
@@ -345,5 +346,107 @@ test.describe("U-ARRANGE the wall's filter and sort, which two pages apply in tw
       "a.jpg",
       "c.jpg",
     ]);
+  });
+});
+
+/**
+ * U-RACEFILTER — narrowing the wall and the shelf to one race.
+ *
+ * Two failures worth a test, both of which look like nothing on screen.
+ *
+ * A filter that does not filter: `arrangeMedia` returning everything for a
+ * selected race is a page that looks perfectly normal and is simply wrong,
+ * and no rendering test can tell the difference between "this race has these
+ * photos" and "this is the whole wall".
+ *
+ * An option that leads nowhere: the option list is derived from the items so
+ * that selecting one can never produce an empty grid. `race-editions` has 154
+ * rows and two of them have media; a list built from the editions instead
+ * would be 154 options, 152 of them dead.
+ */
+const withRace = (src: string, raceEditionId?: number): SiteMediaItem => ({
+  kind: "photo",
+  ...photo(src, { raceEditionId }),
+});
+
+const editions = [
+  { id: 7, eventKey: "other-hardrock", name: "Hardrock 100", nameZh: "硬石 100", year: 2019 },
+  { id: 8, eventKey: "other-leadville", name: "Leadville Trail 100", year: 2016 },
+];
+
+test.describe("U-RACEFILTER the wall and the shelf narrow to one race", () => {
+  const tagged = [withRace("hr1.jpg", 7), withRace("lv.jpg", 8), withRace("none.jpg")];
+
+  test("U-RACEFILTER-1: a selected race keeps only that race's items", () => {
+    expect(
+      arrangeMedia(tagged, { kind: "all", sort: "curated", race: 7 }).map(
+        (i) => i.src,
+      ),
+    ).toEqual(["hr1.jpg"]);
+
+    // `null` is every race AND everything with no race — not "untagged", which
+    // is the reading that would quietly hide most of the wall by default.
+    expect(
+      arrangeMedia(tagged, { kind: "all", sort: "curated", race: null }).map(
+        (i) => i.src,
+      ),
+    ).toHaveLength(3);
+  });
+
+  test("U-RACEFILTER-2: race and kind narrow together, not instead of each other", () => {
+    const mixedRaces: SiteMediaItem[] = [
+      withRace("hr-photo.jpg", 7),
+      {
+        kind: "video",
+        mediaId: 9,
+        id: "v9",
+        filename: "hr-clip.mp4",
+        src: "hr-clip.mp4",
+        mimeType: "video/mp4",
+        slug: "hr-clip.mp4",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        raceEditionId: 7,
+      },
+      withRace("lv-photo.jpg", 8),
+    ];
+    expect(
+      arrangeMedia(mixedRaces, { kind: "video", sort: "curated", race: 7 }).map(
+        (i) => i.src,
+      ),
+    ).toEqual(["hr-clip.mp4"]);
+  });
+
+  test("U-RACEFILTER-3: only races that actually have something are offered", () => {
+    const options = raceFilterOptions(tagged, editions);
+    expect(options.map((o) => o.id)).toEqual([7, 8]);
+    expect(options.map((o) => o.count)).toEqual([1, 1]);
+    // Newest first, and Chinese name when there is one — the same shape the
+    // upload picker and the album title use.
+    expect(options[0].label).toContain("2019");
+    expect(options[0].label).toContain("硬石 100");
+    expect(options[1].label).toContain("Leadville");
+
+    // An edition nothing points at is not an option, however real it is.
+    expect(
+      raceFilterOptions([withRace("only.jpg", 7)], editions).map((o) => o.id),
+    ).toEqual([7]);
+  });
+
+  test("U-RACEFILTER-4: an id with no matching edition is dropped, not shown blank", () => {
+    // Possible while an edition is being renamed or removed. A blank option in
+    // a select is indistinguishable from a bug, and choosing it would empty
+    // the grid for no stated reason.
+    expect(raceFilterOptions([withRace("orphan.jpg", 99)], editions)).toEqual([]);
+  });
+
+  test("U-RACEFILTER-5: an album card carries every race its contents name", () => {
+    // The shelf filters on this. Derived, never stored — `galleries` has no
+    // race column and deliberately gains none, so that a retagged photo
+    // cannot leave the album claiming a race it no longer holds.
+    const card = albumCard(
+      album("mixed", [withRace("a.jpg", 7), withRace("b.jpg", 8), withRace("c.jpg", 7)]),
+    );
+    expect(card.raceEditionIds).toEqual([7, 8]);
+    expect(albumCard(album("plain", [withRace("d.jpg")])).raceEditionIds).toEqual([]);
   });
 });
