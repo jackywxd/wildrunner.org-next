@@ -20,6 +20,7 @@ import type {
   SitePhoto,
   SiteVideo,
 } from '@/lib/content-types'
+import type { MediaKindFilter } from '@/lib/media/filters'
 import { photosOf, videosOf } from '@/lib/media/gallery-items'
 
 /** The featured shelf has always been capped; the cap moves here with it. */
@@ -40,6 +41,21 @@ const newestFirst = (
   if (byTime !== 0) return byTime
   return (a.src ?? '').localeCompare(b.src ?? '')
 }
+
+/**
+ * The exact reversal, tiebreak included — not "sort by time ascending".
+ *
+ * `wallPage`'s cursor works by re-finding its place with the same comparator
+ * the array is sorted by, so the two have to agree on every pair including the
+ * ones that tie on `createdAt`. A hand-written ascending comparator that kept
+ * `src` ascending would order a batch-imported group one way and search it the
+ * other, and the fallback branch would then skip or repeat rows only on a
+ * corpus with duplicate timestamps — which the seeded one has.
+ */
+const oldestFirst = (
+  a: { createdAt: string; src?: string },
+  b: { createdAt: string; src?: string },
+) => -newestFirst(a, b)
 
 /**
  * One album's card. The contents stay behind, at /gallery/[slug].
@@ -106,6 +122,49 @@ export type WallPage = {
   nextCursor: WallCursor | null
 }
 
+/**
+ * How a visitor asks for the wall to be ordered.
+ *
+ * `curated` is not a sort — it is the absence of one, and it exists because
+ * the two places this runs disagree about what "no sort" means. An album's
+ * `items` arrive in the order its curator arranged them, which is the whole
+ * point of #95's single `galleries_items` table and #102's mapping fix; a
+ * default that re-sorted by time would throw that away the moment this
+ * shipped, silently, on every album page. The wall has no curator and no such
+ * order, so `/api/gallery/wall` refuses this value and falls back to `newest`.
+ */
+export type WallSort = 'curated' | 'newest' | 'oldest'
+
+export type WallArrangement = {
+  kind: MediaKindFilter
+  sort: WallSort
+}
+
+/**
+ * Filter and order a list of wall items. Pure, and total: any input is a
+ * valid input.
+ *
+ * WHY THIS IS ONE FUNCTION USED BY TWO CALLERS THAT LOOK UNRELATED. /gallery's
+ * wall applies it on the server, before `wallPage` slices — it has to, because
+ * the client holds one page of sixty and filtering that would show eight
+ * photos and claim there are no more. An album page applies the same function
+ * in the browser, because it already holds every item it will ever have and a
+ * round trip would fetch what it is sitting on. Same rule, two places it can
+ * correctly run; the thing that must never happen is the wall filtering its
+ * own page client-side, which is what this shape makes hard to write by
+ * accident.
+ */
+export function arrangeMedia(
+  items: SiteMediaItem[],
+  { kind, sort }: WallArrangement,
+): SiteMediaItem[] {
+  const filtered = kind === 'all' ? items : items.filter((item) => item.kind === kind)
+  if (sort === 'curated') return filtered
+  // Copied before sorting: the input is an album's own `items` on the client
+  // path, and sorting in place would mutate a prop.
+  return [...filtered].sort(sort === 'oldest' ? oldestFirst : newestFirst)
+}
+
 /** How many items `/api/gallery/wall` and the initial page both hand out at once. */
 export const WALL_PAGE_SIZE = 60
 
@@ -132,6 +191,13 @@ export function wallPage(
   items: SiteMediaItem[],
   cursor: WallCursor | null,
   pageSize: number = WALL_PAGE_SIZE,
+  /**
+   * The order `items` is already in, so the fallback below searches it the
+   * same way it was sorted. Passing the wrong one is not a rounding error: the
+   * fallback would take the first item sorting *before* the missing cursor and
+   * return the whole page again from the top.
+   */
+  sort: WallSort = 'newest',
 ): WallPage {
   let start = 0
   if (cursor) {
@@ -141,7 +207,8 @@ export function wallPage(
     if (at >= 0) {
       start = at + 1
     } else {
-      const after = items.findIndex((item) => newestFirst(item, cursor) > 0)
+      const follows = sort === 'oldest' ? oldestFirst : newestFirst
+      const after = items.findIndex((item) => follows(item, cursor) > 0)
       start = after >= 0 ? after : items.length
     }
   }

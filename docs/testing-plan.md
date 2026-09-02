@@ -56,6 +56,7 @@ if they ever start resolving, that is a finding, not a feature.
 | M2 | writes a post, saves it as a draft, sees it is not public, publishes it, sees it is |
 | M3 | unpublishes a post and it leaves the public site |
 | M4 | uploads photos, and a video large enough to need the direct-to-R2 path |
+| M11 | browses their whole library — pages through it, narrows it by kind and use, and sees each video's own frame |
 | M5 | resumes an interrupted large upload rather than starting over |
 | M6 | is stopped at their storage quota, and told why |
 | M7 | sees only their own posts, media and byline — never another member's |
@@ -127,7 +128,7 @@ localhost, because 11 real inference calls outlast a 60-second window — so it
 is asserted nowhere that ships. The limiter takes `now` as a parameter, like
 `calendar.ts` does, and two of these three become unit tests.
 
-## 4. Journey — 21 tests
+## 4. Journey — 23 tests
 
 A browser, and only for what a browser can show: rendering, hydration, client
 routing, forms, uploads. One per use case, walking the whole path.
@@ -149,6 +150,8 @@ Every one imports `test` from `e2e/helpers/test.ts`, so any `pageerror` or
 | J9 | M2 | write → save draft → confirm hidden publicly → publish → confirm visible |
 | J10 | M3 | unpublish → confirm gone from the public site |
 | J11 | M4 | upload an image and a >32 MB video; both appear in the library |
+| V-MEDIALIB | M11, A3 | the library pages (the count is the library's, not the page's), a kind filter narrows the query at the server, a video draws its poster, and 只顯示我的 is admin-only |
+| V-WALLFILTER | V2 | /gallery's wall filters at the server rather than in the page it is holding, and an album still opens in its curator's order |
 | J12 | M5 | interrupt a large upload, resume, and confirm it did not restart |
 | J13 | M6 | exceed the quota and read the message |
 | J14 | M7 | a member's library and post list show only their own |
@@ -160,7 +163,7 @@ Every one imports `test` from `e2e/helpers/test.ts`, so any `pageerror` or
 | J20 | A4 | edit the schedule in admin; the public page reflects it |
 | J21 | A5 | the admin panel renders in Traditional Chinese |
 
-That is 21 journeys against 145 today. The 124 that go were asserting vendor
+That is 23 journeys against 145 today. The 124 that go were asserting vendor
 behaviour one feature at a time — every Lexical block type, every draft state
 transition, every form field. J1 and J9 still fail if the editor breaks,
 because they walk the whole path; they simply do not enumerate Lexical.

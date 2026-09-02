@@ -11,12 +11,25 @@ import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
-import Image from "next/image";
 import { Share2 } from "lucide-react";
-import PhotoAlbum, { type Photo, type RenderImageContext } from "react-photo-album";
+import PhotoAlbum, {
+  type Photo,
+  type RenderImageContext,
+} from "react-photo-album";
 import type { SiteMediaItem } from "@/lib/content-types";
-import type { WallCursor } from "@/lib/media/gallery-index";
+import type { MediaKindFilter } from "@/lib/media/filters";
+import {
+  arrangeMedia,
+  type WallCursor,
+  type WallSort,
+} from "@/lib/media/gallery-index";
 import { mediaDisplayName } from "@/lib/media-name";
+import {
+  FilterChip,
+  FilterSelect,
+  KIND_LABELS,
+} from "@/components/media/filters";
+import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
 
 /**
@@ -36,19 +49,11 @@ import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsIma
  * 16:9 entry and is rendered as a card. That is what makes the interleaving
  * real rather than two containers stacked.
  *
- * WHAT A VIDEO'S CARD DRAWS. A real frame when one has been extracted —
- * `media.posterUrl`, taken by the transcoder container a second into the
- * video — and otherwise the dark, labelled card this started as.
- *
- * Both halves are load-bearing, and the fallback is not a leftover. Measured
- * when the card was written: of 27 gallery videos in production, 26 have no
- * `width`/`height` and 27 have no `blurDataURL`; locally it was 22 out of 22.
- * A poster only exists for a video the container has run over since posters
- * shipped, so on any database with history there are videos with none, and
- * `scripts/backfill-video-posters.ts` fills them in over time rather than at
- * once. The rejected alternative is still rejected: a `<video
- * preload="metadata">` tile showing its own first frame is one range request
- * per video on the page.
+ * WHAT A VIDEO'S CARD DRAWS is now `VideoPosterTile`, shared with the member
+ * library — a real frame when the container has taken one, the dark labelled
+ * card otherwise. That file carries the measurements. The rejected
+ * alternative is still rejected: a `<video preload="metadata">` tile showing
+ * its own first frame is one range request per video on the page.
  */
 type GridPhoto = Photo & {
   kind: "photo" | "video";
@@ -103,43 +108,6 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
 }
 
 /**
- * The play glyph, inline rather than from Iconify.
- *
- * `@iconify-icon/react` fetches its icon data from api.iconify.design at
- * runtime, and this repo bundles nothing offline. Everywhere it is used today
- * that is a branch a reader rarely reaches — AlbumCards draws one only for an
- * album with no cover. A tile per video is not that: it would put a
- * third-party request on the first paint of the site's most-visited public
- * page, once per video, for one triangle. It also fails closed in a way that
- * is easy to miss — the console guard caught it here because the sandbox
- * cannot reach that host at all, which is the only reason it was visible.
- */
-function PlayGlyph() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-8 w-8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z"
-      />
-    </svg>
-  );
-}
-
-/**
  * The way back out of the grid to a single item's own page.
  *
  * WHY THIS EXISTS AT ALL. Videos used to carry a share button on the strip
@@ -172,8 +140,8 @@ function ShareButton({ mediaId, label }: { mediaId: number; label: string }) {
 }
 
 /**
- * A video's tile: the box the album computed, filled by us rather than by an
- * image.
+ * A video's tile: the box the album computed, filled by the shared tile
+ * rather than by an image.
  *
  * The size has to be declared here, exactly as `NextJsImage` declares it. The
  * album positions a tile by giving its wrapper a width and leaving the height
@@ -194,42 +162,38 @@ function VideoCard({
 }) {
   return (
     <div
-      className="relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden bg-neutral-900 text-white/80 transition-colors hover:bg-neutral-800"
+      className="relative cursor-pointer"
       data-testid="gallery-video-tile"
       style={{ width: "100%", aspectRatio: `${width} / ${height}` }}
     >
-      {/*
-        The frame itself, when there is one.
-
-        Through `next/image` rather than a bare <img>, for the same reason
-        every photo in this grid is: the poster is the video's full frame —
-        1920x1080 for anything the transcoder has touched — and this tile is a
-        few hundred pixels wide. src/lib/image-loader.ts rewrites it to a
-        `/cdn-cgi/image/width=…` URL when it is on the R2 CDN, so the browser
-        fetches a thumbnail instead of a full frame per video on the page.
-
-        `absolute inset-0` UNDER the glyph rather than replacing it: the tile
-        still has to read as a video at a glance, and a bare still frame is
-        indistinguishable from a photo in a grid that holds both.
-      */}
-      {photo.poster && (
-        <Image
-          src={photo.poster}
-          alt=""
-          aria-hidden="true"
-          fill
-          sizes="(max-width: 768px) 100vw, 400px"
-          className="object-cover"
-          data-testid="gallery-video-poster"
-        />
-      )}
-      <div className="relative flex flex-col items-center gap-2 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
-        <PlayGlyph />
-        <p className="max-w-[85%] truncate px-2 text-center text-xs">{photo.label}</p>
-      </div>
+      <VideoPosterTile
+        poster={photo.poster}
+        label={photo.label}
+        data-testid="gallery-video-poster"
+      />
     </div>
   );
 }
+
+/**
+ * The orders on offer, which differ by what the grid is showing.
+ *
+ * The wall has no curator and no order but time; an album has both. See
+ * `arrangeMedia` for why that distinction has to survive the filter shipping,
+ * and `WallSort` for why `curated` is the absence of a sort rather than one
+ * more of them.
+ */
+const WALL_SORTS: { value: WallSort; label: string }[] = [
+  { value: "newest", label: "最新" },
+  { value: "oldest", label: "最舊" },
+];
+
+const ALBUM_SORTS: { value: WallSort; label: string }[] = [
+  // First, and the default, because it is the album's own order — see
+  // WallSort's own note on why `curated` is the absence of a sort.
+  { value: "curated", label: "相簿順序" },
+  ...WALL_SORTS,
+];
 
 export function MediaGrid({
   items,
@@ -253,6 +217,11 @@ export function MediaGrid({
 
   const [accumulated, setAccumulated] = useState<SiteMediaItem[]>(items);
   const [cursor, setCursor] = useState<WallCursor | null>(nextCursor ?? null);
+  const [kind, setKind] = useState<MediaKindFilter>("all");
+  // The wall arrives newest-first and an album arrives in its curator's order,
+  // so each starts at whatever its incoming list already is — the initial
+  // render must not reorder anything.
+  const [sort, setSort] = useState<WallSort>(paginated ? "newest" : "curated");
   const loadingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -263,6 +232,12 @@ export function MediaGrid({
       const params = new URLSearchParams({
         createdAt: cursor.createdAt,
         src: cursor.src,
+        // The server re-arranges per request (it recomputes the whole union
+        // anyway — see the route's header), so every page has to say what it
+        // is a page OF. Without these the second page comes back unfiltered
+        // and unsorted and lands underneath the first.
+        kind,
+        sort,
       });
       const response = await fetch(`/api/gallery/wall?${params}`);
       if (!response.ok) return;
@@ -275,7 +250,55 @@ export function MediaGrid({
     } finally {
       loadingRef.current = false;
     }
-  }, [cursor]);
+  }, [cursor, kind, sort]);
+
+  /**
+   * A filter changing is a new list, not a filtered old one.
+   *
+   * In an event handler rather than an effect on `[kind, sort]`, deliberately:
+   * an effect would also fire on mount, throwing away the page the server
+   * already rendered and re-fetching the identical thing on every first paint
+   * of /gallery. The usual fix is a skip-the-first-run ref, which is a way of
+   * writing down that the effect was the wrong shape. These values only ever
+   * change because somebody clicked, so the click is where the work belongs.
+   */
+  const applyArrangement = useCallback(
+    async (nextKind: MediaKindFilter, nextSort: WallSort) => {
+      setKind(nextKind);
+      setSort(nextSort);
+      if (!paginated) return;
+
+      // Reset before the fetch, not after: the grid must not keep showing
+      // photos while 影片 is the selected chip, however briefly.
+      setAccumulated([]);
+      setCursor(null);
+      setIndex(-1);
+      loadingRef.current = true;
+      try {
+        const params = new URLSearchParams({ kind: nextKind, sort: nextSort });
+        const response = await fetch(`/api/gallery/wall?${params}`);
+        if (!response.ok) return;
+        const page = (await response.json()) as {
+          items: SiteMediaItem[];
+          nextCursor: WallCursor | null;
+        };
+        setAccumulated(page.items);
+        setCursor(page.nextCursor);
+      } finally {
+        loadingRef.current = false;
+      }
+    },
+    [paginated],
+  );
+
+  // An album holds everything it will ever hold, so the same rule the server
+  // applies to the wall runs here instead of a round trip. `arrangeMedia` with
+  // `curated` returns the list untouched, which is what the first render of an
+  // album must be.
+  const shown = useMemo(
+    () => (paginated ? accumulated : arrangeMedia(items, { kind, sort })),
+    [paginated, accumulated, items, kind, sort],
+  );
 
   // Not re-armed on `items`/`nextCursor` changing identity: GalleryPageClient
   // only ever mounts this fresh (the "全部相片" tab conditionally renders it,
@@ -295,7 +318,7 @@ export function MediaGrid({
     return () => observer.disconnect();
   }, [paginated, cursor, loadMore]);
 
-  const photos = useMemo(() => toGridPhotos(accumulated), [accumulated]);
+  const photos = useMemo(() => toGridPhotos(shown), [shown]);
 
   // The lightbox indexes into exactly what the grid shows, so a page that
   // arrives mid-view never shifts an index already open.
@@ -318,53 +341,104 @@ export function MediaGrid({
   // must point at. Guarded rather than indexed blindly: `index` is -1 while
   // the lightbox is closed, and a page arriving mid-view can only ever grow
   // the array, never shorten it.
-  const shown = index >= 0 ? photos[index] : undefined;
-
-  if (photos.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground" data-testid="gallery-all-photos-empty">
-        還沒有相片或影片。
-      </p>
-    );
-  }
+  const openPhoto = index >= 0 ? photos[index] : undefined;
 
   return (
     <>
-      <PhotoAlbum
-        layout="rows"
-        targetRowHeight={targetRowHeight}
-        photos={photos}
-        render={{
-          image: (props, context: RenderImageContext<GridPhoto>) =>
-            context.photo.kind === "video" ? (
-              <VideoCard
-                photo={context.photo}
-                width={context.width}
-                height={context.height}
-              />
-            ) : (
-              // A render function, not a component — react-photo-album calls
-              // it with (props, context), so it is invoked rather than mounted.
-              NextJsImage(props, context)
-            ),
-        }}
-        defaultContainerWidth={1280}
-        sizes={{
-          size: "1168px",
-          sizes: [
-            { viewport: "(max-width: 768px)", size: "calc(100vw - 32px)" },
-            { viewport: "(max-width: 1280px)", size: "calc(100vw - 64px)" },
-          ],
-        }}
-        onClick={({ index: i }) => setIndex(i)}
-      />
+      {/*
+        Above the empty state, not inside the non-empty branch. A visitor who
+        picks 影片 on an album with no videos would otherwise land on a bare
+        sentence with no control left on screen to undo it — the filter that
+        emptied the grid has to survive emptying it.
+      */}
+      <div
+        className="mb-4 flex flex-wrap items-center gap-3"
+        data-testid="gallery-media-filters"
+      >
+        <div className="flex gap-2">
+          <FilterChip
+            active={kind === "all"}
+            onClick={() => void applyArrangement("all", sort)}
+            data-testid="gallery-filter-kind-all"
+          >
+            {KIND_LABELS.all}
+          </FilterChip>
+          <FilterChip
+            active={kind === "photo"}
+            onClick={() => void applyArrangement("photo", sort)}
+            data-testid="gallery-filter-kind-photo"
+          >
+            {KIND_LABELS.photo}
+          </FilterChip>
+          <FilterChip
+            active={kind === "video"}
+            onClick={() => void applyArrangement("video", sort)}
+            data-testid="gallery-filter-kind-video"
+          >
+            {KIND_LABELS.video}
+          </FilterChip>
+        </div>
+        <FilterSelect
+          label="排序"
+          value={sort}
+          onChange={(next) => void applyArrangement(kind, next)}
+          options={paginated ? WALL_SORTS : ALBUM_SORTS}
+          data-testid="gallery-filter-sort"
+        />
+      </div>
+
+      {photos.length === 0 ? (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="gallery-all-photos-empty"
+        >
+          {/* "還沒有" is a claim about the site, and it is wrong the moment a
+              filter is on: a visitor who picked 影片 on an album of photos has
+              not discovered that the site has no videos. */}
+          {kind === "all" ? "還沒有相片或影片。" : "沒有符合條件的項目。"}
+        </p>
+      ) : (
+        <PhotoAlbum
+          layout="rows"
+          targetRowHeight={targetRowHeight}
+          photos={photos}
+          render={{
+            image: (props, context: RenderImageContext<GridPhoto>) =>
+              context.photo.kind === "video" ? (
+                <VideoCard
+                  photo={context.photo}
+                  width={context.width}
+                  height={context.height}
+                />
+              ) : (
+                // A render function, not a component — react-photo-album calls
+                // it with (props, context), so it is invoked rather than mounted.
+                NextJsImage(props, context)
+              ),
+          }}
+          defaultContainerWidth={1280}
+          sizes={{
+            size: "1168px",
+            sizes: [
+              { viewport: "(max-width: 768px)", size: "calc(100vw - 32px)" },
+              { viewport: "(max-width: 1280px)", size: "calc(100vw - 64px)" },
+            ],
+          }}
+          onClick={({ index: i }) => setIndex(i)}
+        />
+      )}
 
       {/* Invisible, and only present at all while there is somewhere to
           scroll to — `paginated && cursor` both drop once the wall is
           exhausted, which stops the observer effect above from re-arming
           against a node that no longer exists. */}
       {paginated && cursor && (
-        <div ref={sentinelRef} aria-hidden="true" className="h-px" data-testid="gallery-wall-sentinel" />
+        <div
+          ref={sentinelRef}
+          aria-hidden="true"
+          className="h-px"
+          data-testid="gallery-wall-sentinel"
+        />
       )}
 
       <Lightbox
@@ -378,7 +452,15 @@ export function MediaGrid({
         on={{ view: ({ index: i }) => setIndex(i) }}
         toolbar={{
           buttons: [
-            ...(shown ? [<ShareButton key="share" mediaId={shown.mediaId} label={shown.label} />] : []),
+            ...(openPhoto
+              ? [
+                  <ShareButton
+                    key="share"
+                    mediaId={openPhoto.mediaId}
+                    label={openPhoto.label}
+                  />,
+                ]
+              : []),
             "close",
           ],
         }}

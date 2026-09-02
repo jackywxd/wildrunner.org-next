@@ -1,20 +1,31 @@
 import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
+import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { TranscodeBadge } from "./TranscodeBadge";
 import type { Media } from "@/payload-types";
 
 export function MediaGrid({
   items,
   onSelect,
+  filtered = false,
 }: {
   items: Media[];
   onSelect: (item: Media) => void;
+  /**
+   * Whether anything is narrowing the query, which decides what an empty grid
+   * means. "上傳第一個檔案吧" is right for a member with no media and actively
+   * wrong for one who has hundreds and just picked 影片 + 不公開 — it reads as
+   * data loss.
+   */
+  filtered?: boolean;
 }) {
   if (items.length === 0) {
     return (
       <p className="text-sm text-foreground/50" data-testid="media-grid-empty">
-        還沒有媒體，上傳第一個檔案吧。
+        {filtered
+          ? "沒有符合條件的媒體，換個篩選條件試試。"
+          : "還沒有媒體，上傳第一個檔案吧。"}
       </p>
     );
   }
@@ -33,15 +44,27 @@ export function MediaGrid({
             type="button"
             data-testid={`media-item-${item.id}`}
             onClick={() => onSelect(item)}
-            className="group text-left border border-border"
+            className="group border border-border text-left"
           >
             <div className="relative aspect-video bg-secondary">
-              <TranscodeBadge item={item} />
-              {isVideo || !src ? (
-                <div className="flex h-full items-center justify-center text-xs text-foreground/40">
-                  {isVideo ? "▶ 影片" : "圖片處理中"}
-                </div>
-              ) : (
+              {/*
+                The badge stays above the tile: `VideoPosterTile` fills the box
+                with `absolute inset-0`, so a badge declared before it would be
+                painted under a poster the moment one exists — which is exactly
+                the video whose 轉檔中 the member most wants to see.
+              */}
+              {isVideo ? (
+                // The same tile the public wall draws, and the reason this
+                // screen changed: it had been showing "▶ 影片" on a grey box
+                // for every video a member owns. So the one screen where a
+                // member picks a cover frame was the only one that never
+                // showed them the frame they picked.
+                <VideoPosterTile
+                  poster={item.posterUrl}
+                  label={item.alt}
+                  data-testid="media-item-poster"
+                />
+              ) : src ? (
                 <Image
                   src={src}
                   alt={item.alt}
@@ -49,7 +72,12 @@ export function MediaGrid({
                   sizes="(max-width: 768px) 50vw, 25vw"
                   className="object-cover"
                 />
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs text-foreground/40">
+                  圖片處理中
+                </div>
               )}
+              <TranscodeBadge item={item} />
             </div>
             <div className="p-2 text-xs">
               <div className="truncate">{item.alt}</div>
