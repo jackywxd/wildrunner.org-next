@@ -98,16 +98,29 @@ test.describe("R what a member does with a race report", () => {
     // logic was not caution, it was compensation for an environment nobody
     // prepared, and it made the run depend on the history of the last one.
     await page.getByTestId("post-race-attach").click();
-    const raceSelect = page.getByTestId("race-report-race");
-    await expect(raceSelect).toBeVisible({ timeout: budget(15_000) });
-    const raceValue = await raceSelect
+
+    // Through the 最近結束的比賽 shortcut, which is what somebody writing about
+    // last month's race reaches for. It is also the one control that can be
+    // wrong in a way nothing else notices: it writes four fields at once
+    // (`applyShortcut`), and an `eventId` written without its series leaves
+    // the 賽事 select holding a value its own options do not contain.
+    const recent = page.getByTestId("post-race-recent");
+    await expect(recent).toBeVisible({ timeout: budget(15_000) });
+    const raceValue = await recent
       .locator("option:not([value=''])")
       .first()
       .getAttribute("value");
     if (!raceValue) throw new Error("no finished race in the seeded corpus");
-    await raceSelect.selectOption(raceValue);
+    await recent.selectOption(raceValue);
 
-    const distanceSelect = page.getByTestId("race-report-distance");
+    // The event the shortcut chose has to be the one now selected, not merely
+    // stored: that is the assertion that catches a missing series.
+    await expect(page.getByTestId("race-event-select")).not.toHaveValue("");
+
+    // Filled explicitly rather than relying on the shortcut: it auto-picks a
+    // distance only for a race that offers exactly one, and the corpus's first
+    // finished race offers several.
+    const distanceSelect = page.getByTestId("race-distance-select");
     const distanceValue = await distanceSelect
       .locator("option:not([value=''])")
       .first()
@@ -164,6 +177,107 @@ test.describe("R what a member does with a race report", () => {
     raceRecordId = String(body.raceRecord);
   });
 
+  /**
+   * R-OLDRACE — a report about a race from a year the calendar has never
+   * heard of.
+   *
+   * THE FAILURE THIS PINS, and it shipped. The editor's picker was built from
+   * finished `race-editions` rows, which reads like "races that have been run"
+   * and is really "races somebody entered into the reviewed calendar". That
+   * table holds 2026 and 2027 and nothing else — 39 and 38 rows, identical in
+   * production, staging and local — so on 2026-09-02 the control offered 14
+   * races, every one of them from this year. A member who ran TDS in 2019 and
+   * sat down to write about it had no way to say so, while /members/races
+   * would have logged the same claim without complaint. Reported as "連結賽事
+   * 現在只能選擇2026年的".
+   *
+   * Nothing on screen said "2026 only", which is why no assertion caught it:
+   * a dropdown with fourteen real races in it looks like a working dropdown.
+   * So this test names a year outright rather than picking from what is
+   * offered — reading the first option back would pass again the moment the
+   * list narrowed to one year.
+   *
+   * `utmb-mont-blanc` / `tds` / 2019 is free by construction, not by luck. The
+   * seed writes three records (`scripts/seed-e2e-account.ts`) — hardrock/100m
+   * 2023, utmb-mont-blanc/ccc 2025, utmb-mont-blanc/occ 2024 — so this claim
+   * collides with none of them, and `uniqueRaceRecord` therefore cannot turn
+   * a create into a silent reuse of a row this test would then delete.
+   *
+   * The edition for (utmb-mont-blanc, 2019) does not exist and is expected not
+   * to: `populateRaceRecordRefs` find-or-creates it from the event and the
+   * year alone. The record's own `year` is what this asserts, because that is
+   * the member's claim; the edition is a derived convenience.
+   */
+  test("R-OLDRACE: links a race from a year with no edition row", async ({
+    page,
+  }) => {
+    test.setTimeout(budget(60_000));
+
+    await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
+    await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
+    await page.getByTestId("member-login-submit").click();
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
+
+    await page.getByTestId("member-nav-posts").click();
+    await page.getByTestId("posts-new").click();
+    await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: budget(20_000) });
+
+    const created = page.url().match(/\/members\/posts\/(\d+)/);
+    if (!created) throw new Error(`no post id in ${page.url()}`);
+    postId = created[1];
+
+    await page.getByTestId("post-title").fill("R-OLDRACE 2019 race report");
+    await page.getByTestId("post-description").fill("R-OLDRACE summary");
+    await page.getByTestId("editor-content").fill("R-OLDRACE body");
+
+    await page.getByTestId("post-race-attach").click();
+
+    // The shortcut is skipped entirely — it can only ever offer what the
+    // calendar holds, and the point of this journey is the claim it cannot
+    // express.
+    await expect(page.getByTestId("race-event-select")).toBeVisible({
+      timeout: budget(15_000),
+    });
+    await page.getByTestId("race-event-select").selectOption("utmb-mont-blanc");
+    await page.getByTestId("race-distance-select").selectOption("tds");
+    await page.getByTestId("race-year-select").selectOption("2019");
+
+    await page.getByTestId("post-race-confirm").click();
+    await expect(page.getByTestId("post-race-linked")).toBeVisible({
+      timeout: budget(15_000),
+    });
+    // The attach flow reports its refusals here, not in `post-message`.
+    await expect(page.getByTestId("post-race-error")).toHaveCount(0);
+
+    await page.getByTestId("post-save-draft").click();
+    await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
+      timeout: budget(20_000),
+    });
+
+    const doc = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
+    const body = (await doc.json()) as { raceRecord?: number | string | null };
+    expect(body.raceRecord, "a completion record was created and linked").toBeTruthy();
+    raceRecordId = String(body.raceRecord);
+
+    const record = await getWithRetry(
+      page.request,
+      `/api/race-records/${raceRecordId}?depth=0`,
+    );
+    const claim = (await record.json()) as {
+      distanceId?: string;
+      eventId?: string;
+      year?: number;
+    };
+    // All three, because a wrong year with the right event would have been
+    // exactly the old behaviour succeeding by accident.
+    expect(claim.eventId).toBe("utmb-mont-blanc");
+    expect(claim.distanceId).toBe("tds");
+    expect(claim.year).toBe(2019);
+  });
 
   test("R-DUPLICATE: a second report on the same race is refused", async ({
     page,

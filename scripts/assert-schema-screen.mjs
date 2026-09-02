@@ -75,11 +75,19 @@ const MAPPINGS = [
     },
   },
   {
-    // The manager creates a record from three selects, so all three must be
-    // there — this is the screen behind the M-RACES journey.
+    // A record is created from three selects, so all three must be there.
+    // They live in `RaceClaimFields` now rather than in either screen that
+    // renders them: /members/races (the M-RACES journey) and the post
+    // editor's own picker both ask this question, and asking it two different
+    // ways is the bug that component exists to make impossible. This check is
+    // what noticed the move — it failed the moment the selects left
+    // RaceRecordManager, which is exactly what it is for.
     collection: "src/collections/RaceRecords.ts",
     mode: "create",
-    screens: ["src/components/members/races/RaceRecordManager.tsx"],
+    screens: [
+      "src/components/members/races/RaceRecordManager.tsx",
+      "src/components/members/races/RaceClaimFields.tsx",
+    ],
     fields: {
       eventId: "race-event-select",
       distanceId: "race-distance-select",
