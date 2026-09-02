@@ -23,6 +23,16 @@
  * a caption written now would appear at some point within the hour with
  * nothing to explain the wait.
  *
+ * `posterUrl` WAS MISSING AND SHOULD NOT HAVE BEEN. It is in `MediaCardDoc`,
+ * the wall's tile draws it, and the lightbox's player and thumbnail strip do
+ * too — so it is read by a public page, which is the whole test for
+ * membership here. Its absence meant the one write nobody is watching for:
+ * the transcoder finishes minutes after an upload and reports a frame back
+ * through `/poster-result`, and that write invalidated nothing, so the poster
+ * appeared whenever some unrelated change happened to bust the path. The
+ * exclusion list below says the fields there are excluded "because no public
+ * page reads it"; this one never met that description.
+ *
  * Kept here rather than inline in the hook because the hook file imports
  * `next/cache` transitively, and this is the half with branches worth pinning.
  *
@@ -43,6 +53,7 @@ export const PUBLIC_MEDIA_FIELDS = [
   'height',
   'legacyVideoId',
   'mimeType',
+  'posterUrl',
   'raceEdition',
   'streamId',
   'streamReady',

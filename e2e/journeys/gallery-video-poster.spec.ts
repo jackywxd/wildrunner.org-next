@@ -22,6 +22,14 @@
  * written — so a change that drew a broken image for them would be the more
  * likely regression, and it would be invisible to a test that only ever looks
  * at a video that has one.
+ *
+ * T2 COVERS THE OTHER HALF, and it was missing for as long as this file has
+ * existed. `poster` reached the wall's tile and stopped there: the lightbox
+ * builds its own slide objects, and that object never carried the field. So a
+ * video showed its frame on the wall and a black box the moment it was
+ * opened, with every thumbnail in the strip an empty play glyph — which is
+ * how it was reported. On production the day it was fixed, 12 of 26 videos
+ * had a `posterUrl` and not one of them was reaching the player.
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
@@ -130,5 +138,81 @@ test.describe("V-POSTER a video's own frame on the wall", () => {
       "both videos should still be on the wall as tiles",
     ).toBeGreaterThanOrEqual(2);
     expect(bare).toBeGreaterThan(0);
+  });
+
+  test("V-POSTER-T2: opening that video carries the poster into the player and the thumbnails", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(60_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const stamp = Date.now();
+    const filename = `v-poster-open-${stamp}.mp4`;
+    const uploaded = await request.post("/api/media", {
+      multipart: {
+        file: {
+          name: filename,
+          mimeType: "video/mp4",
+          buffer: MP4_HEADER,
+        },
+        _payload: JSON.stringify({
+          alt: `V-POSTER open ${stamp}`,
+          usage: "gallery",
+        }),
+      },
+    });
+    expect(uploaded.ok(), `media upload failed: ${uploaded.status()}`).toBeTruthy();
+    const mediaId = (await uploaded.json()).doc.id as number;
+    created.push({ collection: "media", id: mediaId });
+    recordCreated({ collection: "media", id: mediaId, note: "V-POSTER open" });
+
+    const posterUrl = `https://images.wildrunner.org/posters/${mediaId}.jpg`;
+    const patched = await request.patch(`/api/media/${mediaId}`, {
+      data: { posterUrl },
+    });
+    expect(patched.ok(), `poster update failed: ${patched.status()}`).toBeTruthy();
+
+    await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+      route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+    );
+
+    await page.goto("/gallery", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("gallery-all-photos")).toBeVisible({
+      timeout: budget(20_000),
+    });
+    // `load`, not `domcontentloaded`: the album's onClick is React's, and a
+    // click landing before hydration is silently dropped.
+    await page.waitForLoadState("load");
+
+    // The newest upload is first under the wall's default order, and it is
+    // the only video tile this test made. Opened through its own tile so the
+    // slide that opens is this video and not whatever else is on the wall.
+    await page.getByTestId("gallery-video-tile").first().click();
+
+    // THE ASSERTION THIS TEST EXISTS FOR. The lightbox's `<video>` takes its
+    // placeholder from the slide's `poster`, which the grid was not setting —
+    // so this attribute was absent no matter what the column held.
+    //
+    // Addressed through its own `<source>`, not `.first()`. The carousel keeps
+    // the previous and next slides mounted either side of the current one, so
+    // the first `video` in the document is the *neighbouring* video — a corpus
+    // clip with no poster. The first version of this assertion read that one
+    // and reported an empty attribute, which looks exactly like the bug it was
+    // written to catch.
+    const player = page.locator(`video:has(source[src*="${filename}"])`);
+    await expect(player).toBeVisible({ timeout: budget(15_000) });
+    await expect(player).toHaveAttribute("poster", posterUrl);
+
+    // And the strip below it, which reads the same field and was drawing an
+    // empty play glyph for every video on the page.
+    await expect(
+      page.locator(`.yarl__thumbnails_container img[src*="posters/${mediaId}.jpg"]`).first(),
+      "the thumbnail strip draws the frame too",
+    ).toBeVisible({ timeout: budget(15_000) });
   });
 });

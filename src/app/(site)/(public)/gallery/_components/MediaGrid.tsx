@@ -453,6 +453,30 @@ export function MediaGrid({
               height: item.height,
               sources: [{ src: item.src, type: item.mimeType ?? "video/mp4" }],
               description: item.description,
+              /**
+               * The frame the transcoder took, which the lightbox had no way
+               * of knowing about.
+               *
+               * `GridPhoto` has carried `poster` since the grid learned to
+               * draw video tiles (`VideoPosterTile`), and the slide dropped
+               * it — so a video showed its poster on the wall and then a
+               * black box the moment it was opened, and every thumbnail in
+               * the strip was an empty play icon. Measured on production,
+               * 2026-09-02: **12 of 26 videos have a `posterUrl`**, and not
+               * one of them was reaching this object.
+               *
+               * `yet-another-react-lightbox`'s Thumbnails plugin reads
+               * exactly this field for a video slide (`slide.poster`, its
+               * dist/plugins/thumbnails/index.js), and the Video plugin
+               * passes it to `<video poster>`. Both were being handed
+               * `undefined`.
+               *
+               * The remaining 14 stay blank, and that is a data gap rather
+               * than this bug: nothing has taken a frame for them. The
+               * remedies are the backfill (`pnpm media:posters:prod`) and the
+               * member's own 用目前畫面當封面 button.
+               */
+              poster: item.poster,
             }
           : {
               src: item.src,
@@ -671,11 +695,30 @@ export function MediaGrid({
             "close",
           ],
         }}
-        // `showToggle` rather than a caption that cannot be dismissed: the
-        // text sits over the picture, and somebody who came to look at the
-        // picture has to be able to get it out of the way. `hidden` is left
-        // false so a caption somebody wrote is seen at least once.
-        captions={{ showToggle: true, descriptionTextAlign: "start" }}
+        /**
+         * `showToggle` rather than a caption that cannot be dismissed: the
+         * text sits over the picture, and somebody who came to look at the
+         * picture has to be able to get it out of the way. `hidden` is left
+         * false so a caption somebody wrote is seen at least once.
+         *
+         * CENTRED, NOT `start`. The captions container is `left: 0; right: 0`
+         * at the bottom of the whole slide area (the plugin's own CSS), so a
+         * `start` alignment puts the text hard against the left edge of the
+         * window — several hundred pixels from the photo it describes, and on
+         * a video slide well below the player. Centring is what makes it read
+         * as that item's caption rather than as a stray line in the corner.
+         *
+         * WHAT THIS DOES NOT DO: move the caption up against the media. The
+         * container's position is the plugin's, and taking it over means
+         * replacing Captions with a `render.slideFooter` of our own — which
+         * would also mean rebuilding the toggle. Worth doing if the caption
+         * still reads as detached; not worth guessing at first.
+         */
+        captions={{
+          showToggle: true,
+          descriptionTextAlign: "center",
+          descriptionMaxLines: 3,
+        }}
         plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
 
