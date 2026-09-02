@@ -118,6 +118,28 @@ test.describe("M what a member does with race records", () => {
   test("M-RACES: records a race, it reaches the public directory, removes it", async ({
     page,
   }) => {
+    // THE BUDGET, and it is the whole reason this went red on CI (#121, run
+    // 33598427723). The delete assertion below timed out having polled seven
+    // times — nowhere near the 15s it asks for, which at Playwright's
+    // backing-off intervals is about five seconds of waiting. What actually
+    // ended it was the 20s default from playwright.config.ts, firing while
+    // that assertion was still polling. The row may well have gone a second
+    // later; nothing here ever found out.
+    //
+    // This is the longest journey in the suite and the only one still running
+    // on that default. It is the only test that signs in through the form
+    // (deliberately — see the header), it arrives by clicking rather than by
+    // URL, it reads the catalogue out of three selects, and it loads /riders
+    // twice, each time polling until two counts agree. Every other journey
+    // doing a fraction of this sets 60s: gallery-library-upload,
+    // editor-autosave, editor-preview, gallery-album-order and the rest.
+    //
+    // So the fix is the budget, not a retry around the click. A retry would
+    // have made this green while leaving it just as blind to running out of
+    // time — and "retries are not a fix, and neither is the first plausible
+    // cause" is in AGENTS.md because that has already cost a real diagnosis.
+    test.setTimeout(budget(60_000));
+
     // 1. Sign in through the form. This is the only journey that does — the
     //    others would only be re-testing it — and it is here rather than in a
     //    login-only spec because a session that cannot reach a page that

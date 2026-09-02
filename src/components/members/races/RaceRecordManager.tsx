@@ -125,6 +125,16 @@ export function RaceRecordManager({
         return;
       }
       setRecords((current) => current.filter((record) => record.id !== id));
+    } catch {
+      // `add()` has always had this and `remove()` never did — found while
+      // reading this function for an unrelated reason, not from a report.
+      //
+      // A refused delete sets the message above; a delete that failed at the
+      // *network* threw straight out of here into an unhandled rejection
+      // instead. The row stays either way, but in that second case nothing
+      // tells the member anything: pressing 刪除 simply does nothing, which
+      // is the one outcome this file otherwise never allows.
+      setError("刪除失敗，請再試一次");
     } finally {
       setBusy(false);
     }
