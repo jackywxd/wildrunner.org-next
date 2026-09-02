@@ -4,6 +4,7 @@ import { sanitizeFilename } from 'payload/shared'
 
 import { isAdminUser } from '@/access'
 import { getR2Bucket } from '@/lib/r2-bucket'
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from '@/lib/media/upload-limits'
 import { quotaBytesFor, usedBytesFor } from '@/lib/quota'
 
 const MAX_ATTEMPTS = 50
@@ -42,6 +43,26 @@ export const directUploadInitEndpoint: Endpoint = {
     }
 
     const declaredSize = typeof body?.filesize === 'number' ? body.filesize : 0
+
+    /**
+     * The per-file ceiling, before the quota and before any bytes move.
+     *
+     * Admins are NOT exempt, unlike the quota check below. A quota is about
+     * how much of the bucket one account may fill, which is a policy an admin
+     * can reasonably be trusted with; this is about what the transcoder can
+     * finish inside its lease (see upload-limits.ts), and that is a property
+     * of the file, not of who uploaded it.
+     *
+     * The client checks first and says it better — this is the half that is
+     * not merely advisory, since the browser's check is the browser's to skip.
+     */
+    if (declaredSize > MAX_UPLOAD_BYTES) {
+      throw new APIError(
+        `File is too large: ${(declaredSize / (1024 * 1024)).toFixed(1)} MB, limit is ${MAX_UPLOAD_LABEL}.`,
+        413,
+      )
+    }
+
     if (!isAdminUser(req.user) && declaredSize > 0) {
       const [used, quota] = await Promise.all([
         usedBytesFor(req.payload, req.user.id, req),
