@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { apiTest as test, expect } from "../helpers/api-test";
 
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";

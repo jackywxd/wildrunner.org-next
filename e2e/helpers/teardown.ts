@@ -1,7 +1,6 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { TEST_ADMIN } from "./auth";
-import { withTransportRetry } from "./request";
 
 /**
  * Leave the post editor before API teardown.
@@ -33,11 +32,13 @@ export async function leavePostEditor(page: Page): Promise<void> {
  * `expect(login.ok())`. Teardown was the one path that did not.
  */
 async function signIn(request: APIRequestContext): Promise<void> {
-  const login = await withTransportRetry("/api/users/login", () =>
-    request.post("/api/users/login", {
-      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
-    }),
-  );
+  // No explicit transport retry here any more: every context this is called
+  // with comes from helpers/members.ts or the `request` fixture, and both are
+  // wrapped by `withRetries`. Wrapping again would make one dead connection
+  // cost nine attempts and two rounds of backoff.
+  const login = await request.post("/api/users/login", {
+    data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+  });
   if (!login.ok()) {
     const body = (await login.text()).slice(0, 200);
     throw new Error(
@@ -58,7 +59,7 @@ export async function deleteCreatedRows(
     const path = `/api/${row.collection}/${row.id}`;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const deleted = await withTransportRetry(path, () => request.delete(path));
+        const deleted = await request.delete(path);
         if (deleted.ok() || deleted.status() === 404) break;
         if (attempt === 3) {
           const body = (await deleted.text()).slice(0, 200);

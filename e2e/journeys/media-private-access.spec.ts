@@ -1,4 +1,5 @@
-import { expect, request as playwrightRequest, test } from "@playwright/test";
+import { apiTest as test, expect } from "../helpers/api-test";
+import { anonContext } from "../helpers/members";
 
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
@@ -68,7 +69,7 @@ test.describe("M-PRIVATE a private file is not served anonymously", () => {
 
     // A separate context with no cookies — the `request` fixture above is
     // signed in, and reusing it would prove nothing about an anonymous caller.
-    const anon = await playwrightRequest.newContext({ baseURL });
+    const anon = await anonContext(baseURL);
     try {
       // The exact request the review used. A filtered list is the cheap way to
       // enumerate, so it is what gets pinned.
@@ -142,7 +143,7 @@ test.describe("M-PRIVATE a private file is not served anonymously", () => {
     recordCreated({ collection: "media", id: doc.id, note: "M-PRIVATE attachment" });
     expect(doc.usage).toBe("attachment");
 
-    const anon = await playwrightRequest.newContext({ baseURL });
+    const anon = await anonContext(baseURL);
     try {
       const listed = await anon.get("/api/media?depth=0&limit=200");
       expect(listed.ok()).toBeTruthy();
