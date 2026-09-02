@@ -2,6 +2,7 @@ import type { APIRequestContext } from "@playwright/test";
 import { request as playwrightRequest } from "@playwright/test";
 
 import { TEST_ADMIN, ensureAdminUser } from "./auth";
+import { apiHeaders, withRetries } from "./request";
 
 export const TEST_MEMBER = {
   email: process.env.E2E_MEMBER_EMAIL ?? "member@wildrunner.test",
@@ -16,15 +17,22 @@ export const TEST_MEMBER_TWO = {
 type Credentials = { email: string; password: string };
 
 /**
- * Contexts created here don't inherit `use.extraHTTPHeaders` from the
- * config, so the CSRF-satisfying Origin header has to be repeated — without
- * it Payload ignores the auth cookie entirely.
+ * Contexts created here don't inherit `use.extraHTTPHeaders` from the config,
+ * so `apiHeaders` repeats the CSRF-satisfying Origin — without it Payload
+ * ignores the auth cookie entirely — and adds `Connection: close`.
+ *
+ * `withRetries` is the half that matters most for these: an admin context is
+ * built at the top of a spec and then sits idle through page loads and clicks
+ * before its next call, which is precisely the shape that has been failing.
+ * See e2e/helpers/request.ts.
  */
-function newContext(baseURL: string | undefined) {
-  return playwrightRequest.newContext({
-    baseURL,
-    extraHTTPHeaders: baseURL ? { Origin: baseURL } : undefined,
-  });
+async function newContext(baseURL: string | undefined) {
+  return withRetries(
+    await playwrightRequest.newContext({
+      baseURL,
+      extraHTTPHeaders: apiHeaders(baseURL),
+    }),
+  );
 }
 
 /**

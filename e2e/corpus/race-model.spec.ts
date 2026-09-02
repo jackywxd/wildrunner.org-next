@@ -1,5 +1,5 @@
 import type { APIRequestContext } from "@playwright/test";
-import { expect, test } from "@playwright/test";
+import { apiTest as test, expect } from "../helpers/api-test";
 
 import { anonContext } from "../helpers/members";
 import { SIX_MAJORS } from "@/lib/races/six-majors";
