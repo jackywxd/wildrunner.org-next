@@ -97,16 +97,6 @@
 	"vars": {
 		"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
 		"RESEND_FROM_NAME": "野馬營",
-		// MUST match DEFAULT_QUOTA_MB in src/lib/quota.ts, and
-		// scripts/assert-bindings.mjs fails the build when it does not.
-		//
-		// The reason that check exists: the constant was raised to 100 GB and
-		// this line was not, so every deployed environment went on serving
-		// 10 GB — `defaultQuotaMb()` prefers this variable and only falls back
-		// to the constant when it is unset, which is true of local dev and of
-		// nowhere else. Nothing failed; the storage bar simply kept saying
-		// 10.00 GB, which is what a working storage bar looks like.
-		"MEMBER_STORAGE_QUOTA_MB": "102400",
 		// Read at *runtime* by publicMediaUrl() (src/lib/media-url.ts) via
 		// setMediaUrl, so it has to be a binding. It was only ever reaching
 		// the Worker by being inlined from .env.production at build time,
@@ -203,8 +193,6 @@
 			"vars": {
 				"RESEND_FROM_ADDRESS": "noreply@wildrunner.org",
 				"RESEND_FROM_NAME": "野馬營",
-				// Same constant, same check — see the production entry above.
-				"MEMBER_STORAGE_QUOTA_MB": "102400",
 				// Staging's own bucket, never production's — see the
 				// production entry above for why this must be a binding.
 				"R2_PUBLIC_URL": "https://pub-f82e5464c241415f9ea3f879e8f46e7f.r2.dev"

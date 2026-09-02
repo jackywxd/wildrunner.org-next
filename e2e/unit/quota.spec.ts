@@ -1,14 +1,27 @@
 import { expect, test } from "@playwright/test";
 
-import { defaultQuotaMb, quotaBytesFor, sumStoredBytes } from "@/lib/quota";
+import {
+  DEFAULT_QUOTA_MB,
+  defaultQuotaMb,
+  quotaBytesFor,
+  sumStoredBytes,
+} from "@/lib/quota";
 
 /**
  * U-QUOTA — how much space a member gets.
  *
  * The number itself, not the enforcement. Enforcement is one contract test;
- * this is the arithmetic that decides whether a member is stopped at 10 GB or
- * at 10 MB, and it reads an environment variable, which is exactly the kind of
- * thing that is wrong in one environment only.
+ * this is the arithmetic that decides whether a member is stopped at 100 GB or
+ * at 10 MB.
+ *
+ * It USED to read `MEMBER_STORAGE_QUOTA_MB`, and that is the whole story of
+ * U-QUOTA-2 below. The constant was raised from 10 GB to 100 GB and every
+ * deployed environment went on serving 10 GB, because `wrangler.jsonc` set the
+ * variable in production and staging and the constant was only ever the
+ * fallback. Nothing failed — the storage bar kept rendering "10.00 GB", which
+ * is what a working storage bar looks like — and a person reading the page is
+ * what found it. The value is code now, and U-QUOTA-2 is the assertion that it
+ * stays that way even when a stray variable is lying around.
  */
 /**
  * `process.env` is typed from cloudflare-env.d.ts, where these keys are
@@ -59,20 +72,29 @@ test.describe("U-QUOTA storage quota", () => {
     }
   };
 
-  test("U-QUOTA-1: the default is 100 GB when nothing is configured", () => {
+  test("U-QUOTA-1: the default is 100 GB", () => {
     expect(withEnv(undefined, defaultQuotaMb)).toBe(100 * 1024);
+    // The constant itself, so the number is asserted and not merely derived
+    // from whatever the function happens to return.
+    expect(DEFAULT_QUOTA_MB).toBe(100 * 1024);
   });
 
-  test("U-QUOTA-2: a configured value replaces the default", () => {
-    expect(withEnv("500", defaultQuotaMb)).toBe(500);
-  });
-
-  test("U-QUOTA-3: a nonsense environment value falls back rather than to zero", () => {
-    // The failure this prevents: a typo in the deploy secret silently giving
-    // every member a zero-byte quota, which reads as "uploads are broken".
-    for (const bad of ["", "abc", "0", "-5", "NaN"]) {
-      expect(withEnv(bad, defaultQuotaMb), bad).toBe(100 * 1024);
+  test("U-QUOTA-2: a stray MEMBER_STORAGE_QUOTA_MB no longer changes anything", () => {
+    // THE REGRESSION THIS PINS, and it shipped. While this variable was read,
+    // `wrangler.jsonc` set it to "10240" in production and staging, so raising
+    // the constant to 100 GB moved nothing that anybody could see. The value
+    // is code now; a variable left behind in a deploy secret has to be inert.
+    for (const stale of ["10240", "500", "0", "abc"]) {
+      expect(withEnv(stale, defaultQuotaMb), stale).toBe(100 * 1024);
     }
+  });
+
+  test("U-QUOTA-3: and neither does the absence of one", () => {
+    // The control. Without it U-QUOTA-2 would also pass for a function that
+    // returned 100 GB by accident — say, one that had stopped being called.
+    expect(withEnv(undefined, defaultQuotaMb)).toBe(
+      withEnv("10240", defaultQuotaMb),
+    );
   });
 
   test("U-QUOTA-4: a per-user override wins, and only when it is positive", () => {
