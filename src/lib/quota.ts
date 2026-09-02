@@ -1,7 +1,7 @@
 import type { Payload, PayloadRequest } from 'payload'
 
 /**
- * 100 GB per member.
+ * 100 GB per member. THE ONLY PLACE THIS NUMBER LIVES.
  *
  * Ten times what it was, and raised alongside video in the article editor
  * rather than for its own sake. The arithmetic that decided it: production's
@@ -11,15 +11,32 @@ import type { Payload, PayloadRequest } from 'payload'
  * who writes with video spends roughly a gigabyte an article, and the old
  * 10 GB was about ten of them before the library had to be pruned.
  *
- * Still a number, not "unlimited", and deliberately: the quota is what stops
- * one account from filling the bucket, and `MEMBER_STORAGE_QUOTA_MB` plus
- * `users.storageQuotaMb` are there for the cases that need something else.
+ * WHY THERE IS NO LONGER AN ENVIRONMENT VARIABLE. `defaultQuotaMb()` used to
+ * read `MEMBER_STORAGE_QUOTA_MB` and fall back to this constant — so this
+ * constant was the branch taken when nobody else had spoken, and in every
+ * deployed environment somebody had. `wrangler.jsonc` set the variable to
+ * "10240" in production *and* staging, `src/collections/Users.ts` printed a
+ * hardcoded '10240' beside it, and the dotenv materialised from
+ * `secrets.PRODUCTION_DOTENV` set it a third time and got inlined at build.
+ * Raising this line to 100 GB therefore changed nothing anybody could see:
+ * the storage bar went on reading "10.00 GB", which is exactly what a working
+ * storage bar looks like. It was found by a person looking at the page.
+ *
+ * Four writers and one reader is not a configuration, it is four chances to
+ * disagree silently. So the value is code now: one constant, changed in one
+ * place, reviewable in a diff. What is lost is retuning the quota without a
+ * deploy — which was never really available anyway, since two of those four
+ * writers were checked-in files that need a deploy to take effect.
+ *
+ * Still a number and not "unlimited", deliberately: the quota is what stops
+ * one account from filling the bucket. `users.storageQuotaMb` remains the
+ * per-account exception, and it is a real one — an admin sets it on the
+ * account it is meant for, where it is visible.
  */
-const DEFAULT_QUOTA_MB = 100 * 1024
+export const DEFAULT_QUOTA_MB = 100 * 1024
 
 export function defaultQuotaMb(): number {
-  const configured = Number(process.env.MEMBER_STORAGE_QUOTA_MB)
-  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_QUOTA_MB
+  return DEFAULT_QUOTA_MB
 }
 
 export function quotaBytesFor(user: { storageQuotaMb?: number | null }): number {

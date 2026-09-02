@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminUser } from '../access'
 import { inviteEmailHTML, inviteLinkFor } from '../lib/invite'
+import { defaultQuotaMb } from '../lib/quota'
 import { ensureAuthorIdentity } from './hooks/author-identity'
 import { clearInvitePending } from './hooks/clear-invite-pending'
 import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
@@ -160,7 +161,11 @@ export const Users: CollectionConfig = {
       },
       admin: {
         position: 'sidebar',
-        description: `Overrides the default (${process.env.MEMBER_STORAGE_QUOTA_MB ?? '10240'} MB) for this account. Leave blank to use the default.`,
+        // `defaultQuotaMb()`, never a literal beside the variable it reads.
+        // This said '10240' when the variable was unset, so an admin raising
+        // the default in code would have been told by this very screen that
+        // it was still 10 GB.
+        description: `Overrides the default (${defaultQuotaMb()} MB) for this account. Leave blank to use the default.`,
       },
     },
     {
