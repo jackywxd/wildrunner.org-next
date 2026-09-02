@@ -95,6 +95,7 @@ const GALLERY_SELECT = {
   featured: true,
   items: true,
   location: true,
+  musicUrl: true,
   name: true,
   slug: true,
 } as const satisfies GalleriesSelect<true>;

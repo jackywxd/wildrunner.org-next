@@ -25,6 +25,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   height: 800,
   legacyVideoId: null,
   mimeType: "image/jpeg",
+  posterUrl: null,
   raceEdition: 18,
   streamId: null,
   streamReady: false,
@@ -100,7 +101,21 @@ test.describe("U-MEDIAFIELDS a media write only counts if a page shows it", () =
     ).toBe(true);
   });
 
-  test("U-MEDIAFIELDS-6: a create always counts", () => {
+  test("U-MEDIAFIELDS-6: a poster arriving from the transcoder counts", () => {
+    // The write nobody is watching for. The container reports a frame back
+    // minutes after the upload, through `/poster-result`, long after whatever
+    // busted the cache for the upload itself. Left out of the list, that
+    // frame reaches the wall whenever some unrelated edit happens to
+    // invalidate the path — which reads as "posters do not work".
+    expect(
+      publicMediaFieldsChanged(
+        row({ posterUrl: "https://images.wildrunner.org/posters/1.jpg" }),
+        row(),
+      ),
+    ).toBe(true);
+  });
+
+  test("U-MEDIAFIELDS-7: a create always counts", () => {
     // No previousDoc. A newly uploaded public photo is the other half of what
     // the hook is for.
     expect(publicMediaFieldsChanged(row(), undefined)).toBe(true);

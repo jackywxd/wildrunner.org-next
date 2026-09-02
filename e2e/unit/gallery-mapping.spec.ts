@@ -47,9 +47,13 @@ const doc = (kinds: ("photo" | "video")[]): GalleryDoc =>
       media: media(i + 1, kind === "video" ? "video/mp4" : "image/jpeg"),
     })),
     location: null,
+    musicUrl: null,
     name: "Album",
     slug: "album",
   }) as unknown as GalleryDoc;
+
+const withMusic = (musicUrl: string | null): GalleryDoc =>
+  ({ ...doc(["photo"]), musicUrl }) as unknown as GalleryDoc;
 
 test.describe("U-GALLERYMAP an album keeps the order it was curated in", () => {
   test("U-GALLERYMAP-1: video, photo, photo, video survives as itself", () => {
@@ -80,5 +84,50 @@ test.describe("U-GALLERYMAP an album keeps the order it was curated in", () => {
 
     const gallery = mapPayloadGallery(withHole);
     expect(gallery.items.map((item) => item.filename)).toEqual(["f2.jpg"]);
+  });
+});
+
+/**
+ * U-GALLERYMUSIC — an album's background music crosses to the client as an
+ * id, never as the string somebody pasted.
+ *
+ * This is the boundary `src/lib/youtube.ts` was written to hold: the `src` of
+ * a third-party frame is the one place a stray value in the database would
+ * become an arbitrary embedded origin on our own page. `galleries.musicUrl`
+ * is a plain `text` column with a `validate` in front of it, and a validator
+ * is a thing that can be relaxed, bypassed by a script write, or predate a
+ * row. So the mapping re-derives the id on every read rather than trusting
+ * what is stored, and this pins that it does.
+ */
+test.describe("U-GALLERYMUSIC an album's music is an id, not a URL", () => {
+  test("U-GALLERYMUSIC-1: a watch link becomes the eleven-character id", () => {
+    expect(
+      mapPayloadGallery(withMusic("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+        .musicVideoId,
+    ).toBe("dQw4w9WgXcQ");
+  });
+
+  test("U-GALLERYMUSIC-2: no music is null, not an empty string", () => {
+    // The renderer branches on truthiness to decide whether to draw the mute
+    // control at all; `""` would draw a button for a player that cannot exist.
+    expect(mapPayloadGallery(withMusic(null)).musicVideoId).toBeNull();
+    expect(mapPayloadGallery(withMusic("")).musicVideoId).toBeNull();
+  });
+
+  test("U-GALLERYMUSIC-3: anything that is not one video maps to no music", () => {
+    // A playlist has no single video, and `youTubeVideoId` says so. The safe
+    // direction is silence: a row that stopped parsing must not become an
+    // iframe pointed at whatever it now holds.
+    for (const stored of [
+      "https://www.youtube.com/playlist?list=PL1234567890",
+      "https://vimeo.com/12345678",
+      "javascript:alert(1)",
+      "not a url at all",
+    ]) {
+      expect(
+        mapPayloadGallery(withMusic(stored)).musicVideoId,
+        `${stored} must not become a player`,
+      ).toBeNull();
+    }
   });
 });

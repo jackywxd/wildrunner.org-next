@@ -13,6 +13,7 @@
 import type { Gallery, Media } from '@/payload-types'
 
 import { mediaDimensions, mediaImageSrc } from '@/lib/cf-image'
+import { youTubeVideoId } from '@/lib/youtube'
 import type { SiteGallery, SiteMediaItem, SitePhoto, SiteVideo } from '@/lib/content-types'
 import { editionIdOf, mediaToSiteVideo } from '@/lib/media/site-video'
 
@@ -54,6 +55,7 @@ export type GalleryDoc = Pick<
   | "featured"
   | "items"
   | "location"
+  | "musicUrl"
   | "name"
   | "slug"
 >;
@@ -156,6 +158,11 @@ export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
     isFeatured: Boolean(doc.featured),
     featured: featuredStems,
     cover: coverMedia ? mapMediaToSiteImage(coverMedia) : null,
+    // The id, never the stored URL — this is the boundary src/lib/youtube.ts
+    // exists to hold. `null` for an album with no music, and also for one
+    // whose stored value stopped parsing, which is the safe direction: no
+    // music rather than an arbitrary third-party frame.
+    musicVideoId: doc.musicUrl ? youTubeVideoId(doc.musicUrl) : null,
     items,
   };
 }

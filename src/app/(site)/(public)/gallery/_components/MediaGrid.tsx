@@ -13,7 +13,7 @@ import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
-import { Share2 } from "lucide-react";
+import { Music, Share2, VolumeX } from "lucide-react";
 import PhotoAlbum, {
   type Photo,
   type RenderImageContext,
@@ -33,6 +33,7 @@ import {
   KIND_LABELS,
 } from "@/components/media/filters";
 import { VideoPosterTile } from "@/components/media/VideoPosterTile";
+import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
 
 /**
@@ -206,13 +207,88 @@ const ALBUM_SORTS: { value: WallSort; label: string }[] = [
  *  no other kind of value, and `null` is what the arrangement wants. */
 const ANY_RACE = "";
 
+/**
+ * Where a visitor's "I do not want the music" survives to.
+ *
+ * `sessionStorage`, not state and not `localStorage`. Not state, because a
+ * visitor who muted one album and opened another should not have to mute it
+ * again — that is the same decision, not a new one. Not `localStorage`,
+ * because a preference expressed once should not silence every album a year
+ * later on a machine they have forgotten about; a tab is the right lifetime
+ * for "not right now".
+ */
+const MUTE_KEY = "wr:gallery-music-muted";
+
+function readMuted(): boolean {
+  try {
+    return window.sessionStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    // Private windows and blocked site data both throw on access rather than
+    // returning null. Not knowing the preference means playing, which is what
+    // an album with music is for.
+    return false;
+  }
+}
+
+function writeMuted(muted: boolean) {
+  try {
+    window.sessionStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+  } catch {
+    // Losing the preference is a smaller failure than refusing the click.
+  }
+}
+
+/**
+ * The mute control, and the only reason background music is allowed at all.
+ *
+ * WCAG 1.4.2: any audio that plays for more than three seconds must have a
+ * way to stop it. A slideshow is minutes long, so this is not a courtesy — it
+ * is the condition on the feature. It borrows `yarl__button` so it stays
+ * aligned with the lightbox's own toolbar the way `ShareButton` does.
+ *
+ * `data-playing` is what a test can read: whether *we* believe music should
+ * be sounding. Deliberately not a claim about YouTube's player — that is the
+ * vendor's, over the network, and asserting it would make the suite depend on
+ * reaching youtube-nocookie.com.
+ */
+function MusicButton({
+  playing,
+  onToggle,
+}: {
+  playing: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="yarl__button"
+      onClick={onToggle}
+      aria-label={playing ? "關閉背景音樂" : "播放背景音樂"}
+      title={playing ? "關閉背景音樂" : "播放背景音樂"}
+      data-testid="gallery-music-toggle"
+      data-playing={playing}
+    >
+      {playing ? <Music className="size-5" /> : <VolumeX className="size-5" />}
+    </button>
+  );
+}
+
 export function MediaGrid({
   items,
+  musicVideoId = null,
   nextCursor,
   races = [],
   targetRowHeight = 220,
 }: {
   items: SiteMediaItem[];
+  /**
+   * The YouTube id this album plays behind its slideshow, if an admin set one.
+   *
+   * Album pages only. The wall has no album and therefore no music, and a
+   * virtual race album has no row to store one on — see
+   * `src/lib/race-gallery.ts`.
+   */
+  musicVideoId?: string | null;
   /**
    * The races present in what this grid is showing.
    *
@@ -236,6 +312,18 @@ export function MediaGrid({
 }) {
   const [index, setIndex] = useState(-1);
   const paginated = nextCursor !== undefined;
+
+  /**
+   * Whether the visitor has silenced the music. Read from `sessionStorage`
+   * lazily rather than in an effect: an effect would render once unmuted and
+   * then correct itself, which for audio means a burst of sound the visitor
+   * already said they did not want.
+   */
+  const [muted, setMuted] = useState(() =>
+    typeof window === "undefined" ? false : readMuted(),
+  );
+  /** Whether the slideshow is running — the thing the music follows. */
+  const [slideshowRunning, setSlideshowRunning] = useState(false);
 
   const [accumulated, setAccumulated] = useState<SiteMediaItem[]>(items);
   const [cursor, setCursor] = useState<WallCursor | null>(nextCursor ?? null);
@@ -365,6 +453,30 @@ export function MediaGrid({
               height: item.height,
               sources: [{ src: item.src, type: item.mimeType ?? "video/mp4" }],
               description: item.description,
+              /**
+               * The frame the transcoder took, which the lightbox had no way
+               * of knowing about.
+               *
+               * `GridPhoto` has carried `poster` since the grid learned to
+               * draw video tiles (`VideoPosterTile`), and the slide dropped
+               * it — so a video showed its poster on the wall and then a
+               * black box the moment it was opened, and every thumbnail in
+               * the strip was an empty play icon. Measured on production,
+               * 2026-09-02: **12 of 26 videos have a `posterUrl`**, and not
+               * one of them was reaching this object.
+               *
+               * `yet-another-react-lightbox`'s Thumbnails plugin reads
+               * exactly this field for a video slide (`slide.poster`, its
+               * dist/plugins/thumbnails/index.js), and the Video plugin
+               * passes it to `<video poster>`. Both were being handed
+               * `undefined`.
+               *
+               * The remaining 14 stay blank, and that is a data gap rather
+               * than this bug: nothing has taken a frame for them. The
+               * remedies are the backfill (`pnpm media:posters:prod`) and the
+               * member's own 用目前畫面當封面 button.
+               */
+              poster: item.poster,
             }
           : {
               src: item.src,
@@ -381,6 +493,40 @@ export function MediaGrid({
   // the lightbox is closed, and a page arriving mid-view can only ever grow
   // the array, never shorten it.
   const openPhoto = index >= 0 ? photos[index] : undefined;
+
+  /**
+   * The four conditions the music waits on, in one expression rather than
+   * spread over effects that each set a flag.
+   *
+   * `openPhoto?.kind !== "video"` is the one that is easy to miss and
+   * impossible to ignore once heard: a video slide plays its own sound, and
+   * two audio tracks at once is not background music, it is a fault. Leaving
+   * the video resumes the album's track — from the beginning, which is the
+   * cost `SlideshowMusic`'s header names.
+   */
+  const musicPlaying =
+    Boolean(musicVideoId) &&
+    !muted &&
+    index >= 0 &&
+    slideshowRunning &&
+    openPhoto?.kind !== "video";
+
+  /**
+   * The toggle both mutes and starts.
+   *
+   * Muting while it plays is the WCAG requirement. Un-muting *before* the
+   * slideshow has been started is the other half: a visitor who pressed the
+   * music button expects music, and telling them to go and press a different
+   * button first would be a control that does nothing.
+   */
+  const toggleMusic = useCallback(() => {
+    setMuted((wasMuted) => {
+      const nextMuted = !wasMuted;
+      writeMuted(nextMuted);
+      if (!nextMuted) setSlideshowRunning(true);
+      return nextMuted;
+    });
+  }, []);
 
   return (
     <>
@@ -513,9 +659,30 @@ export function MediaGrid({
         // Controlled: the share button has to address whatever is on screen
         // now, not whatever was clicked to open the lightbox, so the index
         // follows the viewer's own navigation.
-        on={{ view: ({ index: i }) => setIndex(i) }}
+        on={{
+          view: ({ index: i }) => setIndex(i),
+          // The music follows the slideshow, which is what "背景音樂" means —
+          // and it is also what makes the sound legal to start: these fire
+          // from the visitor pressing the lightbox's own play button, so the
+          // page has the user activation an autoplaying frame needs.
+          slideshowStart: () => setSlideshowRunning(true),
+          slideshowStop: () => setSlideshowRunning(false),
+          // Closing is not a pause. Leaving the lightbox with music still
+          // playing behind the page would be the worst version of this
+          // feature.
+          exiting: () => setSlideshowRunning(false),
+        }}
         toolbar={{
           buttons: [
+            ...(musicVideoId
+              ? [
+                  <MusicButton
+                    key="music"
+                    playing={musicPlaying}
+                    onToggle={toggleMusic}
+                  />,
+                ]
+              : []),
             ...(openPhoto
               ? [
                   <ShareButton
@@ -528,13 +695,39 @@ export function MediaGrid({
             "close",
           ],
         }}
-        // `showToggle` rather than a caption that cannot be dismissed: the
-        // text sits over the picture, and somebody who came to look at the
-        // picture has to be able to get it out of the way. `hidden` is left
-        // false so a caption somebody wrote is seen at least once.
-        captions={{ showToggle: true, descriptionTextAlign: "start" }}
+        /**
+         * `showToggle` rather than a caption that cannot be dismissed: the
+         * text sits over the picture, and somebody who came to look at the
+         * picture has to be able to get it out of the way. `hidden` is left
+         * false so a caption somebody wrote is seen at least once.
+         *
+         * CENTRED, NOT `start`. The captions container is `left: 0; right: 0`
+         * at the bottom of the whole slide area (the plugin's own CSS), so a
+         * `start` alignment puts the text hard against the left edge of the
+         * window — several hundred pixels from the photo it describes, and on
+         * a video slide well below the player. Centring is what makes it read
+         * as that item's caption rather than as a stray line in the corner.
+         *
+         * WHAT THIS DOES NOT DO: move the caption up against the media. The
+         * container's position is the plugin's, and taking it over means
+         * replacing Captions with a `render.slideFooter` of our own — which
+         * would also mean rebuilding the toggle. Worth doing if the caption
+         * still reads as detached; not worth guessing at first.
+         */
+        captions={{
+          showToggle: true,
+          descriptionTextAlign: "center",
+          descriptionMaxLines: 3,
+        }}
         plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
+
+      {/* Outside the lightbox, so closing it unmounts this through
+          `musicPlaying` going false rather than through the portal being torn
+          down — one rule deciding the sound, not two. */}
+      {musicVideoId && (
+        <SlideshowMusic videoId={musicVideoId} playing={musicPlaying} />
+      )}
     </>
   );
 }
