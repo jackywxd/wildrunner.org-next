@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { QuotaBar } from "./QuotaBar";
 import { UploadDropzone } from "./UploadDropzone";
 import { MediaGrid } from "./MediaGrid";
@@ -10,8 +10,15 @@ import {
   FilterChip,
   FilterSelect,
   KIND_LABELS,
+  USAGE_LABELS,
 } from "@/components/media/filters";
-import type { MediaKindFilter, MediaUsageFilter } from "@/lib/media/filters";
+import type { MediaUsageFilter } from "@/lib/media/filters";
+import {
+  MEDIA_PAGE_SIZES,
+  MEDIA_SORTS,
+  useMediaBrowse,
+  type MediaPageSize,
+} from "@/lib/members/use-media-browse";
 import type { Media } from "@/payload-types";
 import type { SiteRaceEditionOption } from "@/lib/content-types";
 
@@ -38,36 +45,19 @@ const TRANSCODE_POLL_MS = 15_000;
  * Payload's REST list response already carries `totalDocs`/`totalPages`, so
  * the count is not computed here and cannot drift from the query that produced
  * it.
- */
-const PAGE_SIZES = [24, 48, 96] as const;
-type PageSize = (typeof PAGE_SIZES)[number];
-
-/**
- * Payload `sort` strings, passed through untouched.
  *
- * Every field named here is a real column on `media` — a typo'd one is not an
- * error, it is a query that silently comes back in insertion order, which is
- * the failure this repo keeps writing down: green, quiet, wrong. `-createdAt`
- * matches what the page has always defaulted to.
+ * The query, the paging and the reset-on-narrow rule now live in
+ * `@/lib/members/use-media-browse` — the post editor's media picker asks
+ * `/api/media` the same question, and the one thing it must not do is ask it
+ * slightly differently. See that file's header.
  */
-type Sort = "-createdAt" | "createdAt" | "-filesize" | "filename";
 
-const SORTS: { value: Sort; label: string }[] = [
-  { value: "-createdAt", label: "最新上傳" },
-  { value: "createdAt", label: "最早上傳" },
-  { value: "-filesize", label: "檔案大" },
-  { value: "filename", label: "檔名" },
-];
+const USAGES: { value: MediaUsageFilter; label: string }[] = (
+  ["all", "gallery", "private", "attachment"] as const
+).map((value) => ({ value, label: USAGE_LABELS[value] }));
 
-const USAGES: { value: MediaUsageFilter; label: string }[] = [
-  { value: "all", label: "全部用途" },
-  { value: "gallery", label: "相片牆" },
-  { value: "private", label: "不公開" },
-  { value: "attachment", label: "文章附件" },
-];
-
-const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((size) => ({
-  value: String(size) as `${PageSize}`,
+const PAGE_SIZE_OPTIONS = MEDIA_PAGE_SIZES.map((size) => ({
+  value: String(size) as `${MediaPageSize}`,
   label: `每頁 ${size}`,
 }));
 
@@ -92,80 +82,36 @@ export function MediaLibrary({
   isAdmin: boolean;
   userId: number;
 }) {
-  const [items, setItems] = useState<Media[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [selected, setSelected] = useState<Media | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const [page, setPage] = useState(1);
-  const [totalDocs, setTotalDocs] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const [limit, setLimit] = useState<PageSize>(24);
-  const [sort, setSort] = useState<Sort>("-createdAt");
-  const [kind, setKind] = useState<MediaKindFilter>("all");
-  const [usageFilter, setUsageFilter] = useState<MediaUsageFilter>("all");
+  // Admin-only in the UI, and a no-op for anyone else: `mediaPublicRead`
+  // already returns `{ owner: { equals: user.id } }` for a non-admin, so the
+  // clause it adds would AND with a clause that already says it.
   const [mineOnly, setMineOnly] = useState(false);
 
-  const query = useMemo(() => {
-    const params = new URLSearchParams({
-      limit: String(limit),
-      page: String(page),
-      sort,
-      depth: "0",
-    });
-    // `like` on mimeType rather than a list of exact types: the collection
-    // accepts `image/*` and `video/*`, so the concrete values are whatever a
-    // browser reported at upload time — image/heic and video/quicktime are
-    // both in the corpus. The prefix is the only thing they agree on.
-    if (kind !== "all") {
-      params.set(
-        "where[mimeType][like]",
-        kind === "video" ? "video/" : "image/",
-      );
-    }
-    if (usageFilter !== "all") params.set("where[usage][equals]", usageFilter);
-    // Admin-only in the UI, and a no-op for anyone else: `mediaPublicRead`
-    // already returns `{ owner: { equals: user.id } }` for a non-admin, so
-    // this clause would AND with a clause that already says it.
-    if (mineOnly) params.set("where[owner][equals]", String(userId));
-    return params.toString();
-  }, [limit, page, sort, kind, usageFilter, mineOnly, userId]);
+  const browse = useMediaBrowse({ ownerId: mineOnly ? userId : null });
+  const { items, refresh: refreshMedia } = browse;
 
-  // `cache: "no-store"` as well as the no-store response header: this list
+  // `cache: "no-store"` as well as the no-store response header: this figure
   // has to reflect an upload that happened a moment ago, and a response
-  // already sitting in the browser's HTTP cache would be replayed
-  // regardless of what the server now says.
-  const refresh = useCallback(async () => {
-    const [mediaRes, usageRes] = await Promise.all([
-      fetch(`/api/media?${query}`, {
-        credentials: "same-origin",
-        cache: "no-store",
-      }),
-      fetch("/api/members/storage-usage", {
-        credentials: "same-origin",
-        cache: "no-store",
-      }),
-    ]);
-    if (mediaRes.ok) {
-      const body = (await mediaRes.json()) as {
-        docs: Media[];
-        totalDocs: number;
-        totalPages: number;
-      };
-      setItems(body.docs);
-      setTotalDocs(body.totalDocs);
-      setTotalPages(Math.max(1, body.totalPages));
-    }
-    if (usageRes.ok) {
-      setUsage((await usageRes.json()) as Usage);
-    }
-    setLoading(false);
-  }, [query]);
+  // already sitting in the browser's HTTP cache would be replayed regardless
+  // of what the server now says.
+  const refreshUsage = useCallback(async () => {
+    const response = await fetch("/api/members/storage-usage", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (response.ok) setUsage((await response.json()) as Usage);
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    refreshUsage();
+  }, [refreshUsage]);
+
+  /** Both halves, for the callers that change what each one reports. */
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshMedia(), refreshUsage()]);
+  }, [refreshMedia, refreshUsage]);
 
   // A transcode finishes minutes after the upload does, in a container, by
   // patching the row — nothing pushes that back to this page. Without a poll
@@ -186,21 +132,27 @@ export function MediaLibrary({
     return () => clearInterval(timer);
   }, [transcodePending, refresh]);
 
-  /**
-   * Every filter change goes through here, and the reason is the page number.
-   *
-   * Page 4 of 12 is not page 4 of 3: narrowing the query while holding the
-   * page produces an empty grid over a non-empty library, which reads exactly
-   * like the bug this whole change exists to fix. Payload answers an
-   * out-of-range page with an empty `docs` and no error, so nothing would
-   * complain.
-   */
-  const narrow = useCallback((apply: () => void) => {
-    apply();
-    setPage(1);
-  }, []);
+  const {
+    filtered: narrowed,
+    kind,
+    limit,
+    loading,
+    narrow,
+    page,
+    setKind,
+    setLimit,
+    setPage,
+    setSort,
+    setUsage: setUsageFilter,
+    sort,
+    totalDocs,
+    totalPages,
+    usage: usageFilter,
+  } = browse;
 
-  const filtered = kind !== "all" || usageFilter !== "all" || mineOnly;
+  // `mineOnly` is this component's own control rather than the hook's, so it
+  // has to be ORed in here — see `MediaBrowse.filtered`.
+  const filtered = narrowed || mineOnly;
 
   return (
     <div className="space-y-6">
@@ -258,13 +210,15 @@ export function MediaLibrary({
           label="排序"
           value={sort}
           onChange={(next) => narrow(() => setSort(next))}
-          options={SORTS}
+          options={MEDIA_SORTS}
           data-testid="media-filter-sort"
         />
         <FilterSelect
           label=""
-          value={String(limit) as `${PageSize}`}
-          onChange={(next) => narrow(() => setLimit(Number(next) as PageSize))}
+          value={String(limit) as `${MediaPageSize}`}
+          onChange={(next) =>
+            narrow(() => setLimit(Number(next) as MediaPageSize))
+          }
           options={PAGE_SIZE_OPTIONS}
           data-testid="media-filter-limit"
         />
