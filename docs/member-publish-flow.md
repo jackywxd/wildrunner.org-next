@@ -23,9 +23,12 @@ post-description   → fill
 post-slug          → fill                (see "the silent failure" below)
 
 post-race-attach   → click              ← the race picker is here, inside the
-race-report-race     → selectOption       editor. It is NOT the only way in:
-race-report-distance → selectOption       /races has `race-write-report`
-post-race-confirm  → click                linking to /members/posts/new?race=<id>
+post-race-recent     → selectOption       editor. It is NOT the only way in:
+race-series-select   → selectOption       /races has `race-write-report`
+race-event-select    → selectOption       linking to /members/posts/new?race=<id>
+race-distance-select → selectOption
+race-year-select     → selectOption
+post-race-confirm  → click
 
 editor-content     → fill               ← the body. `editor-content`, not a
                                           bare [contenteditable] lookup
@@ -33,6 +36,15 @@ editor-content     → fill               ← the body. `editor-content`, not a
 post-save-draft    → click
 post-publish       → click
 ```
+
+`post-race-recent` is a shortcut, not the source. It lists finished
+`race-editions` rows and fills the four selects below in one gesture; the
+selects are what the record is actually built from, and they offer the whole
+catalogue from 2010 to next year. It was the other way round until 2026-09-02
+— the picker *was* the edition list — and since that table holds only 2026 and
+2027 in every environment, a member could not link a race from any earlier
+year while /members/races logged the same claim without complaint. `R-OLDRACE`
+pins it.
 
 Attaching a race **creates a `race-records` row and links it** as
 `posts.raceRecord`. Measured across the walkthrough: posts 358 → 359 and
