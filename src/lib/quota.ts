@@ -1,6 +1,21 @@
 import type { Payload, PayloadRequest } from 'payload'
 
-const DEFAULT_QUOTA_MB = 10 * 1024
+/**
+ * 100 GB per member.
+ *
+ * Ten times what it was, and raised alongside video in the article editor
+ * rather than for its own sake. The arithmetic that decided it: production's
+ * 27 videos average 410.3 MB, and a transcoded video occupies R2 **twice** —
+ * `sumStoredBytes` below counts `filesize` and `originalFilesize` together
+ * because the pre-transcode original is kept forever by design. So a member
+ * who writes with video spends roughly a gigabyte an article, and the old
+ * 10 GB was about ten of them before the library had to be pruned.
+ *
+ * Still a number, not "unlimited", and deliberately: the quota is what stops
+ * one account from filling the bucket, and `MEMBER_STORAGE_QUOTA_MB` plus
+ * `users.storageQuotaMb` are there for the cases that need something else.
+ */
+const DEFAULT_QUOTA_MB = 100 * 1024
 
 export function defaultQuotaMb(): number {
   const configured = Number(process.env.MEMBER_STORAGE_QUOTA_MB)

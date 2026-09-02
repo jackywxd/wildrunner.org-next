@@ -533,6 +533,7 @@ export function PostEditor({
               if (previewing) refreshPreview();
             }}
             onPendingChange={setPending}
+            ownerId={ownerId}
           />
         </div>
 

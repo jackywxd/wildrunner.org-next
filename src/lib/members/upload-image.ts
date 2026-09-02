@@ -34,8 +34,12 @@ type Usage = { quotaBytes: number; usedBytes: number };
  * after the object is already stored, leaving an orphan behind. Pasting has
  * almost no friction (one keystroke, repeatable), so the cheap pre-flight
  * matters more here than in the media library.
+ *
+ * Exported for `upload-video.ts`, which needs exactly this and nothing else
+ * from this file. Left here rather than moved to a module of its own: it is
+ * the pre-flight for the editor's uploads, and both of them live next door.
  */
-async function wouldExceedQuota(size: number): Promise<boolean> {
+export async function wouldExceedQuota(size: number): Promise<boolean> {
   try {
     const response = await fetch("/api/members/storage-usage", {
       credentials: "same-origin",

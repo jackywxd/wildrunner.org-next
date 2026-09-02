@@ -5,7 +5,14 @@ import { useEffect } from "react";
 import { MediaGrid } from "./MediaGrid";
 import { FilterSelect } from "@/components/media/filters";
 import { MEDIA_SORTS, useMediaBrowse } from "@/lib/members/use-media-browse";
+import type { MediaKindFilter } from "@/lib/media/filters";
 import type { Media } from "@/payload-types";
+
+const TITLES: Record<MediaKindFilter, string> = {
+  all: "從媒體庫選擇",
+  photo: "從媒體庫選擇圖片",
+  video: "從媒體庫選擇影片",
+};
 
 /**
  * Choose a file that is already in the member's library.
@@ -38,8 +45,14 @@ export function MediaPickerDialog({
   onPick,
   ownerId,
 }: {
-  /** Which half of the library to offer. The two callers want opposite ones. */
-  kind: "photo" | "video";
+  /**
+   * Which part of the library to offer. The cover field wants photos and
+   * nothing else — `posts.image` renders through next/image, so a video
+   * chosen there would be a broken card. The editor takes "all": an upload
+   * node holds a media id whatever its type, and the public converter already
+   * branches on the mime type to draw a player or a picture.
+   */
+  kind: MediaKindFilter;
   onClose: () => void;
   onPick: (media: Media) => void;
   ownerId: number;
@@ -68,9 +81,7 @@ export function MediaPickerDialog({
         className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 overflow-y-auto border border-border bg-background p-6"
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">
-            {kind === "video" ? "從媒體庫選擇影片" : "從媒體庫選擇圖片"}
-          </span>
+          <span className="text-sm font-medium">{TITLES[kind]}</span>
           <button
             type="button"
             data-testid="media-picker-close"

@@ -59,8 +59,8 @@ test.describe("U-QUOTA storage quota", () => {
     }
   };
 
-  test("U-QUOTA-1: the default is 10 GB when nothing is configured", () => {
-    expect(withEnv(undefined, defaultQuotaMb)).toBe(10 * 1024);
+  test("U-QUOTA-1: the default is 100 GB when nothing is configured", () => {
+    expect(withEnv(undefined, defaultQuotaMb)).toBe(100 * 1024);
   });
 
   test("U-QUOTA-2: a configured value replaces the default", () => {
@@ -71,7 +71,7 @@ test.describe("U-QUOTA storage quota", () => {
     // The failure this prevents: a typo in the deploy secret silently giving
     // every member a zero-byte quota, which reads as "uploads are broken".
     for (const bad of ["", "abc", "0", "-5", "NaN"]) {
-      expect(withEnv(bad, defaultQuotaMb), bad).toBe(10 * 1024);
+      expect(withEnv(bad, defaultQuotaMb), bad).toBe(100 * 1024);
     }
   });
 
@@ -81,7 +81,7 @@ test.describe("U-QUOTA storage quota", () => {
       // Null, zero and negative all mean "no override", not "no space".
       for (const value of [null, undefined, 0, -1]) {
         expect(quotaBytesFor({ storageQuotaMb: value as never })).toBe(
-          10 * 1024 * 1024 * 1024,
+          100 * 1024 * 1024 * 1024,
         );
       }
     });

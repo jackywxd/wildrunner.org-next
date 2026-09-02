@@ -30,6 +30,10 @@ import {
 } from "@payloadcms/richtext-lexical/lexical/utils";
 import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { INSERT_IMAGE_FILES_COMMAND } from "./ImageInsertPlugin";
+import {
+  INSERT_VIDEO_FILE_COMMAND,
+  OPEN_MEDIA_PICKER_COMMAND,
+} from "./VideoInsertPlugin";
 
 /**
  * The always-visible toolbar.
@@ -60,6 +64,7 @@ export function FixedToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const [block, setBlock] = useState<BlockKind>("paragraph");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const sync = useCallback(() => {
     const selection = $getSelection();
@@ -213,6 +218,40 @@ export function FixedToolbarPlugin() {
           event.target.value = "";
         }}
       />
+      <button
+        type="button"
+        data-testid="editor-toolbar-video"
+        className={button}
+        onClick={() => videoInputRef.current?.click()}
+      >
+        影片
+      </button>
+      <input
+        ref={videoInputRef}
+        data-testid="editor-toolbar-video-input"
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(event) => {
+          // One at a time, unlike the image input. Each video is minutes of
+          // upload with its own row in the panel, and a member who picks four
+          // by accident should not discover that by watching four progress
+          // bars they cannot stop.
+          const file = event.target.files?.[0];
+          if (file) editor.dispatchCommand(INSERT_VIDEO_FILE_COMMAND, file);
+          event.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        data-testid="editor-toolbar-library"
+        className={button}
+        onClick={() =>
+          editor.dispatchCommand(OPEN_MEDIA_PICKER_COMMAND, undefined)
+        }
+      >
+        媒體庫
+      </button>
       <button
         type="button"
         data-testid="editor-toolbar-table"

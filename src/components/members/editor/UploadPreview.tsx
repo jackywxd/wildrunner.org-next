@@ -14,6 +14,7 @@ import {
 } from "@payloadcms/richtext-lexical/lexical";
 import { mergeRegister } from "@payloadcms/richtext-lexical/lexical/utils";
 import { mediaImageSrc } from "@/lib/cf-image";
+import { TranscodeBadge } from "@/components/members/media/TranscodeBadge";
 import { useMediaById } from "@/lib/members/use-media";
 
 /**
@@ -116,7 +117,7 @@ export function UploadPreview({
       <button
         type="button"
         data-testid="editor-upload-remove"
-        aria-label="刪除圖片"
+        aria-label="刪除媒體"
         // contentEditable={false} on the control: it lives inside the
         // editor's contenteditable subtree, and without this a click can
         // put the caret inside the button's own text instead of firing it.
@@ -130,7 +131,41 @@ export function UploadPreview({
       >
         刪除
       </button>
-      {src && !isVideo ? (
+      {isVideo && media ? (
+        // The poster frame, for the reason the wall and the media library were
+        // both changed: this used to be the string "▶ 影片" on a grey box, so
+        // the screen where a member places a video was the one screen that
+        // never showed them which video it was. The badge beside it is what
+        // explains a clip that will not play yet — a transcode runs for
+        // minutes after the upload, in a container, and without it "still
+        // converting" and "failed three sweeps ago" look identical.
+        //
+        // NOT `VideoPosterTile`, which is the component that draws exactly
+        // this elsewhere. It renders through next/image, and this file is
+        // reachable from `@/lib/editor/nodes` — which `e2e/unit/lexical.spec`
+        // imports into plain Node to round-trip a document with no browser and
+        // no bundler. Adding it broke that lane with "Cannot find module
+        // next/image", which is how this comment came to exist. The plain
+        // `<img>` is also what this file already uses for images, and its own
+        // reason holds here too: next/image's fill/absolute wrapper fights the
+        // block layout inside contentEditable.
+        <div className="relative aspect-video bg-neutral-900">
+          {media.posterUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              data-testid="editor-upload-poster"
+              src={media.posterUrl}
+              alt={media.alt}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs text-white/60">
+              ▶ 影片
+            </div>
+          )}
+          <TranscodeBadge item={media} />
+        </div>
+      ) : src && !isVideo ? (
         // Not next/image: the editor renders inside contentEditable, where
         // next/image's fill/absolute wrapper fights the block layout, and
         // these are author-facing previews rather than public page loads.

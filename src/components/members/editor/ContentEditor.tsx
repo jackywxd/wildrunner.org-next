@@ -24,6 +24,7 @@ import { editorTheme } from "./theme";
 import { SlashMenuPlugin } from "./SlashMenuPlugin";
 import { SelectionToolbarPlugin } from "./SelectionToolbarPlugin";
 import { ImageInsertPlugin } from "./ImageInsertPlugin";
+import { VideoInsertPlugin } from "./VideoInsertPlugin";
 import { TableToolbarPlugin } from "./TableToolbarPlugin";
 import { DraggableBlockPlugin } from "./DraggableBlockPlugin";
 import { FixedToolbarPlugin } from "./FixedToolbarPlugin";
@@ -51,11 +52,14 @@ export function ContentEditor({
   onChange,
   onPendingChange,
   handleRef,
+  ownerId,
 }: {
   initialContent: PayloadContent;
   onChange: () => void;
   onPendingChange: (count: number) => void;
   handleRef: React.MutableRefObject<ContentEditorHandle | null>;
+  /** Whose library the editor's media picker offers — see MediaPickerDialog. */
+  ownerId: number;
 }) {
   const editorRef = useRef<LexicalEditor | null>(null);
 
@@ -104,6 +108,10 @@ export function ContentEditor({
           child of the positioned wrapper would sit under the floating
           selection toolbar's coordinate space. */}
       <FixedToolbarPlugin />
+      {/* Docked with the toolbar rather than inside the writing surface: a
+          video upload deliberately puts nothing in the document until it
+          lands, so its progress has nowhere else to live. See the plugin. */}
+      <VideoInsertPlugin ownerId={ownerId} />
       <TableToolbarPlugin />
       {/* relative: the selection toolbar and the drag handle both position
           themselves against this box. pl-6 is the gutter the handle lives

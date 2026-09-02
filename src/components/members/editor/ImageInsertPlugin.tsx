@@ -40,6 +40,12 @@ import { uploadImageFile } from "@/lib/members/upload-image";
  * Getting an image into the document — by pasting it, or by dragging a file
  * in from the desktop.
  *
+ * IMAGES ONLY. Video goes through `VideoInsertPlugin`, and the split is not
+ * about file types: this plugin inserts a placeholder first and settles it
+ * when the bytes land, which blocks every save until it does. That is right
+ * for a screenshot and unusable for a file that takes twenty minutes, so a
+ * video is uploaded before anything enters the document. See that file.
+ *
  * Both routes live in one plugin because they share one thing that must not
  * be duplicated: the count of uploads still in flight. `PostEditor` disables
  * saving while that count is above zero, and `toPayloadContent` throws if a
