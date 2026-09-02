@@ -27,6 +27,14 @@
 			// a members' club uploading a handful of videos a month; the cap
 			// is here so a runaway retry cannot spend the CPU budget in one
 			// afternoon.
+			//
+			// MIRRORED as MAX_CONCURRENT_TRANSCODES in
+			// src/lib/media/transcode-state.ts, which is what the sweep paces
+			// itself against. Nothing connects the two files at build time, so
+			// changing this number without changing that one puts the sweep
+			// back to over-dispatching (if raised here) or leaves containers
+			// idle (if lowered here). Raising it is the safe order: raise
+			// there second.
 			"max_instances": 3
 		}
 	],
