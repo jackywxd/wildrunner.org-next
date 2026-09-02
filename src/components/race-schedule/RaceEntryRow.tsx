@@ -92,9 +92,13 @@ export function RaceEntryRow({
   // complete. `race-schedule` requires an eventId now, so this only
   // excludes rows written before that rule.
   const reportable = canWriteReport && canReport(catalogue, entry, now);
-  // Same "already started" bound as 查看相片 above (getRaceEditionOptions) —
-  // looser than `reportable`, which also needs a catalogue match. Uploading
-  // a photo makes no claim about distance, so it has nothing to check there.
+  // Same "already started" bound as 查看相片 below, computed from this row's
+  // own dates — looser than `reportable`, which also needs a catalogue match.
+  // Uploading a photo makes no claim about distance, so it has nothing to
+  // check there. It is no longer the bound the upload picker uses: that asks
+  // the catalogue now (UploadDropzone.tsx), so a member can tag a 2019 race
+  // this row would never have offered. This link is a shortcut into that
+  // picker, not its definition.
   const uploadable = canWriteReport && Boolean(entry.eventId) && (finished || ongoing);
   const site = externalHref(entry.url);
 
@@ -183,9 +187,9 @@ export function RaceEntryRow({
         {/* `eventId` is the string key `race-events` uses (RaceEvents.ts);
             not every `race-schedule` row necessarily has one filled in — see
             docs/plan. `finished || ongoing`, not just `finished`: a race
-            already underway can have photos too, and that is the same
-            "already started" bound the upload picker uses
-            (getRaceEditionOptions). */}
+            already underway can have photos too. That bound is this row's
+            own dates, not the upload picker's — the picker asks the whole
+            catalogue now, so it offers races this link never will. */}
         {entry.eventId && (finished || ongoing) && (
           <Link
             className="text-xs text-primary hover:underline"

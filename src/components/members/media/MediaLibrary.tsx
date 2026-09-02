@@ -13,6 +13,8 @@ import {
   USAGE_LABELS,
 } from "@/components/media/filters";
 import type { MediaUsageFilter } from "@/lib/media/filters";
+import type { RaceClaim } from "@/components/members/races/RaceClaimFields";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 import {
   MEDIA_PAGE_SIZES,
   MEDIA_SORTS,
@@ -20,7 +22,6 @@ import {
   type MediaPageSize,
 } from "@/lib/members/use-media-browse";
 import type { Media } from "@/payload-types";
-import type { SiteRaceEditionOption } from "@/lib/content-types";
 
 type Usage = { quotaBytes: number; usedBytes: number };
 
@@ -62,14 +63,22 @@ const PAGE_SIZE_OPTIONS = MEDIA_PAGE_SIZES.map((size) => ({
 }));
 
 export function MediaLibrary({
-  preselectedRaceEditionId,
-  raceEditions,
+  catalogueEvents,
+  preselectedRace,
   isAdmin,
   userId,
 }: {
+  /**
+   * The whole race catalogue, not the dated editions this used to pass.
+   *
+   * Both the dropzone and the detail dialog ask which race a file is from,
+   * and they now ask it the way the post editor does — see
+   * `RaceClaimFields.tsx`. Resolved on the server for the same reason it
+   * always was: a client fetch would be a second definition of the list.
+   */
+  catalogueEvents: CatalogueEvent[];
   /** From a 上傳相片-style deep link — a hint, not a requirement. */
-  preselectedRaceEditionId?: number;
-  raceEditions: SiteRaceEditionOption[];
+  preselectedRace?: RaceClaim | null;
   /**
    * Decided on the server from the session, never asked of the browser.
    *
@@ -168,8 +177,8 @@ export function MediaLibrary({
           setPage(1);
           void refresh();
         }}
-        preselectedRaceEditionId={preselectedRaceEditionId}
-        raceEditions={raceEditions}
+        catalogueEvents={catalogueEvents}
+        preselectedRace={preselectedRace}
       />
 
       <div
@@ -288,7 +297,7 @@ export function MediaLibrary({
       {selected && (
         <MediaDetailDialog
           item={selected}
-          raceEditions={raceEditions}
+          catalogueEvents={catalogueEvents}
           onClose={() => setSelected(null)}
           onUpdated={() => {
             setSelected(null);

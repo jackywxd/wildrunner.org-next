@@ -62,8 +62,11 @@ test.describe("V-RACEALBUM a race's media is browsable and shareable", () => {
     });
     expect(login.ok()).toBe(true);
 
-    // An edition that has already started — only those can be tagged, and
-    // only those can have an album.
+    // Any dated edition will do. "Already started" is no longer a rule about
+    // what can be tagged or what can have an album — the picker asks the
+    // catalogue and `getRaceGalleries` groups by whatever the media points
+    // at, dateless editions included (M-EDITION-T3 is that case). It is kept
+    // here only because this spec builds its slug from `startDate`'s year.
     const editions = await request.get("/api/race-editions?depth=1&limit=100");
     expect(editions.ok()).toBe(true);
     const editionDocs = (await editions.json()).docs as {

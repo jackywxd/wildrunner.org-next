@@ -16,7 +16,14 @@ import {
 import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
 import { downscaleImage } from "@/lib/media/downscale";
 import { Button } from "@/components/ui/button";
-import type { SiteRaceEditionOption } from "@/lib/content-types";
+import {
+  RaceClaimFields,
+  emptyRaceClaim,
+  raceClaimNamesEvent,
+  type RaceClaim,
+} from "@/components/members/races/RaceClaimFields";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
+import { resolveRaceEdition } from "@/lib/members/race-editions";
 
 type ItemStatus = "queued" | "checking" | "uploading" | "saving" | "done" | "duplicate" | "error";
 
@@ -52,20 +59,33 @@ async function parseError(response: Response, fallback: string) {
  * next keeps that check correct.
  */
 export function UploadDropzone({
+  catalogueEvents,
   onUploaded,
-  preselectedRaceEditionId,
-  raceEditions,
+  preselectedRace,
 }: {
+  /** Server-computed options only — see MediaLibrary.tsx on why this is a prop, not a client fetch. */
+  catalogueEvents: CatalogueEvent[];
   onUploaded: () => void;
   /** From a 上傳相片-style deep link — a hint, not a requirement. */
-  preselectedRaceEditionId?: number;
-  /** Server-computed options only — see MediaLibrary.tsx on why this is a prop, not a client fetch. */
-  raceEditions: SiteRaceEditionOption[];
+  preselectedRace?: RaceClaim | null;
 }) {
   const [items, setItems] = useState<QueueItem[]>([]);
-  const [raceEditionId, setRaceEditionId] = useState(
-    preselectedRaceEditionId ? String(preselectedRaceEditionId) : "",
+  /**
+   * The catalogue's question, not the calendar's.
+   *
+   * This was a single select over `getRaceEditionOptions` — dated editions
+   * that have already started — which on 2026-09-02 was 14 rows, none of them
+   * older than this year. A member with photos of the 2019 UTMB had nothing
+   * to pick. The post editor had the identical bug and fixed it by asking
+   * `RaceClaimFields` instead; this is the second entry point doing the same.
+   * `run()` turns the claim into the `race-editions` id the column stores.
+   */
+  const [raceClaim, setRaceClaim] = useState<RaceClaim>(
+    () => preselectedRace ?? emptyRaceClaim(new Date()),
   );
+  /** A batch-level failure, distinct from a per-file one: the race could not
+   *  be resolved, so nothing was uploaded rather than uploaded untagged. */
+  const [batchError, setBatchError] = useState("");
   // Applies to the whole batch, not per file. A member picking 40 photos they
   // do not want public would otherwise have to open 40 detail dialogs after
   // the fact — the one place the toggle used to live.
@@ -93,7 +113,7 @@ export function UploadDropzone({
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   }
 
-  async function uploadOne(index: number, picked: File) {
+  async function uploadOne(index: number, picked: File, raceEditionId: number | null) {
     patchItem(index, { status: "checking", percent: 0, message: "" });
 
     // Shrink first, so everything downstream describes the file that will
@@ -150,7 +170,7 @@ export function UploadDropzone({
           // the single answer for both branches below.
           usage: showOnWall ? "gallery" : "private",
           ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
-          ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
+          ...(raceEditionId !== null ? { raceEdition: raceEditionId } : {}),
         });
         mediaId = created.id;
       } else {
@@ -162,7 +182,7 @@ export function UploadDropzone({
             alt: defaultAltFor(chosen.name),
             usage: showOnWall ? "gallery" : "private",
             ...(duplicate.fingerprint ? { contentFingerprint: duplicate.fingerprint } : {}),
-            ...(raceEditionId ? { raceEdition: Number(raceEditionId) } : {}),
+            ...(raceEditionId !== null ? { raceEdition: raceEditionId } : {}),
           }),
         );
         const response = await fetch("/api/media", {
@@ -209,6 +229,28 @@ export function UploadDropzone({
   async function run() {
     setRunning(true);
     stopRef.current = false;
+    setBatchError("");
+
+    // Resolved once for the whole batch, before any bytes move. Once because
+    // the answer is one row and forty files asking for it would be forty
+    // find-or-creates racing each other; before because a race the member
+    // picked and the library could not resolve must not become forty
+    // untagged uploads — that looks exactly like the tag having worked,
+    // right up until they go looking for the album.
+    let raceEditionId: number | null = null;
+    if (raceClaimNamesEvent(raceClaim)) {
+      const resolved = await resolveRaceEdition({
+        eventId: raceClaim.eventId,
+        year: raceClaim.year,
+      });
+      if (!resolved.ok) {
+        setBatchError(resolved.message);
+        setRunning(false);
+        return;
+      }
+      raceEditionId = resolved.id;
+    }
+
     // `items` here is this render's snapshot — correct both for a fresh
     // queue and for resuming one where earlier files are already "done"
     // (skipped below), since a new `run` closure is created on every render
@@ -216,7 +258,7 @@ export function UploadDropzone({
     for (let i = 0; i < items.length; i++) {
       if (stopRef.current) break;
       if (items[i].status === "done") continue;
-      await uploadOne(i, items[i].file);
+      await uploadOne(i, items[i].file, raceEditionId);
     }
     setRunning(false);
     onUploaded();
@@ -299,24 +341,33 @@ export function UploadDropzone({
             </span>
           </label>
 
-          {raceEditions.length > 0 && (
-            <label className="block space-y-1">
-              <span className="text-sm">這些照片是哪一場比賽的（選填）</span>
-              <select
-                data-testid="media-upload-race-edition"
-                value={raceEditionId}
-                disabled={running}
-                onChange={(event) => setRaceEditionId(event.target.value)}
-                className="block w-full border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="">不連結比賽</option>
-                {raceEditions.map((edition) => (
-                  <option key={edition.id} value={edition.id}>
-                    {edition.year}　{edition.nameZh || edition.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {catalogueEvents.length > 0 && (
+            <div className="space-y-2" data-testid="media-upload-race">
+              <span className="block text-sm">
+                這些照片是哪一場比賽的（選填）
+                <span className="block text-xs text-muted-foreground">
+                  不選賽事就只會進你的媒體庫和相片牆。
+                </span>
+              </span>
+              <RaceClaimFields
+                busy={running}
+                catalogueEvents={catalogueEvents}
+                onChange={setRaceClaim}
+                value={raceClaim}
+                withDistance={false}
+              />
+              {raceClaimNamesEvent(raceClaim) && (
+                <button
+                  type="button"
+                  data-testid="media-upload-race-clear"
+                  disabled={running}
+                  onClick={() => setRaceClaim(emptyRaceClaim(new Date()))}
+                  className="text-xs text-muted-foreground underline"
+                >
+                  不連結比賽
+                </button>
+              )}
+            </div>
           )}
 
           <ul className="space-y-1" data-testid="media-upload-queue">
@@ -385,6 +436,12 @@ export function UploadDropzone({
           {items.length > 1 && (
             <p className="text-xs text-foreground/60" data-testid="media-upload-summary">
               {done} / {items.length} 完成
+            </p>
+          )}
+
+          {batchError && (
+            <p className="text-xs text-destructive" data-testid="media-upload-batch-error">
+              {batchError}
             </p>
           )}
         </>

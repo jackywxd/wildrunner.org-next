@@ -84,7 +84,7 @@ export async function GET(request: Request) {
   const [galleries, raceGalleries, libraryPhotos, libraryVideos] =
     await Promise.all([
       getPublishedGalleries(),
-      getRaceGalleries(new Date()),
+      getRaceGalleries(),
       getGalleryPhotos(),
       getGalleryVideos(),
     ]);

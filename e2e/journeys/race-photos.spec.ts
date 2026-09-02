@@ -13,14 +13,33 @@
  * Drives the real upload control (`UploadDropzone`) rather than POSTing to
  * `/api/media` and reading the page back — that would prove the API and the
  * renderer agree, not that a member can do this.
+ *
+ * THE RACE IT PICKS IS A HISTORICAL ONE, and that is the second thing this
+ * now pins. The picker used to be one select over `getRaceEditionOptions` —
+ * editions with a start date already past — which was 14 rows holding nothing
+ * older than the current year, so this test could only ever tag a race from
+ * this season. It asks the catalogue now (`RaceClaimFields`, the same control
+ * the post editor uses) and `/api/members/race-editions/resolve` find-or-
+ * creates the edition, so a 2019 race is reachable through the real UI. The
+ * endpoint's own edges are `M-EDITION`.
  */
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
-import { getWithRetry } from "../helpers/request";
 import { deleteCreatedRows } from "../helpers/teardown";
 
 test.describe("P a member tags a photo with a race", () => {
+  /**
+   * A race in the catalogue that no reviewed edition dates, and a year no
+   * seeded row holds. `/api/members/race-editions/resolve` creates the
+   * edition on upload, which is the path a member with old photos takes.
+   * Kept distinct from `M-EDITION`'s 2014 so the two specs never contend for
+   * the same row.
+   */
+  const RACE_SERIES = "others";
+  const RACE_EVENT_KEY = "other-hardrock";
+  const RACE_YEAR = 2019;
+
   /**
    * Deletes by id, not by any pattern. The fixture image is
    * `public/static/brand/mark-purple.svg` — real content the site itself
@@ -73,22 +92,20 @@ test.describe("P a member tags a photo with a race", () => {
     await page.getByTestId("member-nav-media").click();
     await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });
 
-    const raceSelect = page.getByTestId("media-upload-race-edition");
-    // The picker only renders once a file is chosen — see UploadDropzone.tsx —
-    // so its presence here is itself evidence the seeded corpus has at least
-    // one already-started edition. If it never appears, that is a real gap
-    // worth failing loudly on rather than silently skipping the tag.
+    // The picker only renders once a file is chosen — see UploadDropzone.tsx.
     await page
       .getByTestId("media-upload-input")
       .setInputFiles("public/static/brand/mark-purple.svg");
 
-    await expect(raceSelect).toBeVisible({ timeout: budget(5_000) });
-    const editionId = await raceSelect
-      .locator("option:not([value=''])")
-      .first()
-      .getAttribute("value");
-    if (!editionId) throw new Error("no already-started race edition in the seeded corpus");
-    await raceSelect.selectOption(editionId);
+    await expect(page.getByTestId("media-upload-race")).toBeVisible({
+      timeout: budget(5_000),
+    });
+    // Named outright rather than "the first option": the whole point is that
+    // a specific historical race is reachable, and a first-option pick would
+    // silently start passing again the day the catalogue is reordered.
+    await page.getByTestId("race-series-select").selectOption(RACE_SERIES);
+    await page.getByTestId("race-event-select").selectOption(RACE_EVENT_KEY);
+    await page.getByTestId("race-year-select").selectOption(String(RACE_YEAR));
 
     const uploadResponse = page.waitForResponse(
       (res) => res.url().includes("/api/media") && res.request().method() === "POST",
@@ -105,22 +122,18 @@ test.describe("P a member tags a photo with a race", () => {
       timeout: budget(20_000),
     });
 
-    // Resolve which race this edition actually is — the select only carries
-    // the id, and the public wall lives at `/races/[event-key]/[year]`.
-    const edition = await getWithRetry(page.request, `/api/race-editions/${editionId}?depth=1`);
-    expect(edition.ok(), "the edition just offered in the picker should be readable").toBe(true);
-    const editionBody = (await edition.json()) as {
-      year: number;
-      event: { key: string };
-    };
-
     // The public payoff. A direct navigation here, not a click chain: this is
     // the same "did my action have this effect elsewhere" shape as
     // `member-races.spec.ts`'s badge check, which uses `page.goto("/riders")`
     // for the identical reason — the path already has its own click-arrival
     // coverage (`race-photo-wall-link` on `/races`), so this step is about
     // the wall's content, not about how a visitor reaches it.
-    await page.goto(`/races/${editionBody.event.key}/${editionBody.year}`, {
+    //
+    // The address is built from what was picked, not read back from the
+    // upload: the claim is that tagging *this* race put the photo on *that*
+    // race's wall, and deriving the URL from the stored row would make the
+    // assertion agree with whatever was stored.
+    await page.goto(`/races/${RACE_EVENT_KEY}/${RACE_YEAR}`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByTestId("race-photo-wall-empty")).toHaveCount(0, {

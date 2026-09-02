@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
@@ -10,29 +10,75 @@ import type { Media } from "@/payload-types";
 import { transcodeNote } from "@/lib/media/transcode-copy";
 import { mediaToSiteVideo } from "@/lib/media/site-video";
 import { nextUsage } from "@/lib/media/usage";
-import type { SiteRaceEditionOption, SiteVideo } from "@/lib/content-types";
+import {
+  RaceClaimFields,
+  emptyRaceClaim,
+  raceClaimNamesEvent,
+  type RaceClaim,
+} from "@/components/members/races/RaceClaimFields";
+import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
+import { raceClaimForEdition, resolveRaceEdition } from "@/lib/members/race-editions";
+import type { SiteVideo } from "@/lib/content-types";
 
 export function MediaDetailDialog({
   item,
-  raceEditions,
+  catalogueEvents,
   onClose,
   onDeleted,
   onUpdated,
 }: {
   item: Media;
   /** Server-computed options only — see MediaLibrary.tsx on why this is a prop, not a client fetch. */
-  raceEditions: SiteRaceEditionOption[];
+  catalogueEvents: CatalogueEvent[];
   onClose: () => void;
   onDeleted: () => void;
   onUpdated: () => void;
 }) {
   const [alt, setAlt] = useState(item.alt);
   const [title, setTitle] = useState(item.title ?? "");
-  // `depth=0` on the list this dialog is opened from (MediaLibrary.tsx), so
-  // `raceEdition` is always a bare id or null here — never a populated doc.
-  const [raceEditionId, setRaceEditionId] = useState(
-    typeof item.raceEdition === "number" ? String(item.raceEdition) : "",
+  /**
+   * Which race this file is from, asked the way the upload dropzone and the
+   * post editor ask it — series, event, year — rather than as one select over
+   * the 14 dated editions that had already started.
+   *
+   * `depth=0` on the list this dialog is opened from (MediaLibrary.tsx), so
+   * `raceEdition` is a bare id here and the claim behind it has to be fetched
+   * (`raceClaimForEdition`). Raising the depth instead would populate
+   * `media.owner` on every tile, which is the one thing this repo's queries
+   * are written to avoid.
+   *
+   * `unreadable` is not a cosmetic state. If that fetch fails, this dialog
+   * does not know what the file is tagged with — and saving would then write
+   * `raceEdition: null` over a perfectly good tag, silently, because the
+   * picker happens to be empty. So that case sends no `raceEdition` key at
+   * all, the same "leave whatever is stored" shape `nextUsage` uses below.
+   */
+  const [raceClaim, setRaceClaim] = useState<RaceClaim>(() =>
+    emptyRaceClaim(new Date()),
   );
+  const [raceState, setRaceState] = useState<
+    "none" | "loading" | "ready" | "unreadable"
+  >(typeof item.raceEdition === "number" ? "loading" : "none");
+
+  // Mount-only: MediaLibrary renders this dialog conditionally on `selected`,
+  // so a different file is a different mount rather than a new prop.
+  useEffect(() => {
+    const editionId = typeof item.raceEdition === "number" ? item.raceEdition : null;
+    if (editionId === null) return;
+    let cancelled = false;
+    raceClaimForEdition(editionId).then((claim) => {
+      if (cancelled) return;
+      if (!claim) {
+        setRaceState("unreadable");
+        return;
+      }
+      setRaceClaim(claim);
+      setRaceState("ready");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.raceEdition]);
   // Only `gallery` and `private` are this checkbox's to write; `attachment`
   // is provenance the editor's upload path set. `nextUsage` is what keeps the
   // difference — see src/lib/media/usage.ts for the alt-text edit that used to
@@ -121,6 +167,23 @@ export function MediaDetailDialog({
   async function save() {
     setStatus("saving");
     setError("");
+
+    // Resolved before the PATCH, so a race the library cannot turn into a row
+    // fails the save outright instead of quietly storing the file untagged.
+    let raceEdition: number | null = null;
+    if (raceState !== "unreadable" && raceClaimNamesEvent(raceClaim)) {
+      const resolved = await resolveRaceEdition({
+        eventId: raceClaim.eventId,
+        year: raceClaim.year,
+      });
+      if (!resolved.ok) {
+        setError(resolved.message);
+        setStatus("error");
+        return;
+      }
+      raceEdition = resolved.id;
+    }
+
     const usageToWrite = nextUsage(item.usage, showOnWall);
     const res = await fetch(`/api/media/${item.id}`, {
       method: "PATCH",
@@ -133,9 +196,11 @@ export function MediaDetailDialog({
         // this" is representable, and mediaDisplayName only falls back to
         // its filename derivation on null/undefined, not on "".
         title: title.trim() || null,
-        // Always sent, and `null` rather than omitted: picking "不連結比賽"
-        // after a race was already set has to clear it, not leave it alone.
-        raceEdition: raceEditionId ? Number(raceEditionId) : null,
+        // `null` rather than omitted: clearing the picker after a race was
+        // already set has to clear the column, not leave it alone. The one
+        // exception is `unreadable` — see the state's own note; there the key
+        // is absent entirely rather than null.
+        ...(raceState === "unreadable" ? {} : { raceEdition }),
         // Spread rather than always sent, unlike `raceEdition` above: this
         // control governs two of `usage`'s values and must not touch the
         // others, so `nextUsage` returns undefined for the cases it does not
@@ -198,10 +263,20 @@ export function MediaDetailDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
+      {/*
+        Scrolls, because it can now be taller than the window.
+        The race control used to be one `<select>`; it is three, and on a
+        1280x720 laptop that pushed 儲存 below the fold — inside a
+        `fixed inset-0 flex items-center` parent, which centres the overflow
+        instead of letting anything scroll to it. The button was not merely
+        awkward to reach, it was unreachable: no scroll container existed.
+        Caught by V-MEDIARACE-T1, whose click timed out on an element that
+        was rendered, enabled and off-screen.
+      */}
       <div
         data-testid="media-detail-dialog"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg space-y-4 border border-border bg-background p-6"
+        className="max-h-[90dvh] w-full max-w-lg space-y-4 overflow-y-auto border border-border bg-background p-6"
       >
         <div className="relative aspect-video bg-secondary">
           {video ? (
@@ -304,23 +379,36 @@ export function MediaDetailDialog({
           </span>
         </label>
 
-        {raceEditions.length > 0 && (
-          <label className="block space-y-1">
-            <span className="text-sm">這張照片是哪一場比賽的</span>
-            <select
-              data-testid="media-detail-race-edition"
-              value={raceEditionId}
-              onChange={(e) => setRaceEditionId(e.target.value)}
-              className="block w-full border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">不連結比賽</option>
-              {raceEditions.map((edition) => (
-                <option key={edition.id} value={edition.id}>
-                  {edition.year}　{edition.nameZh || edition.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        {catalogueEvents.length > 0 && (
+          <div className="space-y-2" data-testid="media-detail-race">
+            <span className="block text-sm">這張照片是哪一場比賽的</span>
+            {raceState === "loading" ? (
+              <p className="text-xs text-muted-foreground">讀取比賽中…</p>
+            ) : raceState === "unreadable" ? (
+              <p className="text-xs text-muted-foreground" data-testid="media-detail-race-unreadable">
+                讀不到目前連結的比賽,這次儲存不會更動它。
+              </p>
+            ) : (
+              <>
+                <RaceClaimFields
+                  catalogueEvents={catalogueEvents}
+                  onChange={setRaceClaim}
+                  value={raceClaim}
+                  withDistance={false}
+                />
+                {raceClaimNamesEvent(raceClaim) && (
+                  <button
+                    type="button"
+                    data-testid="media-detail-race-clear"
+                    onClick={() => setRaceClaim(emptyRaceClaim(new Date()))}
+                    className="text-xs text-muted-foreground underline"
+                  >
+                    不連結比賽
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}

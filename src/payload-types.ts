@@ -158,7 +158,7 @@ export interface User {
   invitedAt?: string | null;
   invitedBy?: (number | null) | User;
   /**
-   * Overrides the default (10240 MB) for this account. Leave blank to use the default.
+   * Overrides the default (102400 MB) for this account. Leave blank to use the default.
    */
   storageQuotaMb?: number | null;
   /**

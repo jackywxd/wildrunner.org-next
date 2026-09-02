@@ -1033,7 +1033,7 @@ export async function getGalleryBySlug(
   // the slug get read as a race album — which is what makes both the album
   // page and the video share page work for race media without either of
   // them knowing virtual albums exist.
-  return getRaceGalleryBySlug(slug, new Date());
+  return getRaceGalleryBySlug(slug);
 }
 
 /**
@@ -1108,16 +1108,37 @@ export async function getGalleryMediaById(
  * Two queries, not two per race. The obvious shape — walk the editions and
  * ask each one for its photos and videos — is 154 round trips against the
  * current catalogue to find the two races that actually have anything.
- * Instead: one pass over the editions for their names, one over the tagged
- * media, then group in memory.
+ * Instead: one pass over the tagged media, one over the editions it names,
+ * then group in memory.
+ *
+ * THE MEDIA DECIDES WHICH EDITIONS TO LOOK UP, and it did not used to. This
+ * began with `getRaceEditionOptions(now)` — every edition with a start date
+ * in the past — used as a whitelist: a media row whose edition was not in
+ * that list was skipped. Which quietly meant *an album only existed for a
+ * race somebody had dated*. `race-editions.startDate` is optional precisely
+ * so history can be carried (RaceEditions.ts), and the rows a member's claim
+ * find-or-creates have no date at all — so a photo tagged with the 2019 UTMB
+ * was dropped here, with nothing on screen to say so. Asking by id instead
+ * is also the cheaper query: the editions actually referenced are a handful,
+ * where the whitelist was 154 rows fetched to intersect.
  */
-export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
-  const editions = await getRaceEditionOptions(now);
-  if (editions.length === 0) return [];
-
-  const byId = new Map(editions.map((edition) => [edition.id, edition]));
-
+export async function getRaceGalleries(): Promise<SiteGallery[]> {
   const docs = await getGalleryMedia();
+
+  const editionIds = [
+    ...new Set(
+      docs
+        .map((doc) =>
+          typeof doc.raceEdition === "number" ? doc.raceEdition : doc.raceEdition?.id,
+        )
+        .filter((id): id is number => typeof id === "number"),
+    ),
+  ];
+  if (editionIds.length === 0) return [];
+
+  const byId = new Map(
+    (await getRaceEditionsByIds(editionIds)).map((edition) => [edition.id, edition]),
+  );
 
   const grouped = new Map<number, SiteMediaItem[]>();
   for (const doc of docs) {
@@ -1159,10 +1180,9 @@ export async function getRaceGalleries(now: Date): Promise<SiteGallery[]> {
  */
 export async function getRaceGalleryBySlug(
   slug: string,
-  now: Date,
 ): Promise<SiteGallery | null> {
   if (!parseRaceGallerySlug(slug)) return null;
-  const galleries = await getRaceGalleries(now);
+  const galleries = await getRaceGalleries();
   return galleries.find((gallery) => gallery.slug === slug) ?? null;
 }
 
@@ -1208,33 +1228,39 @@ function buildRaceGallery(
 }
 
 /**
- * Every edition a member can tag a photo with: already started, so a photo
- * of it can exist. This is deliberately independent of `getUpcomingRaces`
- * above — that function still reads `race-schedule` (switching `/races`
- * itself to `race-editions` is a separate change) — but a photo can only
- * ever point at `race-editions`, the collection `media.raceEdition`
- * actually has a foreign key into. Depth 1 to get each event's `key` and
- * name; `race-events` carries no PII (RaceEvents.ts), so this is safe at
- * that depth the way `posts.raceRecord` is not.
+ * The editions a set of media rows point at, named for the album builder.
+ *
+ * REPLACES `getRaceEditionOptions`, which asked "every edition that has
+ * already started" and was doing two jobs it only fitted one of. As the
+ * media library's picker it was wrong — 14 rows, nothing older than this
+ * year, so the 2019 UTMB could not be named at all; that question now goes
+ * to the catalogue (src/endpoints/resolveRaceEdition.ts). As the album
+ * whitelist it was worse than wrong, because it failed silently: see
+ * `getRaceGalleries`.
+ *
+ * NO DATE CONDITION, deliberately. `startDate` is optional exactly so a
+ * historical edition can exist with a year and nothing else (RaceEditions.ts),
+ * and the rows a member's claim find-or-creates are precisely those. Asking
+ * by id is also the narrow query — a handful of editions rather than 154
+ * fetched to intersect.
+ *
+ * Depth 1 to get each event's `key` and name; `race-events` carries no PII
+ * (RaceEvents.ts), so this is safe at that depth the way `posts.raceRecord`
+ * is not.
  */
-export async function getRaceEditionOptions(
-  now: Date,
+export async function getRaceEditionsByIds(
+  ids: number[],
 ): Promise<SiteRaceEditionOption[]> {
+  if (ids.length === 0) return [];
   const payload = await getPayloadClient();
-  const today = toDateString(now);
 
   const result = await payload.find({
     collection: "race-editions",
     depth: 1,
     limit: 0,
     pagination: false,
-    sort: "-startDate",
-    where: {
-      and: [
-        { startDate: { exists: true } },
-        { startDate: { less_than_equal: `${today}T23:59:59.999Z` } },
-      ],
-    },
+    sort: "-year",
+    where: { id: { in: ids } },
   });
 
   const options: SiteRaceEditionOption[] = [];

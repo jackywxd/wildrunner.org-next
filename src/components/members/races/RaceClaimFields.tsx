@@ -68,11 +68,24 @@ export function raceClaimComplete(claim: RaceClaim): boolean {
   return Boolean(claim.eventId && claim.distanceId);
 }
 
+/**
+ * Whether the claim names a race at all, distance aside.
+ *
+ * What a `withDistance={false}` caller needs, and it is a genuinely weaker
+ * question rather than a convenience: a photo is *of* the 2019 UTMB and makes
+ * no claim about which entry anybody ran. `raceClaimComplete` would refuse a
+ * perfectly good tag for a field that caller never renders.
+ */
+export function raceClaimNamesEvent(claim: RaceClaim): boolean {
+  return Boolean(claim.eventId);
+}
+
 export function RaceClaimFields({
   busy = false,
   catalogueEvents,
   onChange,
   value,
+  withDistance = true,
 }: {
   busy?: boolean;
   /**
@@ -83,6 +96,17 @@ export function RaceClaimFields({
   catalogueEvents: CatalogueEvent[];
   onChange: (next: RaceClaim) => void;
   value: RaceClaim;
+  /**
+   * Off for the media library, which tags a photo with a race and a year.
+   *
+   * A photo asserts nothing about distance — `resolveRaceRecordRefs` takes
+   * `distanceId` as optional for the same reason — and asking for one would
+   * make a member choose between 100M and 50K to caption a picture of a
+   * finish line. It is a prop rather than a fourth `RaceEditionPicker`
+   * because of this file's header: two entry points asking the same question
+   * differently is the bug this component exists to have fixed once.
+   */
+  withDistance?: boolean;
 }) {
   const catalogue = useMemo(
     () => catalogueMap(catalogueEvents),
@@ -158,23 +182,25 @@ export function RaceClaimFields({
         </select>
       </label>
 
-      <label className="block space-y-1">
-        <span className="text-sm">距離</span>
-        <select
-          className={selectClass}
-          data-testid="race-distance-select"
-          disabled={busy || !event}
-          onChange={(e) => onChange({ ...value, distanceId: e.target.value })}
-          value={value.distanceId}
-        >
-          <option value="">選擇距離…</option>
-          {(event?.distances ?? []).map((distance) => (
-            <option key={distance.id} value={distance.id}>
-              {distance.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {withDistance && (
+        <label className="block space-y-1">
+          <span className="text-sm">距離</span>
+          <select
+            className={selectClass}
+            data-testid="race-distance-select"
+            disabled={busy || !event}
+            onChange={(e) => onChange({ ...value, distanceId: e.target.value })}
+            value={value.distanceId}
+          >
+            <option value="">選擇距離…</option>
+            {(event?.distances ?? []).map((distance) => (
+              <option key={distance.id} value={distance.id}>
+                {distance.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="block space-y-1">
         <span className="text-sm">年份</span>
