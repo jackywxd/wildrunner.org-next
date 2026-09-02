@@ -191,9 +191,25 @@ tell you which. Four sources can, and each costs under two minutes:
   view, so each entry carries its justification inline.
 
 ### deployed
-- Gate on a non-localhost base URL, like `cache-headers.spec.ts` and `P2-T8`.
-- **And be meaningful there.** A test that gates itself off against the only
-  environment that matters is not a test.
+- **`e2e/deployed/` is the whole level, and it is a smoke suite.** For two
+  years this section described a level with *zero members* — the specs it named
+  (`cache-headers.spec.ts`, `P2-T8`) do not exist — while `deploy.yml` filled
+  the gap by pointing the entire journey suite at deployed staging. Measured
+  over 25 runs that gate passed first time about 40% of the time against the PR
+  gate's 79%, and of six failures read line by line none was a product defect.
+  `docs/release-pipeline.md` carries the numbers and the decision.
+- **Ask only what a deployment can answer.** The PR gate runs `next dev` on
+  emulated local D1 and an empty local R2, so it cannot see the OpenNext
+  production bundle, remote D1 with migrations applied, the R2 binding, or
+  Payload's CSRF against the deployed `serverURL`. That list is the level's
+  scope. Anything else about how the app behaves belongs before merge.
+- **A cold start is not a defect.** A Worker answers `There was an error
+  initializing Payload` for up to a couple of minutes after a deploy; the
+  workflow waits for a 200 before running anything, and a check that reports
+  waking up as a failure is miscalibrated rather than strict.
+- **Writes are the exception, not the shape.** One upload that deletes itself
+  is the only way to prove the R2 write path from outside. Adding a second
+  write here means re-opening the argument the release-pipeline doc settled.
 
 > `M6-T3` skips against a real deployment because 11 sequential Workers AI
 > calls outlast the 60-second rate-limit window. The rate limit is therefore

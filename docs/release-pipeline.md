@@ -10,7 +10,7 @@ feature branch
         ▼
   push main → deploy.yml
       1. staging          部署 staging Worker
-      2. verify-staging   對已部署的 staging 跑完整 e2e，跑完清理測試資料
+      2. verify-staging   等 staging answers，再跑 smoke（e2e/deployed）
       3. production       ⏸ 等人工批准 → 同一個 commit 上 prod → smoke check
 ```
 
@@ -202,9 +202,44 @@ staging 直接讀，所以 515MB 的影片只需要複製那一列資料。
 > prod 的線上 slug 清單**。少了後者，剛 sync 過來的內容會被當成測試殘留刪掉
 > ——這正是加上 prod 清單之前發生的事。
 
+## 為什麼 staging 只跑 smoke，不跑完整套件
+
+**這一段是 2026-09-02 的決定，證據在下面，不要在不知道這些數字的情況下改回去。**
+
+原本 `verify-staging` 對已部署的 staging 跑**和 PR gate 完全一樣的 59 個測試**
+——同一份程式碼，只換 base URL。執行紀錄結束了這個做法：
+
+| Gate | 完成次數 | 首次就過 |
+|---|---|---|
+| `e2e.yml`（PR，job 內自建自毀的 D1） | 29 | 79% |
+| `verify-staging`（共用的已部署 staging） | 25 | 約 40% |
+
+`production` 是 `needs: verify-staging`，所以一個失敗多於成功的閘門，**擋掉了
+一半以上的發布**。而逐行讀過的六次失敗，**沒有一次是產品缺陷**：ECONNRESET、
+teardown 競態、fixture 假設、冷啟動 500。一個抓不到真 bug 卻攔掉一半發布的
+閘門，只會訓練大家去按重跑。
+
+三個結構性原因，都是「把完整套件指向共用的活環境」直接帶來的：
+
+- 會建立 posts / media / galleries，所以需要 ledger、cleanup、殘留追蹤
+- 59 支測試共用一個 admin 帳號，`users_sessions` 是讀改寫，所以**無法平行化**
+- 跑在剛部署完的 Worker 上，冷啟動的 500 直接算成測試失敗
+
+現在完整套件留在它該在的地方（PR gate，資料庫在 job 裡建、在 job 裡死），
+`verify-staging` 只問 PR gate 問不到的那一件事:**剛剛部署出去的東西有沒有接
+好、活著**。內容是 `e2e/deployed/smoke.spec.ts` 的六項，本機實測 1.2 分鐘。
+
+**放棄的是深度。** 如果某個 journey 只在真的 Worker 上壞掉，這裡抓不到——要
+嘛 PR gate 抓到，要嘛沒人抓到。這是刻意的取捨:被取代的做法也一樣抓不到，
+它只是為了無關的理由紅著、看起來像在把關。
+
 ## 對 staging 跑測試
 
 ```bash
+# CI 跑的那一個：只有 e2e/deployed 的六項
+PLAYWRIGHT_BASE_URL=https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev pnpm test:smoke
+
+# 完整套件。CI 不再這樣跑（上一節說明原因），手動除錯時才用
 PLAYWRIGHT_BASE_URL=https://wildrunner-org-next-staging.small-tooth-cc10.workers.dev pnpm test:e2e
 ```
 

@@ -24,6 +24,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test:unit": "playwright test --config=playwright.unit.config.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
+    "test:smoke": "playwright test --config=playwright.config.ts e2e/deployed",
     "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "assert:bindings": "node scripts/assert-bindings.mjs",
     "assert:lfs": "node scripts/assert-no-lfs-in-builds.mjs",
