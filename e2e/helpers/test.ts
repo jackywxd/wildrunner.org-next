@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test";
+import { apiTest, expect } from "./api-test";
 
 /**
  * `test` for any spec that drives a browser.
@@ -15,9 +15,11 @@ import { test as base, expect } from "@playwright/test";
  * that provoked them, which is the only way they get attributed to a change
  * instead of scrolling past in a log nobody opens.
  *
- * API-only specs must keep importing from `@playwright/test`: the guard is an
- * automatic fixture and depends on `page`, so importing `test` from here would
- * launch a browser for a spec that only needs `request`.
+ * API-only specs must not import from here: the guard is an automatic fixture
+ * and depends on `page`, so it would launch a browser for a spec that only
+ * needs `request`. They import `apiTest` from ./api-test instead, which is the
+ * same plain runner minus this guard — and which this module extends, so a
+ * browser spec's `request` is transport-resilient as well as guarded.
  */
 
 /**
@@ -81,7 +83,7 @@ function isIgnored(text: string) {
   return IGNORED_PATTERNS.some(({ pattern }) => pattern.test(text));
 }
 
-export const test = base.extend<{ failOnBrowserErrors: void }>({
+export const test = apiTest.extend<{ failOnBrowserErrors: void }>({
   failOnBrowserErrors: [
     async ({ page }, use, testInfo) => {
       const problems: string[] = [];

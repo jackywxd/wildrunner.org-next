@@ -39,6 +39,7 @@ export type MediaCardDoc = Pick<
   | "raceEdition"
   | "streamId"
   | "streamReady"
+  | "title"
   | "url"
   | "width"
 >;

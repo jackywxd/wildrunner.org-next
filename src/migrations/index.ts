@@ -21,6 +21,7 @@ import * as migration_20260829_041500_add_marathon_majors from './20260829_04150
 import * as migration_20260830_090000_add_media_usage from './20260830_090000_add_media_usage';
 import * as migration_20260830_090500_merge_gallery_items from './20260830_090500_merge_gallery_items';
 import * as migration_20260901_200000_add_media_poster_url from './20260901_200000_add_media_poster_url';
+import * as migration_20260901_213000_add_media_title from './20260901_213000_add_media_title';
 
 export const migrations = [
   {
@@ -137,5 +138,10 @@ export const migrations = [
     up: migration_20260901_200000_add_media_poster_url.up,
     down: migration_20260901_200000_add_media_poster_url.down,
     name: '20260901_200000_add_media_poster_url',
+  },
+  {
+    up: migration_20260901_213000_add_media_title.up,
+    down: migration_20260901_213000_add_media_title.down,
+    name: '20260901_213000_add_media_title',
   },
 ];

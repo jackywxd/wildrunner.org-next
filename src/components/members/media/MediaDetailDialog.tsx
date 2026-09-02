@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
@@ -27,6 +27,7 @@ export function MediaDetailDialog({
   onUpdated: () => void;
 }) {
   const [alt, setAlt] = useState(item.alt);
+  const [title, setTitle] = useState(item.title ?? "");
   // `depth=0` on the list this dialog is opened from (MediaLibrary.tsx), so
   // `raceEdition` is always a bare id or null here — never a populated doc.
   const [raceEditionId, setRaceEditionId] = useState(
@@ -40,8 +41,15 @@ export function MediaDetailDialog({
   const wasAttachment = item.usage === "attachment";
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [status, setStatus] = useState<
-    "idle" | "saving" | "deleting" | "retrying" | "error"
+    "idle" | "saving" | "deleting" | "retrying" | "posterizing" | "error"
   >("idle");
+  // What the member is looking at. `currentTime` is the only place the frame
+  // they mean exists, and it lives on the element rather than in React state
+  // — reading it on click is exact, while mirroring every `timeupdate` into
+  // state would re-render the dialog four times a second to learn the same
+  // thing.
+  const videoEl = useRef<HTMLVideoElement | null>(null);
+  const [posterNote, setPosterNote] = useState("");
   const [error, setError] = useState("");
 
   const isVideo = (item.mimeType ?? "").startsWith("video/");
@@ -51,6 +59,64 @@ export function MediaDetailDialog({
   // bundle. That is still true; @/lib/media/site-video is the same mapping
   // with no server dependencies, so there is one definition again.
   const video: SiteVideo | null = isVideo ? mediaToSiteVideo(item) : null;
+
+  /**
+   * Send the player's own position, and say what happened.
+   *
+   * The frame is taken by the container, not here: the video is served from
+   * images.wildrunner.org while the app is on its own origin, so drawing it to
+   * a canvas would taint the canvas and `toBlob` would throw. Nothing in this
+   * repo configures CORS on that bucket, so a client-side capture would be a
+   * bucket configuration change dressed up as a UI feature.
+   *
+   * Reports failure rather than swallowing it. This is a button a member
+   * pressed and is watching, and the one thing this feature must not do is
+   * what the poster backfill did — appear to work while nothing was listening.
+   */
+  async function useCurrentFrame() {
+    const el = videoEl.current;
+    if (!el) {
+      // The Stream `<iframe>` branch, which exposes no playback position.
+      setPosterNote("這個播放器無法取得目前時間。");
+      return;
+    }
+
+    const seconds = el.currentTime;
+    setStatus("posterizing");
+    setPosterNote("");
+    try {
+      const res = await fetch(`/api/members/media/${item.id}/poster`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds }),
+      });
+      if (!res.ok) {
+        // 503 is the transcoder being unavailable — the normal case in dev
+        // and CI, where the service binding does not exist — and it is worth
+        // saying plainly rather than as a status code.
+        setPosterNote(
+          res.status === 503
+            ? "轉檔服務目前無法使用,請稍後再試。"
+            : `擷取失敗 (${res.status})`,
+        );
+        setStatus("idle");
+        return;
+      }
+      setPosterNote(
+        `已送出第 ${seconds.toFixed(1)} 秒的畫面,封面更新後會出現在相片牆。`,
+      );
+      setStatus("idle");
+      // Deliberately NOT calling `onUpdated()`. This request changes no row —
+      // the container patches `posterUrl` through its callback, seconds to
+      // minutes later — so refreshing the library now would re-read exactly
+      // what is already on screen. It also remounts this dialog, which threw
+      // away the message above; the member pressed a button and got silence,
+      // which is the one thing this feature must never do.
+    } catch (err) {
+      setPosterNote(err instanceof Error ? err.message : "擷取失敗");
+      setStatus("idle");
+    }
+  }
 
   async function save() {
     setStatus("saving");
@@ -62,6 +128,11 @@ export function MediaDetailDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         alt,
+        // Empty string becomes null rather than being sent as "": the field
+        // is nullable with no default specifically so "nobody has named
+        // this" is representable, and mediaDisplayName only falls back to
+        // its filename derivation on null/undefined, not on "".
+        title: title.trim() || null,
         // Always sent, and `null` rather than omitted: picking "不連結比賽"
         // after a race was already set has to clear it, not leave it alone.
         raceEdition: raceEditionId ? Number(raceEditionId) : null,
@@ -134,7 +205,11 @@ export function MediaDetailDialog({
       >
         <div className="relative aspect-video bg-secondary">
           {video ? (
-            <StreamVideoPlayer video={video} className="h-full w-full" />
+            <StreamVideoPlayer
+              video={video}
+              className="h-full w-full"
+              videoRef={videoEl}
+            />
           ) : !src ? (
             <div className="flex h-full items-center justify-center text-sm text-foreground/40">
               圖片處理中
@@ -164,6 +239,41 @@ export function MediaDetailDialog({
             {transcodeNote(item.transcodeStatus)}
           </p>
         )}
+
+        {isVideo && (
+          <div className="space-y-1">
+            <Button
+              data-testid="media-detail-poster-frame"
+              variant="outline"
+              className="w-full justify-center"
+              disabled={status === "posterizing"}
+              onClick={useCurrentFrame}
+            >
+              {status === "posterizing" ? "擷取中…" : "用目前畫面當封面"}
+            </Button>
+            <span className="block text-xs text-muted-foreground">
+              {posterNote ||
+                "把影片播放或拖到想要的畫面,再按這裡。封面會顯示在相片牆和分享頁。"}
+            </span>
+          </div>
+        )}
+
+        <label className="block space-y-1">
+          <span className="text-sm">顯示名稱</span>
+          <input
+            data-testid="media-detail-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={item.filename ?? ""}
+            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+          />
+          <span className="block text-xs text-muted-foreground">
+            {isVideo
+              ? "顯示在相片牆的影片卡片和分享頁標題。留空則使用檔名。"
+              : "顯示在分享頁標題。留空則使用檔名。"}
+          </span>
+        </label>
 
         <label className="block space-y-1">
           <span className="text-sm">替代文字</span>

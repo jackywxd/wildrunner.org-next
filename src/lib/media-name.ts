@@ -19,16 +19,27 @@
  * takes the whole media object rather than just a filename, and only falls
  * back to `filename` when there is no url to read.
  *
+ * `media.title` OUTRANKS ALL OF IT, and is the only thing that can: every
+ * rule below is a way of guessing well from a filename, and a person saying
+ * what the file is called is not a guess. It is nullable and nearly always
+ * empty, so the derivation underneath is what almost every row still gets.
+ *
  * DELIBERATELY NOT `media.alt`, which looks like the natural source and is
- * worse on every sample: production serves `IMG_6109` for the race-wall
- * photos (it is `defaultAltFor(filename)` — the stem again) and
- * `"2024 - QMT 10311720450963_.pic_hd.webp"` for the migrated gallery ones,
- * extension and all. `alt` also describes image *content* for screen
- * readers; a label is a different job, and sharing one field means an edit
- * made for accessibility silently renames the thing on screen.
+ * worse on every sample. Measured on the corpus, 2026-09-01: the migrated
+ * videos hold the album name followed by the original filename with its
+ * extension — `2023 - UTMB UTMB 2023 Vertical.m4v` against a derived
+ * `UTMB 2023 Vertical` — and a new upload gets `defaultAltFor(filename)`
+ * (direct-upload.ts), which is the stem this file already derives, so
+ * switching would make old rows worse and new rows no better. Production
+ * serves `IMG_6109` for the race-wall photos for the same reason. `alt` also
+ * describes image *content* for screen readers and the member dialog labels
+ * it 替代文字; sharing one field means an edit made for accessibility
+ * silently renames the thing on screen. That is what `title` is for.
  */
 
 type NameSource = {
+  /** `media.title` — what a person called it. Beats every derivation below. */
+  title?: string | null;
   /** `media.url`, or the mapped `src` — the good name, percent-encoded. */
   src?: string | null;
   /** `media.filename` — the mangled fallback. */
@@ -37,6 +48,13 @@ type NameSource = {
 
 export function mediaDisplayName(media: NameSource | null | undefined): string {
   if (!media) return "";
+
+  // Trimmed before it is believed, for the same reason the video share id is
+  // (site-video.ts): a field somebody typed a space into is not a name, and
+  // an all-whitespace title would render as a blank label with no way to tell
+  // it apart from a bug.
+  const named = media.title?.trim();
+  if (named) return named;
 
   const raw = lastPathSegment(media.src) || lastNameSegment(media.filename);
   if (!raw) return "";

@@ -167,3 +167,56 @@ export function transcodeJob(media: {
     sourceUrl: media.url,
   };
 }
+
+export type PosterFrameJob = TranscodeJob & { seconds: number };
+
+/**
+ * The job for "use the frame at this moment as the cover".
+ *
+ * Same shape and same `null` rule as `transcodeJob` — a row with no absolute
+ * URL is a misconfigured environment, not something to send the container
+ * looking for — plus the one field a member supplies.
+ *
+ * `seconds` is clamped and rounded HERE as well as in the Worker, and the
+ * duplication is deliberate. The Worker re-validates because it answers on a
+ * public hostname and cannot trust its caller; this one exists so a nonsense
+ * value never leaves the site in the first place, and so the rule is unit
+ * testable without a container. Negative becomes 0 — scrubbing to the very
+ * start is a real thing a member does, and refusing it would be pedantry —
+ * while a non-finite value is refused outright, because it means the player
+ * never reported a time and guessing which frame they wanted would be worse
+ * than doing nothing.
+ */
+export function posterFrameJob(
+  media: { id: number | string; url?: string | null },
+  seconds: number,
+): PosterFrameJob | null {
+  const base = transcodeJob(media);
+  if (!base) return null;
+  if (!Number.isFinite(seconds)) return null;
+
+  const clamped = Math.min(Math.max(seconds, 0), MAX_POSTER_SECONDS);
+  return { ...base, seconds: Math.round(clamped * 1000) / 1000 };
+}
+
+/** Well past any club video, and the same ceiling the Worker enforces. */
+export const MAX_POSTER_SECONDS = 86_400;
+
+/**
+ * A poster URL the browser and the edge will actually re-fetch.
+ *
+ * The object key never changes — `posters/<id>.jpg`, so re-picking a frame
+ * overwrites rather than leaving one object per attempt — which means the URL
+ * would not change either, and both Cloudflare's cache and the browser would
+ * go on serving the previous frame. For a feature whose entire point is
+ * choosing the picture, "it changed but you cannot see it" is indistinguish-
+ * able from broken.
+ *
+ * A version parameter is enough: `src/lib/image-loader.ts` carries
+ * `url.search` through into the `/cdn-cgi/image/` URL it builds, so the
+ * resized variant is keyed by it too — checked in that file, not assumed.
+ */
+export function versionedPosterUrl(url: string, at: number): string {
+  const version = Math.floor(at / 1000);
+  return `${url}${url.includes("?") ? "&" : "?"}v=${version}`;
+}

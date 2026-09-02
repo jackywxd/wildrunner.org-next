@@ -11,7 +11,12 @@ FROM --platform=linux/amd64 alpine:3.20
 RUN apk add --no-cache ffmpeg curl aws-cli jq
 
 COPY transcode.sh /usr/local/bin/transcode.sh
-RUN chmod +x /usr/local/bin/transcode.sh
+# poster.sh is a second entry point into the same image, not a second image:
+# choosing a cover frame needs the same ffmpeg and the same bucket
+# credentials, and `exec()` picks which script to run per invocation. Its
+# header says why it is separate from transcode.sh rather than a flag on it.
+COPY poster.sh /usr/local/bin/poster.sh
+RUN chmod +x /usr/local/bin/transcode.sh /usr/local/bin/poster.sh
 
 # NO `EXPOSE`, and that is not an oversight.
 #

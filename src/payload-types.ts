@@ -213,6 +213,10 @@ export interface Media {
   owner?: (number | null) | User;
   alt: string;
   /**
+   * Shown under a video in the gallery and as its share page heading. Leave empty to use the file name.
+   */
+  title?: string | null;
+  /**
    * Optional. Which race this photo is from. Shown on that race’s photo wall when Usage is “Photo wall”.
    */
   raceEdition?: (number | null) | RaceEdition;
@@ -703,6 +707,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   owner?: T;
   alt?: T;
+  title?: T;
   raceEdition?: T;
   usage?: T;
   streamId?: T;

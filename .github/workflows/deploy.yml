@@ -167,11 +167,41 @@ jobs:
             exit 1
           done
 
+  # THE DEPLOY GATE, AND ONLY WHAT A DEPLOY CAN TELL YOU.
+  #
+  # This ran the whole 59-test journey suite against the deployed staging
+  # Worker — the same tests as the PR gate, same code, different base URL. The
+  # run history is what ended that:
+  #
+  #   e2e.yml (PR gate, its own local D1)   29 runs   79% passed first time
+  #   this job (shared deployed staging)    25 runs   ~40% passed first time
+  #
+  # `production` is `needs: verify-staging`, so a gate that failed more often
+  # than it passed was blocking release over half the time. Six of those
+  # failures were read line by line and not one was a product defect: an
+  # ECONNRESET, a teardown race, a fixture assumption, a cold-start 500. A gate
+  # that stops the release half the time without ever catching a real bug
+  # teaches people to re-run it.
+  #
+  # So the full suite stays on the PR gate, where the database is built and
+  # destroyed inside the job, and this asks the one question that gate cannot:
+  # is what we just deployed wired up and alive? e2e/deployed/smoke.spec.ts is
+  # six checks — the production bundle serves, remote D1 reads through it,
+  # anonymous access control is applied, sign-in works against the deployed
+  # serverURL, a signed-in page that queries renders, and an upload reaches R2
+  # and comes back. That last one is the only write, and it deletes itself.
+  #
+  # What this gives up is depth against a real Worker. The trade is deliberate:
+  # the arrangement it replaces did not catch those either, it just failed for
+  # unrelated reasons while appearing to.
   verify-staging:
-    name: E2E against staging
+    name: Smoke-check staging
     needs: staging
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Was 60. Six checks measured at 1.2 minutes locally; against a Worker the
+    # per-test budget is 5x (e2e/helpers/budget.ts), so 20 leaves generous room
+    # and stops a wedged run holding the pipeline for an hour.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -201,13 +231,41 @@ jobs:
       # Setting the secret is half of it: the account's password on the
       # deployed environment has to be rotated too, or the published one keeps
       # opening the door whether or not this suite uses it.
-      - name: Run Playwright against staging
+      # A freshly deployed Worker is not immediately ready, and the suite used
+      # to find that out one test at a time. Run 33577524228 started 60 seconds
+      # after the deploy finished and spent its first ninety seconds collecting
+      # `500 {"message":"There was an error initializing Payload"}` — eleven
+      # tests failed on a Worker that was simply still waking up, and every
+      # test after 01:04:59 passed.
+      #
+      # Waiting is the honest fix: a cold start is not a defect, and a deploy
+      # check that reports one as a failure is miscalibrated. It is capped, so a
+      # deployment that is genuinely broken still fails here rather than hanging
+      # — and it fails saying the Worker never became ready, which is a far more
+      # useful sentence than fifteen assertion errors.
+      - name: Wait for staging to answer
+        env:
+          STAGING_URL: ${{ env.STAGING_URL }}
+        run: |
+          for attempt in $(seq 1 30); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$STAGING_URL/" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "staging answered 200 on attempt $attempt"
+              exit 0
+            fi
+            echo "attempt $attempt: $code"
+            sleep 10
+          done
+          echo "::error::staging never answered 200 — the deployment is not serving"
+          exit 1
+
+      - name: Smoke-check staging
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           CI: "true"
-        run: pnpm test:e2e
+        run: pnpm test:smoke
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -218,9 +276,13 @@ jobs:
             test-results/
           retention-days: 7
 
-      # The suite creates posts, galleries, media and accounts on the shared
-      # staging database. Always clean up, including after a failure, or the
-      # residue accumulates in the database production cuts over to.
+      # Kept, but its job shrank with the suite. The smoke check creates one
+      # media row and deletes it in its own `finally`, so on a healthy run this
+      # finds nothing to do. It stays because that `finally` cannot run if the
+      # job is cancelled or the runner dies, and because the report it prints —
+      # rows the ledger does not claim — is how residue from the years of full
+      # suite runs stays visible rather than quietly accumulating in the
+      # database production cuts over to.
       - name: Clean up staging test data
         if: always()
         env:

@@ -70,6 +70,34 @@ test.describe("U-NAME the label shown for a media file", () => {
     ).toBe("10311720450963 .pic hd");
   });
 
+  test("U-NAME-7: a title outranks every derivation, but only once trimmed to something", () => {
+    // The whole point of the field: a person's own name for the file wins
+    // over a guess built from a mangled filename.
+    expect(
+      mediaDisplayName({
+        title: "馬營新年首跑",
+        filename: "gallery--2019--Marunner---E9-A6-AC-E7-87-9F2019-final.mp4",
+        src: "https://images.wildrunner.org/gallery/2019/Marunner/%E9%A6%AC%E7%87%9F2019-final.mp4",
+      }),
+    ).toBe("馬營新年首跑");
+
+    // Trimmed, not merely truthy — a title that is only whitespace is
+    // "nobody has said" in every practical sense, and falling through to the
+    // derivation is a real label instead of a blank one.
+    expect(
+      mediaDisplayName({
+        title: "   ",
+        src: "https://images.wildrunner.org/gallery/2026/QMT/QMT80-2026-4K.m4v",
+      }),
+    ).toBe("QMT80 2026 4K");
+
+    // Absent entirely — the state of every row before this field existed —
+    // falls through exactly the same way.
+    expect(
+      mediaDisplayName({ src: "https://images.wildrunner.org/674.mov" }),
+    ).toBe("674");
+  });
+
   test("U-NAME-6: never returns an empty label, and never throws", () => {
     // The label sits in a fixed-height row next to a share button; empty
     // means a strip with no clue what it belongs to.
