@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MediaPickerDialog } from "@/components/members/media/MediaPickerDialog";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { uploadImageFile } from "@/lib/members/upload-image";
 import type { Media } from "@/payload-types";
@@ -29,16 +30,21 @@ export function CoverImageField({
   mediaId,
   onBusyChange,
   onChange,
+  ownerId,
 }: {
   mediaId: number | null;
   /** Saving is blocked while an upload is in flight — it has no id yet. */
   onBusyChange: (busy: boolean) => void;
   onChange: (mediaId: number | null) => void;
+  /** Whose library the picker offers — see MediaPickerDialog on why it is
+   *  always scoped, even though a member's read rule already scopes it. */
+  ownerId: number;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [src, setSrc] = useState("");
   const [unreadable, setUnreadable] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [error, setError] = useState("");
 
   // Resolve the id to a picture. Separate request rather than a populated
@@ -150,6 +156,15 @@ export function CoverImageField({
         >
           {uploading ? "上傳中…" : src || unreadable ? "更換圖片" : "上傳圖片"}
         </Button>
+        <Button
+          data-testid="post-cover-library"
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => setPicking(true)}
+        >
+          從媒體庫選擇
+        </Button>
         {mediaId !== null && (
           <Button
             data-testid="post-cover-remove"
@@ -167,6 +182,20 @@ export function CoverImageField({
         <span data-testid="post-cover-error" className="text-xs text-destructive">
           {error}
         </span>
+      )}
+
+      {picking && (
+        <MediaPickerDialog
+          kind="photo"
+          onClose={() => setPicking(false)}
+          onPick={(media) => {
+            // The id, not the document: `posts.image` stores an id and this
+            // field has never held anything else — see this file's header.
+            onChange(media.id);
+            setPicking(false);
+          }}
+          ownerId={ownerId}
+        />
       )}
     </div>
   );

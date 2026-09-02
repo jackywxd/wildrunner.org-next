@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { MediaKindFilter } from "@/lib/media/filters";
+import type { MediaKindFilter, MediaUsageFilter } from "@/lib/media/filters";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,6 +79,22 @@ export const KIND_LABELS: Record<MediaKindFilter, string> = {
   all: "全部",
   photo: "相片",
   video: "影片",
+};
+
+/**
+ * `media.usage` in the member's words.
+ *
+ * Here rather than in the library that first needed it, because the picker
+ * prints the same three words on each tile — a member choosing a cover has to
+ * be able to see that the photo they are about to publish is one they marked
+ * 不公開. Two copies of that vocabulary would let one screen's 不公開 come to
+ * mean something the other's does not.
+ */
+export const USAGE_LABELS: Record<MediaUsageFilter, string> = {
+  all: "全部用途",
+  gallery: "相片牆",
+  private: "不公開",
+  attachment: "文章附件",
 };
 
 /**
