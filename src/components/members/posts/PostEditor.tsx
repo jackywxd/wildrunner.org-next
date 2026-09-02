@@ -478,6 +478,7 @@ export function PostEditor({
           setCover(value);
           setDirty(true);
         }}
+        ownerId={ownerId}
       />
 
       <RaceRecordField

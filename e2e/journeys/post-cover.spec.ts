@@ -40,6 +40,14 @@ const COVER_FILE = "public/static/brand/mark-purple.svg";
 
 const SOURCE = ["# M-COVER 封面測試文章", "", "一段內文，讓這篇文章有東西可讀。"].join("\n");
 
+/** A distinct title, so a row left behind by one test cannot be mistaken for
+ *  the other's — the two run in the same file against the same account. */
+const PICKER_SOURCE = [
+  "# M-COVER 媒體庫測試文章",
+  "",
+  "一段內文，讓這篇文章有東西可讀。",
+].join("\n");
+
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/members/login", { waitUntil: "domcontentloaded" });
   await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
@@ -167,5 +175,91 @@ test.describe("M-COVER a member manages their post's cover image", () => {
     );
     const removed = (await afterRemove.json()) as { image?: number | null };
     expect(removed.image ?? null).toBeNull();
+  });
+
+  /**
+   * The second way to set a cover, and the reason it exists.
+   *
+   * Until the picker landed, every member-facing route to a picture in a post
+   * was an upload. A member who had already put a photo in their library had
+   * no way to reuse it — they uploaded the same bytes again, paying their
+   * quota twice and leaving two rows that mean one thing.
+   *
+   * Driven through the real dialog rather than by PATCHing `posts.image`: the
+   * claim being made is that a *person* can do this, and a PATCH would prove
+   * only that the column accepts a number, which M-COVER-T1 already shows.
+   *
+   * The file it picks is one this test uploaded moments earlier, not whatever
+   * the corpus happens to hold. A spec that reaches for ambient data passes
+   * here and fails in CI, where the library starts from the seed.
+   */
+  test("M-COVER-T2: picks a cover from the media library instead of uploading", async ({
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    await signIn(page);
+
+    await page.getByTestId("member-nav-posts").click();
+    await page.getByTestId("posts-import").click();
+    await expect(page).toHaveURL(/\/members\/posts\/import$/, { timeout: budget(15_000) });
+    await page.getByTestId("import-source").fill(PICKER_SOURCE);
+    await page.getByTestId("import-parse").click();
+    await expect(page.getByTestId("import-title")).toHaveValue("M-COVER 媒體庫測試文章", {
+      timeout: budget(10_000),
+    });
+    await page.getByTestId("import-create").click();
+    await expect(page).toHaveURL(/\/members\/posts\/\d+$/, { timeout: budget(20_000) });
+
+    const created = page.url().match(/\/members\/posts\/(\d+)/);
+    if (!created) throw new Error(`no post id in ${page.url()}`);
+    postId = created[1];
+
+    // A file in the library to find. Uploading it through the cover field is
+    // the cheapest way to get one that this account owns and this test can
+    // delete — the picker cannot tell how a row got there.
+    await page.getByTestId("post-cover-file").setInputFiles(COVER_FILE);
+    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: budget(30_000) });
+    await page.getByTestId("post-save-draft").click();
+    await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
+      timeout: budget(20_000),
+    });
+
+    const uploaded = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
+    mediaId = ((await uploaded.json()) as { image?: number | null }).image as number;
+    expect(typeof mediaId).toBe("number");
+
+    // Clear it, so what the picker sets cannot be confused with what the
+    // upload already set.
+    await page.getByTestId("post-cover-remove").click();
+    await expect(page.getByTestId("post-cover-empty")).toBeVisible();
+
+    await page.getByTestId("post-cover-library").click();
+    await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: budget(20_000) });
+
+    const tile = page.getByTestId(`media-item-${mediaId}`);
+    await expect(tile).toBeVisible({ timeout: budget(20_000) });
+    // Each tile says what the file is for. A member choosing a cover is
+    // publishing that file, and this label is the only place they could learn
+    // beforehand that the photo they picked is one they marked 不公開.
+    await expect(tile.getByTestId("media-item-usage")).toHaveText("文章附件");
+
+    await tile.click();
+    await expect(page.getByTestId("media-picker")).toBeHidden();
+    await expect(page.getByTestId("post-cover-image")).toBeVisible({ timeout: budget(20_000) });
+
+    await page.getByTestId("post-save-draft").click();
+    await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
+      timeout: budget(20_000),
+    });
+
+    const afterPick = await getWithRetry(
+      page.request,
+      `/api/posts/${postId}?depth=0&draft=true`,
+    );
+    expect(((await afterPick.json()) as { image?: number | null }).image).toBe(mediaId);
   });
 });

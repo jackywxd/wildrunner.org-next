@@ -2,6 +2,7 @@ import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { VideoPosterTile } from "@/components/media/VideoPosterTile";
+import { USAGE_LABELS } from "@/components/media/filters";
 import { TranscodeBadge } from "./TranscodeBadge";
 import type { Media } from "@/payload-types";
 
@@ -9,6 +10,7 @@ export function MediaGrid({
   items,
   onSelect,
   filtered = false,
+  showUsage = false,
 }: {
   items: Media[];
   onSelect: (item: Media) => void;
@@ -19,6 +21,16 @@ export function MediaGrid({
    * data loss.
    */
   filtered?: boolean;
+  /**
+   * Print each file's `usage` on its tile.
+   *
+   * Off in the library, where a whole filter row already says which usages
+   * are on screen. On in the picker, where the choice being made is
+   * irreversible in one direction: a photo the member marked 不公開 becomes
+   * visible to everyone the moment it is a post's cover, and the tile is the
+   * only place they could learn that before clicking.
+   */
+  showUsage?: boolean;
 }) {
   if (items.length === 0) {
     return (
@@ -83,6 +95,12 @@ export function MediaGrid({
               <div className="truncate">{item.alt}</div>
               <div className="text-foreground/40">
                 {item.filesize ? formatBytes(item.filesize) : ""}
+                {showUsage && item.usage ? (
+                  <span data-testid="media-item-usage">
+                    {item.filesize ? " · " : ""}
+                    {USAGE_LABELS[item.usage]}
+                  </span>
+                ) : null}
               </div>
             </div>
           </button>
