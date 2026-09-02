@@ -221,6 +221,36 @@ Things that went red once and are not explained. Listed so they are not
 quietly forgotten, and so a recurrence is recognised as a second occurrence
 rather than a first.
 
+### M-RACES's delete never got its timeout — closed by measurement (2026-09-02)
+
+Went red on CI in `#121` (run 33598427723) at the final assertion: the row it
+had just asked to delete was still there after `toHaveCount(0)` gave up. It
+passed on a re-run, which is what would normally file it under "flake" here.
+
+**The log's own numbers say otherwise.** That assertion asks for 15s and the
+failure records `7 × locator resolved to 1 element` — at Playwright's
+backing-off poll intervals, about five seconds of waiting, not fifteen. What
+ended it was the line above: `Test timeout of 20000ms exceeded`. The whole
+test ran out of budget while the delete was still being waited for. The row
+may well have gone a second later; nothing looked.
+
+**Then the measurement that settles it: M-RACES takes 24.9s locally, on a warm
+dev server, passing.** The budget was `playwright.config.ts`'s 20s default. It
+has been over its own timeout the entire time, and every green run of it was
+luck — CI landing under a limit the test does not fit inside.
+
+It was also the only heavy journey with no `test.setTimeout`, while doing more
+than any of them: the only spec that signs in through the form, arriving by
+clicking rather than by URL, reading a catalogue out of three selects, and
+loading `/riders` twice with a settle-poll each time. It now sets 60s like the
+rest.
+
+Worth carrying: **"the assertion timed out" and "the test ran out of time
+while that assertion was waiting" look identical in a report and have nothing
+in common as causes.** The poll count is what tells them apart, and it is
+printed on every one of these. A retry around the click would have made this
+green while leaving the cause untouched and unmeasured.
+
 ### M-RACES read 2 badges where it added 1 record — actually closed (2026-08-17)
 
 Recurred after the poll-based `badgeCount()` fix below (`#54`) shipped:
