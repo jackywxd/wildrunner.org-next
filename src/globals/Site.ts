@@ -2,6 +2,7 @@ import type { GlobalConfig } from 'payload'
 
 import { isAdmin, isAdminUser } from '../access'
 import { revalidateSiteGlobal } from '../collections/hooks/revalidate'
+import { youTubeVideoId } from '../lib/youtube'
 
 export const Site: GlobalConfig = {
   slug: 'site',
@@ -64,6 +65,66 @@ export const Site: GlobalConfig = {
           name: 'github',
           type: 'text',
           label: { en: 'GitHub', 'zh-TW': 'GitHub' },
+        },
+      ],
+    },
+    /**
+     * What an album plays when it names no music of its own.
+     *
+     * A LIST RATHER THAN ONE TRACK, so a visitor who browses several albums in
+     * a sitting does not hear the same thirty seconds each time. Which one an
+     * album gets is decided from the album's own slug, not at random — see
+     * `pickFallbackMusic`: a track that changed on every reload would make the
+     * same album sound different every visit for no reason the visitor could
+     * see, and would make the behaviour untestable.
+     *
+     * SITE-WIDE AND ADMIN-ONLY, like everything else on this global. An album
+     * or a race edition that sets its own `musicUrl` always wins; this is the
+     * floor, not an override.
+     *
+     * Empty is the normal state and means "no music unless an album asks for
+     * it", which is what the site did before this list existed.
+     */
+    {
+      name: 'backgroundMusic',
+      type: 'array',
+      label: { en: 'Default background music', 'zh-TW': '預設背景音樂' },
+      labels: {
+        singular: { en: 'Track', 'zh-TW': '曲目' },
+        plural: { en: 'Tracks', 'zh-TW': '曲目' },
+      },
+      admin: {
+        description: {
+          en: 'Used by an album that has no music of its own. Which track an album gets is decided from its slug, so it stays the same between visits.',
+          'zh-TW':
+            '沒有自己設定音樂的相簿會用這裡的曲目。哪一首由相簿的網址代稱決定，所以每次進去都一樣。',
+        },
+      },
+      fields: [
+        {
+          name: 'url',
+          type: 'text',
+          label: { en: 'YouTube link', 'zh-TW': 'YouTube 連結' },
+          required: true,
+          validate: (value: unknown) => {
+            if (typeof value !== 'string' || value === '') {
+              return 'Enter a YouTube video link.'
+            }
+            return youTubeVideoId(value) !== null
+              ? true
+              : '請貼一個 YouTube 影片連結（播放清單或頻道沒有單一影片，不能用）'
+          },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          label: { en: 'Note', 'zh-TW': '備註' },
+          admin: {
+            description: {
+              en: 'For your own reference. Never shown to visitors.',
+              'zh-TW': '給自己看的，不會顯示給訪客。',
+            },
+          },
         },
       ],
     },

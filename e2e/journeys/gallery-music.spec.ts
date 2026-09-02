@@ -36,8 +36,24 @@ const SVG = Buffer.from(
   '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"></svg>',
 );
 
+/** The smallest bytes Payload sniffs as video/mp4 — see gallery-videos.spec.ts. */
+const MP4_HEADER = Buffer.concat([
+  Buffer.from("00000018", "hex"),
+  Buffer.from("ftypmp42"),
+  Buffer.from("00000000", "hex"),
+  Buffer.from("mp42isom"),
+  Buffer.alloc(1024),
+]);
+
 /** A real, well-formed video id — the parser accepts nothing else. */
 const VIDEO_ID = "dQw4w9WgXcQ";
+/** Distinct ids so a test can tell *which* source the music came from. */
+const EDITION_VIDEO_ID = "aaaaaaaaaaa";
+const FALLBACK_VIDEO_ID = "bbbbbbbbbbb";
+
+/** In the catalogue, and a year no other spec here uses. */
+const RACE_EVENT_KEY = "other-barkley";
+const RACE_YEAR = 2013;
 
 test.describe("V-BGM an album's slideshow carries its background music", () => {
   const created: { collection: string; id: number }[] = [];
@@ -221,5 +237,316 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       timeout: budget(15_000),
     });
     await expect(page.getByTestId("gallery-music-toggle")).toHaveCount(0);
+  });
+
+  test("V-BGM-T3: a race's album takes its music from the edition", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    // A race album is not a row — it is synthesised from media that carry the
+    // tag — so this is the only place the music can live. Three hops between
+    // the column and the player (`getRaceEditionsByIds` → `buildRaceGallery` →
+    // `MediaGrid`), each of which drops the value in silence if it forgets it.
+    const resolved = await request.post("/api/members/race-editions/resolve", {
+      data: { eventId: RACE_EVENT_KEY, year: RACE_YEAR },
+    });
+    expect(resolved.ok(), await resolved.text()).toBeTruthy();
+    const editionId = ((await resolved.json()) as { id: number }).id;
+
+    const tagged = await request.patch(`/api/race-editions/${editionId}`, {
+      data: { musicUrl: `https://www.youtube.com/watch?v=${EDITION_VIDEO_ID}` },
+    });
+    expect(tagged.ok(), `edition update failed: ${await tagged.text()}`).toBeTruthy();
+
+    const stamp = Date.now();
+    const uploaded = await request.post("/api/media", {
+      multipart: {
+        file: { name: `v-bgm-race-${stamp}.svg`, mimeType: "image/svg+xml", buffer: SVG },
+        _payload: JSON.stringify({
+          alt: `V-BGM race ${stamp}`,
+          usage: "gallery",
+          raceEdition: editionId,
+        }),
+      },
+    });
+    expect(uploaded.ok(), `fixture upload failed: ${uploaded.status()}`).toBeTruthy();
+    const mediaId = ((await uploaded.json()) as { doc: { id: number } }).doc.id;
+    created.push({ collection: "media", id: mediaId });
+    recordCreated({ collection: "media", id: mediaId, note: "V-BGM race probe" });
+
+    await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+      route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+    );
+    await page.route(/youtube-nocookie\.com/, (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+    );
+
+    await page.goto(`/gallery/race-${RACE_EVENT_KEY}-${RACE_YEAR}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.waitForLoadState("load");
+    await page.getByTestId("gallery-album").locator("img").first().click();
+    await expect(page.getByTestId("gallery-music-toggle")).toBeVisible({
+      timeout: budget(15_000),
+    });
+    await page.getByRole("button", { name: "Play" }).click();
+
+    await expect(page.getByTestId("slideshow-music")).toHaveAttribute(
+      "data-video-id",
+      EDITION_VIDEO_ID,
+      { timeout: budget(10_000) },
+    );
+
+    // Put the edition back as it was found. Unlike the media rows, this is a
+    // shared row the test only borrowed — and one that would otherwise leave
+    // music on a race for every later run.
+    await request.patch(`/api/race-editions/${editionId}`, {
+      data: { musicUrl: null },
+    });
+  });
+
+  test("V-BGM-T4: an album with no music of its own falls back to the site list", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    // The global is one document and this test rewrites it, so what it found
+    // has to go back — captured before the write, restored at the end whatever
+    // happens in between.
+    const before = await request.get("/api/globals/site?depth=0");
+    expect(before.ok(), await before.text()).toBeTruthy();
+    const previous = ((await before.json()) as { backgroundMusic?: unknown[] })
+      .backgroundMusic ?? [];
+
+    try {
+      const set = await request.post("/api/globals/site", {
+        data: {
+          backgroundMusic: [
+            { url: `https://www.youtube.com/watch?v=${FALLBACK_VIDEO_ID}` },
+          ],
+        },
+      });
+      expect(set.ok(), `site global update failed: ${await set.text()}`).toBeTruthy();
+
+      const stamp = Date.now();
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file: { name: `v-bgm-fb-${stamp}.svg`, mimeType: "image/svg+xml", buffer: SVG },
+          _payload: JSON.stringify({ alt: `V-BGM fallback ${stamp}`, usage: "gallery" }),
+        },
+      });
+      expect(uploaded.ok()).toBeTruthy();
+      const mediaId = ((await uploaded.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "media", id: mediaId });
+      recordCreated({ collection: "media", id: mediaId, note: "V-BGM fallback probe" });
+
+      const slug = `v-bgm-fb-${stamp}`;
+      const album = await request.post("/api/galleries", {
+        data: {
+          name: `V-BGM fallback ${stamp}`,
+          slug,
+          _status: "published",
+          // No musicUrl. That is the point.
+          items: [{ media: mediaId, featured: false }],
+        },
+      });
+      expect(album.ok(), await album.text()).toBeTruthy();
+      const albumId = ((await album.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "galleries", id: albumId });
+      recordCreated({ collection: "galleries", id: albumId, note: "V-BGM fallback album" });
+
+      await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+        route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+      );
+      await page.route(/youtube-nocookie\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+      );
+
+      await page.goto(`/gallery/${slug}`, { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("load");
+      await page.getByTestId("gallery-album").locator("img").first().click();
+      await expect(page.getByTestId("gallery-music-toggle")).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await page.getByRole("button", { name: "Play" }).click();
+
+      await expect(page.getByTestId("slideshow-music")).toHaveAttribute(
+        "data-video-id",
+        FALLBACK_VIDEO_ID,
+        { timeout: budget(10_000) },
+      );
+    } finally {
+      await request.post("/api/globals/site", {
+        data: { backgroundMusic: previous },
+      });
+    }
+  });
+
+  test("V-BGM-T5: a video slide does not stop the music; playing the video does", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const stamp = Date.now();
+    const upload = async (name: string, mimeType: string, buffer: Buffer) => {
+      const res = await request.post("/api/media", {
+        multipart: {
+          file: { name, mimeType, buffer },
+          _payload: JSON.stringify({ alt: `V-BGM mix ${name}`, usage: "gallery" }),
+        },
+      });
+      expect(res.ok(), `fixture upload failed: ${res.status()}`).toBeTruthy();
+      const id = ((await res.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "media", id });
+      recordCreated({ collection: "media", id, note: "V-BGM mix" });
+      return id;
+    };
+
+    const photoId = await upload(`v-bgm-mix-${stamp}.svg`, "image/svg+xml", SVG);
+    const videoId = await upload(`v-bgm-mix-${stamp}.mp4`, "video/mp4", MP4_HEADER);
+    // A third item, and not for realism: the carousel keeps the previous and
+    // next slides mounted, so in a two-item album the single video is both the
+    // current slide *and* a neighbour — one `<video>` in the document twice,
+    // which makes every locator for it ambiguous. Three items give it exactly
+    // one position.
+    const tailId = await upload(`v-bgm-mix-tail-${stamp}.svg`, "image/svg+xml", SVG);
+
+    const slug = `v-bgm-mix-${stamp}`;
+    const album = await request.post("/api/galleries", {
+      data: {
+        name: `V-BGM mix ${stamp}`,
+        slug,
+        _status: "published",
+        musicUrl: `https://www.youtube.com/watch?v=${VIDEO_ID}`,
+        // Photo first so the lightbox opens on it and the video is one step
+        // away — the shape a member's album actually has.
+        items: [
+          { media: photoId, featured: false },
+          { media: videoId, featured: false },
+          { media: tailId, featured: false },
+        ],
+      },
+    });
+    expect(album.ok(), await album.text()).toBeTruthy();
+    const albumId = ((await album.json()) as { doc: { id: number } }).doc.id;
+    created.push({ collection: "galleries", id: albumId });
+    recordCreated({ collection: "galleries", id: albumId, note: "V-BGM mix album" });
+
+    await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+      route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+    );
+    await page.route(/youtube-nocookie\.com/, (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+    );
+
+    await page.goto(`/gallery/${slug}`, { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("load");
+    await page.getByTestId("gallery-album").locator("img").first().click();
+    await expect(page.getByTestId("gallery-music-toggle")).toBeVisible({
+      timeout: budget(15_000),
+    });
+    await page.getByRole("button", { name: "Play" }).click();
+    await expect(page.getByTestId("slideshow-music")).toHaveCount(1, {
+      timeout: budget(10_000),
+    });
+
+    /**
+     * A handle on the player that is running *now*.
+     *
+     * The assertion below is about continuity, and continuity cannot be
+     * expressed as "is there an iframe": this player stops by unmounting, so a
+     * track that was killed and started again looks identical to one that
+     * never stopped — a fresh element with the same testid. The first version
+     * of this test asserted the count and went green on both arms of the A/B,
+     * which is worse than no assertion because it looked like coverage.
+     *
+     * A handle survives the check. If React removed the element, this exact
+     * node is detached, whatever replaced it.
+     */
+    const playing = await page.getByTestId("slideshow-music").elementHandle();
+    expect(playing, "the player should be mounted before the video slide").not.toBeNull();
+
+    // THE REGRESSION THIS PINS. The rule used to be "a video is on screen", so
+    // stepping onto the video killed the music — and stepping off started the
+    // track again from the beginning, because this player stops by unmounting.
+    // An album with one video therefore restarted its music on every lap.
+    // `.yarl__navigation_next`, not the accessible name: the thumbnails strip
+    // has its own "Next" button, so the name alone matches two elements.
+    await page.locator("button.yarl__navigation_next").click();
+
+    // `.yarl__slide_current`, and this is the assertion the first version of
+    // this test got wrong. The carousel keeps the neighbouring slides mounted
+    // and marks them `inert` — which Playwright still reports as *visible*, so
+    // `expect(video).toBeVisible()` passed whether or not the test had
+    // actually navigated onto the video. Both arms of the A/B went green, and
+    // the test proved nothing. Only the `_current` class says which slide is
+    // on screen.
+    const player = page.locator(".yarl__slide_current video");
+    await expect(player, "the video slide is the one on screen now").toBeVisible({
+      timeout: budget(10_000),
+    });
+    await expect(player.locator("source")).toHaveAttribute(
+      "src",
+      new RegExp(`v-bgm-mix-${stamp}\\.mp4`),
+    );
+
+    // Wait for the *component's* idea of the current slide to catch up before
+    // asserting on a rule that reads it. The `_current` class moves with the
+    // carousel's own animation, while `on.view` — which is what updates the
+    // index the music rule uses — fires after it. Asserting the music
+    // immediately therefore read a state that was still true for a moment
+    // under the old rule too, and the A/B went green on both arms.
+    //
+    // The share button's href is that same index, rendered. When it names the
+    // video, the component has moved.
+    await expect(page.getByTestId("gallery-share")).toHaveAttribute(
+      "href",
+      `/gallery/m/${videoId}`,
+      { timeout: budget(10_000) },
+    );
+    expect(
+      await playing!.evaluate((el) => el.isConnected),
+      "merely showing a video must not interrupt the music — it is silent until played",
+    ).toBe(true);
+
+    // ...and playing it does stop the music, which is the other half of the
+    // rule. Driven through the element rather than its controls: those live in
+    // the browser's shadow DOM and cannot be clicked, and what is being tested
+    // is the listener's reaction to playback, not how playback was started.
+    // A block body, so `evaluate` does not await the promise. The fixture is a
+    // 1 KB ftyp box with no frames in it, so `play()` never settles — but the
+    // `play` *event* fires the moment playback is requested, which is what the
+    // listener under test is watching for.
+    await player.evaluate((el) => {
+      void (el as HTMLVideoElement).play().catch(() => {});
+    });
+    await expect(page.getByTestId("slideshow-music")).toHaveCount(0, {
+      timeout: budget(10_000),
+    });
+
+    await player.evaluate((el) => (el as HTMLVideoElement).pause());
+    await expect(
+      page.getByTestId("slideshow-music"),
+      "pausing the video hands the album back its music",
+    ).toHaveCount(1, { timeout: budget(10_000) });
   });
 });

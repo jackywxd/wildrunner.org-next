@@ -324,6 +324,25 @@ export function MediaGrid({
   );
   /** Whether the slideshow is running — the thing the music follows. */
   const [slideshowRunning, setSlideshowRunning] = useState(false);
+  /**
+   * Whether a video in the lightbox is actually making sound right now.
+   *
+   * NOT "is a video on screen", which is what this used to be and is what made
+   * an album with one video unlistenable: passing that slide killed the music
+   * and leaving it started the track again from the beginning, so a slideshow
+   * through such an album restarted the music on every lap. And it was
+   * over-cautious to begin with — the lightbox does not autoplay video
+   * (`SlideVideo.autoPlay` defaults false and nothing here sets it), so a
+   * video slide sitting there is silent until somebody presses play on it.
+   *
+   * Media events do not bubble but they do capture, which is why the listener
+   * is on the document with `capture: true`: the `<video>` belongs to the
+   * lightbox's own portal and there is no handle on it to attach to.
+   */
+  const [videoSounding, setVideoSounding] = useState(false);
+  /** Named so the listener effect can depend on it: that effect re-arms when
+   *  the lightbox opens or closes, not on every slide the visitor moves to. */
+  const lightboxOpen = index >= 0;
 
   const [accumulated, setAccumulated] = useState<SiteMediaItem[]>(items);
   const [cursor, setCursor] = useState<WallCursor | null>(nextCursor ?? null);
@@ -425,6 +444,37 @@ export function MediaGrid({
   // only ever mounts this fresh (the "全部相片" tab conditionally renders it,
   // so switching away and back remounts rather than re-props an existing
   // instance), so the lazy initial state above is the only sync this needs.
+  /**
+   * Follows any `<video>` the lightbox has mounted, for as long as it is open.
+   *
+   * Armed on `index >= 0` rather than on mount so a closed lightbox is not
+   * listening to the whole document, and so the flag is reset every time one
+   * opens — a video left paused mid-playback when the visitor closed the
+   * lightbox must not leave the music suppressed for the next one.
+   */
+  useEffect(() => {
+    if (!lightboxOpen) {
+      setVideoSounding(false);
+      return;
+    }
+    const isVideo = (event: Event) =>
+      (event.target as HTMLElement | null)?.nodeName === "VIDEO";
+    const onPlay = (event: Event) => {
+      if (isVideo(event)) setVideoSounding(true);
+    };
+    const onStop = (event: Event) => {
+      if (isVideo(event)) setVideoSounding(false);
+    };
+    document.addEventListener("play", onPlay, true);
+    document.addEventListener("pause", onStop, true);
+    document.addEventListener("ended", onStop, true);
+    return () => {
+      document.removeEventListener("play", onPlay, true);
+      document.removeEventListener("pause", onStop, true);
+      document.removeEventListener("ended", onStop, true);
+    };
+  }, [lightboxOpen]);
+
   useEffect(() => {
     if (!paginated || !cursor) return;
     const node = sentinelRef.current;
@@ -498,18 +548,18 @@ export function MediaGrid({
    * The four conditions the music waits on, in one expression rather than
    * spread over effects that each set a flag.
    *
-   * `openPhoto?.kind !== "video"` is the one that is easy to miss and
-   * impossible to ignore once heard: a video slide plays its own sound, and
-   * two audio tracks at once is not background music, it is a fault. Leaving
-   * the video resumes the album's track — from the beginning, which is the
-   * cost `SlideshowMusic`'s header names.
+   * `!videoSounding` is the one that is easy to get wrong in both directions.
+   * Two audio tracks at once is a fault, so a video that is playing has to
+   * silence the music — but a video merely *displayed* is silent, and treating
+   * it as if it were not is what made an album with one video restart its
+   * music on every pass. See `videoSounding`.
    */
   const musicPlaying =
     Boolean(musicVideoId) &&
     !muted &&
     index >= 0 &&
     slideshowRunning &&
-    openPhoto?.kind !== "video";
+    !videoSounding;
 
   /**
    * The toggle both mutes and starts.
