@@ -288,9 +288,16 @@ function MusicButton({
 function TrackButton({
   direction,
   onSkip,
+  // Spelled out at the call site rather than built from `direction`, and
+  // `scripts/assert-schema-screen.mjs` is why: it proves a selector a spec
+  // names really exists by grepping src/ for the literal attribute, and a
+  // computed one appears nowhere for it to find. It failed exactly that way
+  // on the first version of this component. Same reasoning as `FilterChip`.
+  "data-testid": testId,
 }: {
   direction: "next" | "previous";
   onSkip: () => void;
+  "data-testid": string;
 }) {
   const label = direction === "next" ? "下一首" : "上一首";
   return (
@@ -300,9 +307,7 @@ function TrackButton({
       onClick={onSkip}
       aria-label={label}
       title={label}
-      data-testid={
-        direction === "next" ? "gallery-music-next" : "gallery-music-previous"
-      }
+      data-testid={testId}
     >
       {direction === "next" ? (
         <SkipForward className="size-5" />
@@ -801,6 +806,7 @@ export function MediaGrid({
                   <TrackButton
                     key="music-previous"
                     direction="previous"
+                    data-testid="gallery-music-previous"
                     onSkip={() => skipTrack(-1)}
                   />,
                 ]
@@ -819,6 +825,7 @@ export function MediaGrid({
                   <TrackButton
                     key="music-next"
                     direction="next"
+                    data-testid="gallery-music-next"
                     onSkip={() => skipTrack(1)}
                   />,
                 ]
