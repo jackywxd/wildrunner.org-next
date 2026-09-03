@@ -2,8 +2,7 @@ import { isAdminUser } from "@/access";
 import { requireMember } from "@/lib/auth";
 import { MediaLibrary } from "@/components/members/media/MediaLibrary";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
-import { isRaceYearClaimable } from "@/lib/races/catalogue";
-import type { RaceClaim } from "@/components/members/races/RaceClaimFields";
+import { preselectedRaceFrom } from "@/lib/members/race-preselect";
 
 export const dynamic = "force-dynamic";
 
@@ -26,21 +25,10 @@ export default async function MembersMediaPage({
    */
   const catalogueEvents = await getRaceCatalogueEvents();
 
-  // `?race=<eventKey>&year=<year>` is a hint, not a requirement — same
-  // contract as /members/posts/new's `?race=&year=`. A pair that matches
-  // nothing just leaves no race preselected.
-  //
-  // Matched against the catalogue rather than against a list of editions,
-  // which is what makes a link to a race nobody has dated work: the edition
-  // row need not exist yet, and the resolve endpoint creates it on upload.
-  const race = Array.isArray(params.race) ? params.race[0] : params.race;
-  const year = Array.isArray(params.year) ? params.year[0] : params.year;
-  const event = catalogueEvents.find((candidate) => candidate.id === race);
-  const wantedYear = Number(year);
-  const preselectedRace: RaceClaim | null =
-    event && isRaceYearClaimable(wantedYear, new Date())
-      ? { distanceId: "", eventId: event.id, series: event.series, year: wantedYear }
-      : null;
+  // Read here as well as on the upload page, through one helper, because both
+  // are reached by the same 上傳相片 links — see `preselectedRaceFrom`. Here it
+  // only decides where the 上傳 button points.
+  const preselectedRace = preselectedRaceFrom(params, catalogueEvents, new Date());
 
   return (
     <div className="space-y-6">

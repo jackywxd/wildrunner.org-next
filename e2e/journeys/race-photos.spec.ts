@@ -92,12 +92,26 @@ test.describe("P a member tags a photo with a race", () => {
     await page.getByTestId("member-nav-media").click();
     await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });
 
-    // The picker only renders once a file is chosen — see UploadDropzone.tsx.
+    // Uploading is its own page now — reached by the button the library
+    // offers, not by `goto`. The whole point of the split is that a member
+    // finds it, so the test finds it the same way.
+    await page.getByTestId("media-upload-link").click();
+    await expect(page).toHaveURL(/\/members\/media\/upload/, {
+      timeout: budget(15_000),
+    });
+
+    // The race picker is on screen from the moment the page loads now, before
+    // any file is chosen — "you can link a race" is only useful while there is
+    // still time to act on it. It used to appear only after a pick.
+    await expect(page.getByTestId("media-upload-race")).toBeVisible({
+      timeout: budget(15_000),
+    });
+
     await page
       .getByTestId("media-upload-input")
       .setInputFiles("public/static/brand/mark-purple.svg");
 
-    await expect(page.getByTestId("media-upload-race")).toBeVisible({
+    await expect(page.getByTestId("media-upload-queue")).toBeVisible({
       timeout: budget(5_000),
     });
     // Named outright rather than "the first option": the whole point is that
