@@ -18,9 +18,9 @@ export async function generateMetadata({ params }: Params) {
 
   const { rider } = found;
   const baseURL = siteConfig.baseURL;
-  const title = `${rider.name} 的時間機器 | ${siteConfig.title}`;
+  const title = `${rider.name} 的時間機 | ${siteConfig.title}`;
   const description = `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`;
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(`${rider.name} 的時間機器`)}`;
+  const ogImage = `${baseURL}/og?title=${encodeURIComponent(`${rider.name} 的時間機`)}`;
 
   return {
     title,
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Params) {
 }
 
 /**
- * 時間機器 — the member's own history, races and articles on one rail.
+ * 時間機 — the member's own history, races and articles on one rail.
  *
  * ITS OWN ROUTE RATHER THAN A THIRD BLOCK ON THE PROFILE. The timeline
  * contains every article the profile's grid already shows, so the two cannot
@@ -74,7 +74,7 @@ export default async function RiderTimelinePage({ params }: Params) {
             className="font-heading text-3xl font-extrabold tracking-tight lg:text-4xl"
             data-testid="rider-name"
           >
-            {rider.name} 的時間機器
+            {rider.name} 的時間機
           </h1>
           <div className="mt-3">
             <RiderViewTabs active="timeline" slug={rider.slug} />

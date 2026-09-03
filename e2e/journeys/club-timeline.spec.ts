@@ -2,7 +2,7 @@ import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
 
 /**
- * V-CLUB — 野馬營時間機器 (/riders/timeline), the club's whole rail.
+ * V-CLUB — 野馬營時間機 (/riders/timeline), the club's whole rail.
  *
  * WHAT NEEDS A BROWSER HERE IS THE PAGING, and only that. The grouping,
  * ordering and cursor arithmetic are pure and are pinned in
@@ -25,7 +25,7 @@ const open = (page: import("@playwright/test").Page, path: string) =>
 const rows = (page: import("@playwright/test").Page) =>
   page.getByTestId("club-timeline-row");
 
-test.describe("V-CLUB 野馬營時間機器", () => {
+test.describe("V-CLUB 野馬營時間機", () => {
   test("V-CLUB-T1: scrolling to the end brings the next page, once each", async ({
     page,
   }) => {
@@ -59,6 +59,18 @@ test.describe("V-CLUB 野馬營時間機器", () => {
       nodes.map((node) => node.textContent?.slice(0, 120) ?? ""),
     );
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test("V-CLUB-T3: the homepage's highlighted link opens it", async ({ page }) => {
+    // The homepage is where most people arrive, and 時間機 is its highlighted
+    // call to action — so this is the path most visitors will take to the
+    // rail, and the suite has to walk it. By clicking, not by URL: this
+    // project has already shipped a bug that lived entirely in soft
+    // navigation (docs/testing-incidents.md).
+    await open(page, "/");
+    await page.getByTestId("home-timeline-link").click();
+    await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
+    await expect(page.getByTestId("club-timeline")).toBeVisible();
   });
 
   test("V-CLUB-T2: 列印全部 loads the rest of the rail before opening the dialog", async ({

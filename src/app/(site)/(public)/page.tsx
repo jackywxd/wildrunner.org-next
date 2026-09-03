@@ -110,9 +110,22 @@ export default async function Home() {
           )}
 
           <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row">
+            {/* The highlighted call to action, ahead of the other two.
+                Everything else on this page is a slice — the latest eight
+                articles, four races, twenty photos — and each answers "what
+                is happening now". 時間機 is the one link that answers "what
+                has this club done", which is the thing a first-time visitor
+                has no other way in to. */}
+            <Link
+              href="/riders/timeline"
+              data-testid="home-timeline-link"
+              className={cn(buttonVariants({ variant: "default" }), "px-6")}
+            >
+              時間機
+            </Link>
             <Link
               href="/posts"
-              className={cn(buttonVariants({ variant: "default" }), "px-6")}
+              className={cn(buttonVariants({ variant: "outline" }), "px-6")}
             >
               查看文章
             </Link>

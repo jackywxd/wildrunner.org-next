@@ -79,7 +79,7 @@ export default async function RidersPage({
           data-testid="club-timeline-link"
           href="/riders/timeline"
         >
-          時間機器 →
+          時間機 →
         </Link>
       </div>
 
