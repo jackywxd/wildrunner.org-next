@@ -1,0 +1,256 @@
+/**
+ * The three print templates.
+ *
+ * SCOPED TO THE PRINT ROUTE and nowhere else: this file is imported only by
+ * `src/app/(print)/layout.tsx`, which is a second root layout with no site
+ * chrome. Nothing here can reach a normal page.
+ *
+ * WHAT `@page` CAN AND CANNOT DO, because the difference decided the design.
+ * `size` and `margin` work. The margin BOXES — `@top-center`, `@bottom-right`,
+ * where a running page number would live — are not implemented in Chrome, so
+ * "第 3 頁 / 共 9 頁" on every sheet is not something this can print. Page
+ * numbers, the date and the URL are options in the browser's own print dialog
+ * and the visitor ticks them there. The footer below is therefore ONE static
+ * block at the end of the document, not a running footer: a promise the
+ * platform can keep.
+ */
+
+@media print {
+  /* The controls are for choosing what to print; they are not part of it. */
+  .print-toolbar {
+    display: none !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 22mm 20mm;
+}
+
+.print-compact-page {
+  /* Least paper: the margin is part of the answer, not decoration. */
+  margin: 13mm 14mm;
+}
+
+.print-root {
+  color: #201e1d;
+  background: #fff;
+  /* `next/font` already self-hosts Noto Sans TC and exposes it here; the
+     stacks below name real fallbacks so a machine without it still sets
+     Chinese rather than falling to a Latin face and tofu. */
+  font-family: var(--font-noto), "PingFang TC", "Microsoft JhengHei", system-ui,
+    sans-serif;
+  line-height: 1.85;
+}
+
+.print-font-serif {
+  font-family: "Noto Serif TC", "Songti TC", "Songti SC", "PMingLiU", Georgia,
+    serif;
+}
+
+/* --- the running head, on screen and on the first sheet ----------- */
+.print-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: #7a756f;
+}
+
+.print-head .print-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #201e1d;
+}
+
+/* --- shared body typography -------------------------------------- */
+.print-body > * + * {
+  margin-top: 1.05em;
+}
+
+.print-body h2,
+.print-body h3 {
+  margin-top: 1.8em;
+  font-weight: 700;
+  line-height: 1.35;
+  /* A heading alone at the foot of a sheet is the classic print fault. */
+  break-after: avoid;
+  break-inside: avoid;
+}
+
+.print-body h2 {
+  font-size: 1.35em;
+}
+.print-body h3 {
+  font-size: 1.15em;
+}
+
+.print-body img,
+.print-body figure {
+  max-width: 100%;
+  height: auto;
+  break-inside: avoid;
+}
+
+.print-body ul,
+.print-body ol {
+  padding-left: 1.6em;
+}
+
+.print-body li + li {
+  margin-top: 0.4em;
+}
+
+/*
+  A link on paper is dead unless it says where it went. Only for links whose
+  text is not already the URL, so a pasted address is not printed twice.
+*/
+@media print {
+  .print-body a[href^="http"]:not([href$="/"])::after {
+    content: " (" attr(href) ")";
+    font-size: 0.82em;
+    color: #7a756f;
+    word-break: break-all;
+  }
+}
+
+/* --- 標準 --------------------------------------------------------- */
+.print-standard .print-title {
+  margin: 2.2rem 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.print-standard .print-byline {
+  margin: 0.6rem 0 0;
+  color: #7a756f;
+}
+
+.print-standard .print-cover {
+  margin: 1.6rem 0 0;
+}
+
+.print-standard .print-body {
+  margin-top: 1.6rem;
+}
+
+/* --- 雜誌 --------------------------------------------------------- */
+.print-magazine .print-cover {
+  /* Across the page. `@page`'s margin cannot be escaped per-element, so this
+     is full text-width rather than true bleed — the honest version of the
+     mock, which drew it edge to edge. */
+  margin: 0 0 1.4rem;
+}
+
+.print-magazine .print-titleblock {
+  text-align: center;
+  padding: 1.4rem 0 1.6rem;
+}
+
+.print-magazine .print-kicker {
+  font-family: var(--font-noto), system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  color: #8a3ffa;
+  margin: 0 0 0.9rem;
+}
+
+.print-magazine .print-title {
+  margin: 0;
+  font-size: 2.3rem;
+  font-weight: 600;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+
+.print-magazine .print-byline {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-noto), system-ui, sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: #7a756f;
+}
+
+.print-magazine .print-titleblock::after {
+  content: "";
+  display: block;
+  width: 3.2rem;
+  height: 1.5px;
+  background: #201e1d;
+  margin: 1.4rem auto 0;
+}
+
+.print-magazine .print-body {
+  font-size: 1.06rem;
+  line-height: 1.95;
+}
+
+.print-magazine .print-body > p:first-of-type::first-letter {
+  font-size: 3.1em;
+  float: left;
+  line-height: 0.84;
+  padding: 0.1em 0.16em 0 0;
+  font-weight: 600;
+}
+
+/* --- 精簡 --------------------------------------------------------- */
+.print-compact {
+  font-size: 0.82rem;
+}
+
+.print-compact .print-title {
+  margin: 1.1rem 0 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.print-compact .print-byline {
+  margin: 0.35rem 0 0;
+  font-size: 0.86em;
+  color: #7a756f;
+}
+
+.print-compact .print-body {
+  margin-top: 1.2rem;
+  line-height: 1.62;
+  columns: 2;
+  column-gap: 2.2em;
+}
+
+.print-compact .print-body > * + * {
+  margin-top: 0.7em;
+}
+
+/* A paragraph split across a column break is harder to read than a short
+   column; in two narrow columns the trade is worth it. */
+.print-compact .print-body p,
+.print-compact .print-body li {
+  break-inside: avoid;
+}
+
+/* --- the one static footer --------------------------------------- */
+.print-foot {
+  margin-top: 2.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #d8d5d0;
+  font-size: 0.78rem;
+  color: #7a756f;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.print-compact .print-foot {
+  /* Below both columns, not inside one of them. */
+  column-span: all;
+}
