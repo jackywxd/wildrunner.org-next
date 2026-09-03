@@ -54,9 +54,20 @@ import { youTubeEmbedUrl } from "@/lib/youtube";
 export function SlideshowMusic({
   videoId,
   playing,
+  title = "相簿背景音樂",
 }: {
   videoId: string;
   playing: boolean;
+  /**
+   * What the frame is called, for anyone reading the page with a screen
+   * reader or looking at the accessibility tree.
+   *
+   * A prop since an article reads itself aloud over this too, and "相簿背景
+   * 音樂" on an article page would be a small lie in the one place a blind
+   * visitor has to trust. Defaulted rather than required so the album pages
+   * that already pass neither keep working unchanged.
+   */
+  title?: string;
 }) {
   // `playing` only ever becomes true from a click, so this never renders on
   // the server and `document` is always there by the time it does. Guarded
@@ -94,7 +105,7 @@ export function SlideshowMusic({
       <iframe
         data-testid="slideshow-music"
         data-video-id={videoId}
-        title="相簿背景音樂"
+        title={title}
         src={src}
         allow="autoplay"
         className="block aspect-video w-full border-0"

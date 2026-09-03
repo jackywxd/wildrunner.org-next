@@ -7,6 +7,7 @@ import { setOwner } from './hooks/owner'
 import { revalidatePosts } from './hooks/revalidate'
 import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
+import { youTubeVideoId } from '../lib/youtube'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -125,6 +126,48 @@ export const Posts: CollectionConfig = {
       type: 'checkbox',
       label: { en: 'Featured', 'zh-TW': '精選' },
       defaultValue: false,
+    },
+    /**
+     * What plays behind the article while it is read aloud.
+     *
+     * THE SAME FIELD AS AN ALBUM'S, deliberately down to the validator, and it
+     * resolves through the same `resolveAlbumMusic`: this post's own link
+     * first, then the site-wide fallback list on the `site` global. An article
+     * and an album are the same question — "what should be playing?" — asked
+     * about a different thing, and the answer already had one implementation.
+     *
+     * `validate` REFUSES ANYTHING THAT IS NOT ONE VIDEO. A playlist or channel
+     * URL has no single video, so `youTubeVideoId` returns null for it and it
+     * is rejected at save time rather than stored and silently ignored — the
+     * failure where an author sets background music, sees no error, and hears
+     * nothing.
+     *
+     * MEMBER-FACING, unlike the album's, which is admin-only because there is
+     * no member album editor. A member owns their posts, so this control has
+     * to exist on their editor too — `scripts/assert-schema-screen.mjs` only
+     * demands that of a *required* field, and this one is optional, so nothing
+     * forces the pairing. It is added because the alternative is a field only
+     * an admin can reach on content a member owns.
+     */
+    {
+      name: 'musicUrl',
+      type: 'text',
+      label: { en: 'Background music (YouTube)', 'zh-TW': '背景音樂（YouTube）' },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'A YouTube video link. Plays while a visitor has this article read aloud; they can always mute it.',
+          'zh-TW':
+            '貼一個 YouTube 影片連結。訪客朗讀這篇文章時當背景音樂，隨時可以關掉。',
+        },
+      },
+      validate: (value: unknown) => {
+        if (value === null || value === undefined || value === '') return true
+        if (typeof value !== 'string') return 'Enter a YouTube video link.'
+        return youTubeVideoId(value) !== null
+          ? true
+          : '請貼一個 YouTube 影片連結（播放清單或頻道沒有單一影片，不能用）'
+      },
     },
     {
       name: 'publishedAt',

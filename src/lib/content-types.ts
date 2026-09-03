@@ -259,6 +259,19 @@ export type SitePost = {
   race?: SiteRaceRecord;
   /** Only the detail query selects the body; card queries leave it undefined. */
   content?: import("@/payload-types").Post["content"];
+  /**
+   * The eleven-character YouTube id this article plays while it is read
+   * aloud, or `null`/absent for silence.
+   *
+   * AN ID, NEVER THE STORED STRING, for the reason `SiteGallery.musicVideoId`
+   * carries the same shape: the `src` of a third-party frame is the one place
+   * a stray value in the database becomes an arbitrary embedded origin on our
+   * own page. Resolved by `resolveAlbumMusic` — this post's own `musicUrl`
+   * first, then the site-wide fallback list.
+   *
+   * Absent on a card query, which neither asks for it nor renders it.
+   */
+  musicVideoId?: string | null;
 };
 
 /**
