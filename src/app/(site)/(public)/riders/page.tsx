@@ -67,8 +67,20 @@ export default async function RidersPage({
     <div className="container max-w-6xl py-6 lg:py-10">
       <PageHeader title="野馬" description="" />
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <RiderFilters options={options} selected={badges} total={all.length} />
+        {/* Beside the badge filters rather than under the heading: both are
+            ways into the same set of people, and the timeline is the one that
+            answers "what has this club been doing" rather than "who is in
+            it". Styled as its own control, not a chip, because it navigates
+            instead of narrowing. */}
+        <Link
+          className="border border-border bg-background px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground"
+          data-testid="club-timeline-link"
+          href="/riders/timeline"
+        >
+          時間機器 →
+        </Link>
       </div>
 
       <hr className="my-8 h-0 border-t-2 border-border" />

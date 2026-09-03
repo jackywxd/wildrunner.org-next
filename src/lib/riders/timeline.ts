@@ -23,6 +23,23 @@ export type RaceEditionFacts = {
   /** "YYYY-MM-DD". Absent when the edition row has no start date. */
   startDate?: string;
   location?: string;
+  /**
+   * "MM-DD" — when this event runs, taken from *another* year's edition.
+   *
+   * ORDERING ONLY. NEVER DISPLAYED, AND NEVER STORED. Past editions in this
+   * database carry no `startDate` at all (the reviewed CSV covers the coming
+   * two seasons; nobody has researched 2013), so without this every race a
+   * member logged sorts to the bottom of its year in alphabetical order —
+   * which is what "the timeline is not in race order" means in practice.
+   *
+   * A race runs at the same time of year, so placing a 2023 Hardrock where
+   * Hardrock always is puts it in the right place among that year's rows.
+   * That is an inference, and the reason it is allowed here and nowhere else
+   * in this repo is that it decides a *position* and never becomes a fact on
+   * screen: the card still says "2023 年". Filling it into `startDate` would
+   * be inventing data, which `docs/race-data-sources.md` forbids at length.
+   */
+  typicalDay?: string;
 };
 
 /**
@@ -45,8 +62,17 @@ export type RaceEditionFacts = {
 export type RiderTimelineEntry = {
   /** Stable React key. Prefixed because record ids and post ids collide. */
   key: string;
-  /** "YYYY-MM-DD", or absent when only the year is known. */
+  /** "YYYY-MM-DD", or absent when only the year is known. What is shown. */
   day?: string;
+  /**
+   * What the order is decided by: `day` when it is known, otherwise where
+   * this event sits in a year (see `RaceEditionFacts.typicalDay`).
+   *
+   * Separate from `day` on purpose. Merging them would put an inferred date
+   * on the card, and the card must keep saying "2023 年" — the position is a
+   * best guess, the date would be a claim.
+   */
+  sortDay?: string;
   location?: string;
   post?: SitePost;
   race?: SiteRaceRecord;
@@ -74,19 +100,38 @@ function yearOf(isoDay: string): number {
 }
 
 /**
- * Newest first, within a year.
+ * Where a race sits in its year, for ordering.
  *
- * A dateless row sorts to the bottom of its year rather than the top: a race
- * whose edition has no start date is "some time in 2024", and guessing it
- * happened in January would be a claim the data does not make. Ties break on
- * `key` so the order is total — two races on one day must not swap places
- * between renders, which is what makes the rendered HTML stable enough to
- * assert on.
+ * The real date when there is one. Otherwise the event's own time of year,
+ * projected onto this year — see `RaceEditionFacts.typicalDay` for why that
+ * inference is allowed to decide a position and never a label. `undefined`
+ * when neither is known, which sorts the row to the bottom of its year.
+ */
+export function sortDayFor(
+  year: number,
+  facts: { startDate?: string; typicalDay?: string } | undefined,
+): string | undefined {
+  if (facts?.startDate) return facts.startDate;
+  if (facts?.typicalDay) return `${year}-${facts.typicalDay}`;
+  return undefined;
+}
+
+/**
+ * Newest first, within a year — by `sortDay`, not by `day`.
+ *
+ * A row with neither still sorts to the bottom of its year rather than the
+ * top: an event nobody has ever recorded a date for is "some time in 2024",
+ * and putting it in January would be a claim the data does not make. Ties
+ * break on `key` so the order is total — two races on one day must not swap
+ * places between renders, which is what makes the rendered HTML stable enough
+ * to assert on.
  */
 function byDayDescending(a: RiderTimelineEntry, b: RiderTimelineEntry): number {
-  if (a.day && b.day && a.day !== b.day) return a.day < b.day ? 1 : -1;
-  if (a.day && !b.day) return -1;
-  if (!a.day && b.day) return 1;
+  if (a.sortDay && b.sortDay && a.sortDay !== b.sortDay) {
+    return a.sortDay < b.sortDay ? 1 : -1;
+  }
+  if (a.sortDay && !b.sortDay) return -1;
+  if (!a.sortDay && b.sortDay) return 1;
   return a.key.localeCompare(b.key);
 }
 
@@ -138,6 +183,7 @@ export function buildRiderTimeline({
     push(race.year, {
       key: `race-${race.id}`,
       day: facts?.startDate,
+      sortDay: sortDayFor(race.year, facts),
       location: facts?.location,
       post: reportByRecordId.get(race.id),
       race,
@@ -155,7 +201,12 @@ export function buildRiderTimeline({
     // the whole article under year `NaN`.
     if (!postDay) continue;
 
-    push(yearOf(postDay), { key: `post-${post.id}`, day: postDay, post });
+    push(yearOf(postDay), {
+      key: `post-${post.id}`,
+      day: postDay,
+      sortDay: postDay,
+      post,
+    });
   }
 
   return [...byYear.entries()]

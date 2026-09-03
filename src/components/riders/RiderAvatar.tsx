@@ -15,7 +15,13 @@ export function RiderAvatar({
   size,
 }: {
   className?: string;
-  rider: SiteRider;
+  /**
+   * Only the three fields it draws from. Widened from `SiteRider` so the club
+   * timeline can pass a `ClubRunner` — the same byline, minus counts and
+   * races that this component never reads — without inventing a `postCount`
+   * of 0 to satisfy a type.
+   */
+  rider: Pick<SiteRider, "avatar" | "name" | "slug">;
   size: number;
 }) {
   if (rider.avatar) {
