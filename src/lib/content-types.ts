@@ -105,13 +105,28 @@ export type SiteMediaItem =
   | ({ kind: "photo" } & SitePhoto)
   | ({ kind: "video" } & SiteVideo);
 
-/** One race edition a member can tag an upload with — already run, so a photo of it can exist. */
+/**
+ * One race edition, as the album builder and the filter list name it.
+ *
+ * The name says "option" because the upload picker was its first caller; that
+ * picker asks the catalogue now (`RaceClaimFields`), and what is left is
+ * naming the editions a set of media points at — see `getRaceEditionsByIds`.
+ */
 export type SiteRaceEditionOption = {
   id: number;
   eventKey: string;
   name: string;
   nameZh?: string;
   year: number;
+  /**
+   * `race-editions.musicUrl`, still as the stored URL.
+   *
+   * Parsed to an id by `buildRaceGallery` on its way into `SiteGallery`, for
+   * the same reason `SiteGlobals.backgroundMusic` holds URLs: this type is
+   * the edition, not the album, and the parse belongs at the boundary that
+   * hands something to the browser.
+   */
+  musicUrl?: string | null;
 };
 
 /** An edition as its own public page shows it — the event's identity plus this run's dates. */
@@ -323,5 +338,15 @@ export type SiteGlobals = {
   social: {
     github?: string | null;
   };
+  /**
+   * The site-wide fallback tracks, as *stored URLs*.
+   *
+   * The one place a URL rather than an id crosses a boundary in this feature,
+   * and only as far as the server: `resolveAlbumMusic` parses it on the way
+   * into a page's props, so what reaches the browser is still an id. Carrying
+   * ids here instead would mean parsing in `mapSiteGlobal`, which is the
+   * mapper for the whole global and has no business knowing about YouTube.
+   */
+  backgroundMusic: { url?: string | null; label?: string | null }[];
   topNavItems: { label: string; href: string; icon?: string | null }[];
 };

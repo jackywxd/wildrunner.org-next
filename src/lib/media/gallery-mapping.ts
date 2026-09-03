@@ -13,7 +13,7 @@
 import type { Gallery, Media } from '@/payload-types'
 
 import { mediaDimensions, mediaImageSrc } from '@/lib/cf-image'
-import { youTubeVideoId } from '@/lib/youtube'
+import { resolveAlbumMusic, type FallbackTrack } from '@/lib/media/album-music'
 import type { SiteGallery, SiteMediaItem, SitePhoto, SiteVideo } from '@/lib/content-types'
 import { editionIdOf, mediaToSiteVideo } from '@/lib/media/site-video'
 
@@ -125,7 +125,15 @@ export function mapGalleryVideo(
  * `_galleries_v_version_items` deliberately keeps `ON DELETE set null` so a
  * deleted file does not rewrite history.
  */
-export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
+export function mapPayloadGallery(
+  doc: GalleryDoc,
+  /**
+   * The site-wide tracks, for an album that names none of its own. Defaults to
+   * none, which is what a caller that has not read the global should get —
+   * silence rather than a guess.
+   */
+  fallbackMusic: FallbackTrack[] = [],
+): SiteGallery {
   const items: SiteMediaItem[] = [];
   const featuredStems: string[] = [];
 
@@ -159,10 +167,14 @@ export function mapPayloadGallery(doc: GalleryDoc): SiteGallery {
     featured: featuredStems,
     cover: coverMedia ? mapMediaToSiteImage(coverMedia) : null,
     // The id, never the stored URL — this is the boundary src/lib/youtube.ts
-    // exists to hold. `null` for an album with no music, and also for one
-    // whose stored value stopped parsing, which is the safe direction: no
-    // music rather than an arbitrary third-party frame.
-    musicVideoId: doc.musicUrl ? youTubeVideoId(doc.musicUrl) : null,
+    // exists to hold. `null` for an album with no music and no fallback, and
+    // also for one whose stored value stopped parsing, which is the safe
+    // direction: no music rather than an arbitrary third-party frame.
+    musicVideoId: resolveAlbumMusic({
+      slug: doc.slug,
+      own: doc.musicUrl,
+      fallback: fallbackMusic,
+    }),
     items,
   };
 }

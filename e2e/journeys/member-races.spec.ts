@@ -191,6 +191,13 @@ test.describe("M what a member does with race records", () => {
 
     const before = await badgeCount(page, eventId, distanceId, year);
     await page.goto("/members/races", { waitUntil: "domcontentloaded" });
+    // `load`, not just `domcontentloaded` — see the note on the delete below.
+    // The same reasoning reaches here first: `selectOption` before React has
+    // attached sets the DOM value and dispatches a `change` nobody is
+    // listening for, so the component's state never moves and 新增 acts on an
+    // empty claim. That is the failure race-report.spec.ts already documents
+    // at length for its own selects.
+    await page.waitForLoadState("load");
 
     // 4. Record it.
     await eventSelect.selectOption(eventId);
@@ -240,6 +247,27 @@ test.describe("M what a member does with race records", () => {
     // here would mean this journey failed for a reason other than the one it
     // names. Noted in docs/testing-plan.md rather than silently worked around.
     await page.goto("/members/races", { waitUntil: "domcontentloaded" });
+    /**
+     * Wait for hydration before pressing delete.
+     *
+     * THIS IS WHAT MADE THIS TEST RED ON CI, and the second time the same
+     * assertion has been blamed on something else. The rows are server-
+     * rendered — `RaceRecordManager` takes `records` as a prop and seeds
+     * `useState(initial)` with it — so the button exists in the HTML long
+     * before React attaches its `onClick`. A click that lands in that window
+     * is silently dropped: nothing is deleted, the row stays, and the failure
+     * reads "expected 0 rows, found 1", which sounds like the delete endpoint
+     * and is not.
+     *
+     * The header above records an earlier red at this exact line and put it
+     * down to the step budget. That may have been true as well; it was not the
+     * whole story, because 19 polls over 15s found the row still there — a
+     * delete that had simply been slow would have completed inside that.
+     *
+     * Same one-line wait as P-PHOTO, V-DESC, V-BGM and V-SHAREENTRY, all of
+     * which lost the same race this week.
+     */
+    await page.waitForLoadState("load");
     await page
       .getByTestId("race-record-row")
       .filter({ hasText: year })

@@ -1,6 +1,7 @@
 import type { Access, CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminUser } from '../access'
+import { youTubeVideoId } from '../lib/youtube'
 
 /**
  * One running of a race: the 2026 Hardrock, the 2015 Hardrock.
@@ -217,5 +218,43 @@ export const RaceEditions: CollectionConfig = {
       },
     },
     { name: 'notes', type: 'textarea', label: { en: 'Notes', 'zh-TW': '備註' } },
+    /**
+     * What this race's photo album plays behind its slideshow.
+     *
+     * HERE RATHER THAN ON AN ALBUM, because a race's album is not a row. It is
+     * synthesised from whatever media carries this edition's tag — see
+     * `src/lib/race-gallery.ts` for why it is derived and must stay derived —
+     * so there is no `galleries.musicUrl` for it to live on. The edition is
+     * the thing that exists, and it is also the honest owner: a race's music
+     * belongs to the race, not to one viewing of it.
+     *
+     * Same shape and same rules as `galleries.musicUrl`, deliberately: the
+     * stored value is the URL somebody pasted, the client only ever receives
+     * the eleven-character id that `youTubeVideoId` parses back out of it, and
+     * a playlist or channel link is refused at save time rather than stored
+     * and silently ignored.
+     *
+     * Falls back to the site-wide list when empty — see `Site.ts`'s
+     * `backgroundMusic`.
+     */
+    {
+      name: 'musicUrl',
+      type: 'text',
+      label: { en: 'Background music (YouTube)', 'zh-TW': '背景音樂（YouTube）' },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: "A YouTube video link for this race's photo album. Leave empty to use the site-wide list.",
+          'zh-TW': '這場比賽相片集的背景音樂。留空就用網站設定裡的預設清單。',
+        },
+      },
+      validate: (value: unknown) => {
+        if (value === null || value === undefined || value === '') return true
+        if (typeof value !== 'string') return 'Enter a YouTube video link.'
+        return youTubeVideoId(value) !== null
+          ? true
+          : '請貼一個 YouTube 影片連結（播放清單或頻道沒有單一影片，不能用）'
+      },
+    },
   ],
 }

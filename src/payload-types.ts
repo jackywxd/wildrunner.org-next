@@ -317,6 +317,10 @@ export interface RaceEdition {
   sourceUrl?: string | null;
   verifiedAt?: string | null;
   notes?: string | null;
+  /**
+   * A YouTube video link for this race's photo album. Leave empty to use the site-wide list.
+   */
+  musicUrl?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -854,6 +858,7 @@ export interface RaceEditionsSelect<T extends boolean = true> {
   sourceUrl?: T;
   verifiedAt?: T;
   notes?: T;
+  musicUrl?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -953,6 +958,19 @@ export interface Site {
   social?: {
     github?: string | null;
   };
+  /**
+   * Used by an album that has no music of its own. Which track an album gets is decided from its slug, so it stays the same between visits.
+   */
+  backgroundMusic?:
+    | {
+        url: string;
+        /**
+         * For your own reference. Never shown to visitors.
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   topNavItems?:
     | {
         label: string;
@@ -982,6 +1000,13 @@ export interface SiteSelect<T extends boolean = true> {
     | T
     | {
         github?: T;
+      };
+  backgroundMusic?:
+    | T
+    | {
+        url?: T;
+        label?: T;
+        id?: T;
       };
   topNavItems?:
     | T

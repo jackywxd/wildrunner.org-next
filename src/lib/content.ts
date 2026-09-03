@@ -22,6 +22,7 @@ import {
   mapMediaToSiteImage,
   mapPayloadGallery,
 } from "@/lib/media/gallery-mapping";
+import { resolveAlbumMusic } from "@/lib/media/album-music";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import type {
   SiteGallery,
@@ -174,6 +175,7 @@ export function mapSiteGlobal(doc: SiteGlobal): SiteGlobals {
     social: {
       github: doc.social?.github,
     },
+    backgroundMusic: doc.backgroundMusic ?? [],
     topNavItems: doc.topNavItems ?? [],
   };
 }
@@ -187,6 +189,7 @@ const defaultGlobals: SiteGlobals = {
     description: "",
   },
   social: {},
+  backgroundMusic: [],
   topNavItems: [
     { label: "文章", href: "/posts", icon: "rss" },
     { label: "相册", href: "/gallery", icon: "image" },
@@ -194,14 +197,23 @@ const defaultGlobals: SiteGlobals = {
   ],
 };
 
-export async function getSiteGlobals(): Promise<SiteGlobals> {
+/**
+ * `React.cache`'d because the gallery reads it too now.
+ *
+ * It was one call per request from the layout. `backgroundMusic` made it a
+ * dependency of every album query as well — `getPublishedGalleries`,
+ * `getGalleryBySlug` and `getRaceGalleries` each need the same list — and
+ * three `findGlobal`s for one unchanging document is the shape
+ * `getGalleryMedia` already carries a comment about.
+ */
+export const getSiteGlobals = cache(async (): Promise<SiteGlobals> => {
   const payload = await getPayloadClient();
   const site = await payload.findGlobal({
     slug: "site",
     depth: 0,
   });
   return site ? mapSiteGlobal(site) : defaultGlobals;
-}
+});
 
 export async function getPublishedPosts(): Promise<SitePost[]> {
   const payload = await getPayloadClient();
@@ -883,7 +895,8 @@ export async function getPublishedGalleries(): Promise<SiteGallery[]> {
       },
     },
   });
-  return result.docs.map(mapPayloadGallery);
+  const { backgroundMusic } = await getSiteGlobals();
+  return result.docs.map((doc) => mapPayloadGallery(doc, backgroundMusic));
 }
 
 /**
@@ -1028,7 +1041,10 @@ export async function getGalleryBySlug(
     },
   });
   const doc = result.docs[0];
-  if (doc) return mapPayloadGallery(doc);
+  if (doc) {
+    const { backgroundMusic } = await getSiteGlobals();
+    return mapPayloadGallery(doc, backgroundMusic);
+  }
 
   // A stored gallery always wins, so a real row named `race-…-2026` keeps
   // working and this can never shadow one. Only when nothing is stored does
@@ -1129,6 +1145,11 @@ export async function getRaceGalleries(): Promise<SiteGallery[]> {
   const editions = await getGalleryRaceEditions();
   if (editions.length === 0) return [];
 
+  // Read once for the whole set rather than per album: `getSiteGlobals` is
+  // one document, and every race album resolves its music against the same
+  // list.
+  const { backgroundMusic: fallbackMusic } = await getSiteGlobals();
+
   const byId = new Map(editions.map((edition) => [edition.id, edition]));
 
   const grouped = new Map<number, SiteMediaItem[]>();
@@ -1154,7 +1175,7 @@ export async function getRaceGalleries(): Promise<SiteGallery[]> {
   const galleries: SiteGallery[] = [];
   for (const [editionId, items] of grouped) {
     if (items.length === 0) continue;
-    galleries.push(buildRaceGallery(byId.get(editionId)!, items));
+    galleries.push(buildRaceGallery(byId.get(editionId)!, items, fallbackMusic));
   }
   return galleries;
 }
@@ -1216,6 +1237,7 @@ export async function getRaceGalleryBySlug(
 function buildRaceGallery(
   edition: SiteRaceEditionOption,
   items: SiteMediaItem[],
+  fallbackMusic: SiteGlobals["backgroundMusic"],
 ): SiteGallery {
   // A race album has no curator, so `items` inherits the order of the query it
   // was built from — getGalleryMedia sorts `-createdAt` — and photos and
@@ -1228,6 +1250,7 @@ function buildRaceGallery(
   // The cover has to be an image, so it is the first photo rather than the
   // first item — a race whose newest upload is a video still gets a picture.
   const first = photos[0];
+  const slug = raceGallerySlug(edition.eventKey, edition.year);
 
   return {
     cover: first
@@ -1239,7 +1262,15 @@ function buildRaceGallery(
     isFeatured: false,
     items,
     name: `${edition.nameZh ?? edition.name} ${edition.year}`,
-    slug: raceGallerySlug(edition.eventKey, edition.year),
+    slug,
+    // A race album has no row of its own, so its music comes from the
+    // edition — and from the site-wide list when that is empty, exactly as a
+    // stored album's does. See src/lib/media/album-music.ts.
+    musicVideoId: resolveAlbumMusic({
+      slug,
+      own: edition.musicUrl,
+      fallback: fallbackMusic,
+    }),
   };
 }
 
@@ -1289,6 +1320,7 @@ export async function getRaceEditionsByIds(
       name: orUndefined(doc.nameOverride) ?? event.name,
       nameZh: orUndefined(event.nameZh),
       year: doc.year,
+      musicUrl: doc.musicUrl,
     });
   }
   return options;
