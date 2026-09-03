@@ -34,7 +34,10 @@ export async function generateMetadata({
   params,
 }: GalleryDetailPageProps): Promise<Metadata> {
   const gallery = await getGalleryBySlug((await params).slug);
-  if (gallery == null) return { title: "找不到相冊" };
+  // No title for the missing case: the page throws `notFound()`, and the
+  // metadata of a segment that threw is discarded. `app/not-found.tsx` owns
+  // what a 404 says — the line that used to be here never reached a browser.
+  if (gallery == null) return {};
 
   return pageMetadata({
     path: `/gallery/${gallery.slug}`,

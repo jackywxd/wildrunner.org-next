@@ -36,11 +36,8 @@ export async function generateMetadata({
   const result = gallery ? getGalleryVideo(gallery, videoId) : undefined;
   const baseURL = siteConfig.baseURL ?? "";
 
-  if (!result) {
-    return {
-      title: "错误：找不到视频",
-    };
-  }
+  // Same as its siblings: discarded, because the page throws `notFound()`.
+  if (!result) return {};
   if (result.video.streamId && !result.video.streamReady) {
     result.video.streamReady = await refreshStreamReady(
       result.video.mediaId,

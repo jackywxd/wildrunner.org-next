@@ -65,6 +65,7 @@ const ROUTES = [
   "/api/print/riders/warmup-not-a-real-rider/timeline",
   "/gallery",
   "/gallery/warmup-not-a-real-gallery",
+  "/gallery/m/999999999",
   "/races",
   "/races/warmup-not-a-real-event/2026",
   "/riders",
@@ -80,6 +81,12 @@ const ROUTES = [
   "/members/posts/new",
   "/members/posts/import",
   "/members/posts/0",
+  // The app-root `not-found.tsx`, which is its own compilation unit and the
+  // only route reached by an address that matches nothing. Every entry above
+  // warms the `(public)` boundary instead, so without this line the one
+  // shape of 404 that has no route to hang off would compile inside whichever
+  // test asked for it first.
+  "/warmup-not-a-real-route",
 ];
 
 export default async function warmup() {

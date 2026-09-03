@@ -41,8 +41,17 @@ import { absoluteImageUrl, type OgCard } from "@/lib/og-card";
 export type { OgCard };
 
 export type PageMetadataInput = {
-  /** Absolute path on this site, e.g. `/races`. The canonical URL is built from it. */
-  path: string;
+  /**
+   * Absolute path on this site, e.g. `/races`. The canonical URL is built
+   * from it.
+   *
+   * OMITTED BY THE 404 PAGE, which is the one page that is not at a path: it
+   * answers for every address the site does not have, so any `og:url` it
+   * named would be a different page than the one the reader just failed to
+   * reach. Left out rather than guessed — a card with no canonical says less
+   * than a card that says the wrong thing.
+   */
+  path?: string;
   /**
    * The subject alone — 「文章」, not 「文章 | Posts | 野馬營」.
    *
@@ -71,7 +80,10 @@ export function pageMetadata({
   type = "website",
 }: PageMetadataInput): Metadata {
   const baseURL = siteConfig.baseURL.replace(/\/$/, "");
-  const url = `${baseURL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url =
+    path === undefined
+      ? undefined
+      : `${baseURL}${path.startsWith("/") ? path : `/${path}`}`;
   const image = cardUrl(card, { baseURL, title, subtitle });
 
   return {
