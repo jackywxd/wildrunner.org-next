@@ -123,7 +123,17 @@ test.describe("V what a visitor can do", () => {
 
   test("V6: opens a rider and sees their page", async ({ page }) => {
     await open(page, "/riders");
-    const first = page.locator('a[href^="/riders/"]').first();
+    // The rider card itself, not "the first link starting /riders/".
+    //
+    // That prefix was a proxy for "a member", and it stopped being one the
+    // moment the directory grew a second kind of `/riders/…` link: the club
+    // timeline at /riders/timeline, which sits above the cards and is not a
+    // person. The test then clicked it, navigated correctly, and failed
+    // looking for a name — reporting a missing member on a page that has
+    // none by design. The card carries its own testid and *is* the anchor
+    // (riders/page.tsx renders a `<Link>` as the card), so this asks for the
+    // thing the test is named after.
+    const first = page.getByTestId("rider-card").first();
     await expect(first).toBeVisible();
 
     const href = await first.getAttribute("href");
