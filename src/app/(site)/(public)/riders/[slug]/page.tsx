@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { RiderBadgeWall } from "@/components/riders/RiderBadges";
+import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
 import { siteConfig } from "@/config/site";
 import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
@@ -79,6 +80,9 @@ export default async function RiderPage({ params }: Params) {
           <p className="mt-3 text-sm text-muted-foreground">
             {rider.postCount} 篇文章
           </p>
+          <div className="mt-4">
+            <RiderViewTabs active="posts" slug={rider.slug} />
+          </div>
         </div>
       </div>
 

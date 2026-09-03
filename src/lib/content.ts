@@ -24,6 +24,8 @@ import {
 } from "@/lib/media/gallery-mapping";
 import { buildMusicPlaylist } from "@/lib/media/album-music";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
+import { buildRiderTimeline } from "@/lib/riders/timeline";
+import type { RaceEditionFacts, RiderTimelineYear } from "@/lib/riders/timeline";
 import type {
   SiteGallery,
   SiteGlobals,
@@ -91,6 +93,26 @@ const POST_DETAIL_SELECT = {
   // to render nothing, which is what `content` is kept out of the card select
   // for.
   musicUrl: true,
+  raceRecord: true,
+} as const satisfies PostsSelect<true>;
+
+/**
+ * A card, plus the record a race report points at.
+ *
+ * Between the two above, and it exists for exactly one page: the member
+ * timeline, which has to know which article is a write-up of which race so it
+ * can render the pair as one row rather than as the same day twice. It stops
+ * short of `content` and `musicUrl` — a timeline renders neither.
+ *
+ * `raceRecord` at depth 1 populates a `race-records` document whose own
+ * `owner` stays a bare id, which is what keeps this safe to run over a whole
+ * profile's worth of posts. Depth 2 would walk that id into the `users` row
+ * behind it and put an email and a live session array under every card — the
+ * hazard this file's header is about, and the reason `posts.raceRecord`
+ * caps the detail query at depth 1 as well.
+ */
+const POST_TIMELINE_SELECT = {
+  ...POST_CARD_SELECT,
   raceRecord: true,
 } as const satisfies PostsSelect<true>;
 
@@ -826,9 +848,16 @@ export async function getRiders(): Promise<SiteRider[]> {
   );
 }
 
-export async function getRiderBySlug(
-  slug: string,
-): Promise<{ posts: SitePost[]; rider: SiteRider } | null> {
+/**
+ * The author row behind a public profile, or null.
+ *
+ * Shared by the profile and its timeline rather than written twice: both
+ * need the same `depth`, the same `select` and the same `owner: { exists }`
+ * restriction, and the notes on RIDER_SELECT explain why each of the three
+ * is what it is. Two copies of a query whose correctness is a PII property
+ * is two places for the next widening to happen in.
+ */
+async function findRiderAuthor(slug: string): Promise<RiderDoc | null> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "authors",
@@ -837,8 +866,38 @@ export async function getRiderBySlug(
     where: { and: [{ slug: { equals: slug } }, { owner: { exists: true } }] },
     select: RIDER_SELECT,
   });
+  return result.docs[0] ?? null;
+}
 
-  const doc = result.docs[0];
+/**
+ * "Which account claims this byline as its identity?" — the join
+ * `raceRecordsByAuthorId` describes at length, for one author.
+ *
+ * NOT `authors.owner`, which answers "who created this author" and attributes
+ * an admin's races to every byline they ever typed into /admin. Returns
+ * `undefined` for a byline nobody claims, which correctly has no races.
+ *
+ * Safe despite the header's warning about reading `users`: the select returns
+ * ids and nothing else, and only a number ever leaves this function.
+ */
+async function claimingAccountId(authorId: number): Promise<number | undefined> {
+  const payload = await getPayloadClient();
+  const claimedBy = await payload.find({
+    collection: "users",
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    where: { author: { equals: authorId } },
+    select: { author: true },
+  });
+  return claimedBy.docs[0]?.id;
+}
+
+export async function getRiderBySlug(
+  slug: string,
+): Promise<{ posts: SitePost[]; rider: SiteRider } | null> {
+  const payload = await getPayloadClient();
+  const doc = await findRiderAuthor(slug);
   if (!doc) return null;
 
   // Bylined posts only. Matching on `owner` instead would pull in the
@@ -853,7 +912,7 @@ export async function getRiderBySlug(
   // an admin's races to every byline they ever added. See
   // `raceRecordsByAuthorId`. An author nobody claims (one typed into /admin)
   // matches no account here and correctly gets no badges.
-  const [posts, claimedBy] = await Promise.all([
+  const [posts, ownerId] = await Promise.all([
     payload.find({
       collection: "posts",
       depth: 1,
@@ -864,17 +923,9 @@ export async function getRiderBySlug(
       },
       select: POST_CARD_SELECT,
     }),
-    payload.find({
-      collection: "users",
-      depth: 0,
-      limit: 1,
-      pagination: false,
-      where: { author: { equals: doc.id } },
-      select: { author: true },
-    }),
+    claimingAccountId(doc.id),
   ]);
 
-  const ownerId = claimedBy.docs[0]?.id;
   const races =
     typeof ownerId === "number"
       ? await payload
@@ -898,6 +949,149 @@ export async function getRiderBySlug(
   return {
     posts: posts.docs.map(mapPayloadPost),
     rider: mapPayloadAuthor(doc, posts.totalDocs, races),
+  };
+}
+
+/**
+ * `RACE_RECORD_SELECT` plus the edition the record resolves to.
+ *
+ * Only the timeline asks. A badge needs event, distance and year and nothing
+ * else — the wall on the profile renders identically whether or not the
+ * edition row exists — while a timeline has to put the race on a *day*, and
+ * the day lives on `race-editions.startDate`. Kept as its own constant rather
+ * than widening the shared select, because every other caller would then
+ * populate a relationship it never reads.
+ *
+ * `edition` stays a bare id at depth 0; `editionFactsByRecord` below turns
+ * those ids into dates in one query rather than one per record.
+ */
+const RACE_RECORD_TIMELINE_SELECT = {
+  ...RACE_RECORD_SELECT,
+  edition: true,
+} as const;
+
+/**
+ * Real dates for a member's races, keyed by race-record id.
+ *
+ * A RECORD WITHOUT AN EDITION IS NORMAL, not an error: `populateRaceRecordRefs`
+ * has filled `edition` on every write since it landed, but rows written before
+ * it — and rows whose edition has since been deleted — carry nothing. Those
+ * simply get no entry, and `buildRiderTimeline` files them under their year
+ * with no day, which is exactly what the record actually claims. The same
+ * degrade-never-throw contract `badge-source.ts` documents for a stale event id.
+ *
+ * `race-editions` has no `owner` and no relationship to `users`, so unlike the
+ * queries above this one has no PII path to guard — see RACE_EDITIONS_SELECT.
+ */
+async function editionFactsByRecord(
+  records: { editionId?: number; id: number }[],
+): Promise<Map<number, RaceEditionFacts>> {
+  const editionIds = [
+    ...new Set(
+      records
+        .map((record) => record.editionId)
+        .filter((id): id is number => typeof id === "number"),
+    ),
+  ];
+  if (editionIds.length === 0) return new Map();
+
+  const payload = await getPayloadClient();
+  const editions = await payload.find({
+    collection: "race-editions",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    where: { id: { in: editionIds } },
+    select: { location: true, startDate: true },
+  });
+
+  const factsByEdition = new Map<number, RaceEditionFacts>();
+  for (const edition of editions.docs) {
+    factsByEdition.set(edition.id, {
+      // Sliced to a day here, once, and never parsed back — the convention
+      // `SiteRaceScheduleEntry` and `getRaceEditionDetail` already follow.
+      startDate: edition.startDate ? edition.startDate.slice(0, 10) : undefined,
+      location: orUndefined(edition.location),
+    });
+  }
+
+  const byRecord = new Map<number, RaceEditionFacts>();
+  for (const record of records) {
+    if (record.editionId === undefined) continue;
+    const facts = factsByEdition.get(record.editionId);
+    if (facts) byRecord.set(record.id, facts);
+  }
+  return byRecord;
+}
+
+/**
+ * The member timeline: every race and every article, merged and by year.
+ *
+ * A SEPARATE QUERY FROM `getRiderBySlug`, not an option on it. It asks for
+ * two things the profile does not — `posts.raceRecord`, so a report can be
+ * shown on the same row as the race it describes, and the editions behind the
+ * records, so a race can be placed on a day rather than in a year. Making the
+ * profile pay for both to serve a page it does not render is the waste
+ * `POST_CARD_SELECT` exists to avoid.
+ *
+ * The ordering and the merge are `buildRiderTimeline`'s, in
+ * `src/lib/riders/timeline.ts`, which is pure and checked without a browser.
+ * This function only fetches.
+ */
+export async function getRiderTimeline(
+  slug: string,
+): Promise<{ rider: SiteRider; years: RiderTimelineYear[] } | null> {
+  const payload = await getPayloadClient();
+  const doc = await findRiderAuthor(slug);
+  if (!doc) return null;
+
+  const [posts, ownerId] = await Promise.all([
+    payload.find({
+      collection: "posts",
+      depth: 1,
+      limit: 500,
+      sort: "-publishedAt",
+      where: {
+        and: [{ author: { equals: doc.id } }, { _status: { equals: "published" } }],
+      },
+      select: POST_TIMELINE_SELECT,
+    }),
+    claimingAccountId(doc.id),
+  ]);
+
+  const recordDocs =
+    typeof ownerId === "number"
+      ? await payload
+          .find({
+            collection: "race-records",
+            depth: 0,
+            limit: 0,
+            pagination: false,
+            where: { owner: { equals: ownerId } },
+            select: RACE_RECORD_TIMELINE_SELECT,
+          })
+          .then((result) => result.docs)
+      : [];
+
+  const races = sortRaceRecords(
+    recordDocs.map((record) =>
+      mapRaceRecord(record as Parameters<typeof mapRaceRecord>[0]),
+    ),
+  );
+  const editionFacts = await editionFactsByRecord(
+    recordDocs.map((record) => ({
+      // depth 0, so this is the bare id. Anything else means the select was
+      // widened and a document is in flight that has no business here.
+      editionId: typeof record.edition === "number" ? record.edition : undefined,
+      id: record.id,
+    })),
+  );
+
+  const sitePosts = posts.docs.map(mapPayloadPost);
+
+  return {
+    rider: mapPayloadAuthor(doc, posts.totalDocs, races),
+    years: buildRiderTimeline({ editionFacts, posts: sitePosts, races }),
   };
 }
 

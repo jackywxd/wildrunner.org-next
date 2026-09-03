@@ -264,3 +264,60 @@ h6 {
 .article-body video {
   @apply my-4;
 }
+
+/*
+ * 時間機器 — the member timeline (/riders/<slug>/timeline) is meant to be
+ * printed, and that turns two of its own features into bugs.
+ *
+ * FRAMER-MOTION LEAVES UNSEEN ROWS AT `opacity: 0`. A row animates in with
+ * `whileInView`, so anything the reader never scrolled past still carries the
+ * inline style it was server-rendered with — and a print captures the DOM as
+ * it stands, not as it would look if you scrolled. Without the override below
+ * a printout is the first screenful followed by blank paper. `!important` is
+ * the point: an important declaration in a stylesheet is the one thing that
+ * beats a normal inline style, which is what framer-motion writes.
+ *
+ * SITE CHROME IS NOT PART OF THE DOCUMENT. `:has()` reaches out of the page
+ * to the layout's header and footer, which no class on the page itself can
+ * touch. A browser without `:has()` prints the nav as well — the wrong
+ * margins, not a broken page.
+ *
+ * Colours are forced only on the text elements. `.rider-timeline *` was the
+ * obvious form and is wrong: it reaches inside the race badges, whose band
+ * labels are white on a coloured fill, and prints them black on black.
+ */
+@media print {
+  .rider-timeline [data-timeline-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  body:has(.rider-timeline) header,
+  body:has(.rider-timeline) footer,
+  body:has(.rider-timeline) #nprogress {
+    display: none !important;
+  }
+
+  .rider-timeline article {
+    background: #fff !important;
+    border-color: #bbb !important;
+  }
+
+  .rider-timeline h2,
+  .rider-timeline h3,
+  .rider-timeline p,
+  .rider-timeline a {
+    color: #000 !important;
+  }
+
+  /* A race and its report are one row; splitting it across a page break puts
+     the article under the wrong year. A year heading alone at the foot of a
+     page is the same problem in reverse. */
+  .rider-timeline article {
+    break-inside: avoid;
+  }
+
+  .rider-timeline h2 {
+    break-after: avoid;
+  }
+}
