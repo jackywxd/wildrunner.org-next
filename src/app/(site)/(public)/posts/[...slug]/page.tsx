@@ -6,6 +6,7 @@ import "@/styles/mdx.css";
 
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
+import { ArticleReader } from "@/components/posts/ArticleReader";
 import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -205,6 +206,13 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               sizes="(max-width: 768px) 90vw, 720px"
             />
           </div>
+        )}
+        {/* Above the body, where a reader decides whether to read or listen —
+            and only for a post that has one, since an empty article has
+            nothing to say. The control renders nothing at all on a browser
+            with no `speechSynthesis`. */}
+        {blog.content && (
+          <ArticleReader title={blog.title} content={blog.content} />
         )}
         {blog.content && (
           <PayloadRichText data={blog.content} className="article-body" />
