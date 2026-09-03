@@ -9,8 +9,12 @@ import { resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { formatMonthDay, summariseTimeline } from "@/lib/riders/timeline";
-import type { RiderTimelineEntry, RiderTimelineYear } from "@/lib/riders/timeline";
+import type {
+  RiderTimelineEntry,
+  RiderTimelineYear,
+} from "@/lib/riders/timeline";
 import {
+  TimelineDownloadButton,
   TimelineMotionConfig,
   TimelinePrintButton,
   TimelineReveal,
@@ -190,13 +194,17 @@ function Entry({
 
 export async function RiderTimeline({
   name,
+  slug,
   years,
 }: {
   name: string;
+  /** The member's own slug — addresses their PDF endpoint. */
+  slug: string;
   years: RiderTimelineYear[];
 }) {
   const catalogue = catalogueMap(await getRaceCatalogueEvents());
-  const { firstYear, lastYear, postCount, raceCount } = summariseTimeline(years);
+  const { firstYear, lastYear, postCount, raceCount } =
+    summariseTimeline(years);
 
   if (years.length === 0) {
     return (
@@ -220,16 +228,27 @@ export async function RiderTimeline({
       />
 
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="text-sm text-muted-foreground" data-testid="rider-timeline-summary">
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="rider-timeline-summary"
+        >
           {countsLabel(raceCount, postCount)}
           {firstYear !== undefined && lastYear !== undefined
             ? ` · ${firstYear === lastYear ? firstYear : `${firstYear}–${lastYear}`}`
             : ""}
         </p>
-        <TimelinePrintButton label="列印" />
+        {/* Two buttons that do different things — `TimelineDownloadButton`
+            says which, and why only this rail has the second one. */}
+        <span className="flex flex-wrap items-center gap-2 print:hidden">
+          <TimelinePrintButton label="列印" />
+          <TimelineDownloadButton slug={slug} />
+        </span>
       </div>
 
-      <div className="rider-timeline relative mt-8" data-testid="rider-timeline">
+      <div
+        className="rider-timeline relative mt-8"
+        data-testid="rider-timeline"
+      >
         <TimelineRail className={RAIL} />
 
         {years.map((yearGroup) => {
@@ -274,9 +293,16 @@ export async function RiderTimeline({
                     >
                       <span
                         aria-hidden
-                        className={cn(NODE, "top-[20px] border border-border bg-background")}
+                        className={cn(
+                          NODE,
+                          "top-[20px] border border-border bg-background",
+                        )}
                       />
-                      <Entry catalogue={catalogue} entry={entry} year={yearGroup.year} />
+                      <Entry
+                        catalogue={catalogue}
+                        entry={entry}
+                        year={yearGroup.year}
+                      />
                     </TimelineReveal>
                   </li>
                 ))}

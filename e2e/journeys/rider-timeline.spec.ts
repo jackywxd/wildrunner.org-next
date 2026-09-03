@@ -50,7 +50,9 @@ async function openTimelineOfAMemberWithContent(
   // reading it out of the card's text once parsed 3300 from 「TORX 330」.
   const withPosts = page
     .locator('[data-testid="rider-card"]')
-    .filter({ has: page.locator('[data-post-count]:not([data-post-count="0"])') })
+    .filter({
+      has: page.locator('[data-post-count]:not([data-post-count="0"])'),
+    })
     .first();
   await expect(
     withPosts,
@@ -62,7 +64,10 @@ async function openTimelineOfAMemberWithContent(
   await withPosts.click();
   await expect(page.getByTestId("rider-name")).toBeVisible();
 
-  await page.getByTestId("rider-view-tab").and(page.locator('[data-view="timeline"]')).click();
+  await page
+    .getByTestId("rider-view-tab")
+    .and(page.locator('[data-view="timeline"]'))
+    .click();
   await expect(page).toHaveURL(/\/riders\/[^/]+\/timeline$/, {
     timeout: budget(15_000),
   });
@@ -86,7 +91,8 @@ test.describe("V-TIMELINE 時間機器", () => {
     for (let i = 0; i < 40; i += 1) {
       const done = await page.evaluate((step) => {
         const el = document.documentElement;
-        const atEnd = window.scrollY + window.innerHeight >= el.scrollHeight - 1;
+        const atEnd =
+          window.scrollY + window.innerHeight >= el.scrollHeight - 1;
         window.scrollBy(0, step * 0.6);
         return atEnd;
       }, height);
@@ -124,5 +130,39 @@ test.describe("V-TIMELINE 時間機器", () => {
       (await opacities(page)).filter((value) => value !== "1"),
       "rows would print as blank space",
     ).toEqual([]);
+  });
+
+  test("V-TIMELINE-T3: the rail can be had as a PDF file, and says when it cannot", async ({
+    page,
+    request,
+  }) => {
+    await openTimelineOfAMemberWithContent(page);
+    const slug = new URL(page.url()).pathname.split("/")[2];
+
+    // TWO BUTTONS THAT DO DIFFERENT THINGS, and the second one is new: 列印
+    // opens the browser's dialog on this page, 下載 PDF asks the server to
+    // render the same URL through Browser Rendering — the only way to get a
+    // page number on every sheet. The button is the article print page's,
+    // shared rather than copied (`PrintDownloadButton`).
+    await expect(page.getByTestId("rider-timeline-print")).toBeVisible();
+    await expect(page.getByTestId("rider-timeline-download")).toBeVisible();
+
+    // 503 is the right answer in this environment and is asserted rather than
+    // skipped around: Browser Rendering is absent in dev and CI by
+    // construction, exactly as the transcoder is. Read through `request` so
+    // no browser sees the 5xx — the console guard is right to refuse one.
+    const download = await request.get(`/api/print/riders/${slug}/timeline`);
+    expect(
+      download.status(),
+      "the timeline download must report that no renderer is configured, not quietly fail",
+    ).toBe(503);
+
+    // The club rail deliberately has no download: it is an infinite scroll,
+    // so a server-side render would produce a PDF silently missing everything
+    // past page one. Its print button loads the rest first, which nothing
+    // outside a browser can do.
+    await open(page, "/riders/timeline");
+    await expect(page.getByTestId("club-timeline-print")).toBeVisible();
+    await expect(page.getByTestId("rider-timeline-download")).toHaveCount(0);
   });
 });

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Printer } from "lucide-react";
 
-import { filenameFromDisposition } from "@/lib/print/filename";
 import type { PrintFont, PrintTemplate } from "@/lib/print/options";
+import { usePdfDownload } from "@/lib/print/use-pdf-download";
 
 /**
  * Choosing what to print, and printing it.
@@ -41,56 +40,12 @@ export function PrintToolbar({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  /**
-   * FETCHED, NOT LINKED, and the reason is what happens when it fails.
-   *
-   * `<a download>` would be two lines, but Browser Rendering is absent
-   * everywhere except a deploy — in dev and CI the endpoint answers 503 — and
-   * a link turns that into a page of JSON in a new tab. Reading the response
-   * here is what lets the member be told, in the toolbar they pressed, that
-   * this environment has no renderer and the print button is the way. It also
-   * pays for the wait: a long article is tens of seconds of browser time, and
-   * a button that looks idle for that long reads as broken.
-   *
-   * The name comes back in the header rather than being built here, so the
-   * server stays the only place that decides what the file is called.
-   */
-  async function download() {
-    setDownloading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `/api/print${pathname.replace(/^\/print/, "")}?${params.toString()}`,
-        { credentials: "same-origin" },
-      );
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setError(body?.error ?? "PDF 產生失敗，請稍後再試。");
-        return;
-      }
-      const blob = await response.blob();
-      const href = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = href;
-      anchor.download =
-        filenameFromDisposition(response.headers.get("Content-Disposition")) ??
-        "";
-      anchor.click();
-      // Revoked on a later task, never in the same one as the click: the
-      // download is started asynchronously, and a URL withdrawn before it
-      // begins takes the file with it.
-      setTimeout(() => URL.revokeObjectURL(href), 0);
-    } catch {
-      setError("PDF 產生失敗，請稍後再試。");
-    } finally {
-      setDownloading(false);
-    }
-  }
+  // `/api` in front of this page's own path, same query, so the file matches
+  // the template on screen. The behaviour behind the button is shared with
+  // 時間機器 — see `usePdfDownload`.
+  const pdf = usePdfDownload(
+    `/api/print${pathname.replace(/^\/print/, "")}?${params.toString()}`,
+  );
 
   function go(next: Partial<{ template: string; font: string }>) {
     const query = new URLSearchParams(params.toString());
@@ -150,13 +105,13 @@ export function PrintToolbar({
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
-          onClick={download}
-          disabled={downloading}
+          onClick={pdf.download}
+          disabled={pdf.downloading}
           data-testid="print-download"
           className="flex items-center gap-2 border border-neutral-300 px-3 py-1.5 text-neutral-900 disabled:opacity-50"
         >
           <Download className="size-4" />
-          <span>{downloading ? "產生中…" : "下載 PDF"}</span>
+          <span>{pdf.downloading ? "產生中…" : "下載 PDF"}</span>
         </button>
 
         <button
@@ -170,12 +125,12 @@ export function PrintToolbar({
         </button>
       </div>
 
-      {error && (
+      {pdf.error && (
         <p
           className="w-full text-xs text-red-600"
           data-testid="print-download-error"
         >
-          {error}
+          {pdf.error}
         </p>
       )}
 

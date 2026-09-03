@@ -64,7 +64,10 @@ export default async function RiderTimelinePage({ params }: Params) {
 
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
-      <div className="flex items-start gap-5" data-testid="rider-timeline-profile">
+      <div
+        className="flex items-start gap-5"
+        data-testid="rider-timeline-profile"
+      >
         <RiderAvatar rider={rider} size={64} />
         <div className="min-w-0 flex-1">
           <h1
@@ -81,7 +84,7 @@ export default async function RiderTimelinePage({ params }: Params) {
 
       <hr className="my-8 h-0 border-t-2 border-border" />
 
-      <RiderTimeline name={rider.name} years={years} />
+      <RiderTimeline name={rider.name} slug={rider.slug} years={years} />
 
       <div className="mt-10 print:hidden">
         <Link

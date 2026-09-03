@@ -6,8 +6,9 @@ import { notFound } from "next/navigation";
 import { PayloadRichText } from "@/components/payload-rich-text";
 import { PrintToolbar } from "@/components/print/PrintToolbar";
 import { siteConfig } from "@/config/site";
-import { getPostBySlugParam } from "@/lib/content";
+import { getBylineAvatar, getPostBySlugParam } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
+import type { SiteImage } from "@/lib/content-types";
 import {
   parsePrintOptions,
   printsPhotos,
@@ -53,6 +54,38 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * The byline, with the member's own face when they have set one.
+ *
+ * A COMPONENT BECAUSE THE PAGE RENDERS IT TWICE — magazine puts the byline
+ * under a centred title block and the other two put it under a flush-left
+ * one — and a byline that carries a picture in one place and not the other is
+ * the kind of difference nobody notices until it is printed.
+ *
+ * `unoptimized` is deliberate: this is a 40px circle, so the optimiser would
+ * cost a Worker round trip to save nothing, and Browser Rendering fetching
+ * `/_next/image` for it is one more thing that can be slow at exactly the
+ * wrong moment. Everything else on this page goes through the optimiser
+ * because everything else on it is a photograph.
+ */
+function Byline({ avatar, name }: { avatar?: SiteImage; name: string }) {
+  return (
+    <span className="print-byline-inner">
+      {avatar && (
+        <Image
+          alt=""
+          className="print-avatar"
+          height={40}
+          src={avatar.src}
+          unoptimized
+          width={40}
+        />
+      )}
+      <span>{name}</span>
+    </span>
+  );
+}
+
 export default async function PrintPostPage({
   params,
   searchParams,
@@ -66,6 +99,15 @@ export default async function PrintPostPage({
 
   const { template, font } = parsePrintOptions(await searchParams);
   const photos = printsPhotos(template);
+
+  // ASKED FOR ONLY WHEN THERE IS A BYLINE TO ASK ABOUT, and never on the
+  // compact template — that one exists to spend the least paper, so a
+  // decorative portrait is the first thing it should not fetch. `photos` is
+  // the same flag that strips the article's own uploads.
+  const avatar =
+    photos && post.authorSlug
+      ? await getBylineAvatar(post.authorSlug)
+      : undefined;
 
   // Stripped on the SERVER, so a compact print never asks for the images it
   // will not show — `withoutUploads` explains why `display: none` is not the
@@ -133,7 +175,11 @@ export default async function PrintPostPage({
             <h1 className="print-title" data-testid="print-title">
               {post.title}
             </h1>
-            {post.author && <p className="print-byline">{post.author}</p>}
+            {post.author && (
+              <p className="print-byline">
+                <Byline avatar={avatar} name={post.author} />
+              </p>
+            )}
           </div>
         </>
       ) : (
@@ -141,7 +187,11 @@ export default async function PrintPostPage({
           <h1 className="print-title" data-testid="print-title">
             {post.title}
           </h1>
-          {post.author && <p className="print-byline">{post.author}</p>}
+          {post.author && (
+            <p className="print-byline">
+              <Byline avatar={avatar} name={post.author} />
+            </p>
+          )}
           {photos && post.image && (
             <div className="print-cover">
               <Image
