@@ -39,9 +39,12 @@ export async function generateMetadata({
     return {};
   }
 
-  const { title, description, author } = post;
+  const { title, description } = post;
 
-  const newTitle = `${title} | ${author ?? siteConfig.author}`;
+  // The bare title. The site name comes from the root template and the author
+  // is already the card's byline (`rainbowOgUrl`) and the page's own byline —
+  // appending it here made a tab read `X | 追雲逐雪 | 野馬營 | Wild Runner Website`.
+  const newTitle = title;
   // Cover image, else the first picture in the body, else a generated card.
   // The middle step matters because nothing in the members area sets the
   // cover field — see src/lib/postOg.ts, which also explains why this cannot

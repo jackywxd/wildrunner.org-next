@@ -47,7 +47,8 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${gallery.name} | 相册`;
+  // 「相册」 lives in the description; the root template adds the site name.
+  const title = gallery.name;
   const description = `${gallery.name}的照片`;
   const ogImage = resolveGalleryOgImage(gallery, baseURL);
 

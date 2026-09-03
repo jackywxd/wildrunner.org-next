@@ -104,18 +104,31 @@ export async function GET(request: Request) {
   let title = url.searchParams.get("title") || siteConfig.title;
   title = decodeURIComponent(title);
 
-  // Posts pass `title|author` in a single param, so the separator and the
-  // author were being painted into the headline — and a post with no author
-  // got a dangling "|". Split it back out; the author reads as a subtitle,
-  // which is what the caller meant.
+  const subtitleParam = url.searchParams.get("subtitle");
+
+  // THE `|` SPLIT IS A FALLBACK NOW, and runs only when the caller did not say
+  // what the byline is.
+  //
+  // It exists because posts once packed `title|author` into one param, and it
+  // stays because links already shared out still carry that form — a crawler
+  // re-fetches `og:image`, so dropping it would change cards that are out of
+  // our hands.
+  //
+  // But a separator that is also the separator of every browser tab title is a
+  // trap, and four routes fell into it: they handed their tab title
+  // (「文章 | Posts | 野馬營」) straight to this parameter and got a card signed
+  // 「野馬營」. Skipping the split whenever `subtitle` is present is what
+  // disarms it — `pageMetadata` always sends one, so nothing we build can be
+  // split any more. See src/lib/site-metadata.ts.
   let author = "";
-  const separator = title.lastIndexOf("|");
-  if (separator !== -1) {
-    author = title.slice(separator + 1).trim();
-    title = title.slice(0, separator).trim();
+  if (subtitleParam === null) {
+    const separator = title.lastIndexOf("|");
+    if (separator !== -1) {
+      author = title.slice(separator + 1).trim();
+      title = title.slice(0, separator).trim();
+    }
   }
 
-  const subtitleParam = url.searchParams.get("subtitle");
   const subtitle = subtitleParam
     ? decodeURIComponent(subtitleParam)
     : author || siteConfig.description;

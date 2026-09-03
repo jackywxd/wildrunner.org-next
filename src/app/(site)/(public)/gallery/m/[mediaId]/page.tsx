@@ -71,11 +71,13 @@ export async function generateMetadata({
     const ogImage = buildVideoOgImageUrl({
       baseURL,
       title,
-      subtitle: siteConfig.name,
+      // `title`, not `name`: the card is Traditional Chinese throughout, and
+      // 「Wild Runner」 was the one English string left on one of them.
+      subtitle: siteConfig.title,
     });
 
     return {
-      title: `${title} · ${siteConfig.name}`,
+      title,
       description: summary,
       openGraph: {
         title,
@@ -101,7 +103,7 @@ export async function generateMetadata({
   const ogImage = item.src.startsWith("http") ? item.src : `${baseURL}${item.src}`;
 
   return {
-    title: `${title} · ${siteConfig.name}`,
+    title,
     description: summary,
     openGraph: {
       title,

@@ -140,7 +140,31 @@ test.describe("U-POSTOG a post's social card", () => {
     // already shared with, which is the whole reason the seed is not derived
     // from the headline.
     expect(params.get("seed")).toBe("posts/2026/a-post");
-    expect(params.get("title")).toBe("測試文章|追雲逐雪");
+
+    // TWO PARAMETERS, NOT `title|author` IN ONE. The route splits that older
+    // form on the last `|` — and `|` is also what every browser tab title is
+    // built from, which is how four index routes ended up asking for a card
+    // headlined 「文章 | Posts」 and signed 「野馬營」. Nothing we generate uses
+    // the packed form any more; the route keeps splitting it only for links
+    // shared out before this changed. See src/lib/site-metadata.ts.
+    expect(params.get("title")).toBe("測試文章");
+    expect(params.get("subtitle")).toBe("追雲逐雪");
+  });
+
+  test("U-POSTOG-6b: a post with no byline still sends the parameter, empty", () => {
+    // PRESENT BUT EMPTY, and both halves are deliberate. Present, because the
+    // route only skips its `|` split when the caller supplied a subtitle — and
+    // a member's own title can contain one (the corpus has
+    // 「Whistler by UTMB | 2024」). Empty, because the route answers an empty
+    // value with the site's blurb, which is the right byline for a post nobody
+    // signed.
+    const src = resolvePostOgImage(
+      { ...POST, author: undefined, content: body([para("只有文字")]) },
+      BASE,
+    );
+    const params = new URL(src).searchParams;
+    expect(params.has("subtitle")).toBe(true);
+    expect(params.get("subtitle")).toBe("");
   });
 
   test("U-POSTOG-7: a same-origin path is absolutised, a CDN url is left alone", () => {

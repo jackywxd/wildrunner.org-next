@@ -50,7 +50,10 @@ export async function generateMetadata({
 
   const { gallery: g, video } = result;
   const videoName = mediaDisplayName(video);
-  const title = `${videoName} · ${g.name}`;
+  // The album is named in the description and on the card's byline, and the
+  // root template adds the site name. Carrying all three in the tab title is
+  // how this route ended up with two different separators in one string.
+  const title = videoName;
   const description = `${g.name} · ${siteConfig.description}`;
   const pageUrl = `${baseURL}/gallery/${g.slug}/v/${encodeURIComponent(video.id)}`;
   const ogImage = buildVideoOgImageUrl({

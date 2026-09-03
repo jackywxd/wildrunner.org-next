@@ -8,10 +8,14 @@ import { SOCIALS } from "@/constants";
 import { cn } from "@/lib/utils";
 import { Metadata } from "next";
 import { getSiteGlobals } from "@/lib/content";
+import { pageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "About",
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/about",
+  title: "關於野馬營",
+  subtitle: "一群在溫哥華相遇的越野跑者，和這個站為什麼存在。",
+  card: { kind: "plain" },
+});
 
 export default async function AboutPage() {
   const globals = await getSiteGlobals();
