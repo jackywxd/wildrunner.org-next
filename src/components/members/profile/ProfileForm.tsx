@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarField } from "@/components/members/profile/AvatarField";
 import { Button } from "@/components/ui/button";
 
 const toGb = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2);
 
-type Author = { bio: string; id: number; name: string };
+type Author = {
+  /** The media id, never a populated document — see AvatarField. */
+  avatar: number | null;
+  bio: string;
+  id: number;
+  name: string;
+  slug: string;
+};
 
 export function ProfileForm({
   author,
@@ -22,7 +30,11 @@ export function ProfileForm({
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [authorName, setAuthorName] = useState(author?.name ?? "");
+  const [avatar, setAvatar] = useState<number | null>(author?.avatar ?? null);
   const [bio, setBio] = useState(author?.bio ?? "");
+  // An upload in flight has no id yet, so saving now would persist the old
+  // avatar and silently discard the new one. Same guard as the post editor.
+  const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle",
   );
@@ -44,7 +56,7 @@ export function ProfileForm({
             method: "PATCH",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: authorName, bio }),
+            body: JSON.stringify({ avatar, bio, name: authorName }),
           }),
         );
       }
@@ -65,6 +77,16 @@ export function ProfileForm({
         <h2 className="font-heading text-sm font-semibold text-foreground/70">
           作者身分
         </h2>
+        {author && (
+          <AvatarField
+            mediaId={avatar}
+            name={authorName || "?"}
+            onBusyChange={setUploading}
+            onChange={setAvatar}
+            ownerId={userId}
+            slug={author.slug}
+          />
+        )}
         <label className="block space-y-1">
           <span className="text-sm">別名（公開顯示）</span>
           <input
@@ -133,7 +155,7 @@ export function ProfileForm({
         <Button
           data-testid="profile-save"
           className="justify-center"
-          disabled={status === "saving"}
+          disabled={status === "saving" || uploading}
           onClick={save}
         >
           儲存變更

@@ -35,7 +35,20 @@ export default async function ProfilePage() {
       <ProfileForm
         userId={user.id}
         displayName={user.displayName ?? ""}
-        author={author ? { id: author.id, name: author.name, bio: author.bio ?? "" } : null}
+        author={
+          author
+            ? {
+                // `avatar` is an id here and must stay one: the query above
+                // is depth 0, so Payload returns the relationship unpopulated
+                // and AvatarField resolves it to a picture itself.
+                avatar: typeof author.avatar === "number" ? author.avatar : null,
+                bio: author.bio ?? "",
+                id: author.id,
+                name: author.name,
+                slug: author.slug,
+              }
+            : null
+        }
         usedBytes={usedBytes}
         quotaBytes={quotaBytes}
       />

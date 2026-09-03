@@ -1,5 +1,3 @@
-import authorAvatar from "../../public/images/author/devbertskie.png";
-
 /** Public canonical origin for OG / absolute metadata. Never localhost. */
 export const CANONICAL_SITE_URL = "https://wildrunner.org";
 
@@ -21,12 +19,18 @@ export const siteConfig = {
   title: "野馬營",
   description: "野馬營，一群野馬，一個家",
   author: "追雲逐雪",
-  authorImage: authorAvatar,
   slogan: "心如野馬，馳騁天下",
+  /**
+   * Only `github`, and only because `app.tsx`'s footer falls back to it when
+   * the Site global has none. `twitter` and `facebook` used to sit here as
+   * "https://twitter.com" and "https://facebook.com" — the sites' own front
+   * doors, not any club account — and the about page rendered both as
+   * buttons. A link that goes somewhere plausible but wrong is worse than a
+   * missing one: nothing about it looks broken. Add a real account here when
+   * the club has one, never a placeholder.
+   */
   social: {
     github: "https://github.com/jackywxd",
-    twitter: "https://twitter.com",
-    facebook: "https://facebook.com",
   },
 };
 

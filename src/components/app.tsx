@@ -21,7 +21,7 @@ export default async function App({ children }: PropsWithChildren) {
       <main className="container flex-1">{children}</main>
       <footer className="container border-t-2 border-t-border py-3">
         <p className="text-xs text-muted-foreground text-left">
-          &copy; 2024 Created by{" "}
+          &copy; {new Date().getFullYear()} Created by{" "}
           <Link
             target="_blank"
             rel="noreferrer"

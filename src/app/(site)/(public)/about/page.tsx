@@ -1,16 +1,38 @@
 import React from "react";
 import PageHeader from "@/components/page-header";
-import Link from "next/link";
-import Image from "next/image";
-import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
-import { SOCIALS } from "@/constants";
-import { cn } from "@/lib/utils";
 import { Metadata } from "next";
 import { getSiteGlobals } from "@/lib/content";
 
+/**
+ * 關於野馬營.
+ *
+ * WHAT WAS HERE BEFORE, and why none of it survived: this page was the blog
+ * template's, unchanged. It rendered a name card built from
+ * `siteConfig.authorImage` — which resolves to `devbertskie.png`, the
+ * template author's own photo — under a hardcoded English job title,
+ * "Full Stack Developer", on a Vancouver trail-running club's about page.
+ * Beside it sat three social buttons whose Facebook and Twitter entries were
+ * `https://facebook.com` and `https://twitter.com`: not broken links, which
+ * announce themselves, but working buttons that quietly sent a visitor to
+ * another company's front door.
+ *
+ * The heading and standfirst were English ("About", "Let's get to know each
+ * other") directly beneath a Chinese nav.
+ *
+ * WHAT IT SAYS NOW is deliberately only what this repository can already
+ * prove: the club's own slogan, and the description on the Site global. The
+ * body is still `metadata.description`, which is a sentence written for
+ * search results rather than for a reader — that is the next thing to fix,
+ * and fixing it properly means giving the Site global an `about` field so the
+ * copy can be edited without a deploy. Left undone here on purpose: this
+ * change removes what was untrue, and inventing replacement prose about a
+ * club I cannot ask would just be a nicer-looking version of the same
+ * problem.
+ */
+
 export const metadata: Metadata = {
-  title: "About",
+  title: "關於",
 };
 
 export default async function AboutPage() {
@@ -18,46 +40,15 @@ export default async function AboutPage() {
 
   return (
     <div className="container relative max-w-6xl py-6 lg:py-10">
-      <PageHeader title="About" description="Let's get to know each other" />
+      <PageHeader title="關於野馬營" description={siteConfig.slogan} />
       <hr className="my-8 h-0 border-t-2 border-border" />
 
-      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
-        <div className="mx-auto w-full max-w-[420px]">
-          <div className="flex flex-col gap-2 border border-border bg-secondary p-6">
-            <Image
-              src={siteConfig.authorImage}
-              width={82}
-              height={82}
-              alt={siteConfig.name}
-              className="mb-4 border bg-background grayscale"
-            />
-            <h3 className="text-lg font-extrabold">{siteConfig.author}</h3>
-            <p className="text-left text-sm text-muted-foreground">
-              Full Stack Developer
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {SOCIALS.map((social) => (
-                <Link
-                  key={social.label}
-                  href={social.path}
-                  rel="noreferrer"
-                  target="_blank"
-                  className={cn(
-                    buttonVariants({ variant: "ghost" }),
-                    "text-primary px-0 hover:bg-primary transition-colors rounded-full p-2 size-8 bg-primary/80",
-                  )}
-                >
-                  <social.icon className="size-6" />
-                  <span className="sr-only">{social.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-        <p className="flex-1 text-left text-sm text-muted-foreground lg:text-base">
-          {globals.metadata.description}
-        </p>
-      </div>
+      {/* Bounded, because the container is not. Same reasoning as the rider
+          page's bio: at 1440px this paragraph would set ~65 Chinese
+          characters to a line where a readable measure is nearer 40. */}
+      <p className="max-w-2xl whitespace-pre-line text-left text-muted-foreground lg:text-lg">
+        {globals.metadata.description}
+      </p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { downscaleImage } from "@/lib/media/downscale";
+import type { Media } from "@/payload-types";
 import {
   DIRECT_UPLOAD_THRESHOLD,
   completeSession,
@@ -16,12 +17,17 @@ import {
  * reserve → session → parts → complete → document sequence the media
  * library and the admin panel use.
  *
- * Everything created here is `usage: 'attachment'`, and this is the seam that
- * makes that true for the whole editor: both an image pasted into an article
- * body (ImageInsertPlugin) and a post's cover (CoverImageField) come through
- * this one function. `media.usage` defaults to 'gallery', so an attachment
- * path that forgets to say so puts a screenshot on the public photo wall —
- * which is why it is sent on both branches below rather than once.
+ * `usage` IS A REQUIRED PARAMETER WITH NO DEFAULT, deliberately. `media.usage`
+ * defaults to 'gallery', so any path through here that stays silent puts the
+ * file on the public photo wall. This used to be hardcoded to 'attachment',
+ * which was right while the only callers were the editor's two image paths —
+ * and wrong the moment a third caller appeared, because a default is silent
+ * and a wrong `usage` is invisible until somebody's face is on /gallery.
+ * Making every call site name its own value is the same shape
+ * `ensureMediaFromUrl` took for the same reason (see AGENTS.md).
+ *
+ * It is still sent on *both* branches below rather than once: they build the
+ * document through different endpoints, and neither inherits from the other.
  */
 
 type Usage = { quotaBytes: number; usedBytes: number };
@@ -76,7 +82,10 @@ async function processImage(mediaId: number): Promise<void> {
   }).catch(() => {});
 }
 
-export async function uploadImageFile(file: File): Promise<number> {
+export async function uploadImageFile(
+  file: File,
+  usage: NonNullable<Media["usage"]>,
+): Promise<number> {
   // Before the quota check, not after: the whole point of shrinking is that
   // the smaller file is what gets billed, and checking the original's size
   // would refuse an upload that comfortably fits.
@@ -95,7 +104,7 @@ export async function uploadImageFile(file: File): Promise<number> {
     // processImage below — see its own comment.
     const body = new FormData();
     body.set("file", named);
-    body.set("_payload", JSON.stringify({ alt, usage: "attachment" }));
+    body.set("_payload", JSON.stringify({ alt, usage }));
     const response = await fetch("/api/media", {
       method: "POST",
       credentials: "same-origin",
@@ -116,7 +125,7 @@ export async function uploadImageFile(file: File): Promise<number> {
     filename: session.filename,
     mimeType: session.mimeType,
     alt,
-    usage: "attachment",
+    usage,
   });
 
   // Nothing read this file server-side, so it has no dimensions. Measuring
