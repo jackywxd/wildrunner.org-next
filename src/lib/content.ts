@@ -86,6 +86,11 @@ const POST_CARD_SELECT = {
 const POST_DETAIL_SELECT = {
   ...POST_CARD_SELECT,
   content: true,
+  // Only the detail page reads an article aloud, so only it needs to know
+  // what should play behind that. A card grid asking would populate 500 rows
+  // to render nothing, which is what `content` is kept out of the card select
+  // for.
+  musicUrl: true,
   raceRecord: true,
 } as const satisfies PostsSelect<true>;
 
@@ -119,7 +124,11 @@ type PostCardDoc = Pick<
   | "slug"
   | "title"
   | "_status"
-> & { content?: Post["content"]; raceRecord?: Post["raceRecord"] };
+> & {
+  content?: Post["content"];
+  musicUrl?: Post["musicUrl"];
+  raceRecord?: Post["raceRecord"];
+};
 
 function isAuthor(value: unknown): value is Author {
   return Boolean(value && typeof value === "object" && "name" in value);
@@ -259,7 +268,24 @@ export async function getPostBySlugParam(
       },
     });
     if (result.docs[0]) {
-      return mapPayloadPost(result.docs[0]);
+      const doc = result.docs[0];
+      // Resolved here rather than inside `mapPayloadPost`, which is shared
+      // with every card query and is synchronous. The fallback list lives on
+      // the `site` global, so knowing the answer costs a second read that a
+      // grid of cards must not pay — `getSiteGlobals` is `React.cache`'d, so
+      // on the detail page it is free.
+      const { backgroundMusic } = await getSiteGlobals();
+      return {
+        ...mapPayloadPost(doc),
+        // The same resolution an album gets, keyed on the post's slug: its
+        // own link wins, else the site list picks a track deterministically
+        // from that slug. See `pickFallbackMusic` for why it is not random.
+        musicVideoId: resolveAlbumMusic({
+          slug: doc.slug,
+          own: doc.musicUrl,
+          fallback: backgroundMusic,
+        }),
+      };
     }
   }
   return null;

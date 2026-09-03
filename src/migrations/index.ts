@@ -26,6 +26,7 @@ import * as migration_20260902_120000_add_media_description from './20260902_120
 import * as migration_20260902_160000_add_gallery_music_url from './20260902_160000_add_gallery_music_url';
 import * as migration_20260903_090000_add_race_edition_music_url from './20260903_090000_add_race_edition_music_url';
 import * as migration_20260903_091000_add_site_background_music from './20260903_091000_add_site_background_music';
+import * as migration_20260903_120000_add_post_music_url from './20260903_120000_add_post_music_url';
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260903_091000_add_site_background_music.up,
     down: migration_20260903_091000_add_site_background_music.down,
     name: '20260903_091000_add_site_background_music',
+  },
+  {
+    up: migration_20260903_120000_add_post_music_url.up,
+    down: migration_20260903_120000_add_post_music_url.down,
+    name: '20260903_120000_add_post_music_url',
   },
 ];

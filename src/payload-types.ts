@@ -388,6 +388,10 @@ export interface Post {
    */
   raceRecord?: (number | null) | RaceRecord;
   featured?: boolean | null;
+  /**
+   * A YouTube video link. Plays while a visitor has this article read aloud; they can always mute it.
+   */
+  musicUrl?: string | null;
   publishedAt?: string | null;
   content: {
     root: {
@@ -770,6 +774,7 @@ export interface PostsSelect<T extends boolean = true> {
   author?: T;
   raceRecord?: T;
   featured?: T;
+  musicUrl?: T;
   publishedAt?: T;
   content?: T;
   updatedAt?: T;
