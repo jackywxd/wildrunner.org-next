@@ -5,10 +5,10 @@ import { notFound } from "next/navigation";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { RiderBadgeWall } from "@/components/riders/RiderBadges";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
-import { siteConfig } from "@/config/site";
 import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { formatDate } from "@/lib/utils";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -20,28 +20,21 @@ export async function generateMetadata({ params }: Params) {
   if (!found) return {};
 
   const { rider } = found;
-  const baseURL = siteConfig.baseURL;
-  const title = `${rider.name} | ${siteConfig.title}`;
-  const description = rider.bio ?? `${rider.name} 在野馬營的文章`;
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(rider.name)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "profile",
-      url: `${baseURL}/riders/${rider.slug}`,
-      images: [{ url: ogImage, alt: rider.name }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: `/riders/${rider.slug}`,
+    title: rider.name,
+    subtitle: rider.bio ?? `${rider.name} 在野馬營的文章`,
+    type: "profile",
+    // A MEMBER IS SOMETHING, so they get their own colours rather than the
+    // site's furniture card. Seeded on the slug, which means their profile and
+    // their 時間機 carry the same card — the subject of both pages is them.
+    //
+    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
+    // is a small square and a card is 1920×1080, so using it as the image
+    // means a platform crops it badly, and using it as a card background means
+    // upscaling a few hundred pixels across the whole width.
+    card: { kind: "rainbow", seed: rider.slug },
+  });
 }
 
 export default async function RiderPage({ params }: Params) {

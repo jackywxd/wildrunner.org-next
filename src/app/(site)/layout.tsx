@@ -6,7 +6,7 @@ import "@/styles/globals.css";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
-import { getSiteBaseURL } from "@/config/site";
+import { getSiteBaseURL, siteConfig } from "@/config/site";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -19,12 +19,28 @@ const notoSansTc = Noto_Sans_TC({
   variable: "--font-noto",
 });
 
+/**
+ * THE SITE NAME IS APPENDED HERE AND NOWHERE ELSE.
+ *
+ * This template used to read `%s | Wild Runner Website` while every route
+ * also appended `| 野馬營` of its own, so a tab read
+ * 「賽事日程 | Race Schedule | 野馬營 | Wild Runner Website」 — four segments,
+ * two site names, and the outer one in a language the site is not written in.
+ * Routes now return the bare subject (see `pageMetadata`) and this adds the
+ * name once.
+ *
+ * The full-width 「｜」 is the CJK separator: at this type size the half-width
+ * one crowds the characters on either side of it. It is also not the
+ * character `/og` splits a legacy `title|author` on, which is one fewer way
+ * for a title to end up in a card's byline.
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteBaseURL()),
   title: {
-    template: "%s | Wild Runner Website",
-    default: "Wild Runner",
+    template: `%s｜${siteConfig.title}`,
+    default: siteConfig.title,
   },
+  description: siteConfig.description,
 };
 
 const fontCode = localFont({

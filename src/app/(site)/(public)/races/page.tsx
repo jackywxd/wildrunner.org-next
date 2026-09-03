@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { RaceCalendar } from "@/components/race-schedule/RaceCalendar";
 import { RaceList } from "@/components/race-schedule/RaceList";
 import { RaceScheduleFilters } from "@/components/race-schedule/RaceScheduleFilters";
-import { siteConfig } from "@/config/site";
 import { getRaceScheduleBounds, getUpcomingRaces } from "@/lib/content";
 import {
   currentAnchor,
@@ -17,35 +16,20 @@ import { parseRaceFilters, raceFiltersHref } from "@/lib/races/race-filters";
 import type { RaceFilters } from "@/lib/races/race-filters";
 import { hasQualifier } from "@/lib/races/qualifiers";
 import { isRegistrationOpen } from "@/lib/races/registration";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
 const TITLE = "賽事日程";
 
 export async function generateMetadata() {
-  const baseURL = siteConfig.baseURL;
-  const title = `${TITLE} | Race Schedule | ${siteConfig.title}`;
-  const description =
-    "世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。";
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(title)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/races`,
-      images: [{ url: ogImage, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/races",
+    title: TITLE,
+    subtitle:
+      "世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。",
+    card: { kind: "plain" },
+  });
 }
 
 const WINDOW_MONTHS = 12;

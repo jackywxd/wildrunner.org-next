@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { ClubTimelineFeed } from "@/components/riders/ClubTimelineFeed";
 import PageHeader from "@/components/page-header";
-import { siteConfig } from "@/config/site";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import { pageMetadata } from "@/lib/site-metadata";
 import {
   CLUB_PAGE_SIZE,
   catalogueForRows,
@@ -13,7 +13,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "野馬營時間機器";
+const TITLE = "野馬營時間機";
 
 /**
  * The club's time machine: every member's races and articles on one rail.
@@ -31,28 +31,12 @@ const TITLE = "野馬營時間機器";
  * return something this page would not have.
  */
 export async function generateMetadata() {
-  const baseURL = siteConfig.baseURL;
-  const title = `${TITLE} | ${siteConfig.title}`;
-  const description = "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。";
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(TITLE)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/riders/timeline`,
-      images: [{ url: ogImage, alt: TITLE }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/riders/timeline",
+    title: TITLE,
+    subtitle: "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
+    card: { kind: "plain" },
+  });
 }
 
 export default async function ClubTimelinePage() {

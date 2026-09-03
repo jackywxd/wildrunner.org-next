@@ -36,11 +36,8 @@ export async function generateMetadata({
   const result = gallery ? getGalleryVideo(gallery, videoId) : undefined;
   const baseURL = siteConfig.baseURL ?? "";
 
-  if (!result) {
-    return {
-      title: "错误：找不到视频",
-    };
-  }
+  // Same as its siblings: discarded, because the page throws `notFound()`.
+  if (!result) return {};
   if (result.video.streamId && !result.video.streamReady) {
     result.video.streamReady = await refreshStreamReady(
       result.video.mediaId,
@@ -50,7 +47,10 @@ export async function generateMetadata({
 
   const { gallery: g, video } = result;
   const videoName = mediaDisplayName(video);
-  const title = `${videoName} · ${g.name}`;
+  // The album is named in the description and on the card's byline, and the
+  // root template adds the site name. Carrying all three in the tab title is
+  // how this route ended up with two different separators in one string.
+  const title = videoName;
   const description = `${g.name} · ${siteConfig.description}`;
   const pageUrl = `${baseURL}/gallery/${g.slug}/v/${encodeURIComponent(video.id)}`;
   const ogImage = buildVideoOgImageUrl({

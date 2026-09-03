@@ -4,9 +4,9 @@ import PageHeader from "@/components/page-header";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { RiderBadgeRow } from "@/components/riders/RiderBadges";
 import { RiderFilters } from "@/components/riders/RiderFilters";
-import { siteConfig } from "@/config/site";
 import { getRiders } from "@/lib/content";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import { pageMetadata } from "@/lib/site-metadata";
 import {
   filterRidersByBadges,
   parseRiderBadges,
@@ -16,28 +16,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-  const baseURL = siteConfig.baseURL;
-  const title = `野馬 | ${siteConfig.title}`;
-  const description = "野馬營的成員們";
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(title)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/riders`,
-      images: [{ url: ogImage, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/riders",
+    title: "野馬",
+    subtitle: "野馬營的成員們",
+    card: { kind: "plain" },
+  });
 }
 
 export default async function RidersPage({
@@ -79,7 +63,7 @@ export default async function RidersPage({
           data-testid="club-timeline-link"
           href="/riders/timeline"
         >
-          時間機器 →
+          時間機 →
         </Link>
       </div>
 

@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { RiderTimeline } from "@/components/riders/RiderTimeline";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
-import { siteConfig } from "@/config/site";
 import { getRiderTimeline } from "@/lib/content";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -17,32 +17,27 @@ export async function generateMetadata({ params }: Params) {
   if (!found) return {};
 
   const { rider } = found;
-  const baseURL = siteConfig.baseURL;
-  const title = `${rider.name} 的時間機器 | ${siteConfig.title}`;
-  const description = `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`;
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(`${rider.name} 的時間機器`)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "profile",
-      url: `${baseURL}/riders/${rider.slug}/timeline`,
-      images: [{ url: ogImage, alt: rider.name }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    // 「的」 binds directly to the name: the half-width space that used to sit
+    // in front of it came from string interpolation, not from typography.
+    path: `/riders/${rider.slug}/timeline`,
+    title: `${rider.name}的時間機`,
+    subtitle: `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`,
+    type: "profile",
+    // A MEMBER IS SOMETHING, so they get their own colours rather than the
+    // site's furniture card. Seeded on the slug, which means their profile and
+    // their 時間機 carry the same card — the subject of both pages is them.
+    //
+    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
+    // is a small square and a card is 1920×1080, so using it as the image
+    // means a platform crops it badly, and using it as a card background means
+    // upscaling a few hundred pixels across the whole width.
+    card: { kind: "rainbow", seed: rider.slug },
+  });
 }
 
 /**
- * 時間機器 — the member's own history, races and articles on one rail.
+ * 時間機 — the member's own history, races and articles on one rail.
  *
  * ITS OWN ROUTE RATHER THAN A THIRD BLOCK ON THE PROFILE. The timeline
  * contains every article the profile's grid already shows, so the two cannot
@@ -74,7 +69,7 @@ export default async function RiderTimelinePage({ params }: Params) {
             className="font-heading text-3xl font-extrabold tracking-tight lg:text-4xl"
             data-testid="rider-name"
           >
-            {rider.name} 的時間機器
+            {rider.name} 的時間機
           </h1>
           <div className="mt-3">
             <RiderViewTabs active="timeline" slug={rider.slug} />

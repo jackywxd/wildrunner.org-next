@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import PageHeader from "@/components/page-header";
 import { RaceSeriesTag } from "@/components/race-schedule/RaceSeriesTag";
-import { siteConfig } from "@/config/site";
 import {
   getRaceEditionDetail,
   getRaceEditionPhotos,
@@ -12,6 +11,7 @@ import {
 import { externalHref } from "@/lib/races/registration";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 import { raceGallerySlug } from "@/lib/race-gallery";
+import { pageMetadata } from "@/lib/site-metadata";
 
 import RacePhotoWall from "./_components/RacePhotoWall";
 
@@ -34,20 +34,24 @@ export async function generateMetadata({
   const edition = await loadEdition(params);
   if (!edition) return {};
 
-  const baseURL = siteConfig.baseURL;
-  const title = `${edition.nameZh || edition.name} ${edition.year} | ${siteConfig.title}`;
-  const description = `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`;
+  // A PHOTOGRAPH FROM ITS OWN WALL WHEN THERE IS ONE. This page is the most
+  // shareable thing on the site — a race somebody just ran — and a picture
+  // from that race beats any generated card. One extra query, on a page that
+  // already runs several.
+  const [photo] = await getRaceEditionPhotos(edition.id);
 
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/races/${edition.eventKey}/${edition.year}`,
-    },
-  };
+  return pageMetadata({
+    path: `/races/${edition.eventKey}/${edition.year}`,
+    title: `${edition.nameZh || edition.name} ${edition.year}`,
+    subtitle: `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`,
+    // Seeded on the event key, not on the edition: it is the same race every
+    // year, and `races/design-tokens.ts` hashes that same key for the badge
+    // drawn on this very page. The card and the badge therefore agree, which
+    // is the only reason to prefer a hash over a stored colour.
+    card: photo
+      ? { kind: "photo", src: photo.src }
+      : { kind: "rainbow", seed: edition.eventKey },
+  });
 }
 
 /** "2026-08-28" -> "8月28日". */

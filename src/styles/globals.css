@@ -266,7 +266,7 @@ h6 {
 }
 
 /*
- * 時間機器 — the member timeline (/riders/<slug>/timeline) is meant to be
+ * 時間機 — the member timeline (/riders/<slug>/timeline) is meant to be
  * printed, and that turns two of its own features into bugs.
  *
  * FRAMER-MOTION LEAVES UNSEEN ROWS AT `opacity: 0`. A row animates in with

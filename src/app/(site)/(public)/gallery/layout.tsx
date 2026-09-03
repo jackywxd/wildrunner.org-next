@@ -1,35 +1,14 @@
 import React from "react";
 import { Metadata } from "next";
-import { siteConfig } from "@/config/site";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export function generateMetadata(): Metadata {
-  const baseURL = siteConfig.baseURL;
-  const title = `${siteConfig.title} | 相册`;
-  const description = `${siteConfig.description} `;
-  let ogImage = `${baseURL}/og?title=${title}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/gallery`,
-      images: [
-        {
-          url: ogImage,
-          alt: description,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/gallery",
+    title: "相冊",
+    subtitle: "野馬營在賽道上、山裡和終點線後的照片與影片。",
+    card: { kind: "plain" },
+  });
 }
 
 export default function Layout({

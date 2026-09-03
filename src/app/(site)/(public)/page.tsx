@@ -16,40 +16,18 @@ import { isRegistrationOpen } from "@/lib/races/registration";
 import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const globals = await getSiteGlobals();
-  const title = globals.metadata.titleDefault || siteConfig.title;
-  const description =
-    globals.metadata.description || siteConfig.description;
-  const baseURL = siteConfig.baseURL;
-
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(title)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: baseURL,
-      images: [
-        {
-          url: ogImage,
-          alt: title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/",
+    title: globals.metadata.titleDefault || siteConfig.title,
+    subtitle: globals.metadata.description || siteConfig.description,
+    card: { kind: "plain" },
+  });
 }
 
 const HOME_RACE_COUNT = 4;
@@ -110,9 +88,22 @@ export default async function Home() {
           )}
 
           <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row">
+            {/* The highlighted call to action, ahead of the other two.
+                Everything else on this page is a slice — the latest eight
+                articles, four races, twenty photos — and each answers "what
+                is happening now". 時間機 is the one link that answers "what
+                has this club done", which is the thing a first-time visitor
+                has no other way in to. */}
+            <Link
+              href="/riders/timeline"
+              data-testid="home-timeline-link"
+              className={cn(buttonVariants({ variant: "default" }), "px-6")}
+            >
+              時間機
+            </Link>
             <Link
               href="/posts"
-              className={cn(buttonVariants({ variant: "default" }), "px-6")}
+              className={cn(buttonVariants({ variant: "outline" }), "px-6")}
             >
               查看文章
             </Link>

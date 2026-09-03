@@ -14,7 +14,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { getBylineAvatar, getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { postPublicPath } from "@/lib/content-paths";
-import { resolvePostOgImage } from "@/lib/postOg";
+import { resolvePostOgCard } from "@/lib/postOg";
+import { pageMetadata } from "@/lib/site-metadata";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   resolveBadge,
@@ -32,45 +33,23 @@ interface BlogPageItemProps {
 export async function generateMetadata({
   params,
 }: BlogPageItemProps): Promise<Metadata> {
-  const baseURL = siteConfig.baseURL;
   const slugParam = (await params).slug.join("/");
   const post = await getPostBySlugParam(slugParam);
+  if (!post) return {};
 
-  if (!post) {
-    return {};
-  }
-
-  const { title, description, author } = post;
-
-  const newTitle = `${title} | ${author ?? siteConfig.author}`;
-  // Cover image, else the first picture in the body, else a generated card.
-  // The middle step matters because nothing in the members area sets the
-  // cover field — see src/lib/postOg.ts, which also explains why this cannot
-  // live in `mapPayloadPost`.
-  const ogImage = resolvePostOgImage(post, baseURL);
-
-  return {
-    title: newTitle,
-    description,
-    openGraph: {
-      title: newTitle,
-      description,
-      type: "article",
-      url: `${baseURL}${postPublicPath(post.slug)}`,
-      images: [
-        {
-          url: ogImage,
-          alt: newTitle,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: newTitle,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: postPublicPath(post.slug),
+    title: post.title,
+    // The byline is the card's, and the description is the article's own
+    // summary — two different sentences, so the card is signed by a person
+    // while the crawler still gets what the piece is about.
+    subtitle: post.description || (post.author ?? siteConfig.author),
+    type: "article",
+    // Cover image, else the first picture in the body, else a card seeded on
+    // the slug. The middle rung matters because nothing in the members area
+    // sets the cover field — see src/lib/postOg.ts.
+    card: resolvePostOgCard(post),
+  });
 }
 
 /**

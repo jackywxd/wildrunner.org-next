@@ -17,7 +17,7 @@ import { expect, test } from "@playwright/test";
 import {
   absoluteImageUrl,
   firstContentImageSrc,
-  resolvePostOgImage,
+  resolvePostOgCard,
 } from "@/lib/postOg";
 import type { Post } from "@/payload-types";
 
@@ -60,33 +60,37 @@ test.describe("U-POSTOG a post's social card", () => {
   test("U-POSTOG-1: the cover image wins over everything in the body", () => {
     // Protects against: a post that HAS a chosen cover silently losing it to
     // whatever picture happens to sit first in the article.
-    const src = resolvePostOgImage(
-      {
-        ...POST,
-        content: body([upload({ url: "https://images.wildrunner.org/body.webp" })]),
-        image: { height: 800, src: "https://images.wildrunner.org/cover.webp", width: 1200 },
+    const card = resolvePostOgCard({
+      ...POST,
+      content: body([upload({ url: "https://images.wildrunner.org/body.webp" })]),
+      image: {
+        height: 800,
+        src: "https://images.wildrunner.org/cover.webp",
+        width: 1200,
       },
-      BASE,
-    );
-    expect(src).toBe("https://images.wildrunner.org/cover.webp");
+    });
+    expect(card).toEqual({
+      kind: "photo",
+      src: "https://images.wildrunner.org/cover.webp",
+    });
   });
 
   test("U-POSTOG-2: with no cover, the first body picture is used", () => {
     // Protects against: the whole reason this exists — every member-written
     // post falling to a generated card while full of photographs, because
     // the editor never exposed the cover field.
-    const src = resolvePostOgImage(
-      {
-        ...POST,
-        content: body([
-          para("前言"),
-          upload({ url: "https://images.wildrunner.org/first.webp" }),
-          upload({ url: "https://images.wildrunner.org/second.webp" }),
-        ]),
-      },
-      BASE,
-    );
-    expect(src).toBe("https://images.wildrunner.org/first.webp");
+    const card = resolvePostOgCard({
+      ...POST,
+      content: body([
+        para("前言"),
+        upload({ url: "https://images.wildrunner.org/first.webp" }),
+        upload({ url: "https://images.wildrunner.org/second.webp" }),
+      ]),
+    });
+    expect(card).toEqual({
+      kind: "photo",
+      src: "https://images.wildrunner.org/first.webp",
+    });
   });
 
   test("U-POSTOG-3: 'first' is document order, including nested pictures", () => {
@@ -131,16 +135,18 @@ test.describe("U-POSTOG a post's social card", () => {
     ).toBe("https://images.wildrunner.org/real.webp");
   });
 
-  test("U-POSTOG-6: a post with no picture at all falls to the generated card", () => {
-    const src = resolvePostOgImage({ ...POST, content: body([para("只有文字")]) }, BASE);
-    expect(src.startsWith(`${BASE}/og?`)).toBe(true);
-    const params = new URL(src).searchParams;
-    expect(params.get("variant")).toBe("rainbow");
-    // The slug, not the title: a retitled post has to keep the card it was
-    // already shared with, which is the whole reason the seed is not derived
-    // from the headline.
-    expect(params.get("seed")).toBe("posts/2026/a-post");
-    expect(params.get("title")).toBe("測試文章|追雲逐雪");
+  test("U-POSTOG-6: a post with no picture at all falls to the seeded card", () => {
+    // THE SEED IS THE SLUG, NOT THE TITLE: a retitled post has to keep the
+    // card it was already shared with.
+    //
+    // What this no longer asserts is the `/og` query, because the resolver no
+    // longer builds one — it returns the decision and `pageMetadata` turns it
+    // into a URL. The query's own guarantees (a subtitle on every card, so the
+    // route never splits a title on `|`) moved to `X-OG-2`, which reads them
+    // off the HTML the site really serves.
+    expect(
+      resolvePostOgCard({ ...POST, content: body([para("只有文字")]) }),
+    ).toEqual({ kind: "rainbow", seed: "posts/2026/a-post" });
   });
 
   test("U-POSTOG-7: a same-origin path is absolutised, a CDN url is left alone", () => {
@@ -160,6 +166,6 @@ test.describe("U-POSTOG a post's social card", () => {
     // Card queries leave `content` undefined by design (POST_CARD_SELECT),
     // so the chain has to tolerate it rather than throw.
     expect(firstContentImageSrc(undefined)).toBeUndefined();
-    expect(resolvePostOgImage({ ...POST }, BASE).startsWith(`${BASE}/og?`)).toBe(true);
+    expect(resolvePostOgCard({ ...POST }).kind).toBe("rainbow");
   });
 });
