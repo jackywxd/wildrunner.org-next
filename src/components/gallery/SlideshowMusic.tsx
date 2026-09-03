@@ -5,69 +5,83 @@ import { createPortal } from "react-dom";
 import { youTubeEmbedUrl } from "@/lib/youtube";
 
 /**
- * An album's background music, playing or not playing.
+ * An album's background music: a playlist, playing or not playing.
  *
- * MOUNTED TO PLAY, UNMOUNTED TO STOP. There is no player object here and no
- * `postMessage` protocol: `playing` decides whether the iframe exists at all,
+ * MOUNTED TO PLAY, UNMOUNTED TO STOP, and re-mounted to change track. There is
+ * no player object here and no `postMessage` protocol: `playing` decides
+ * whether the iframe exists at all, `index` decides which track it starts on,
  * and an iframe that exists carries `autoplay=1`.
  *
  * That is a deliberate choice against two alternatives that both looked
  * better on paper:
  *
  *   - YouTube's **IFrame Player API** (`https://www.youtube.com/iframe_api`)
- *     gives real play/pause on one player. It also means loading a script
- *     from `youtube.com` on a page that otherwise talks only to
- *     `youtube-nocookie.com` — and the whole reason `youTubeEmbedUrl` picks
- *     the quieter host (src/lib/youtube.ts) is that this site shows no cookie
- *     banner. Paying for pause with a third-party script is the wrong trade.
+ *     gives real play/pause, `nextVideo()` and a resumable position. It also
+ *     means loading a script from `youtube.com` on a page that otherwise talks
+ *     only to `youtube-nocookie.com` — and the whole reason `youTubeEmbedUrl`
+ *     picks the quieter host (src/lib/youtube.ts) is that this site shows no
+ *     cookie banner.
  *   - **`postMessage` with `enablejsapi=1`** and no API script is the popular
  *     middle road, and it is an undocumented handshake whose behaviour on
  *     `youtube-nocookie.com` this repo would be guessing at. A player that
  *     silently ignores commands looks exactly like one that is working — the
  *     failure this codebase keeps writing down.
  *
- * WHAT THE CHOICE COSTS, said plainly: stopping and starting again restarts
- * the track from the beginning rather than resuming. For music behind a
- * slideshow that is a small thing, and it is visible rather than mysterious.
+ * WHAT THE CHOICE COSTS, said plainly: every stop and start begins a track
+ * from zero, and so does every skip. For a playlist behind a slideshow that
+ * is a small thing — a skip is *meant* to start something — and it is visible
+ * rather than mysterious.
  *
- * WHY IT IS VISIBLE, WHICH IT WAS NOT AT FIRST. This started as a 1×1,
- * transparent, `pointer-events: none` frame — audio with no UI. On a Mac that
- * worked; on an iPhone it was silent, which is the report that produced this
- * paragraph. iOS grants the right to make sound to a gesture that lands on the
- * media itself, and does not hand a parent page's gesture to a cross-origin
- * frame; a frame that is one pixel wide, transparent and untappable is one the
- * required gesture can never reach. So the player is a real, visible,
- * tappable thing now: on a desktop it starts on its own exactly as before, and
- * on a phone the visitor taps YouTube's own play button once.
+ * WHY IT IS VISIBLE. This started as a 1×1, transparent, `pointer-events:
+ * none` frame — audio with no UI. On a Mac that worked; on an iPhone it was
+ * silent. iOS grants the right to make sound to a gesture that lands on the
+ * media itself and does not hand a parent page's gesture to a cross-origin
+ * frame, so a frame that is one pixel wide, transparent and untappable is one
+ * the required gesture can never reach. Making it real and tappable is what
+ * gives that gesture somewhere to land. **That has not fixed iOS as of this
+ * writing** — the report is that the player appears and does not start — so
+ * the mechanism above is at best incomplete. It is kept because it costs a
+ * desktop nothing and because a tappable player is the precondition for any
+ * fix that does work.
  *
- * This is the fix for a mechanism inferred from the platform's rules, not one
- * measured here — nothing in this repository can hear an iPhone. What makes it
- * safe to ship anyway is that it costs a desktop nothing, and that the tap it
- * enables is itself the experiment: if sound still does not come on iOS, the
- * cause is not this.
- *
- * `controls=1`, unlike the hidden version's `controls=0`. A player somebody
- * may need to press has to show what it is and offer a way to press it, and
- * the volume control it brings is the finer-grained answer to "quieter" that
- * the lightbox's own mute button cannot give.
+ * `controls=1`: a player somebody may need to press has to show what it is,
+ * and the volume control it brings is the finer answer to "quieter" that the
+ * lightbox's mute button cannot give.
  */
 export function SlideshowMusic({
-  videoId,
+  playlist,
+  index,
   playing,
 }: {
-  videoId: string;
+  /** YouTube ids, in order. Never URLs — see `SiteGallery.musicPlaylist`. */
+  playlist: string[];
+  /** Which one to start on. Out-of-range is treated as nothing to play. */
+  index: number;
   playing: boolean;
 }) {
+  const videoId = playlist[index];
+
   // `playing` only ever becomes true from a click, so this never renders on
   // the server and `document` is always there by the time it does. Guarded
   // anyway, because a component that assumes that is one refactor away from
   // crashing the whole page during SSR.
-  if (!playing || typeof document === "undefined") return null;
+  if (!playing || !videoId || typeof document === "undefined") return null;
 
-  // Built from the id, never from anything stored — see src/lib/youtube.ts.
-  // `loop` needs `playlist` set to the same id; that is YouTube's own rule for
-  // looping a single video rather than a trick.
-  const src = `${youTubeEmbedUrl(videoId)}?autoplay=1&loop=1&playlist=${videoId}&controls=1&playsinline=1`;
+  /**
+   * The rest of the list, so YouTube advances on its own when a track ends.
+   *
+   * `playlist=` is YouTube's own parameter for "play these after the one in
+   * the path", and it is the same parameter the single-track version used to
+   * make `loop=1` loop one video — that trick is this feature generalised
+   * rather than a separate mechanism. The current track is repeated at the end
+   * so the list wraps back to where the album started instead of stopping.
+   */
+  const queue = [
+    ...playlist.slice(index + 1),
+    ...playlist.slice(0, index),
+    videoId,
+  ];
+  const src = `${youTubeEmbedUrl(videoId)}?autoplay=1&loop=1&playlist=${queue.join(",")}&controls=1&playsinline=1`;
 
   return createPortal(
     <div
@@ -94,11 +108,38 @@ export function SlideshowMusic({
       <iframe
         data-testid="slideshow-music"
         data-video-id={videoId}
+        data-track={index}
         title="相簿背景音樂"
+        // `key` on the id, not just `src`: React reuses an <iframe> whose type
+        // and position match and only patches attributes, and a patched `src`
+        // does not reliably restart a cross-origin frame. Keying forces a new
+        // element per track, which is what "skip" has to mean here.
+        key={videoId}
         src={src}
-        allow="autoplay"
+        // `encrypted-media` alongside `autoplay`, matching the article embed
+        // (src/components/youtube-embed.tsx). YouTube's player asks for it,
+        // and a permission it is refused is one more thing between a tap and
+        // a sound on a platform where that path is already fragile.
+        allow="autoplay; encrypted-media"
         className="block aspect-video w-full border-0"
       />
+      {/*
+        Only on a touch device — `touch:` is that media query, named in
+        tailwind.config.ts. No user-agent sniffing.
+
+        On a desktop the frame starts on its own and a "tap to play" label
+        would be a lie. On a phone it does not: iOS gives the right to make
+        sound to a gesture on the media itself, so the player waits for one,
+        and until this line existed there was nothing on screen saying so.
+        Whether the tap then works is the open question this makes it possible
+        for somebody to answer — see the component header.
+      */}
+      <p
+        data-testid="slideshow-music-hint"
+        className="hidden px-2 py-1 text-center text-[11px] leading-tight text-white/70 touch:block"
+      >
+        點一下播放器開始音樂
+      </p>
     </div>,
     document.body,
   );

@@ -22,7 +22,7 @@ import {
   mapMediaToSiteImage,
   mapPayloadGallery,
 } from "@/lib/media/gallery-mapping";
-import { resolveAlbumMusic } from "@/lib/media/album-music";
+import { buildMusicPlaylist } from "@/lib/media/album-music";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import type {
   SiteGallery,
@@ -1264,9 +1264,9 @@ function buildRaceGallery(
     name: `${edition.nameZh ?? edition.name} ${edition.year}`,
     slug,
     // A race album has no row of its own, so its music comes from the
-    // edition — and from the site-wide list when that is empty, exactly as a
-    // stored album's does. See src/lib/media/album-music.ts.
-    musicVideoId: resolveAlbumMusic({
+    // edition — and continues into the site-wide list, exactly as a stored
+    // album's does. See src/lib/media/album-music.ts.
+    musicPlaylist: buildMusicPlaylist({
       slug,
       own: edition.musicUrl,
       fallback: fallbackMusic,

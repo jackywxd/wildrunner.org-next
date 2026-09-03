@@ -48,6 +48,9 @@ type GalleryPageClientProps = {
    * `src/lib/media/filters.ts` describes at length.
    */
   races: RaceFilterOption[];
+  /** The site-wide tracks. The wall is not an album, so it has no music of
+   *  its own — see the page's own note. */
+  musicPlaylist: string[];
 };
 
 type GalleryView = "all" | "albums";
@@ -61,6 +64,7 @@ export default function GalleryPageClient({
   items,
   nextCursor,
   races,
+  musicPlaylist,
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
@@ -108,7 +112,12 @@ export default function GalleryPageClient({
 
           {view === "all" && (
             <div className="mt-8" data-testid="gallery-all-photos">
-              <MediaGrid items={items} nextCursor={nextCursor} races={races} />
+              <MediaGrid
+                items={items}
+                nextCursor={nextCursor}
+                races={races}
+                musicPlaylist={musicPlaylist}
+              />
             </div>
           )}
         </section>

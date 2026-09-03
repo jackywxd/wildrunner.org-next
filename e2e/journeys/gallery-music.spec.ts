@@ -50,6 +50,9 @@ const VIDEO_ID = "dQw4w9WgXcQ";
 /** Distinct ids so a test can tell *which* source the music came from. */
 const EDITION_VIDEO_ID = "aaaaaaaaaaa";
 const FALLBACK_VIDEO_ID = "bbbbbbbbbbb";
+/** A second and third fallback, for the skip and playlist cases. */
+const FALLBACK_TWO = "ccccccccccc";
+const FALLBACK_THREE = "ddddddddddd";
 
 /** In the catalogue, and a year no other spec here uses. */
 const RACE_EVENT_KEY = "other-barkley";
@@ -579,5 +582,174 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       page.getByTestId("slideshow-music"),
       "pausing the video hands the album back its music",
     ).toHaveCount(1, { timeout: budget(10_000) });
+  });
+
+  test("V-BGM-T6: the wall plays the site list, and 下一首 moves through it", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(120_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const before = await request.get("/api/globals/site?depth=0");
+    expect(before.ok(), await before.text()).toBeTruthy();
+    const previous = ((await before.json()) as { backgroundMusic?: unknown[] })
+      .backgroundMusic ?? [];
+
+    try {
+      const set = await request.post("/api/globals/site", {
+        data: {
+          backgroundMusic: [
+            { url: `https://www.youtube.com/watch?v=${FALLBACK_VIDEO_ID}` },
+            { url: `https://www.youtube.com/watch?v=${FALLBACK_TWO}` },
+            { url: `https://www.youtube.com/watch?v=${FALLBACK_THREE}` },
+          ],
+        },
+      });
+      expect(set.ok(), `site global update failed: ${await set.text()}`).toBeTruthy();
+
+      await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+        route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+      );
+      await page.route(/youtube-nocookie\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+      );
+
+      // THE GAP THIS CLOSES. Every *album* could play something and the
+      // landing view could not — which is backwards, since 全部相片 is what a
+      // visitor sees first and stays in longest. The wall is not an album and
+      // has no row to store music on, so it plays the site-wide list outright.
+      await page.goto("/gallery", { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("gallery-all-photos")).toBeVisible({
+        timeout: budget(20_000),
+      });
+      await page.waitForLoadState("load");
+      await page.getByTestId("gallery-all-photos").locator("img").first().click();
+
+      const toggle = page.getByTestId("gallery-music-toggle");
+      await expect(
+        toggle,
+        "the wall should offer music now that the site has a list",
+      ).toBeVisible({ timeout: budget(15_000) });
+      await page.getByRole("button", { name: "Play" }).click();
+
+      const player = page.getByTestId("slideshow-music");
+      await expect(player).toHaveCount(1, { timeout: budget(10_000) });
+      const first = await player.getAttribute("data-video-id");
+      expect(
+        [FALLBACK_VIDEO_ID, FALLBACK_TWO, FALLBACK_THREE],
+        "the wall's track must come from the site list",
+      ).toContain(first);
+
+      // Skipping. The player stops by unmounting, so a skip is a different
+      // frame on a different id — `data-video-id` is the only thing that says
+      // which, and `data-track` says where in the list we are.
+      await expect(player).toHaveAttribute("data-track", "0");
+      await page.getByTestId("gallery-music-next").click();
+      await expect(page.getByTestId("slideshow-music")).toHaveAttribute(
+        "data-track",
+        "1",
+        { timeout: budget(10_000) },
+      );
+      const second = await page.getByTestId("slideshow-music").getAttribute("data-video-id");
+      expect(second, "下一首 must load a different track").not.toBe(first);
+
+      // ...and back, which has to wrap rather than sit at the start doing
+      // nothing — a button a visitor presses twice before deciding it is
+      // broken is worse than no button.
+      await page.getByTestId("gallery-music-previous").click();
+      await expect(page.getByTestId("slideshow-music")).toHaveAttribute(
+        "data-track",
+        "0",
+        { timeout: budget(10_000) },
+      );
+      await page.getByTestId("gallery-music-previous").click();
+      await expect(
+        page.getByTestId("slideshow-music"),
+        "上一首 from the first track wraps to the last",
+      ).toHaveAttribute("data-track", "2", { timeout: budget(10_000) });
+    } finally {
+      await request.post("/api/globals/site", {
+        data: { backgroundMusic: previous },
+      });
+    }
+  });
+
+  test("V-BGM-T7: one track offers no skip controls", async ({ page, request }) => {
+    test.setTimeout(budget(90_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const before = await request.get("/api/globals/site?depth=0");
+    const previous = ((await before.json()) as { backgroundMusic?: unknown[] })
+      .backgroundMusic ?? [];
+
+    try {
+      // Emptied, so the album below has exactly its own one track and nothing
+      // to continue into.
+      const cleared = await request.post("/api/globals/site", {
+        data: { backgroundMusic: [] },
+      });
+      expect(cleared.ok(), await cleared.text()).toBeTruthy();
+
+      const stamp = Date.now();
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file: { name: `v-bgm-one-${stamp}.svg`, mimeType: "image/svg+xml", buffer: SVG },
+          _payload: JSON.stringify({ alt: `V-BGM one ${stamp}`, usage: "gallery" }),
+        },
+      });
+      expect(uploaded.ok()).toBeTruthy();
+      const mediaId = ((await uploaded.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "media", id: mediaId });
+      recordCreated({ collection: "media", id: mediaId, note: "V-BGM one probe" });
+
+      const slug = `v-bgm-one-${stamp}`;
+      const album = await request.post("/api/galleries", {
+        data: {
+          name: `V-BGM one ${stamp}`,
+          slug,
+          _status: "published",
+          musicUrl: `https://www.youtube.com/watch?v=${VIDEO_ID}`,
+          items: [{ media: mediaId, featured: false }],
+        },
+      });
+      expect(album.ok(), await album.text()).toBeTruthy();
+      const albumId = ((await album.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "galleries", id: albumId });
+      recordCreated({ collection: "galleries", id: albumId, note: "V-BGM one album" });
+
+      await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+        route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+      );
+      await page.route(/youtube-nocookie\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+      );
+
+      await page.goto(`/gallery/${slug}`, { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("load");
+      await page.getByTestId("gallery-album").locator("img").first().click();
+
+      // The mute control is there, because there IS music...
+      await expect(page.getByTestId("gallery-music-toggle")).toBeVisible({
+        timeout: budget(15_000),
+      });
+      // ...and the skips are not, because a skip on a one-track list is a
+      // control that cannot change the answer — the same rule the 賽事 select
+      // follows.
+      await expect(page.getByTestId("gallery-music-next")).toHaveCount(0);
+      await expect(page.getByTestId("gallery-music-previous")).toHaveCount(0);
+    } finally {
+      await request.post("/api/globals/site", {
+        data: { backgroundMusic: previous },
+      });
+    }
   });
 });

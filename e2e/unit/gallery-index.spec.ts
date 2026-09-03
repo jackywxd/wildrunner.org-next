@@ -49,6 +49,7 @@ const album = (slug: string, items: SiteGallery["items"]): SiteGallery => ({
   isFeatured: false,
   featured: [],
   cover: null,
+  musicPlaylist: [],
   items,
 });
 

@@ -13,7 +13,7 @@ import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 
-import { Music, Share2, VolumeX } from "lucide-react";
+import { Music, SkipBack, SkipForward, Share2, VolumeX } from "lucide-react";
 import PhotoAlbum, {
   type Photo,
   type RenderImageContext,
@@ -273,22 +273,63 @@ function MusicButton({
   );
 }
 
+/**
+ * Skip to the next or previous track.
+ *
+ * Only drawn when there is more than one, because a skip button on a
+ * one-track list is a control that cannot change the answer — the same rule
+ * the 賽事 select follows.
+ *
+ * Wrapping rather than stopping at the ends: this is background music behind
+ * a slideshow that itself loops, and a "previous" that does nothing on the
+ * first track is a button a visitor presses twice before concluding it is
+ * broken.
+ */
+function TrackButton({
+  direction,
+  onSkip,
+}: {
+  direction: "next" | "previous";
+  onSkip: () => void;
+}) {
+  const label = direction === "next" ? "下一首" : "上一首";
+  return (
+    <button
+      type="button"
+      className="yarl__button"
+      onClick={onSkip}
+      aria-label={label}
+      title={label}
+      data-testid={
+        direction === "next" ? "gallery-music-next" : "gallery-music-previous"
+      }
+    >
+      {direction === "next" ? (
+        <SkipForward className="size-5" />
+      ) : (
+        <SkipBack className="size-5" />
+      )}
+    </button>
+  );
+}
+
 export function MediaGrid({
   items,
-  musicVideoId = null,
+  musicPlaylist = [],
   nextCursor,
   races = [],
   targetRowHeight = 220,
 }: {
   items: SiteMediaItem[];
   /**
-   * The YouTube id this album plays behind its slideshow, if an admin set one.
+   * The YouTube ids this grid can play behind its slideshow, in order.
    *
-   * Album pages only. The wall has no album and therefore no music, and a
-   * virtual race album has no row to store one on — see
-   * `src/lib/race-gallery.ts`.
+   * Every surface has one now, including the wall — which is not an album and
+   * so plays the site-wide list outright. Empty means no music and no control
+   * offered for it, which is the state of every album until an admin adds a
+   * track somewhere.
    */
-  musicVideoId?: string | null;
+  musicPlaylist?: string[];
   /**
    * The races present in what this grid is showing.
    *
@@ -324,6 +365,15 @@ export function MediaGrid({
   );
   /** Whether the slideshow is running — the thing the music follows. */
   const [slideshowRunning, setSlideshowRunning] = useState(false);
+  /**
+   * Which track of the playlist is loaded.
+   *
+   * Ours rather than YouTube's, because skipping here means re-mounting the
+   * frame on a different id — see `SlideshowMusic`. It survives a mute, so
+   * un-muting continues from the track the visitor had reached rather than
+   * dropping them back to the first.
+   */
+  const [track, setTrack] = useState(0);
   /**
    * Whether a video in the lightbox is actually making sound right now.
    *
@@ -555,7 +605,7 @@ export function MediaGrid({
    * music on every pass. See `videoSounding`.
    */
   const musicPlaying =
-    Boolean(musicVideoId) &&
+    musicPlaylist.length > 0 &&
     !muted &&
     index >= 0 &&
     slideshowRunning &&
@@ -577,6 +627,28 @@ export function MediaGrid({
       return nextMuted;
     });
   }, []);
+
+  /**
+   * Skip, wrapping at both ends.
+   *
+   * Also un-mutes and starts the slideshow, for the same reason the toggle
+   * does: pressing 下一首 is a visitor asking to hear the next thing, and
+   * answering it with silence because some other control is off would be a
+   * button that does nothing.
+   */
+  const skipTrack = useCallback(
+    (delta: number) => {
+      if (musicPlaylist.length === 0) return;
+      setTrack((current) => {
+        const next = (current + delta) % musicPlaylist.length;
+        return next < 0 ? next + musicPlaylist.length : next;
+      });
+      setMuted(false);
+      writeMuted(false);
+      setSlideshowRunning(true);
+    },
+    [musicPlaylist.length],
+  );
 
   return (
     <>
@@ -724,12 +796,30 @@ export function MediaGrid({
         }}
         toolbar={{
           buttons: [
-            ...(musicVideoId
+            ...(musicPlaylist.length > 1
+              ? [
+                  <TrackButton
+                    key="music-previous"
+                    direction="previous"
+                    onSkip={() => skipTrack(-1)}
+                  />,
+                ]
+              : []),
+            ...(musicPlaylist.length > 0
               ? [
                   <MusicButton
                     key="music"
                     playing={musicPlaying}
                     onToggle={toggleMusic}
+                  />,
+                ]
+              : []),
+            ...(musicPlaylist.length > 1
+              ? [
+                  <TrackButton
+                    key="music-next"
+                    direction="next"
+                    onSkip={() => skipTrack(1)}
                   />,
                 ]
               : []),
@@ -775,8 +865,12 @@ export function MediaGrid({
       {/* Outside the lightbox, so closing it unmounts this through
           `musicPlaying` going false rather than through the portal being torn
           down — one rule deciding the sound, not two. */}
-      {musicVideoId && (
-        <SlideshowMusic videoId={musicVideoId} playing={musicPlaying} />
+      {musicPlaylist.length > 0 && (
+        <SlideshowMusic
+          playlist={musicPlaylist}
+          index={track}
+          playing={musicPlaying}
+        />
       )}
     </>
   );
