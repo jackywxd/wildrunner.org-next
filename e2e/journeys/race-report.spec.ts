@@ -358,7 +358,17 @@ test.describe("R what a member does with a race report", () => {
       .getAttribute("value");
     if (!category) throw new Error("the finished race offers no category");
     await distance.selectOption(category);
-    await page.getByTestId("race-report-start").click();
+    // Same guard as the second half below, for the same reason: the button is
+    // gated on React state, so it going enabled is the selection having
+    // reached React. Arriving here by clicking makes that near-certain, but a
+    // 60s timeout on a `disabled` button says nothing about why, and this
+    // names it.
+    const firstStart = page.getByTestId("race-report-start");
+    await expect(
+      firstStart,
+      "the distance selection never reached React, so the button is still gated",
+    ).toBeEnabled({ timeout: budget(15_000) });
+    await firstStart.click();
     await expect(page).toHaveURL(/\/members\/posts\/\d+/, { timeout: budget(20_000) });
 
     const created = page.url().match(/\/members\/posts\/(\d+)/);
@@ -383,13 +393,32 @@ test.describe("R what a member does with a race report", () => {
     // DOM value and dispatches a `change` event nobody is listening for yet.
     // The browser keeps showing the option selected; React's `distanceId`
     // state never moves, so the button — gated on that state, not the DOM —
-    // stays disabled forever. The distance select is disabled until `chosen`
-    // resolves, so waiting for it to become enabled is waiting for the exact
-    // condition this component needs, not an arbitrary pause.
+    // stays disabled forever.
+    //
+    // WAITING FOR THE DISTANCE SELECT TO BE ENABLED DOES NOT COVER THAT, and
+    // reading it as though it did is what made this test die on CI with a 60s
+    // timeout on a `disabled` button. `RaceChoice` disables that select on
+    // `!chosen`, and `chosen` comes from `scheduleId`, which `StartRaceReport`
+    // initialises synchronously from the `preselected` prop — so on this page,
+    // reached with a race already chosen, the select is enabled in the
+    // server-rendered HTML and `toBeEnabled()` returns before React exists.
+    //
+    // `load` is what the rest of the suite waits for when a click has to reach
+    // React (race-photos, gallery-music, media-description all say so), and
+    // the assertion after the selection is the honest guard: the button is
+    // gated on `distanceId` state, so it going enabled *is* the change having
+    // reached React, rather than a proxy for it.
+    await page.waitForLoadState("load");
     const distanceSelect = page.getByTestId("race-report-distance");
     await expect(distanceSelect).toBeEnabled({ timeout: budget(15_000) });
     await distanceSelect.selectOption(category);
-    await page.getByTestId("race-report-start").click();
+
+    const startButton = page.getByTestId("race-report-start");
+    await expect(
+      startButton,
+      "the distance selection never reached React, so the button is still gated",
+    ).toBeEnabled({ timeout: budget(15_000) });
+    await startButton.click();
     await expect(page.getByTestId("race-report-error")).toContainText(
       "已經寫過",
       { timeout: budget(15_000) },

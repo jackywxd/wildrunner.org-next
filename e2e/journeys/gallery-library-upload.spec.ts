@@ -57,6 +57,14 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
     await page.getByTestId("member-nav-media").click();
     await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });
 
+    // Uploading is its own page now — reached by the button the library
+    // offers, not by `goto`. The whole point of the split is that a member
+    // finds it, so the test finds it the same way.
+    await page.getByTestId("media-upload-link").click();
+    await expect(page).toHaveURL(/\/members\/media\/upload/, {
+      timeout: budget(15_000),
+    });
+
     await page.getByTestId("media-upload-input").setInputFiles(FIXTURE);
 
     // The race picker is deliberately left alone. That is the whole case:
@@ -108,6 +116,14 @@ test.describe("V-LIBRARY an upload with no race reaches the photo wall", () => {
     await signIn(page);
     await page.getByTestId("member-nav-media").click();
     await expect(page).toHaveURL(/\/members\/media/, { timeout: budget(15_000) });
+
+    // Uploading is its own page now — reached by the button the library
+    // offers, not by `goto`. The whole point of the split is that a member
+    // finds it, so the test finds it the same way.
+    await page.getByTestId("media-upload-link").click();
+    await expect(page).toHaveURL(/\/members\/media\/upload/, {
+      timeout: budget(15_000),
+    });
 
     await page.getByTestId("media-upload-input").setInputFiles(FIXTURE);
     await page.getByTestId("media-upload-usage").uncheck();
