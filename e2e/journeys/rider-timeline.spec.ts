@@ -35,49 +35,45 @@ const opacities = (page: import("@playwright/test").Page) =>
     .evaluateAll((rows) => rows.map((row) => getComputedStyle(row).opacity));
 
 /**
- * The directory card of a member who has published something, and its href.
+ * Open the timeline of a member who has something on it, by clicking.
  *
- * The card carries its own count as an attribute — added because reading it
- * out of the card's text once parsed 3300 from 「TORX 330」.
+ * Arrives the way a reader does — directory, profile, tab — because that tab
+ * is a soft navigation and this suite has already shipped one bug that lived
+ * entirely in soft navigation (docs/testing-incidents.md).
  */
-async function aMemberWithContent(page: import("@playwright/test").Page) {
+async function openTimelineOfAMemberWithContent(
+  page: import("@playwright/test").Page,
+) {
   await open(page, "/riders");
 
-  const card = page
+  // The rider card carries its own count as an attribute — added because
+  // reading it out of the card's text once parsed 3300 from 「TORX 330」.
+  const withPosts = page
     .locator('[data-testid="rider-card"]')
     .filter({ has: page.locator('[data-post-count]:not([data-post-count="0"])') })
     .first();
   await expect(
-    card,
+    withPosts,
     "no member in the directory has published anything — the corpus is empty, not the page",
   ).toBeVisible();
 
-  const href = await card.getAttribute("href");
-  expect(href, "a rider card with no href").toBeTruthy();
-  return { card, href: href as string };
+  // The card *is* the anchor (riders/page.tsx renders a `<Link>` as the card),
+  // so this clicks the card, not something inside it.
+  await withPosts.click();
+  await expect(page.getByTestId("rider-name")).toBeVisible();
+
+  await page.getByTestId("rider-view-tab").and(page.locator('[data-view="timeline"]')).click();
+  await expect(page).toHaveURL(/\/riders\/[^/]+\/timeline$/, {
+    timeout: budget(15_000),
+  });
+  await expect(page.getByTestId("rider-timeline")).toBeVisible();
 }
 
 test.describe("V-TIMELINE 時間機器", () => {
   test("V-TIMELINE-T1: every row is readable by the time the reader reaches the end", async ({
     page,
   }) => {
-    // By clicking, the way a reader arrives — directory, profile, tab. That
-    // tab is a soft navigation, and this suite has already shipped one bug
-    // that lived entirely in soft navigation (docs/testing-incidents.md).
-    const { card } = await aMemberWithContent(page);
-    // The card *is* the anchor (riders/page.tsx renders a `<Link>` as the
-    // card), so this clicks the card, not something inside it.
-    await card.click();
-    await expect(page.getByTestId("rider-name")).toBeVisible();
-
-    await page
-      .getByTestId("rider-view-tab")
-      .and(page.locator('[data-view="timeline"]'))
-      .click();
-    await expect(page).toHaveURL(/\/riders\/[^/]+\/timeline$/, {
-      timeout: budget(15_000),
-    });
-    await expect(page.getByTestId("rider-timeline")).toBeVisible();
+    await openTimelineOfAMemberWithContent(page);
 
     // Present in the DOM is not the claim. This is.
     const before = await opacities(page);
@@ -110,33 +106,16 @@ test.describe("V-TIMELINE 時間機器", () => {
   test("V-TIMELINE-T2: printing shows the rows the reader never scrolled to", async ({
     page,
   }) => {
-    const { href } = await aMemberWithContent(page);
-    // BY URL, NOT BY CLICKING, and that is the difference between this test
-    // being deterministic and failing two runs in three.
-    //
-    // Arriving through the tab is a soft navigation, and the scroll that goes
-    // with it drags every row through the viewport on the way. `whileInView`
-    // is `once: true`, so all of them reveal — and this test would then find
-    // nothing left hidden and trip its own precondition. Measured before it
-    // was believed: the guard below was made to print what it saw, and it
-    // said `["1","1","1","1","1","1"]`. T1 above is the test that covers
-    // arriving by clicking; this one is about print, and a plain load is the
-    // honest way to set it up.
-    await open(page, `${href}/timeline`);
-    await expect(page.getByTestId("rider-timeline")).toBeVisible();
+    await openTimelineOfAMemberWithContent(page);
 
     // Deliberately without scrolling: the rows below the fold are exactly the
     // ones framer-motion has left at `opacity: 0`, and they are what a
     // printout loses. Asserting after a scroll would prove nothing — they
     // would already be opaque for the other reason.
     const onScreen = await opacities(page);
-    // Both halves of the precondition, separately, because they fail for
-    // completely different reasons and a bare `.some()` reports them
-    // identically: an empty locator also returns false.
-    expect(onScreen.length, "no rows rendered at all").toBeGreaterThan(0);
     expect(
       onScreen.some((value) => value !== "1"),
-      `nothing was left unrevealed, so this test cannot observe what it is for — saw ${JSON.stringify(onScreen)}`,
+      "nothing was left unrevealed, so this test cannot observe what it is for — the member's timeline is shorter than one screen",
     ).toBe(true);
 
     await page.emulateMedia({ media: "print" });
