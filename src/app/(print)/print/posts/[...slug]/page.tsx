@@ -24,15 +24,34 @@ import { formatDate } from "@/lib/utils";
  * outside `(site)` is what gets it a page with no navigation — see this
  * group's layout.
  *
- * It is also the foundation for the download that is not built yet. Browser
- * Rendering's `/pdf` endpoint renders a URL; this is the URL it will render,
- * so the templates below are the templates a real PDF gets. Nothing about the
- * layout has to change when that lands.
+ * It is also what the PDF download renders. Browser Rendering's `/pdf` action
+ * takes a URL, and `/api/print/posts/<slug>` hands it this one — so these are
+ * the templates a real PDF gets, and there is one layout rather than two that
+ * drift. The only difference on paper is the running footer, which that route
+ * supplies because CSS cannot.
  *
  * `noindex`: three templates times two faces is six addresses for one article,
  * and none of them should compete with the article itself in a search result.
  */
-export const metadata: Metadata = { robots: { follow: true, index: false } };
+/**
+ * THE TITLE IS THE FILENAME, which is the only reason this is `generateMetadata`
+ * rather than a constant. Chrome's "Save as PDF" names the file after
+ * `document.title`, and with no title the browser fell back to the URL: the
+ * first real print off this page arrived as
+ * `wildrunner.org_print_posts_untitled…pdf`. The download endpoint sets its
+ * own name in `Content-Disposition`; this is what `window.print()` gets.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const post = await getPostBySlugParam((await params).slug.join("/"));
+  return {
+    robots: { follow: true, index: false },
+    title: post?.title ?? siteConfig.title,
+  };
+}
 
 export default async function PrintPostPage({
   params,
@@ -77,18 +96,18 @@ export default async function PrintPostPage({
       </Suspense>
 
       <header className="print-head">
+        {/* The club's own mark, the same file `SiteLogo` uses. A hand-drawn
+            circle stood here first and printed as a purple ring that is not
+            this brand — the real mark is a filled square with a horse in it. */}
         <span className="print-mark">
-          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-            <circle
-              cx="6"
-              cy="6"
-              r="5.2"
-              fill="none"
-              stroke="#8A3FFA"
-              strokeWidth="1.6"
-            />
-          </svg>
-          野馬營
+          <Image
+            src="/static/brand/mark-purple.svg"
+            alt=""
+            width={16}
+            height={16}
+            className="print-logo"
+          />
+          {siteConfig.title}
         </span>
         {post.date && <span>{formatDate(post.date)}</span>}
       </header>

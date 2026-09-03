@@ -71,6 +71,14 @@
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
+	// Turns /print/posts/<slug> into a real PDF file — see
+	// src/lib/print/render-pdf.ts for why this is the binding rather than the
+	// REST API (no account id, no API token to store or rotate). Absent
+	// bindings are handled: locally miniflare supplies one that has no
+	// `quickAction`, and the route answers 503 rather than failing.
+	"browser": {
+		"binding": "BROWSER"
+	},
 	"ai": {
 		"binding": "AI",
 		"remote": true
@@ -177,6 +185,9 @@
 			],
 			"images": {
 				"binding": "IMAGES"
+			},
+			"browser": {
+				"binding": "BROWSER"
 			},
 			"ai": {
 				"binding": "AI",
