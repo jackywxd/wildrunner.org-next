@@ -56,6 +56,7 @@ type Tags = {
   title?: string;
   description?: string;
   image?: string;
+  url?: string;
   pageTitle?: string;
 };
 
@@ -69,6 +70,7 @@ function readTags(html: string): Tags {
     title: meta("og:title"),
     description: meta("og:description"),
     image: meta("og:image"),
+    url: meta("og:url"),
     pageTitle: html.match(/<title>([^<]*)<\/title>/i)?.[1],
   };
 }
@@ -192,6 +194,62 @@ test.describe("X-OG every public route is shareable", () => {
       "no generated card was fetched — the scan found only photographs, so it proved nothing about /og",
     ).toBeGreaterThan(0);
   });
+  test("X-OG-4: a 404 says it is a 404, whatever the reader missed", async ({
+    request,
+  }) => {
+    test.setTimeout(budget(120_000));
+
+    // THE CARD A DEAD LINK GETS. A 404 is the one page here that is reached
+    // by sharing rather than by browsing: somebody pastes an article URL into
+    // a group chat after it has been withdrawn, and what that chat draws is
+    // whatever these tags say. Measured before this existed, they said three
+    // different things — and the worst was `/gallery/<no such album>`, which
+    // answered with 「相冊」 and the album index's own card, because the
+    // metadata of a segment that threw falls back to its layout chain's and
+    // `gallery/layout.tsx` carried the index's. A card asserting the page
+    // exists is worse than no card.
+    const misses = [
+      "/posts/x-og-no-such-post",
+      "/gallery/x-og-no-such-album",
+      "/gallery/m/999999999",
+      "/x-og-no-such-route",
+    ];
+
+    const faults: string[] = [];
+
+    for (const miss of misses) {
+      const response = await request.get(miss);
+      if (response.status() !== 404) {
+        faults.push(`${miss}: answered ${response.status()}, not 404`);
+        continue;
+      }
+      const tags = readTags(await response.text());
+
+      if (tags.title !== "找不到這一頁") {
+        faults.push(`${miss}: og:title is ${tags.title ?? "<missing>"}`);
+      }
+
+      // A 404 answers for every address the site does not have, so any
+      // canonical it named would be a different page than the one just
+      // missed. `pageMetadata` omits `url` when given no `path`; this is
+      // where that is checked on the served HTML.
+      if (tags.url) faults.push(`${miss}: og:url claims ${tags.url}`);
+
+      const image = tags.image ? new URL(decode(tags.image)) : null;
+      if (!image?.pathname.startsWith("/og")) {
+        faults.push(`${miss}: og:image is ${image?.href ?? "<missing>"}`);
+        continue;
+      }
+      if (image.searchParams.get("title") !== "找不到這一頁") {
+        faults.push(
+          `${miss}: card is titled ${image.searchParams.get("title")}`,
+        );
+      }
+    }
+
+    expect(faults, faults.join("\n")).toEqual([]);
+  });
+
   test("X-OG-3: a race edition prefers a photograph from its own wall", async ({
     request,
   }) => {

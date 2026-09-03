@@ -159,6 +159,49 @@ test.describe("V what a visitor can do", () => {
     }
   });
 
+  test("V11: a 404 is a page of this site, and it leads back into it", async ({
+    page,
+  }) => {
+    // V8 above asserts the status and deliberately not the body. This is the
+    // other half, and it is a separate test because the two fail for
+    // unrelated reasons: V8 goes red when a route stops throwing
+    // `notFound()`, this one when the 404 stops being a page.
+    //
+    // It was 「404: This page could not be found.」 in English, or nothing at
+    // all — the body of a `notFound()` route was empty and only Next's own
+    // default arrived, client-side. See src/app/not-found.tsx for the three
+    // different answers that were measured.
+    await open(page, "/posts/definitely-not-a-post");
+    await expect(page.getByTestId("not-found-page")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "找不到這一頁" }),
+    ).toBeVisible();
+
+    // THE CHROME IS THE POINT OF THE SECOND BOUNDARY. A not-found caught at
+    // the app root replaces the header and footer along with the page, which
+    // leaves a visitor on a dead end with only the links the 404 draws
+    // itself. `(site)/(public)/not-found.tsx` exists to catch a public
+    // route's miss one level lower; delete it and this line is what says so.
+    await expect(page.getByTestId("header-login-link")).toBeVisible();
+
+    // And the way back works, by clicking, because that is what a person does
+    // with it.
+    await page.getByRole("link", { name: "回首頁" }).click();
+    await expect(page).toHaveURL((url) => url.pathname === "/", {
+      timeout: budget(15_000),
+    });
+
+    // The other kind of miss: an address that matches no route at all. Next
+    // consults only `app/not-found.tsx` for it — nothing inside a route group
+    // can answer — so this is the assertion that the root file still exists.
+    // It has no site chrome by construction: with three root layouts there is
+    // none for Next to wrap it in.
+    await open(page, "/this-route-does-not-exist");
+    await expect(
+      page.getByRole("heading", { name: "找不到這一頁" }),
+    ).toBeVisible();
+  });
+
   test("V10: the about page renders, in the language it is written in", async ({
     page,
   }) => {
