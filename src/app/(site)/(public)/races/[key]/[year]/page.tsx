@@ -34,11 +34,23 @@ export async function generateMetadata({
   const edition = await loadEdition(params);
   if (!edition) return {};
 
+  // A PHOTOGRAPH FROM ITS OWN WALL WHEN THERE IS ONE. This page is the most
+  // shareable thing on the site — a race somebody just ran — and a picture
+  // from that race beats any generated card. One extra query, on a page that
+  // already runs several.
+  const [photo] = await getRaceEditionPhotos(edition.id);
+
   return pageMetadata({
     path: `/races/${edition.eventKey}/${edition.year}`,
     title: `${edition.nameZh || edition.name} ${edition.year}`,
     subtitle: `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`,
-    card: { kind: "plain" },
+    // Seeded on the event key, not on the edition: it is the same race every
+    // year, and `races/design-tokens.ts` hashes that same key for the badge
+    // drawn on this very page. The card and the badge therefore agree, which
+    // is the only reason to prefer a hash over a stored colour.
+    card: photo
+      ? { kind: "photo", src: photo.src }
+      : { kind: "rainbow", seed: edition.eventKey },
   });
 }
 

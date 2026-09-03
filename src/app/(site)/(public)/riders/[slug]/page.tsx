@@ -25,7 +25,15 @@ export async function generateMetadata({ params }: Params) {
     title: rider.name,
     subtitle: rider.bio ?? `${rider.name} 在野馬營的文章`,
     type: "profile",
-    card: { kind: "plain" },
+    // A MEMBER IS SOMETHING, so they get their own colours rather than the
+    // site's furniture card. Seeded on the slug, which means their profile and
+    // their 時間機 carry the same card — the subject of both pages is them.
+    //
+    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
+    // is a small square and a card is 1920×1080, so using it as the image
+    // means a platform crops it badly, and using it as a card background means
+    // upscaling a few hundred pixels across the whole width.
+    card: { kind: "rainbow", seed: rider.slug },
   });
 }
 

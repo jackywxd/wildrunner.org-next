@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PhotoGallery from "@/app/(site)/(public)/gallery/_components/PhotoGallery";
 import { siteConfig } from "@/config/site";
-import { resolveGalleryOgImage } from "@/lib/galleryOg";
+import { resolveGalleryOgCard } from "@/lib/galleryOg";
+import { pageMetadata } from "@/lib/site-metadata";
 import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { raceFilterOptions } from "@/lib/media/gallery-index";
 import {
@@ -33,46 +34,14 @@ export async function generateMetadata({
   params,
 }: GalleryDetailPageProps): Promise<Metadata> {
   const gallery = await getGalleryBySlug((await params).slug);
-  const globals = await getSiteGlobals();
-  const baseURL = siteConfig.baseURL ?? "";
+  if (gallery == null) return { title: "找不到相冊" };
 
-  if (gallery == null) {
-    return {
-      title: `错误：找不到相册`,
-      description: `错误：找不到相册。 | ${globals.metadata.description}`,
-      openGraph: {
-        title: `错误：找不到相册`,
-        description: `错误：找不到相册。 | ${globals.metadata.description}`,
-      },
-    };
-  }
-
-  // 「相册」 lives in the description; the root template adds the site name.
-  const title = gallery.name;
-  const description = `${gallery.name}的照片`;
-  const ogImage = resolveGalleryOgImage(gallery, baseURL);
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: `${baseURL}/gallery/${gallery.slug}`,
-      images: [
-        {
-          url: ogImage,
-          alt: gallery.name,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: `/gallery/${gallery.slug}`,
+    title: gallery.name,
+    subtitle: `${gallery.name}的照片`,
+    card: resolveGalleryOgCard(gallery),
+  });
 }
 
 const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({

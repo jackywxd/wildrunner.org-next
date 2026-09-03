@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { siteConfig } from "@/config/site";
-import { absoluteImageUrl } from "@/lib/postOg";
+import { absoluteImageUrl, type OgCard } from "@/lib/og-card";
 
 /**
  * One page's title, description and share card, decided in one place.
@@ -38,26 +38,7 @@ import { absoluteImageUrl } from "@/lib/postOg";
  * card. This makes the rest of the site do what that one already did.
  */
 
-/**
- * Which of `/og`'s four treatments this page gets.
- *
- * All four already exist in the site; this only names them. See the route's
- * own header for what each looks like.
- */
-export type OgCard =
-  /** Generated card: paper ground, ink type. The site's own furniture. */
-  | { kind: "plain" }
-  /**
-   * Generated card with a spectrum seeded on `seed`, for a thing that IS
-   * something but has no photograph. The seed must be the thing's stable id
-   * — a slug or an event key, never its title — so that renaming it does not
-   * change the card it has already been shared with.
-   */
-  | { kind: "rainbow"; seed: string }
-  /** The photograph itself is the card. Posts and albums with a cover. */
-  | { kind: "photo"; src: string }
-  /** A generated card laid over the photograph. Media and video shares. */
-  | { kind: "photo-card"; src: string };
+export type { OgCard };
 
 export type PageMetadataInput = {
   /** Absolute path on this site, e.g. `/races`. The canonical URL is built from it. */
