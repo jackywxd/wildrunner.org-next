@@ -8,7 +8,7 @@ import Image from "next/image";
 import { siteConfig } from "@/config/site";
 import { ArticleReader } from "@/components/posts/ArticleReader";
 import { PayloadRichText } from "@/components/payload-rich-text";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
@@ -225,13 +225,26 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           <PayloadRichText data={blog.content} className="article-body" />
         )}
         <hr className="mt-12 h-0 border-t-2 border-border" />
-        <div className="flex justify-start py-6 lg:py-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-6 lg:py-10">
           <Link
             href="/posts"
             className={cn(buttonVariants({ variant: "ghost" }))}
           >
             <ChevronLeft className="mr-2 size-4" />
             See all Posts
+          </Link>
+
+          {/* A plain link, not a button that calls `window.print()`: the
+              print page is where the template and the face are chosen, and
+              printing the article page itself would put the site's navigation
+              on the paper. */}
+          <Link
+            href={`/print${postPublicPath(blog.slug)}`}
+            className={cn(buttonVariants({ variant: "ghost" }))}
+            data-testid="post-print-link"
+          >
+            <Printer className="mr-2 size-4" />
+            列印 / PDF
           </Link>
         </div>
       </>
