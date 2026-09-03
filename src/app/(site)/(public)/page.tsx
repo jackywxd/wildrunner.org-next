@@ -16,40 +16,18 @@ import { isRegistrationOpen } from "@/lib/races/registration";
 import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const globals = await getSiteGlobals();
-  const title = globals.metadata.titleDefault || siteConfig.title;
-  const description =
-    globals.metadata.description || siteConfig.description;
-  const baseURL = siteConfig.baseURL;
-
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(title)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: baseURL,
-      images: [
-        {
-          url: ogImage,
-          alt: title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    path: "/",
+    title: globals.metadata.titleDefault || siteConfig.title,
+    subtitle: globals.metadata.description || siteConfig.description,
+    card: { kind: "plain" },
+  });
 }
 
 const HOME_RACE_COUNT = 4;

@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { RiderTimeline } from "@/components/riders/RiderTimeline";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
-import { siteConfig } from "@/config/site";
 import { getRiderTimeline } from "@/lib/content";
+import { pageMetadata } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -17,28 +17,15 @@ export async function generateMetadata({ params }: Params) {
   if (!found) return {};
 
   const { rider } = found;
-  const baseURL = siteConfig.baseURL;
-  const title = `${rider.name} 的時間機 | ${siteConfig.title}`;
-  const description = `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`;
-  const ogImage = `${baseURL}/og?title=${encodeURIComponent(`${rider.name} 的時間機`)}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "profile",
-      url: `${baseURL}/riders/${rider.slug}/timeline`,
-      images: [{ url: ogImage, alt: rider.name }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+  return pageMetadata({
+    // 「的」 binds directly to the name: the half-width space that used to sit
+    // in front of it came from string interpolation, not from typography.
+    path: `/riders/${rider.slug}/timeline`,
+    title: `${rider.name}的時間機`,
+    subtitle: `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`,
+    type: "profile",
+    card: { kind: "plain" },
+  });
 }
 
 /**

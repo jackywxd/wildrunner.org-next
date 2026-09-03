@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import PageHeader from "@/components/page-header";
 import { RaceSeriesTag } from "@/components/race-schedule/RaceSeriesTag";
-import { siteConfig } from "@/config/site";
 import {
   getRaceEditionDetail,
   getRaceEditionPhotos,
@@ -12,6 +11,7 @@ import {
 import { externalHref } from "@/lib/races/registration";
 import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
 import { raceGallerySlug } from "@/lib/race-gallery";
+import { pageMetadata } from "@/lib/site-metadata";
 
 import RacePhotoWall from "./_components/RacePhotoWall";
 
@@ -34,20 +34,12 @@ export async function generateMetadata({
   const edition = await loadEdition(params);
   if (!edition) return {};
 
-  const baseURL = siteConfig.baseURL;
-  const title = `${edition.nameZh || edition.name} ${edition.year} | ${siteConfig.title}`;
-  const description = `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `${baseURL}/races/${edition.eventKey}/${edition.year}`,
-    },
-  };
+  return pageMetadata({
+    path: `/races/${edition.eventKey}/${edition.year}`,
+    title: `${edition.nameZh || edition.name} ${edition.year}`,
+    subtitle: `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`,
+    card: { kind: "plain" },
+  });
 }
 
 /** "2026-08-28" -> "8月28日". */

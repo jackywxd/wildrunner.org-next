@@ -107,10 +107,20 @@ export function rainbowOgUrl(opts: {
   seed: string;
 }): string {
   const params = new URLSearchParams();
-  // The route splits `title|author` back apart on the last `|`; keeping that
-  // convention here means the rainbow card and the plain card lay out their
-  // headline and byline identically.
-  params.set("title", `${opts.title}|${opts.author ?? ""}`);
+  // Two parameters rather than `title|author` in one. The route still splits
+  // that older form — links shared before this change carry it — but nothing
+  // we build should rely on a separator that is also the one every browser
+  // tab title uses. See the route's own note, and `site-metadata.ts`.
+  params.set("title", opts.title);
+  // ALWAYS SET, even when there is no byline to put in it, because its mere
+  // presence is what stops the route splitting the title on its last `|` —
+  // and a post title really can contain one: the corpus has
+  // 「Whistler by UTMB | 2024」, which would otherwise be signed 「2024」.
+  //
+  // Empty rather than the site's blurb: the route already falls back to that
+  // for an empty value, and reading it here would mean importing
+  // `@/config/site`, whose avatar PNG the unit lane cannot parse.
+  params.set("subtitle", opts.author?.trim() ?? "");
   params.set("variant", "rainbow");
   params.set("seed", opts.seed);
   return `${opts.baseURL.replace(/\/$/, "")}/og?${params.toString()}`;
