@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { createPortal } from "react-dom";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { youTubeEmbedUrl } from "@/lib/youtube";
 
@@ -28,25 +30,39 @@ import { youTubeEmbedUrl } from "@/lib/youtube";
  *     failure this codebase keeps writing down.
  *
  * WHAT THE CHOICE COSTS, said plainly: every stop and start begins a track
- * from zero, and so does every skip. For a playlist behind a slideshow that
- * is a small thing — a skip is *meant* to start something — and it is visible
- * rather than mysterious.
+ * from zero, and so does every skip.
  *
- * WHY IT IS VISIBLE. This started as a 1×1, transparent, `pointer-events:
- * none` frame — audio with no UI. On a Mac that worked; on an iPhone it was
- * silent. iOS grants the right to make sound to a gesture that lands on the
- * media itself and does not hand a parent page's gesture to a cross-origin
- * frame, so a frame that is one pixel wide, transparent and untappable is one
- * the required gesture can never reach. Making it real and tappable is what
- * gives that gesture somewhere to land. **That has not fixed iOS as of this
- * writing** — the report is that the player appears and does not start — so
- * the mechanism above is at best incomplete. It is kept because it costs a
- * desktop nothing and because a tappable player is the precondition for any
- * fix that does work.
+ * ── WHY THE PLAYER IS THIS SIZE, WHICH IS THE WHOLE iOS STORY ──
  *
- * `controls=1`: a player somebody may need to press has to show what it is,
- * and the volume control it brings is the finer answer to "quieter" that the
- * lightbox's mute button cannot give.
+ * MEASURED IN THE iOS SIMULATOR (iPhone SE, iOS Safari), not inferred:
+ *
+ *   160 × 90   the player renders its poster and play button, and **a tap on
+ *              it does nothing at all**. No playback, no error, no response.
+ *   224 × 126  a tap starts playback, with audio.
+ *   288 × 162  likewise.
+ *
+ * So the reason an iPhone was silent is that the embed was too small for
+ * YouTube's player to be interactive — nothing to do with autoplay policy,
+ * user activation, or cross-origin gesture propagation, which is what the
+ * previous three versions of this comment assumed and built around. Those
+ * inferences were reasonable and they were wrong; this paragraph replaces
+ * them because a measurement outranks an argument. YouTube documents a
+ * minimum embed size and this is what being under it looks like.
+ *
+ * A desktop never showed the symptom because it never needed the tap:
+ * `autoplay=1` is honoured there, so the player starts before anyone touches
+ * it and its size is irrelevant.
+ *
+ * WHICH IS WHY THE SIZE IS CONDITIONAL. On a touch device the player has to
+ * be big enough to press, and it therefore sits over the photo — the cost of
+ * working at all. On a pointer device nothing has to be pressed, so it starts
+ * collapsed and stays out of the way. Either way the visitor can toggle it:
+ * collapsing does not unmount the frame, so the music keeps playing.
+ *
+ * IT CANNOT GO BEHIND THE LIGHTBOX. That was asked, and it is the one thing
+ * that cannot work: behind means untappable, and untappable is the state that
+ * produced silence on every iPhone. `collapsed` is the answer to the same
+ * concern — small and in a corner, rather than absent and mute.
  */
 export function SlideshowMusic({
   playlist,
@@ -59,6 +75,21 @@ export function SlideshowMusic({
   index: number;
   playing: boolean;
 }) {
+  /**
+   * Collapsed unless the visitor has to press the player to start it.
+   *
+   * Read once, lazily, rather than in an effect: an effect would render
+   * collapsed and then expand, and on the one platform where the expansion is
+   * load-bearing that is a player that moves out from under a finger.
+   *
+   * `matchMedia` rather than a user-agent test, and the same query the hint
+   * below uses — a device that cannot hover and points coarsely.
+   */
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  });
+
   const videoId = playlist[index];
 
   // `playing` only ever becomes true from a click, so this never renders on
@@ -86,6 +117,7 @@ export function SlideshowMusic({
   return createPortal(
     <div
       data-testid="slideshow-music-panel"
+      data-collapsed={collapsed}
       /**
        * Above the lightbox, which sets `--yarl__portal_zindex` to 9999.
        *
@@ -95,15 +127,19 @@ export function SlideshowMusic({
        * transition's `transform` — makes a stacking context that traps every
        * z-index below it. The frame was on screen and at full opacity, and a
        * hit test at its centre still returned the lightbox: visible, and
-       * untappable, which is precisely the state that made iOS silent in the
-       * first place. Portalled to `body`, the two z-indexes are finally
+       * untappable. Portalled to `body`, the two z-indexes are finally
        * compared against each other.
        *
        * Top-left because that is the one free corner: the toolbar (close,
        * share, music, captions) is top-right, the navigation arrows are
        * centred on both sides, and the thumbnail strip owns the bottom band.
        */
-      className="fixed left-3 top-3 z-[10000] w-40 overflow-hidden rounded border border-white/20 bg-black/70 shadow-lg sm:w-48"
+      className={`fixed left-3 top-3 z-[10000] overflow-hidden rounded border border-white/20 bg-black/70 shadow-lg ${
+        // 224px, because 160px is a player that cannot be tapped — see the
+        // header's measurements. Collapsed is small enough to ignore and
+        // still wide enough for its own label.
+        collapsed ? "w-32" : "w-56"
+      }`}
     >
       <iframe
         data-testid="slideshow-music"
@@ -117,29 +153,63 @@ export function SlideshowMusic({
         key={videoId}
         src={src}
         // `encrypted-media` alongside `autoplay`, matching the article embed
-        // (src/components/youtube-embed.tsx). YouTube's player asks for it,
-        // and a permission it is refused is one more thing between a tap and
-        // a sound on a platform where that path is already fragile.
+        // (src/components/youtube-embed.tsx).
         allow="autoplay; encrypted-media"
-        className="block aspect-video w-full border-0"
+        /**
+         * Collapsed is one pixel tall, NOT `display: none`.
+         *
+         * The first version of this line used Tailwind's `hidden`, and the
+         * comment beside it claimed that kept the frame in place. It does not:
+         * `hidden` is `display: none`, which takes the element out of layout
+         * entirely — and a media element removed from layout is a media
+         * element browsers are entitled to stop. On the one platform this
+         * whole component is being reworked for, that would have turned the
+         * collapse control into a stop button that says 收起.
+         *
+         * A pixel of height keeps it rendered and playing while taking no
+         * room. Size only ever mattered for *starting* playback — see the
+         * header's measurements — so a running player is safe at any size.
+         */
+        className={
+          collapsed ? "block h-px w-full border-0" : "block aspect-video w-full border-0"
+        }
       />
+
+      <button
+        type="button"
+        onClick={() => setCollapsed((was) => !was)}
+        data-testid="slideshow-music-collapse"
+        className="flex w-full items-center justify-center gap-1 px-2 py-1.5 text-[11px] leading-tight text-white/70"
+      >
+        {collapsed ? (
+          <>
+            <ChevronDown className="size-3" />
+            背景音樂
+          </>
+        ) : (
+          <>
+            <ChevronUp className="size-3" />
+            收起
+          </>
+        )}
+      </button>
+
       {/*
         Only on a touch device — `touch:` is that media query, named in
         tailwind.config.ts. No user-agent sniffing.
 
-        On a desktop the frame starts on its own and a "tap to play" label
-        would be a lie. On a phone it does not: iOS gives the right to make
-        sound to a gesture on the media itself, so the player waits for one,
-        and until this line existed there was nothing on screen saying so.
-        Whether the tap then works is the open question this makes it possible
-        for somebody to answer — see the component header.
+        On a pointer device the frame starts on its own and a "tap to play"
+        label would be a lie. On a phone it does not, and until this line
+        existed there was nothing on screen saying so.
       */}
-      <p
-        data-testid="slideshow-music-hint"
-        className="hidden px-2 py-1 text-center text-[11px] leading-tight text-white/70 touch:block"
-      >
-        點一下播放器開始音樂
-      </p>
+      {!collapsed && (
+        <p
+          data-testid="slideshow-music-hint"
+          className="hidden px-2 pb-1.5 text-center text-[11px] leading-tight text-white/70 touch:block"
+        >
+          點一下播放器開始音樂
+        </p>
+      )}
     </div>,
     document.body,
   );

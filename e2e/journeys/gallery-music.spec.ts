@@ -1,3 +1,5 @@
+import { devices } from "@playwright/test";
+
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
@@ -156,36 +158,13 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       new RegExp(`^https://www\\.youtube-nocookie\\.com/embed/${VIDEO_ID}\\?`),
     );
 
-    /**
-     * A tap can actually land on it — the whole reason this player is visible.
-     *
-     * It began as a 1×1, transparent, `pointer-events: none` frame, which was
-     * silent on iOS: that platform grants the right to make sound to a gesture
-     * on the media itself and does not pass a parent page's gesture into a
-     * cross-origin frame, so the one action it requires could never be
-     * performed. Nothing in this suite can hear an iPhone, but it can pin the
-     * property that makes the gesture possible at all, and that is the thing a
-     * later tidy-up would take away without noticing.
-     *
-     * `toBeVisible` is not enough on its own: it is satisfied by an element
-     * with `opacity: 0`, which is exactly what the broken version was. The
-     * size and the hit test are what say "reachable".
-     */
-    const box = await player.boundingBox();
-    expect(box, "the player must have a box to tap").not.toBeNull();
-    expect(box!.width, "wide enough to press").toBeGreaterThanOrEqual(100);
-    expect(box!.height, "tall enough to press").toBeGreaterThanOrEqual(50);
-    const hitsThePlayer = await page.evaluate(
-      ([x, y]) => {
-        const hit = document.elementFromPoint(x, y);
-        return Boolean(hit?.closest('[data-testid="slideshow-music-panel"]'));
-      },
-      [box!.x + box!.width / 2, box!.y + box!.height / 2],
-    );
-    expect(
-      hitsThePlayer,
-      "a tap at the player's centre must reach it, not something on top of it",
-    ).toBe(true);
+    // Collapsed on a pointer device, which is what this context is: nothing
+    // has to be pressed here because `autoplay=1` is honoured, so the player
+    // stays out of the way. The touch case — where it must be big enough to
+    // press — is V-BGM-T8, which needs a device context of its own.
+    await expect(
+      page.getByTestId("slideshow-music-panel"),
+    ).toHaveAttribute("data-collapsed", "true");
 
     // Muting is not cosmetic: the frame goes away, which is the only way this
     // component can stop a sound it never had a handle on.
@@ -222,12 +201,25 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
     page,
     request,
   }) => {
-    test.setTimeout(budget(60_000));
+    test.setTimeout(budget(90_000));
 
     const login = await request.post("/api/users/login", {
       data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
     });
     expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    // The site list has to be empty for "no music" to mean anything — every
+    // album falls back to it. Left to whatever the environment happened to
+    // hold, this test asserts nothing on a site that has configured one, and
+    // it failed exactly that way the first time somebody set one locally.
+    const beforeGlobal = await request.get("/api/globals/site?depth=0");
+    const previousGlobal =
+      ((await beforeGlobal.json()) as { backgroundMusic?: unknown[] })
+        .backgroundMusic ?? [];
+    const cleared = await request.post("/api/globals/site", {
+      data: { backgroundMusic: [] },
+    });
+    expect(cleared.ok(), await cleared.text()).toBeTruthy();
 
     const stamp = Date.now();
     const uploaded = await request.post("/api/media", {
@@ -271,6 +263,10 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       timeout: budget(15_000),
     });
     await expect(page.getByTestId("gallery-music-toggle")).toHaveCount(0);
+
+    await request.post("/api/globals/site", {
+      data: { backgroundMusic: previousGlobal },
+    });
   });
 
   test("V-BGM-T3: a race's album takes its music from the edition", async ({
@@ -500,6 +496,19 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
     });
     await page.getByRole("button", { name: "Play" }).click();
     await expect(page.getByTestId("slideshow-music")).toHaveCount(1, {
+      timeout: budget(10_000),
+    });
+
+    // The strip goes away while the slideshow runs — it owns the bottom band
+    // and the slide area is what is left, so this is the picture growing into
+    // the space rather than a cosmetic tidy.
+    //
+    // Asserted on visibility, not on a count: the plugin hides the container
+    // with `display: none` and leaves every thumbnail in the DOM, so the
+    // first version of this line looked for zero images, found two, and
+    // reported a working feature as broken.
+    const strip = page.locator(".yarl__thumbnails_container").first();
+    await expect(strip, "a running slideshow puts the thumbnail strip away").toBeHidden({
       timeout: budget(10_000),
     });
 
@@ -750,6 +759,122 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       await request.post("/api/globals/site", {
         data: { backgroundMusic: previous },
       });
+    }
+  });
+
+  test("V-BGM-T8: on a touch device the player is big enough to press", async ({
+    browser,
+    request,
+  }) => {
+    test.setTimeout(budget(120_000));
+
+    /**
+     * THE ONE PROPERTY THAT MADE AN iPHONE SILENT, and it is not the one three
+     * versions of this component assumed.
+     *
+     * Measured in the iOS Simulator: at 160×90 a tap on the YouTube embed does
+     * nothing at all — no playback, no error — and at 224×126 the same tap
+     * starts it, with audio. The embed was simply too small for YouTube's
+     * player to be interactive. Autoplay policy, user activation and
+     * cross-origin gestures were all red herrings.
+     *
+     * Nothing in this suite can hear a phone. What it can pin is the property
+     * that makes the tap possible at all — that on a device which has to tap,
+     * the player is expanded and large — because that is exactly what a later
+     * tidy-up ("this panel is huge, shrink it") would take away, restoring the
+     * silence with every test still green.
+     *
+     * A real device context rather than `emulateMedia`: the component branches
+     * on `(hover: none) and (pointer: coarse)`, and Playwright can only
+     * produce that pair through a device descriptor.
+     */
+    const context = await browser.newContext({ ...devices["iPhone 13"] });
+    const page = await context.newPage();
+    try {
+      const login = await request.post("/api/users/login", {
+        data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+      });
+      expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+      const stamp = Date.now();
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file: { name: `v-bgm-touch-${stamp}.svg`, mimeType: "image/svg+xml", buffer: SVG },
+          _payload: JSON.stringify({ alt: `V-BGM touch ${stamp}`, usage: "gallery" }),
+        },
+      });
+      expect(uploaded.ok()).toBeTruthy();
+      const mediaId = ((await uploaded.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "media", id: mediaId });
+      recordCreated({ collection: "media", id: mediaId, note: "V-BGM touch probe" });
+
+      const slug = `v-bgm-touch-${stamp}`;
+      const album = await request.post("/api/galleries", {
+        data: {
+          name: `V-BGM touch ${stamp}`,
+          slug,
+          _status: "published",
+          musicUrl: `https://www.youtube.com/watch?v=${VIDEO_ID}`,
+          items: [{ media: mediaId, featured: false }],
+        },
+      });
+      expect(album.ok(), await album.text()).toBeTruthy();
+      const albumId = ((await album.json()) as { doc: { id: number } }).doc.id;
+      created.push({ collection: "galleries", id: albumId });
+      recordCreated({ collection: "galleries", id: albumId, note: "V-BGM touch album" });
+
+      await page.route(/\/api\/media\/file\/|images\.wildrunner\.org/, (route) =>
+        route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL }),
+      );
+      await page.route(/youtube-nocookie\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html>" }),
+      );
+
+      await page.goto(`/gallery/${slug}`, { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("load");
+      await page.getByTestId("gallery-album").locator("img").first().click();
+      await expect(page.getByTestId("gallery-music-toggle")).toBeVisible({
+        timeout: budget(20_000),
+      });
+      await page.getByRole("button", { name: "Play" }).click();
+
+      const panel = page.getByTestId("slideshow-music-panel");
+      await expect(panel).toHaveCount(1, { timeout: budget(15_000) });
+      // Expanded without anybody asking, because here the tap is required.
+      await expect(panel).toHaveAttribute("data-collapsed", "false");
+
+      const box = await page.getByTestId("slideshow-music").boundingBox();
+      expect(box, "the player must have a box to tap").not.toBeNull();
+      // 200 is the size YouTube documents as its minimum; 160 is what did not
+      // work. The floor is set at the measured-good width rather than the
+      // documented one so this fails on the real regression.
+      expect(box!.width, "wide enough for the embed to be interactive").toBeGreaterThanOrEqual(
+        200,
+      );
+      expect(box!.height, "tall enough to press").toBeGreaterThanOrEqual(80);
+
+      // ...and nothing is on top of it. Visible and untappable is the exact
+      // state that produced silence.
+      const hitsThePlayer = await page.evaluate(
+        ([x, y]) => {
+          const hit = document.elementFromPoint(x, y);
+          return Boolean(hit?.closest('[data-testid="slideshow-music-panel"]'));
+        },
+        [box!.x + box!.width / 2, box!.y + box!.height / 2],
+      );
+      expect(
+        hitsThePlayer,
+        "a tap at the player's centre must reach it, not the lightbox",
+      ).toBe(true);
+
+      // Collapsing keeps the frame — it is a size change, not a stop. Using
+      // `display: none` here would let a browser reclaim the media element,
+      // which would make 收起 a stop button wearing the wrong label.
+      await page.getByTestId("slideshow-music-collapse").click();
+      await expect(panel).toHaveAttribute("data-collapsed", "true");
+      await expect(page.getByTestId("slideshow-music")).toHaveCount(1);
+    } finally {
+      await context.close();
     }
   });
 });

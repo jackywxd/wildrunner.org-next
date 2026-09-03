@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Lightbox, { type Slide } from "yet-another-react-lightbox";
+// `ThumbnailsRef` is declared into the core module by the plugin's own
+// `declare module`, so it is imported from there rather than from the plugin
+// path — which exports only the plugin itself.
+import Lightbox, {
+  type Slide,
+  type ThumbnailsRef,
+} from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
 import Captions from "yet-another-react-lightbox/plugins/captions";
@@ -407,6 +413,15 @@ export function MediaGrid({
   // so each starts at whatever its incoming list already is — the initial
   // render must not reorder anything.
   const [sort, setSort] = useState<WallSort>(paginated ? "newest" : "curated");
+  /**
+   * The thumbnail strip, so the slideshow can put it away.
+   *
+   * A running slideshow is the one time nobody is choosing a photo — they are
+   * watching. The strip owns the bottom band of the window and the slide area
+   * is what is left, so hiding it is not decoration: the picture grows into
+   * the space.
+   */
+  const thumbnailsRef = useRef<ThumbnailsRef>(null);
   const loadingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -792,12 +807,23 @@ export function MediaGrid({
           // and it is also what makes the sound legal to start: these fire
           // from the visitor pressing the lightbox's own play button, so the
           // page has the user activation an autoplaying frame needs.
-          slideshowStart: () => setSlideshowRunning(true),
-          slideshowStop: () => setSlideshowRunning(false),
+          slideshowStart: () => {
+            setSlideshowRunning(true);
+            thumbnailsRef.current?.hide();
+          },
+          slideshowStop: () => {
+            setSlideshowRunning(false);
+            thumbnailsRef.current?.show();
+          },
           // Closing is not a pause. Leaving the lightbox with music still
           // playing behind the page would be the worst version of this
           // feature.
-          exiting: () => setSlideshowRunning(false),
+          exiting: () => {
+            setSlideshowRunning(false);
+            // Put the strip back on the way out, or the next visitor to open
+            // this album gets a lightbox missing a control they never touched.
+            thumbnailsRef.current?.show();
+          },
         }}
         toolbar={{
           buttons: [
@@ -866,6 +892,15 @@ export function MediaGrid({
           descriptionTextAlign: "center",
           descriptionMaxLines: 3,
         }}
+        /**
+         * `showToggle`, because hiding must not be a trap.
+         *
+         * The slideshow hides the strip on its own (`slideshowStart` above);
+         * this is what lets a visitor bring it back without stopping the
+         * slideshow to do it, and what lets somebody who wanted it hidden in
+         * the first place say so.
+         */
+        thumbnails={{ ref: thumbnailsRef, showToggle: true }}
         plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
 
