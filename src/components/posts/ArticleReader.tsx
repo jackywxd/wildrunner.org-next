@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Square } from "lucide-react";
+import { Music, Pause, Play, Square, VolumeX } from "lucide-react";
 
+import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
+import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
 import { articleSegments } from "@/lib/reader/article-text";
 
 /**
@@ -54,11 +56,28 @@ type Status = "idle" | "speaking" | "paused";
 export function ArticleReader({
   title,
   content,
+  musicPlaylist = [],
 }: {
   /** Said first, so a listener knows what they are hearing. */
   title: string;
   /** The stored Lexical body. Reduced by `articleSegments`, never rendered. */
   content: unknown;
+  /**
+   * What plays behind the voice, already resolved to an eleven-character id
+   * by `buildMusicPlaylist` — this post's own link first, then the site-wide
+   * fallback list. `null` means the article is read in silence.
+   */
+  /**
+   * The tracks this article can play behind its own voice, in order.
+   *
+   * A list rather than one id, because the gallery's music became a playlist
+   * and both surfaces resolve it through the same `buildMusicPlaylist` — an
+   * article that looped ninety seconds while a long piece was read aloud
+   * would be the same complaint the album had. Nothing here skips between
+   * them: YouTube advances the queue on its own, and a reader listening to an
+   * article is not looking for a track selector.
+   */
+  musicPlaylist?: string[];
 }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceName, setVoiceName] = useState("");
@@ -66,6 +85,14 @@ export function ArticleReader({
   const [status, setStatus] = useState<Status>("idle");
   /** Whether the API exists at all — false on a browser without it. */
   const [supported, setSupported] = useState(true);
+  /**
+   * Shared with the album slideshow, on purpose: a visitor who silenced one
+   * has not made a second decision. Read lazily because `sessionStorage` does
+   * not exist during the server render.
+   */
+  const [muted, setMuted] = useState(() =>
+    typeof window === "undefined" ? false : readMusicMuted(),
+  );
 
   const segments = useMemo(
     () => [title, ...articleSegments(content)].filter(Boolean),
@@ -230,6 +257,21 @@ export function ArticleReader({
 
   const noVoice = chineseVoices.length === 0;
 
+  /**
+   * Music follows the voice, and stops when it stops.
+   *
+   * `status === "speaking"` rather than "not idle": a listener who pressed
+   * pause wants the whole thing quiet, not the words gone and the music
+   * playing on. That is the same reading the album takes of a video slide —
+   * whatever is in front should not be competing with a second track.
+   *
+   * Volume is YouTube's own, because the player is visible and carries
+   * `controls=1`. That is the finer-grained answer this feature needs and the
+   * mute button cannot give: under a speaking voice, "quieter" is usually
+   * what somebody wants rather than "off".
+   */
+  const musicPlaying = musicPlaylist.length > 0 && !muted && status === "speaking";
+
   return (
     <div
       className="my-6 flex flex-wrap items-center gap-3 border border-border bg-secondary p-3"
@@ -273,6 +315,43 @@ export function ArticleReader({
           <Square className="size-4" />
           <span>停止</span>
         </button>
+      )}
+
+      {/* Only offered when there is something to play. A toggle for silence
+          would be a control that cannot change anything. */}
+      {musicPlaylist.length > 0 && !noVoice && (
+        <button
+          type="button"
+          onClick={() => {
+            const next = !muted;
+            setMuted(next);
+            writeMusicMuted(next);
+          }}
+          data-testid="article-music-toggle"
+          data-playing={musicPlaying}
+          aria-label={muted ? "播放背景音樂" : "關閉背景音樂"}
+          title={muted ? "播放背景音樂" : "關閉背景音樂"}
+          className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm"
+        >
+          {muted ? (
+            <VolumeX className="size-4" />
+          ) : (
+            <Music className="size-4" />
+          )}
+        </button>
+      )}
+
+      {musicPlaylist.length > 0 && (
+        <SlideshowMusic
+          playlist={musicPlaylist}
+          // Always the first track. The album offers 上一首/下一首 because a
+          // slideshow is long and unattended; an article is neither, and a
+          // track selector beside a read-aloud control is one more thing
+          // between a reader and the text.
+          index={0}
+          playing={musicPlaying}
+          title="文章背景音樂"
+        />
       )}
 
       {noVoice ? (

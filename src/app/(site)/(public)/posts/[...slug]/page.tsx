@@ -11,10 +11,7 @@ import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  getPostBySlugParam,
-  getPublishedPostSlugs,
-} from "@/lib/content";
+import { getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { resolvePostOgImage } from "@/lib/postOg";
 import { RaceBadge } from "@/lib/races/badge";
@@ -124,7 +121,9 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
   // also renders `RiderBadgeRow`/`RiderBadgeWall` elsewhere in the request —
   // and most posts have no race attached, so the common case does one lookup
   // in a Map rather than a second query.
-  const catalogue = blog.race ? catalogueMap(await getRaceCatalogueEvents()) : null;
+  const catalogue = blog.race
+    ? catalogueMap(await getRaceCatalogueEvents())
+    : null;
 
   return (
     <article className="container relative max-w-3xl py-6 lg:py-10">
@@ -171,7 +170,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             data-testid="post-race-badge"
           >
             <RaceBadge
-              {...resolveBadge(catalogue, blog.race.eventId, blog.race.distanceId)}
+              {...resolveBadge(
+                catalogue,
+                blog.race.eventId,
+                blog.race.distanceId,
+              )}
               size={56}
               year={blog.race.year}
             />
@@ -212,7 +215,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             nothing to say. The control renders nothing at all on a browser
             with no `speechSynthesis`. */}
         {blog.content && (
-          <ArticleReader title={blog.title} content={blog.content} />
+          <ArticleReader
+            title={blog.title}
+            content={blog.content}
+            musicPlaylist={blog.musicPlaylist}
+          />
         )}
         {blog.content && (
           <PayloadRichText data={blog.content} className="article-body" />

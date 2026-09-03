@@ -40,6 +40,7 @@ import {
 } from "@/components/media/filters";
 import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
+import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
 import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
 
 /**
@@ -214,37 +215,6 @@ const ALBUM_SORTS: { value: WallSort; label: string }[] = [
 const ANY_RACE = "";
 
 /**
- * Where a visitor's "I do not want the music" survives to.
- *
- * `sessionStorage`, not state and not `localStorage`. Not state, because a
- * visitor who muted one album and opened another should not have to mute it
- * again — that is the same decision, not a new one. Not `localStorage`,
- * because a preference expressed once should not silence every album a year
- * later on a machine they have forgotten about; a tab is the right lifetime
- * for "not right now".
- */
-const MUTE_KEY = "wr:gallery-music-muted";
-
-function readMuted(): boolean {
-  try {
-    return window.sessionStorage.getItem(MUTE_KEY) === "1";
-  } catch {
-    // Private windows and blocked site data both throw on access rather than
-    // returning null. Not knowing the preference means playing, which is what
-    // an album with music is for.
-    return false;
-  }
-}
-
-function writeMuted(muted: boolean) {
-  try {
-    window.sessionStorage.setItem(MUTE_KEY, muted ? "1" : "0");
-  } catch {
-    // Losing the preference is a smaller failure than refusing the click.
-  }
-}
-
-/**
  * The mute control, and the only reason background music is allowed at all.
  *
  * WCAG 1.4.2: any audio that plays for more than three seconds must have a
@@ -372,7 +342,7 @@ export function MediaGrid({
    * already said they did not want.
    */
   const [muted, setMuted] = useState(() =>
-    typeof window === "undefined" ? false : readMuted(),
+    typeof window === "undefined" ? false : readMusicMuted(),
   );
   /** Whether the slideshow is running — the thing the music follows. */
   const [slideshowRunning, setSlideshowRunning] = useState(false);
@@ -642,7 +612,7 @@ export function MediaGrid({
   const toggleMusic = useCallback(() => {
     setMuted((wasMuted) => {
       const nextMuted = !wasMuted;
-      writeMuted(nextMuted);
+      writeMusicMuted(nextMuted);
       if (!nextMuted) setSlideshowRunning(true);
       return nextMuted;
     });
@@ -664,7 +634,7 @@ export function MediaGrid({
         return next < 0 ? next + musicPlaylist.length : next;
       });
       setMuted(false);
-      writeMuted(false);
+      writeMusicMuted(false);
       setSlideshowRunning(true);
     },
     [musicPlaylist.length],

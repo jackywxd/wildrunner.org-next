@@ -22,6 +22,7 @@
  * that exactly.
  */
 import { expect, test } from "../helpers/test";
+import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 
 /** 1×1 transparent GIF, answered in-process so no request leaves the sandbox. */
@@ -136,9 +137,11 @@ async function longestArticle(
   );
   expect(res.ok(), `could not read posts: ${res.status()}`).toBeTruthy();
   const docs = ((await res.json()).docs ?? []) as {
+    id: number;
     slug: string;
     title: string;
     content?: unknown;
+    musicUrl?: string | null;
   }[];
   const withBody = docs
     .filter((doc) => doc.content)
@@ -239,5 +242,144 @@ test.describe("V-READER an article can be listened to", () => {
       ),
       "stopping must end the article, not pause it for one sentence",
     ).toBe(atStop);
+  });
+});
+
+/**
+ * V-READERMUSIC — the article plays the same background music an album does.
+ *
+ * THE CORPUS HAS NO POST MUSIC and the site's fallback list is empty, so every
+ * seeded article resolves to silence and the controls do not render at all.
+ * That is the correct default and it is why this fixture sets one: the claim
+ * is about what happens when there IS a track, and a test that waited for the
+ * corpus to grow one would assert nothing today.
+ *
+ * The field is restored in `afterEach` by the id captured when it was set —
+ * never by matching a value, per AGENTS.md.
+ */
+test.describe("V-READERMUSIC an article read aloud can have music behind it", () => {
+  /** Eleven characters, and never anything else — see src/lib/youtube.ts. */
+  const VIDEO_ID = "dQw4w9WgXcQ";
+
+  let touched: { id: number; musicUrl: string | null } | null = null;
+
+  test.afterEach(async ({ request }) => {
+    if (!touched) return;
+    const { id, musicUrl } = touched;
+    touched = null;
+    // Put back exactly what was there, which for every seeded post is null.
+    await request.patch(`/api/posts/${id}`, { data: { musicUrl } });
+  });
+
+  async function giveItMusic(
+    request: import("@playwright/test").APIRequestContext,
+    post: { id: number; musicUrl?: string | null },
+  ) {
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+    touched = { id: post.id, musicUrl: post.musicUrl ?? null };
+    const patched = await request.patch(`/api/posts/${post.id}`, {
+      data: { musicUrl: `https://www.youtube.com/watch?v=${VIDEO_ID}` },
+    });
+    expect(
+      patched.ok(),
+      `could not set the music: ${patched.status()}`,
+    ).toBeTruthy();
+  }
+
+  test("V-READERMUSIC-T1: music follows the voice, and the toggle silences it", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(60_000));
+    const post = await longestArticle(request);
+    await giveItMusic(request, post);
+
+    await stubImages(page);
+    await stubVoice(page);
+    await page.goto(`/posts/${post.slug}`, { waitUntil: "domcontentloaded" });
+
+    // Nothing is playing before anybody asks for it: the player exists only
+    // while the article is actually being read.
+    await expect(page.getByTestId("article-reader")).toBeVisible({
+      timeout: budget(20_000),
+    });
+    await expect(page.getByTestId("slideshow-music")).toHaveCount(0);
+
+    await page.getByTestId("article-reader-toggle").click();
+
+    const player = page.getByTestId("slideshow-music");
+    await expect(player, "reading starts the music with it").toBeVisible({
+      timeout: budget(15_000),
+    });
+    // The id the page resolved, not the URL that was stored — the whole point
+    // of `buildMusicPlaylist` handing back eleven characters.
+    await expect(player).toHaveAttribute("data-video-id", VIDEO_ID);
+
+    // PAUSING THE VOICE SILENCES THE MUSIC TOO, and this assertion exists
+    // because a deliberate break showed the rest of the test could not see it:
+    // widening the condition from "speaking" to "not idle" left every other
+    // check green while the music played on under a paused article. A listener
+    // who pressed pause wants the whole thing quiet.
+    await page.getByTestId("article-reader-toggle").click();
+    await expect(page.getByTestId("article-reader")).toHaveAttribute(
+      "data-status",
+      "paused",
+    );
+    await expect(page.getByTestId("slideshow-music")).toHaveCount(0);
+
+    // ...and resuming brings it back, which is what makes pause a pause
+    // rather than a stop.
+    await page.getByTestId("article-reader-toggle").click();
+    await expect(page.getByTestId("slideshow-music")).toBeVisible({
+      timeout: budget(15_000),
+    });
+
+    await page.getByTestId("article-music-toggle").click();
+    await expect(
+      page.getByTestId("slideshow-music"),
+      "muting unmounts the player; that IS how it stops",
+    ).toHaveCount(0);
+
+    // ...and the voice carries on, which is the difference between muting the
+    // music and stopping the article.
+    await expect(page.getByTestId("article-reader")).toHaveAttribute(
+      "data-status",
+      "speaking",
+    );
+  });
+
+  test("V-READERMUSIC-T2: a visitor who silenced an album is not asked again here", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(60_000));
+    const post = await longestArticle(request);
+    await giveItMusic(request, post);
+
+    await stubImages(page);
+    await stubVoice(page);
+    // Exactly what the gallery writes when its mute button is pressed. Set
+    // through the same key rather than by driving the slideshow, so this
+    // asserts the sharing itself: if the two screens drift apart onto
+    // separate keys, this goes red.
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem("wr:music-muted", "1");
+    });
+    await page.goto(`/posts/${post.slug}`, { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("article-reader")).toBeVisible({
+      timeout: budget(20_000),
+    });
+    await page.getByTestId("article-reader-toggle").click();
+
+    // Reading starts; music does not.
+    await expect(page.getByTestId("article-reader")).toHaveAttribute(
+      "data-status",
+      "speaking",
+    );
+    await expect(page.getByTestId("slideshow-music")).toHaveCount(0);
   });
 });

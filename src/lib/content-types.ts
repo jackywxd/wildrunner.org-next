@@ -260,6 +260,19 @@ export type SitePost = {
   race?: SiteRaceRecord;
   /** Only the detail query selects the body; card queries leave it undefined. */
   content?: import("@/payload-types").Post["content"];
+  /**
+   * The eleven-character YouTube id this article plays while it is read
+   * aloud, or `null`/absent for silence.
+   *
+   * IDS, NEVER THE STORED STRINGS, for the reason `SiteGallery.musicPlaylist`
+   * carries the same shape: the `src` of a third-party frame is the one place
+   * a stray value in the database becomes an arbitrary embedded origin on our
+   * own page. Resolved by `buildMusicPlaylist` — this post's own `musicUrl`
+   * first, then the site-wide fallback list.
+   *
+   * Absent on a card query, which neither asks for it nor renders it.
+   */
+  musicPlaylist?: string[];
 };
 
 /**
@@ -343,7 +356,7 @@ export type SiteGlobals = {
    * The site-wide fallback tracks, as *stored URLs*.
    *
    * The one place a URL rather than an id crosses a boundary in this feature,
-   * and only as far as the server: `resolveAlbumMusic` parses it on the way
+   * and only as far as the server: `buildMusicPlaylist` parses it on the way
    * into a page's props, so what reaches the browser is still an id. Carrying
    * ids here instead would mean parsing in `mapSiteGlobal`, which is the
    * mapper for the whole global and has no business knowing about YouTube.

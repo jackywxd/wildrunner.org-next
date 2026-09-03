@@ -74,7 +74,7 @@ export const Site: GlobalConfig = {
      * A LIST RATHER THAN ONE TRACK, so a visitor who browses several albums in
      * a sitting does not hear the same thirty seconds each time. Which one an
      * album gets is decided from the album's own slug, not at random — see
-     * `pickFallbackMusic`: a track that changed on every reload would make the
+     * `buildMusicPlaylist`: a list that started somewhere else on every reload
      * same album sound different every visit for no reason the visitor could
      * see, and would make the behaviour untestable.
      *

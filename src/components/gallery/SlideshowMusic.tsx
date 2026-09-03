@@ -68,12 +68,23 @@ export function SlideshowMusic({
   playlist,
   index,
   playing,
+  title = "相簿背景音樂",
 }: {
   /** YouTube ids, in order. Never URLs — see `SiteGallery.musicPlaylist`. */
   playlist: string[];
   /** Which one to start on. Out-of-range is treated as nothing to play. */
   index: number;
   playing: boolean;
+  /**
+   * What the frame is called, for anyone reading the page with a screen
+   * reader or looking at the accessibility tree.
+   *
+   * A prop since an article reads itself aloud over this too, and "相簿背景
+   * 音樂" on an article page would be a small lie in the one place a blind
+   * visitor has to trust. Defaulted rather than required so the album pages
+   * that already pass neither keep working unchanged.
+   */
+  title?: string;
 }) {
   /**
    * Collapsed unless the visitor has to press the player to start it.
@@ -145,7 +156,9 @@ export function SlideshowMusic({
         data-testid="slideshow-music"
         data-video-id={videoId}
         data-track={index}
-        title="相簿背景音樂"
+        // The caller's name for the frame, not a constant: an article reads
+        // itself aloud over this player too. See the prop's own note.
+        title={title}
         // `key` on the id, not just `src`: React reuses an <iframe> whose type
         // and position match and only patches attributes, and a patched `src`
         // does not reliably restart a cross-origin frame. Keying forces a new
