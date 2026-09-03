@@ -90,11 +90,46 @@
   font-size: 1.15em;
 }
 
+/**
+ * A PHOTOGRAPH HAS TO FIT ON A PAGE, and the first print off this route proved
+ * it does not by itself. Measured on the real output: an article came back as
+ * 78 sheets. The mechanism is arithmetic, not taste — the rich-text converter
+ * gives every upload `w-full`, so a portrait phone photo (828×1242 is the
+ * common one in this corpus) fills the 170mm printable width and becomes
+ *
+ *     170mm × 1242/828 = 255mm tall
+ *
+ * against a printable height of 297 − 44 = 253mm. Every portrait photo is
+ * therefore slightly taller than the page it is on: it cannot share a sheet
+ * with anything, and `break-inside: avoid` gives it one of its own.
+ *
+ * `width: auto` beats the converter's `.w-full` on specificity (class+element
+ * against class) with no `!important`. With both maxima set the browser scales
+ * to whichever binds first, so a portrait is capped by height and a landscape
+ * by width — each ends up as large as it can be and still fit.
+ */
 .print-body img,
 .print-body figure {
+  width: auto;
   max-width: 100%;
+  max-height: 190mm;
   height: auto;
   break-inside: avoid;
+}
+
+/* Keepsake: the photographs are half the reason for this template, so they
+   get the rest of the page rather than the reading-sized cap above. */
+.print-magazine .print-body img,
+.print-magazine .print-body figure {
+  max-height: 215mm;
+}
+
+/* The club's mark in the running head. Sized here rather than by a utility
+   class so the header keeps its proportions at print scale. */
+.print-logo {
+  width: 1em;
+  height: 1em;
+  display: block;
 }
 
 .print-body ul,

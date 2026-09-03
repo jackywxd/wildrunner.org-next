@@ -57,6 +57,11 @@ const ROUTES = [
   "/admin",
   "/posts",
   "/posts/warmup-not-a-real-post",
+  // Its own compilation unit, and not covered by `/posts/...`: the print
+  // route lives outside `(site)` under a second root layout of its own. The
+  // API route beside it compiles separately again.
+  "/print/posts/warmup-not-a-real-post",
+  "/api/print/posts/warmup-not-a-real-post",
   "/gallery",
   "/gallery/warmup-not-a-real-gallery",
   "/races",
