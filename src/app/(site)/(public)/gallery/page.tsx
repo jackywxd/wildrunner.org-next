@@ -7,6 +7,8 @@ import {
   getRaceGalleries,
 } from "@/lib/content";
 import { buildGalleryIndex, wallPage } from "@/lib/media/gallery-index";
+import { buildMusicPlaylist } from "@/lib/media/album-music";
+import { getSiteGlobals } from "@/lib/content";
 import GalleryPageClient from "./gallery-page-client";
 
 /**
@@ -67,6 +69,25 @@ export default async function GalleryPage() {
   // paginate a `media` query on its own.
   const firstPage = wallPage(index.items, null);
 
+  /**
+   * The wall's music, which it had none of.
+   *
+   * Every *album* could play something and the landing view could not, which
+   * is backwards: 全部相片 is what a visitor sees first and spends longest in.
+   * It has no row of its own and never will — it is not an album — so it has
+   * no `own` music and plays the site-wide list outright.
+   *
+   * The slug is a constant rather than an album's, and it decides only where
+   * in the list this view starts. `"gallery"` keeps that start stable instead
+   * of making the wall a special case inside `buildMusicPlaylist`.
+   */
+  const { backgroundMusic } = await getSiteGlobals();
+  const musicPlaylist = buildMusicPlaylist({
+    slug: "gallery",
+    own: null,
+    fallback: backgroundMusic,
+  });
+
   return (
     <GalleryPageClient
       albums={index.albums}
@@ -74,6 +95,7 @@ export default async function GalleryPage() {
       items={firstPage.items}
       nextCursor={firstPage.nextCursor}
       races={index.races}
+      musicPlaylist={musicPlaylist}
     />
   );
 }

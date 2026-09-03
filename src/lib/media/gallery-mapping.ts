@@ -13,7 +13,7 @@
 import type { Gallery, Media } from '@/payload-types'
 
 import { mediaDimensions, mediaImageSrc } from '@/lib/cf-image'
-import { resolveAlbumMusic, type FallbackTrack } from '@/lib/media/album-music'
+import { buildMusicPlaylist, type FallbackTrack } from '@/lib/media/album-music'
 import type { SiteGallery, SiteMediaItem, SitePhoto, SiteVideo } from '@/lib/content-types'
 import { editionIdOf, mediaToSiteVideo } from '@/lib/media/site-video'
 
@@ -166,11 +166,11 @@ export function mapPayloadGallery(
     isFeatured: Boolean(doc.featured),
     featured: featuredStems,
     cover: coverMedia ? mapMediaToSiteImage(coverMedia) : null,
-    // The id, never the stored URL — this is the boundary src/lib/youtube.ts
-    // exists to hold. `null` for an album with no music and no fallback, and
+    // Ids, never the stored URLs — this is the boundary src/lib/youtube.ts
+    // exists to hold. Empty for an album with no music and no fallback, and
     // also for one whose stored value stopped parsing, which is the safe
     // direction: no music rather than an arbitrary third-party frame.
-    musicVideoId: resolveAlbumMusic({
+    musicPlaylist: buildMusicPlaylist({
       slug: doc.slug,
       own: doc.musicUrl,
       fallback: fallbackMusic,

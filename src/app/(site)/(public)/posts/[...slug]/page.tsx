@@ -218,7 +218,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           <ArticleReader
             title={blog.title}
             content={blog.content}
-            musicVideoId={blog.musicVideoId}
+            musicPlaylist={blog.musicPlaylist}
           />
         )}
         {blog.content && (

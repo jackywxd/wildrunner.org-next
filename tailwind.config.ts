@@ -34,6 +34,20 @@ const config = {
       },
     },
     extend: {
+      /**
+       * `touch:` — a device that cannot hover and points coarsely.
+       *
+       * A named screen rather than the arbitrary variant it replaces.
+       * `[@media(hover:none)and(pointer:coarse)]:block` looks equivalent and
+       * is not: Tailwind takes `_` as the space in an arbitrary variant, so
+       * written without one it emits `@media(hover:none)and(...)`, which is
+       * invalid CSS — and an invalid at-rule does not fail quietly, it takes
+       * the whole compiled stylesheet with it. Every page 500'd. A name in
+       * here cannot be mis-escaped at a call site.
+       */
+      screens: {
+        touch: { raw: "(hover: none) and (pointer: coarse)" },
+      },
       fontFamily: {
         lexend: ["var(--font-body)", ...fontFamily.sans],
         code: ["var(--font-code)", ...fontFamily.sans],

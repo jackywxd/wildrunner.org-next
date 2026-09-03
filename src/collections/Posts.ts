@@ -131,7 +131,7 @@ export const Posts: CollectionConfig = {
      * What plays behind the article while it is read aloud.
      *
      * THE SAME FIELD AS AN ALBUM'S, deliberately down to the validator, and it
-     * resolves through the same `resolveAlbumMusic`: this post's own link
+     * resolves through the same `buildMusicPlaylist`: this post's own link
      * first, then the site-wide fallback list on the `site` global. An article
      * and an album are the same question — "what should be playing?" — asked
      * about a different thing, and the answer already had one implementation.

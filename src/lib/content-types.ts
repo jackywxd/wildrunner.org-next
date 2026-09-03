@@ -170,19 +170,20 @@ export type SiteGallery = {
   featured: string[];
   cover?: SiteImage | null;
   /**
-   * The eleven-character YouTube id this album plays as background music, or
-   * `null`.
+   * The YouTube ids this album plays behind its slideshow, in order.
    *
-   * An ID, NOT A URL, and that is the only shape allowed to cross to the
-   * client: the `src` of a third-party frame is the one place a stray string
-   * in the database would become an arbitrary embedded origin on our own
-   * page. `mapPayloadGallery` parses it out of `galleries.musicUrl` with
-   * `youTubeVideoId`; the renderer rebuilds the URL from it.
+   * IDS, NOT URLS, and that is the only shape allowed to cross to the client:
+   * the `src` of a third-party frame is the one place a stray string in the
+   * database would become an arbitrary embedded origin on our own page.
+   * `buildMusicPlaylist` parses them out of the stored URLs; the renderer
+   * rebuilds every URL from an id.
    *
-   * `null` on every album until an admin sets one, and on a virtual race
-   * album always — those have no row to store it on.
+   * A LIST, because one track meant a two-hundred-photo slideshow heard the
+   * same ninety seconds on a loop and "next" had nowhere to go. The album's
+   * own music comes first when it has any, then the site-wide list. Empty
+   * means silence — and no control offered for it.
    */
-  musicVideoId?: string | null;
+  musicPlaylist: string[];
   /**
    * The album, as one ordered list.
    *
@@ -263,15 +264,15 @@ export type SitePost = {
    * The eleven-character YouTube id this article plays while it is read
    * aloud, or `null`/absent for silence.
    *
-   * AN ID, NEVER THE STORED STRING, for the reason `SiteGallery.musicVideoId`
+   * IDS, NEVER THE STORED STRINGS, for the reason `SiteGallery.musicPlaylist`
    * carries the same shape: the `src` of a third-party frame is the one place
    * a stray value in the database becomes an arbitrary embedded origin on our
-   * own page. Resolved by `resolveAlbumMusic` — this post's own `musicUrl`
+   * own page. Resolved by `buildMusicPlaylist` — this post's own `musicUrl`
    * first, then the site-wide fallback list.
    *
    * Absent on a card query, which neither asks for it nor renders it.
    */
-  musicVideoId?: string | null;
+  musicPlaylist?: string[];
 };
 
 /**
@@ -355,7 +356,7 @@ export type SiteGlobals = {
    * The site-wide fallback tracks, as *stored URLs*.
    *
    * The one place a URL rather than an id crosses a boundary in this feature,
-   * and only as far as the server: `resolveAlbumMusic` parses it on the way
+   * and only as far as the server: `buildMusicPlaylist` parses it on the way
    * into a page's props, so what reaches the browser is still an id. Carrying
    * ids here instead would mean parsing in `mapSiteGlobal`, which is the
    * mapper for the whole global and has no business knowing about YouTube.

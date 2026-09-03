@@ -1,62 +1,79 @@
 "use client";
 
+import { useState } from "react";
 import { createPortal } from "react-dom";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { youTubeEmbedUrl } from "@/lib/youtube";
 
 /**
- * An album's background music, playing or not playing.
+ * An album's background music: a playlist, playing or not playing.
  *
- * MOUNTED TO PLAY, UNMOUNTED TO STOP. There is no player object here and no
- * `postMessage` protocol: `playing` decides whether the iframe exists at all,
+ * MOUNTED TO PLAY, UNMOUNTED TO STOP, and re-mounted to change track. There is
+ * no player object here and no `postMessage` protocol: `playing` decides
+ * whether the iframe exists at all, `index` decides which track it starts on,
  * and an iframe that exists carries `autoplay=1`.
  *
  * That is a deliberate choice against two alternatives that both looked
  * better on paper:
  *
  *   - YouTube's **IFrame Player API** (`https://www.youtube.com/iframe_api`)
- *     gives real play/pause on one player. It also means loading a script
- *     from `youtube.com` on a page that otherwise talks only to
- *     `youtube-nocookie.com` — and the whole reason `youTubeEmbedUrl` picks
- *     the quieter host (src/lib/youtube.ts) is that this site shows no cookie
- *     banner. Paying for pause with a third-party script is the wrong trade.
+ *     gives real play/pause, `nextVideo()` and a resumable position. It also
+ *     means loading a script from `youtube.com` on a page that otherwise talks
+ *     only to `youtube-nocookie.com` — and the whole reason `youTubeEmbedUrl`
+ *     picks the quieter host (src/lib/youtube.ts) is that this site shows no
+ *     cookie banner.
  *   - **`postMessage` with `enablejsapi=1`** and no API script is the popular
  *     middle road, and it is an undocumented handshake whose behaviour on
  *     `youtube-nocookie.com` this repo would be guessing at. A player that
  *     silently ignores commands looks exactly like one that is working — the
  *     failure this codebase keeps writing down.
  *
- * WHAT THE CHOICE COSTS, said plainly: stopping and starting again restarts
- * the track from the beginning rather than resuming. For music behind a
- * slideshow that is a small thing, and it is visible rather than mysterious.
+ * WHAT THE CHOICE COSTS, said plainly: every stop and start begins a track
+ * from zero, and so does every skip.
  *
- * WHY IT IS VISIBLE, WHICH IT WAS NOT AT FIRST. This started as a 1×1,
- * transparent, `pointer-events: none` frame — audio with no UI. On a Mac that
- * worked; on an iPhone it was silent, which is the report that produced this
- * paragraph. iOS grants the right to make sound to a gesture that lands on the
- * media itself, and does not hand a parent page's gesture to a cross-origin
- * frame; a frame that is one pixel wide, transparent and untappable is one the
- * required gesture can never reach. So the player is a real, visible,
- * tappable thing now: on a desktop it starts on its own exactly as before, and
- * on a phone the visitor taps YouTube's own play button once.
+ * ── WHY THE PLAYER IS THIS SIZE, WHICH IS THE WHOLE iOS STORY ──
  *
- * This is the fix for a mechanism inferred from the platform's rules, not one
- * measured here — nothing in this repository can hear an iPhone. What makes it
- * safe to ship anyway is that it costs a desktop nothing, and that the tap it
- * enables is itself the experiment: if sound still does not come on iOS, the
- * cause is not this.
+ * MEASURED IN THE iOS SIMULATOR (iPhone SE, iOS Safari), not inferred:
  *
- * `controls=1`, unlike the hidden version's `controls=0`. A player somebody
- * may need to press has to show what it is and offer a way to press it, and
- * the volume control it brings is the finer-grained answer to "quieter" that
- * the lightbox's own mute button cannot give.
+ *   160 × 90   the player renders its poster and play button, and **a tap on
+ *              it does nothing at all**. No playback, no error, no response.
+ *   224 × 126  a tap starts playback, with audio.
+ *   288 × 162  likewise.
+ *
+ * So the reason an iPhone was silent is that the embed was too small for
+ * YouTube's player to be interactive — nothing to do with autoplay policy,
+ * user activation, or cross-origin gesture propagation, which is what the
+ * previous three versions of this comment assumed and built around. Those
+ * inferences were reasonable and they were wrong; this paragraph replaces
+ * them because a measurement outranks an argument. YouTube documents a
+ * minimum embed size and this is what being under it looks like.
+ *
+ * A desktop never showed the symptom because it never needed the tap:
+ * `autoplay=1` is honoured there, so the player starts before anyone touches
+ * it and its size is irrelevant.
+ *
+ * WHICH IS WHY THE SIZE IS CONDITIONAL. On a touch device the player has to
+ * be big enough to press, and it therefore sits over the photo — the cost of
+ * working at all. On a pointer device nothing has to be pressed, so it starts
+ * collapsed and stays out of the way. Either way the visitor can toggle it:
+ * collapsing does not unmount the frame, so the music keeps playing.
+ *
+ * IT CANNOT GO BEHIND THE LIGHTBOX. That was asked, and it is the one thing
+ * that cannot work: behind means untappable, and untappable is the state that
+ * produced silence on every iPhone. `collapsed` is the answer to the same
+ * concern — small and in a corner, rather than absent and mute.
  */
 export function SlideshowMusic({
-  videoId,
+  playlist,
+  index,
   playing,
   title = "相簿背景音樂",
 }: {
-  videoId: string;
+  /** YouTube ids, in order. Never URLs — see `SiteGallery.musicPlaylist`. */
+  playlist: string[];
+  /** Which one to start on. Out-of-range is treated as nothing to play. */
+  index: number;
   playing: boolean;
   /**
    * What the frame is called, for anyone reading the page with a screen
@@ -69,20 +86,49 @@ export function SlideshowMusic({
    */
   title?: string;
 }) {
+  /**
+   * Collapsed unless the visitor has to press the player to start it.
+   *
+   * Read once, lazily, rather than in an effect: an effect would render
+   * collapsed and then expand, and on the one platform where the expansion is
+   * load-bearing that is a player that moves out from under a finger.
+   *
+   * `matchMedia` rather than a user-agent test, and the same query the hint
+   * below uses — a device that cannot hover and points coarsely.
+   */
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  });
+
+  const videoId = playlist[index];
+
   // `playing` only ever becomes true from a click, so this never renders on
   // the server and `document` is always there by the time it does. Guarded
   // anyway, because a component that assumes that is one refactor away from
   // crashing the whole page during SSR.
-  if (!playing || typeof document === "undefined") return null;
+  if (!playing || !videoId || typeof document === "undefined") return null;
 
-  // Built from the id, never from anything stored — see src/lib/youtube.ts.
-  // `loop` needs `playlist` set to the same id; that is YouTube's own rule for
-  // looping a single video rather than a trick.
-  const src = `${youTubeEmbedUrl(videoId)}?autoplay=1&loop=1&playlist=${videoId}&controls=1&playsinline=1`;
+  /**
+   * The rest of the list, so YouTube advances on its own when a track ends.
+   *
+   * `playlist=` is YouTube's own parameter for "play these after the one in
+   * the path", and it is the same parameter the single-track version used to
+   * make `loop=1` loop one video — that trick is this feature generalised
+   * rather than a separate mechanism. The current track is repeated at the end
+   * so the list wraps back to where the album started instead of stopping.
+   */
+  const queue = [
+    ...playlist.slice(index + 1),
+    ...playlist.slice(0, index),
+    videoId,
+  ];
+  const src = `${youTubeEmbedUrl(videoId)}?autoplay=1&loop=1&playlist=${queue.join(",")}&controls=1&playsinline=1`;
 
   return createPortal(
     <div
       data-testid="slideshow-music-panel"
+      data-collapsed={collapsed}
       /**
        * Above the lightbox, which sets `--yarl__portal_zindex` to 9999.
        *
@@ -92,24 +138,91 @@ export function SlideshowMusic({
        * transition's `transform` — makes a stacking context that traps every
        * z-index below it. The frame was on screen and at full opacity, and a
        * hit test at its centre still returned the lightbox: visible, and
-       * untappable, which is precisely the state that made iOS silent in the
-       * first place. Portalled to `body`, the two z-indexes are finally
+       * untappable. Portalled to `body`, the two z-indexes are finally
        * compared against each other.
        *
        * Top-left because that is the one free corner: the toolbar (close,
        * share, music, captions) is top-right, the navigation arrows are
        * centred on both sides, and the thumbnail strip owns the bottom band.
        */
-      className="fixed left-3 top-3 z-[10000] w-40 overflow-hidden rounded border border-white/20 bg-black/70 shadow-lg sm:w-48"
+      className={`fixed left-3 top-3 z-[10000] overflow-hidden rounded border border-white/20 bg-black/70 shadow-lg ${
+        // 224px, because 160px is a player that cannot be tapped — see the
+        // header's measurements. Collapsed is small enough to ignore and
+        // still wide enough for its own label.
+        collapsed ? "w-32" : "w-56"
+      }`}
     >
       <iframe
         data-testid="slideshow-music"
         data-video-id={videoId}
+        data-track={index}
+        // The caller's name for the frame, not a constant: an article reads
+        // itself aloud over this player too. See the prop's own note.
         title={title}
+        // `key` on the id, not just `src`: React reuses an <iframe> whose type
+        // and position match and only patches attributes, and a patched `src`
+        // does not reliably restart a cross-origin frame. Keying forces a new
+        // element per track, which is what "skip" has to mean here.
+        key={videoId}
         src={src}
-        allow="autoplay"
-        className="block aspect-video w-full border-0"
+        // `encrypted-media` alongside `autoplay`, matching the article embed
+        // (src/components/youtube-embed.tsx).
+        allow="autoplay; encrypted-media"
+        /**
+         * Collapsed is one pixel tall, NOT `display: none`.
+         *
+         * The first version of this line used Tailwind's `hidden`, and the
+         * comment beside it claimed that kept the frame in place. It does not:
+         * `hidden` is `display: none`, which takes the element out of layout
+         * entirely — and a media element removed from layout is a media
+         * element browsers are entitled to stop. On the one platform this
+         * whole component is being reworked for, that would have turned the
+         * collapse control into a stop button that says 收起.
+         *
+         * A pixel of height keeps it rendered and playing while taking no
+         * room. Size only ever mattered for *starting* playback — see the
+         * header's measurements — so a running player is safe at any size.
+         */
+        className={
+          collapsed ? "block h-px w-full border-0" : "block aspect-video w-full border-0"
+        }
       />
+
+      <button
+        type="button"
+        onClick={() => setCollapsed((was) => !was)}
+        data-testid="slideshow-music-collapse"
+        className="flex w-full items-center justify-center gap-1 px-2 py-1.5 text-[11px] leading-tight text-white/70"
+      >
+        {collapsed ? (
+          <>
+            <ChevronDown className="size-3" />
+            背景音樂
+          </>
+        ) : (
+          <>
+            <ChevronUp className="size-3" />
+            收起
+          </>
+        )}
+      </button>
+
+      {/*
+        Only on a touch device — `touch:` is that media query, named in
+        tailwind.config.ts. No user-agent sniffing.
+
+        On a pointer device the frame starts on its own and a "tap to play"
+        label would be a lie. On a phone it does not, and until this line
+        existed there was nothing on screen saying so.
+      */}
+      {!collapsed && (
+        <p
+          data-testid="slideshow-music-hint"
+          className="hidden px-2 pb-1.5 text-center text-[11px] leading-tight text-white/70 touch:block"
+        >
+          點一下播放器開始音樂
+        </p>
+      )}
     </div>,
     document.body,
   );

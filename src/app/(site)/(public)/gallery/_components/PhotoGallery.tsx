@@ -27,7 +27,7 @@ export const PhotoGallery: React.FC<{
 }> = ({ gallery, races }) => (
   <MediaGrid
     items={gallery.items}
-    musicVideoId={gallery.musicVideoId}
+    musicPlaylist={gallery.musicPlaylist}
     races={races}
     targetRowHeight={350}
   />

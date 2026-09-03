@@ -99,24 +99,24 @@ test.describe("U-GALLERYMAP an album keeps the order it was curated in", () => {
  * row. So the mapping re-derives the id on every read rather than trusting
  * what is stored, and this pins that it does.
  */
-test.describe("U-GALLERYMUSIC an album's music is an id, not a URL", () => {
+test.describe("U-GALLERYMUSIC an album's music is a list of ids, not URLs", () => {
   test("U-GALLERYMUSIC-1: a watch link becomes the eleven-character id", () => {
     expect(
       mapPayloadGallery(withMusic("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
-        .musicVideoId,
-    ).toBe("dQw4w9WgXcQ");
+        .musicPlaylist,
+    ).toEqual(["dQw4w9WgXcQ"]);
   });
 
-  test("U-GALLERYMUSIC-2: no music is null, not an empty string", () => {
-    // The renderer branches on truthiness to decide whether to draw the mute
-    // control at all; `""` would draw a button for a player that cannot exist.
-    expect(mapPayloadGallery(withMusic(null)).musicVideoId).toBeNull();
-    expect(mapPayloadGallery(withMusic("")).musicVideoId).toBeNull();
+  test("U-GALLERYMUSIC-2: no music is an empty list, not a list with a blank in it", () => {
+    // The renderer branches on the length to decide whether to draw the
+    // controls at all; a `[""]` would draw them for a player that cannot exist.
+    expect(mapPayloadGallery(withMusic(null)).musicPlaylist).toEqual([]);
+    expect(mapPayloadGallery(withMusic("")).musicPlaylist).toEqual([]);
   });
 
   test("U-GALLERYMUSIC-3: anything that is not one video maps to no music", () => {
-    // A playlist has no single video, and `youTubeVideoId` says so. The safe
-    // direction is silence: a row that stopped parsing must not become an
+    // A playlist URL has no single video, and `youTubeVideoId` says so. The
+    // safe direction is silence: a row that stopped parsing must not become an
     // iframe pointed at whatever it now holds.
     for (const stored of [
       "https://www.youtube.com/playlist?list=PL1234567890",
@@ -125,9 +125,9 @@ test.describe("U-GALLERYMUSIC an album's music is an id, not a URL", () => {
       "not a url at all",
     ]) {
       expect(
-        mapPayloadGallery(withMusic(stored)).musicVideoId,
+        mapPayloadGallery(withMusic(stored)).musicPlaylist,
         `${stored} must not become a player`,
-      ).toBeNull();
+      ).toEqual([]);
     }
   });
 });

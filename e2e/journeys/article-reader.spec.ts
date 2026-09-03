@@ -315,7 +315,7 @@ test.describe("V-READERMUSIC an article read aloud can have music behind it", ()
       timeout: budget(15_000),
     });
     // The id the page resolved, not the URL that was stored — the whole point
-    // of `resolveAlbumMusic` handing back eleven characters.
+    // of `buildMusicPlaylist` handing back eleven characters.
     await expect(player).toHaveAttribute("data-video-id", VIDEO_ID);
 
     // PAUSING THE VOICE SILENCES THE MUSIC TOO, and this assertion exists

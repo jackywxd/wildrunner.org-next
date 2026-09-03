@@ -56,7 +56,7 @@ type Status = "idle" | "speaking" | "paused";
 export function ArticleReader({
   title,
   content,
-  musicVideoId = null,
+  musicPlaylist = [],
 }: {
   /** Said first, so a listener knows what they are hearing. */
   title: string;
@@ -64,10 +64,20 @@ export function ArticleReader({
   content: unknown;
   /**
    * What plays behind the voice, already resolved to an eleven-character id
-   * by `resolveAlbumMusic` — this post's own link, else the site-wide
+   * by `buildMusicPlaylist` — this post's own link first, then the site-wide
    * fallback list. `null` means the article is read in silence.
    */
-  musicVideoId?: string | null;
+  /**
+   * The tracks this article can play behind its own voice, in order.
+   *
+   * A list rather than one id, because the gallery's music became a playlist
+   * and both surfaces resolve it through the same `buildMusicPlaylist` — an
+   * article that looped ninety seconds while a long piece was read aloud
+   * would be the same complaint the album had. Nothing here skips between
+   * them: YouTube advances the queue on its own, and a reader listening to an
+   * article is not looking for a track selector.
+   */
+  musicPlaylist?: string[];
 }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceName, setVoiceName] = useState("");
@@ -260,7 +270,7 @@ export function ArticleReader({
    * mute button cannot give: under a speaking voice, "quieter" is usually
    * what somebody wants rather than "off".
    */
-  const musicPlaying = Boolean(musicVideoId) && !muted && status === "speaking";
+  const musicPlaying = musicPlaylist.length > 0 && !muted && status === "speaking";
 
   return (
     <div
@@ -309,7 +319,7 @@ export function ArticleReader({
 
       {/* Only offered when there is something to play. A toggle for silence
           would be a control that cannot change anything. */}
-      {musicVideoId && !noVoice && (
+      {musicPlaylist.length > 0 && !noVoice && (
         <button
           type="button"
           onClick={() => {
@@ -331,9 +341,14 @@ export function ArticleReader({
         </button>
       )}
 
-      {musicVideoId && (
+      {musicPlaylist.length > 0 && (
         <SlideshowMusic
-          videoId={musicVideoId}
+          playlist={musicPlaylist}
+          // Always the first track. The album offers 上一首/下一首 because a
+          // slideshow is long and unattended; an article is neither, and a
+          // track selector beside a read-aloud control is one more thing
+          // between a reader and the text.
+          index={0}
           playing={musicPlaying}
           title="文章背景音樂"
         />
