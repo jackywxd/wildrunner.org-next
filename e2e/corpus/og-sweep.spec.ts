@@ -1,5 +1,14 @@
 import { apiTest as test, expect } from "../helpers/api-test";
+import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { recordCreated } from "../helpers/created";
+import { deleteCreatedRows } from "../helpers/teardown";
+
+/** 1×1 PNG, enough for a media row with a real mime type. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 /**
  * X-OG — every public route says who it is when it is shared.
@@ -182,6 +191,72 @@ test.describe("X-OG every public route is shareable", () => {
       rendered,
       "no generated card was fetched — the scan found only photographs, so it proved nothing about /og",
     ).toBeGreaterThan(0);
+  });
+  test("X-OG-3: a race edition prefers a photograph from its own wall", async ({
+    request,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // THE RUNG THE CORPUS CANNOT SUPPLY. No seeded edition has a photo, so
+    // both halves of the race card's ladder are only reachable with a fixture:
+    // the scan above sees the seeded card and would stay green if the
+    // photograph branch never ran at all.
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const editions = await request.get("/api/race-editions?limit=1&depth=1");
+    const edition = (await editions.json()).docs?.[0] as
+      | { id: number; year: number; event?: { key?: string } }
+      | undefined;
+    expect(edition?.event?.key, "the corpus has no race editions").toBeTruthy();
+    const path = `/races/${edition!.event!.key}/${edition!.year}`;
+
+    // Seeded card first, so the change below is attributable.
+    const before = new URL(
+      decode(readTags(await (await request.get(path)).text()).image ?? ""),
+    );
+    expect(
+      before.searchParams.get("variant"),
+      "this edition already has a photo, so this test cannot show the change",
+    ).toBe("rainbow");
+
+    const created: { collection: string; id: number }[] = [];
+    try {
+      const uploaded = await request.post("/api/media", {
+        multipart: {
+          file: {
+            name: `x-og-race-${Date.now()}.png`,
+            mimeType: "image/png",
+            buffer: PNG,
+          },
+          _payload: JSON.stringify({
+            alt: "X-OG race wall fixture",
+            usage: "gallery",
+            raceEdition: edition!.id,
+          }),
+        },
+      });
+      expect(uploaded.ok(), `upload failed: ${uploaded.status()}`).toBeTruthy();
+      const mediaId = (await uploaded.json()).doc.id as number;
+      created.push({ collection: "media", id: mediaId });
+      recordCreated({
+        collection: "media",
+        id: mediaId,
+        note: "X-OG race wall",
+      });
+
+      const after = new URL(
+        decode(readTags(await (await request.get(path)).text()).image ?? ""),
+      );
+      expect(
+        after.pathname.startsWith("/og"),
+        `the wall has a photo and the card is still generated — ${after.href}`,
+      ).toBe(false);
+    } finally {
+      await deleteCreatedRows(request, created);
+    }
   });
 });
 

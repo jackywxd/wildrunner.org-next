@@ -1,6 +1,9 @@
 import type { Media, Post } from "@/payload-types";
 import { mediaImageSrc } from "@/lib/cf-image";
+import { absoluteImageUrl, type OgCard } from "@/lib/og-card";
 import type { SitePost } from "@/lib/content-types";
+
+export { absoluteImageUrl };
 
 /**
  * What a post's social card points at, in three steps: its own cover image,
@@ -82,64 +85,27 @@ function findFirstImage(node: ContentNode): string | undefined {
   return undefined;
 }
 
-/**
- * `mediaImageSrc` strips our own origin, so media served from this site
- * comes back as a path. A crawler reading `og:image` has no page context to
- * resolve that against, so every candidate is absolutised here.
- */
-export function absoluteImageUrl(src: string, baseURL: string): string {
-  if (/^https?:\/\//i.test(src)) return src;
-  const origin = baseURL.replace(/\/$/, "");
-  return `${origin}${src.startsWith("/") ? src : `/${src}`}`;
-}
+
 
 /**
- * The generated card, for a post with no picture anywhere.
+ * The whole chain, as `generateMetadata` wants it.
  *
- * `seed` is the post slug, and it only varies the colours — see the `/og`
- * route. Passing the slug rather than the title means a retitled post keeps
- * the card it has been shared with.
+ * A CARD, NOT A URL, since #143. It used to return the finished `og:image`
+ * string, which meant the caller could not tell a photograph from a generated
+ * card — and `pageMetadata` needs to know, because the two take different
+ * routes to a URL. Returning the decision instead of its result also puts the
+ * ladder itself in one readable place.
  */
-export function rainbowOgUrl(opts: {
-  baseURL: string;
-  title: string;
-  author?: string;
-  seed: string;
-}): string {
-  const params = new URLSearchParams();
-  // Two parameters rather than `title|author` in one. The route still splits
-  // that older form — links shared before this change carry it — but nothing
-  // we build should rely on a separator that is also the one every browser
-  // tab title uses. See the route's own note, and `site-metadata.ts`.
-  params.set("title", opts.title);
-  // ALWAYS SET, even when there is no byline to put in it, because its mere
-  // presence is what stops the route splitting the title on its last `|` —
-  // and a post title really can contain one: the corpus has
-  // 「Whistler by UTMB | 2024」, which would otherwise be signed 「2024」.
-  //
-  // Empty rather than the site's blurb: the route already falls back to that
-  // for an empty value, and reading it here would mean importing
-  // `@/config/site`, whose avatar PNG the unit lane cannot parse.
-  params.set("subtitle", opts.author?.trim() ?? "");
-  params.set("variant", "rainbow");
-  params.set("seed", opts.seed);
-  return `${opts.baseURL.replace(/\/$/, "")}/og?${params.toString()}`;
-}
-
-/** The whole chain, as `generateMetadata` wants it. */
-export function resolvePostOgImage(
+export function resolvePostOgCard(
   post: Pick<SitePost, "image" | "content" | "slug" | "title" | "author">,
-  baseURL: string,
-): string {
-  if (post.image?.src) return absoluteImageUrl(post.image.src, baseURL);
+): OgCard {
+  if (post.image?.src) return { kind: "photo", src: post.image.src };
 
   const bodyImage = firstContentImageSrc(post.content);
-  if (bodyImage) return absoluteImageUrl(bodyImage, baseURL);
+  if (bodyImage) return { kind: "photo", src: bodyImage };
 
-  return rainbowOgUrl({
-    author: post.author,
-    baseURL,
-    seed: post.slug,
-    title: post.title,
-  });
+  // The slug, not the title: a retitled post keeps the card it was already
+  // shared with. `rainbowOgUrl` used to build the URL here; the byline it
+  // carried is now `pageMetadata`'s `subtitle`, which every card gets.
+  return { kind: "rainbow", seed: post.slug };
 }

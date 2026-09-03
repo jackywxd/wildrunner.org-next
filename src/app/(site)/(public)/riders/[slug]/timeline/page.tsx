@@ -24,7 +24,15 @@ export async function generateMetadata({ params }: Params) {
     title: `${rider.name}的時間機`,
     subtitle: `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`,
     type: "profile",
-    card: { kind: "plain" },
+    // A MEMBER IS SOMETHING, so they get their own colours rather than the
+    // site's furniture card. Seeded on the slug, which means their profile and
+    // their 時間機 carry the same card — the subject of both pages is them.
+    //
+    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
+    // is a small square and a card is 1920×1080, so using it as the image
+    // means a platform crops it badly, and using it as a card background means
+    // upscaling a few hundred pixels across the whole width.
+    card: { kind: "rainbow", seed: rider.slug },
   });
 }
 
