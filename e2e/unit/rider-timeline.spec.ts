@@ -136,6 +136,42 @@ test("U-TIMELINE-T5: the span runs from the earliest year to the latest", async 
   expect([firstYear, lastYear]).toEqual([2019, 2026]);
 });
 
+test("U-TIMELINE-T7: a race with no date of its own still lands where that race runs", async () => {
+  // The realistic case, and the reason this rule exists: every past edition in
+  // the database has a null `startDate`, so before this a member's 2023
+  // Hardrock sorted below every article of 2023, alphabetically. `typicalDay`
+  // comes from another year of the same event — it decides the position and
+  // never appears on the card, which still says "2023 年".
+  const years = buildRiderTimeline({
+    posts: [
+      post(1, "2023-03-01T00:00:00.000Z"),
+      post(2, "2023-11-01T00:00:00.000Z"),
+    ],
+    races: [race(10, 2023)],
+    editionFacts: new Map([[10, { typicalDay: "07-14" }]]),
+  });
+
+  expect(years[0].entries.map((entry) => entry.key)).toEqual([
+    "post-2",
+    "race-10",
+    "post-1",
+  ]);
+  // Inferred for ordering, absent as a fact.
+  expect(years[0].entries[1].day).toBeUndefined();
+  expect(years[0].entries[1].sortDay).toBe("2023-07-14");
+});
+
+test("U-TIMELINE-T8: a real date always beats the inferred one", async () => {
+  const years = buildRiderTimeline({
+    posts: [],
+    races: [race(10, 2023)],
+    editionFacts: new Map([[10, { startDate: "2023-09-02", typicalDay: "07-14" }]]),
+  });
+
+  expect(years[0].entries[0].day).toBe("2023-09-02");
+  expect(years[0].entries[0].sortDay).toBe("2023-09-02");
+});
+
 test("U-TIMELINE-T6: a day is formatted from the string, never through Date", async () => {
   // The failure this pins is the one `src/lib/races/calendar.ts` documents:
   // `new Date("2026-08-28")` is UTC midnight, and rendering it anywhere west

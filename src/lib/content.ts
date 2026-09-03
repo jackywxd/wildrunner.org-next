@@ -26,6 +26,8 @@ import { buildMusicPlaylist } from "@/lib/media/album-music";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
 import { buildRiderTimeline } from "@/lib/riders/timeline";
 import type { RaceEditionFacts, RiderTimelineYear } from "@/lib/riders/timeline";
+import { buildClubTimeline } from "@/lib/riders/club-timeline";
+import type { ClubRunner, ClubTimelineRow } from "@/lib/riders/club-timeline";
 import type {
   SiteGallery,
   SiteGlobals,
@@ -763,6 +765,30 @@ function sortRaceRecords(records: SiteRaceRecord[]): SiteRaceRecord[] {
 }
 
 /**
+ * "Which byline is this account?", for a batch of accounts.
+ *
+ * The join `raceRecordsByAuthorId` documents at length, extracted because the
+ * club timeline needs the same one and a third hand-written copy of a rule
+ * this project has already got wrong once (`authors.owner`, which attributes
+ * an admin's races to every byline they ever created) is a third place for it
+ * to be got wrong again.
+ *
+ * Takes documents rather than querying, so the caller keeps its own
+ * `Promise.all`. Only numbers come out.
+ */
+function authorIdByUserId(accounts: { author?: unknown; id: number }[]) {
+  const authorByUser = new Map<number, number>();
+  for (const account of accounts) {
+    // depth 0, so this is a bare id. Anything else means the select was
+    // widened and a document is now in flight that has no business here.
+    if (typeof account.author === "number") {
+      authorByUser.set(account.id, account.author);
+    }
+  }
+  return authorByUser;
+}
+
+/**
  * Every rider's race records, keyed by author id, in a fixed number of
  * queries.
  *
@@ -793,13 +819,7 @@ async function raceRecordsByAuthorId(): Promise<Map<number, SiteRaceRecord[]>> {
     }),
   ]);
 
-  const authorByUser = new Map<number, number>();
-  for (const account of accounts.docs) {
-    const author = account.author;
-    // depth 0, so this is a bare id. Anything else means the select was
-    // widened and a document is now in flight that has no business here.
-    if (typeof author === "number") authorByUser.set(account.id, author);
-  }
+  const authorByUser = authorIdByUserId(accounts.docs);
 
   const byAuthor = new Map<number, SiteRaceRecord[]>();
   for (const record of records.docs) {
@@ -980,46 +1000,97 @@ const RACE_RECORD_TIMELINE_SELECT = {
  * with no day, which is exactly what the record actually claims. The same
  * degrade-never-throw contract `badge-source.ts` documents for a stale event id.
  *
+ * A RECORD WHOSE EDITION HAS NO DATE STILL GETS A POSITION. Every past
+ * edition in this database has a null `startDate` — the reviewed CSV covers
+ * the coming two seasons and nobody has researched 2013 — so without a
+ * fallback every race a member ever logged sorts to the bottom of its year in
+ * alphabetical order, which is not a timeline. `typicalDay` below borrows the
+ * month and day from another year of the same event; it decides a position
+ * and is never shown or stored (see `RaceEditionFacts.typicalDay`).
+ *
  * `race-editions` has no `owner` and no relationship to `users`, so unlike the
  * queries above this one has no PII path to guard — see RACE_EDITIONS_SELECT.
  */
 async function editionFactsByRecord(
   records: { editionId?: number; id: number }[],
 ): Promise<Map<number, RaceEditionFacts>> {
-  const editionIds = [
-    ...new Set(
-      records
-        .map((record) => record.editionId)
-        .filter((id): id is number => typeof id === "number"),
-    ),
-  ];
-  if (editionIds.length === 0) return new Map();
+  const editionIds = new Set(
+    records
+      .map((record) => record.editionId)
+      .filter((id): id is number => typeof id === "number"),
+  );
+  if (editionIds.size === 0) return new Map();
 
   const payload = await getPayloadClient();
+  // EVERY edition, not only the ones these records point at, because the
+  // fallback below needs a *different* year of the same event to learn when
+  // that event runs. A club's catalogue is a few hundred rows and this is one
+  // query either way; fetching only the referenced ids would need a second
+  // one keyed on the events they turned out to belong to.
   const editions = await payload.find({
     collection: "race-editions",
     depth: 0,
     limit: 0,
     pagination: false,
-    where: { id: { in: editionIds } },
-    select: { location: true, startDate: true },
+    select: { event: true, location: true, startDate: true, year: true },
   });
 
-  const factsByEdition = new Map<number, RaceEditionFacts>();
-  for (const edition of editions.docs) {
-    factsByEdition.set(edition.id, {
-      // Sliced to a day here, once, and never parsed back — the convention
-      // `SiteRaceScheduleEntry` and `getRaceEditionDetail` already follow.
-      startDate: edition.startDate ? edition.startDate.slice(0, 10) : undefined,
-      location: orUndefined(edition.location),
+  type EditionRow = { event?: number; location?: string; startDate?: string; year: number };
+  const byId = new Map<number, EditionRow>();
+  /** Every dated edition of an event, so an undated one can borrow its day. */
+  const datedByEvent = new Map<number, { monthDay: string; year: number }[]>();
+
+  for (const doc of editions.docs) {
+    // depth 0, so `event` is the bare id.
+    const event = typeof doc.event === "number" ? doc.event : undefined;
+    const startDate = doc.startDate ? doc.startDate.slice(0, 10) : undefined;
+    byId.set(doc.id, {
+      event,
+      location: orUndefined(doc.location),
+      startDate,
+      year: doc.year,
     });
+    if (event !== undefined && startDate) {
+      const list = datedByEvent.get(event) ?? [];
+      list.push({ monthDay: startDate.slice(5), year: doc.year });
+      datedByEvent.set(event, list);
+    }
   }
+
+  /**
+   * When this event runs, read off its nearest dated edition.
+   *
+   * NEAREST IN YEAR, not most recent: a race that moved from July to August
+   * should place a 2013 record by the July it was then, if any year near 2013
+   * is on record. Ties break to the later year, which is the more likely to
+   * have been checked.
+   */
+  const typicalDayFor = (event: number | undefined, year: number) => {
+    if (event === undefined) return undefined;
+    const dated = datedByEvent.get(event);
+    if (!dated || dated.length === 0) return undefined;
+    let best = dated[0];
+    for (const candidate of dated.slice(1)) {
+      const closer = Math.abs(candidate.year - year) - Math.abs(best.year - year);
+      if (closer < 0 || (closer === 0 && candidate.year > best.year)) best = candidate;
+    }
+    return best.monthDay;
+  };
 
   const byRecord = new Map<number, RaceEditionFacts>();
   for (const record of records) {
     if (record.editionId === undefined) continue;
-    const facts = factsByEdition.get(record.editionId);
-    if (facts) byRecord.set(record.id, facts);
+    const edition = byId.get(record.editionId);
+    if (!edition) continue;
+    byRecord.set(record.id, {
+      location: edition.location,
+      startDate: edition.startDate,
+      // Only when the edition has no real date of its own. A row that knows
+      // its day never gets a guessed position on top of it.
+      typicalDay: edition.startDate
+        ? undefined
+        : typicalDayFor(edition.event, edition.year),
+    });
   }
   return byRecord;
 }
@@ -1093,6 +1164,112 @@ export async function getRiderTimeline(
     rider: mapPayloadAuthor(doc, posts.totalDocs, races),
     years: buildRiderTimeline({ editionFacts, posts: sitePosts, races }),
   };
+}
+
+/**
+ * The whole club's timeline, ordered and grouped, in five queries.
+ *
+ * BUILT WHOLE AND THEN SLICED, per request — the same shape as
+ * `/api/gallery/wall`, and for the same reason its header gives. The rows are
+ * a *merge* of two collections plus a grouping across members, so "the next
+ * twenty" cannot be expressed as a `limit`/`offset` on either collection: a
+ * race row exists only once every record for that (event, distance, year) has
+ * been seen. The corpus this scans is a club's — a few hundred rows — so
+ * pagination here is a bandwidth fix, not a compute one.
+ *
+ * PII, the same discipline as everywhere else in this file: bylines come from
+ * `authors` with RIDER_SELECT (no `owner`), never from walking
+ * `posts.author` to depth 2, which would populate the author's own `users`
+ * row behind every card. `users` is read for ids only.
+ */
+export async function getClubTimelineRows(): Promise<ClubTimelineRow[]> {
+  const payload = await getPayloadClient();
+
+  const [postsResult, authorsResult, accounts, recordsResult] = await Promise.all([
+    payload.find({
+      collection: "posts",
+      depth: 1,
+      limit: 500,
+      sort: "-publishedAt",
+      where: { _status: { equals: "published" } },
+      select: POST_TIMELINE_SELECT,
+    }),
+    payload.find({
+      collection: "authors",
+      depth: 1,
+      limit: 500,
+      sort: "name",
+      where: { owner: { exists: true } },
+      select: RIDER_SELECT,
+    }),
+    payload.find({
+      collection: "users",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      select: { author: true },
+    }),
+    payload.find({
+      collection: "race-records",
+      depth: 0,
+      limit: 0,
+      pagination: false,
+      select: RACE_RECORD_TIMELINE_SELECT,
+    }),
+  ]);
+
+  const runnerByAuthorId = new Map<number, ClubRunner>();
+  const runnerBySlug = new Map<string, ClubRunner>();
+  for (const doc of authorsResult.docs) {
+    const avatar = isMedia(doc.avatar) ? mapMediaToSiteImage(doc.avatar) : undefined;
+    const runner: ClubRunner = { avatar, name: doc.name, slug: doc.slug };
+    runnerByAuthorId.set(doc.id, runner);
+    runnerBySlug.set(doc.slug, runner);
+  }
+
+  const authorByUser = authorIdByUserId(accounts.docs);
+
+  const races: { record: SiteRaceRecord; runner: ClubRunner }[] = [];
+  const recordRefs: { editionId?: number; id: number }[] = [];
+  for (const doc of recordsResult.docs) {
+    const ownerId = typeof doc.owner === "number" ? doc.owner : undefined;
+    if (ownerId === undefined) continue;
+    const authorId = authorByUser.get(ownerId);
+    if (authorId === undefined) continue;
+    const runner = runnerByAuthorId.get(authorId);
+    // An account whose byline has no `owner` is a legacy import, not a
+    // member — it has no page and belongs on no club rail.
+    if (!runner) continue;
+
+    races.push({
+      record: mapRaceRecord(doc as Parameters<typeof mapRaceRecord>[0]),
+      runner,
+    });
+    recordRefs.push({
+      editionId: typeof doc.edition === "number" ? doc.edition : undefined,
+      id: doc.id,
+    });
+  }
+
+  const editionFacts = await editionFactsByRecord(recordRefs);
+
+  const posts = postsResult.docs.map((doc) => {
+    const post = mapPayloadPost(doc);
+    // Name and slug come off the post's own byline so a legacy author — one
+    // with no account, absent from `runnerBySlug` — still gets credited. Only
+    // the avatar needs the members query.
+    const author: ClubRunner | undefined =
+      post.author && post.authorSlug
+        ? {
+            avatar: runnerBySlug.get(post.authorSlug)?.avatar,
+            name: post.author,
+            slug: post.authorSlug,
+          }
+        : undefined;
+    return { author, post };
+  });
+
+  return buildClubTimeline({ editionFacts, posts, races });
 }
 
 export async function getRiderSlugs(): Promise<string[]> {
