@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ImageUp } from "lucide-react";
 import { QuotaBar } from "./QuotaBar";
-import { UploadDropzone } from "./UploadDropzone";
+
 import { MediaGrid } from "./MediaGrid";
 import { MediaDetailDialog } from "./MediaDetailDialog";
 import { transcodeBadge } from "./TranscodeBadge";
@@ -169,17 +171,35 @@ export function MediaLibrary({
         <QuotaBar usedBytes={usage.usedBytes} quotaBytes={usage.quotaBytes} />
       )}
 
-      <UploadDropzone
-        onUploaded={() => {
-          // Back to the first page, because that is where a new upload lands
-          // under the default sort. Refreshing in place would leave a member
-          // on page 3 wondering where the file they just watched upload went.
-          setPage(1);
-          void refresh();
-        }}
-        catalogueEvents={catalogueEvents}
-        preselectedRace={preselectedRace}
-      />
+      {/*
+        A link, not the uploader itself. The two used to share this screen and
+        neither had room: managing a library is a grid and a pager, adding to
+        it is a dropzone that has things to say, and the uploader lost — it was
+        squeezed down to a bare `<input type="file">` with no copy at all. It
+        has its own route now; see `UploadPanel`.
+
+        `preselectedRace` is forwarded through the query string rather than as
+        a prop, because the destination is a different page — the same
+        `?race=&year=` contract `RaceEntryRow` already links here with, read
+        back by `preselectedRaceFrom`.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={
+            preselectedRace
+              ? `/members/media/upload?race=${encodeURIComponent(preselectedRace.eventId)}&year=${preselectedRace.year}`
+              : "/members/media/upload"
+          }
+          data-testid="media-upload-link"
+          className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          <ImageUp className="size-4" />
+          上傳照片和影片
+        </Link>
+        <span className="text-xs text-muted-foreground">
+          可以一次選很多個，也可以拖進去
+        </span>
+      </div>
 
       <div
         className="flex flex-wrap items-center gap-3"
