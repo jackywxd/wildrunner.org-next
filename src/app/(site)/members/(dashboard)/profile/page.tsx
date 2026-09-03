@@ -1,6 +1,5 @@
 import { requireMember } from "@/lib/auth";
 import { getPayloadClient } from "@/lib/payload";
-import { quotaBytesFor, usedBytesFor } from "@/lib/quota";
 import { ProfileForm } from "@/components/members/profile/ProfileForm";
 import type { Author } from "@/payload-types";
 
@@ -15,19 +14,15 @@ export default async function ProfilePage() {
       ? user.author.id
       : user.author;
 
-  const [author, usedBytes] = await Promise.all([
-    authorId
-      ? (payload.findByID({
-          collection: "authors",
-          id: authorId,
-          overrideAccess: false,
-          user,
-          depth: 0,
-        }) as Promise<Author>)
-      : Promise.resolve(null),
-    usedBytesFor(payload, user.id),
-  ]);
-  const quotaBytes = quotaBytesFor(user);
+  const author = authorId
+    ? ((await payload.findByID({
+        collection: "authors",
+        id: authorId,
+        overrideAccess: false,
+        user,
+        depth: 0,
+      })) as Author)
+    : null;
 
   return (
     <div className="max-w-xl">
@@ -49,8 +44,7 @@ export default async function ProfilePage() {
               }
             : null
         }
-        usedBytes={usedBytes}
-        quotaBytes={quotaBytes}
+        email={user.email}
       />
     </div>
   );

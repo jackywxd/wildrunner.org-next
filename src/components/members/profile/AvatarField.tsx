@@ -157,13 +157,16 @@ export function AvatarField({
       )}
 
       <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-xs text-foreground/50">
-          {unreadable
-            ? `目前的頭像無法在這裡預覽（媒體 #${mediaId}），但它仍會正常顯示。`
-            : src
-              ? "顯示在成員名錄和你的公開頁面上。"
+        {/* Nothing to say once a picture is set — the section heading above
+            already states that this area is public, and repeating it here put
+            the same sentence on screen twice. */}
+        {(unreadable || !src) && (
+          <p className="text-xs text-foreground/50">
+            {unreadable
+              ? `目前的頭像無法在這裡預覽（媒體 #${mediaId}），但它仍會正常顯示。`
               : "還沒有設定頭像，現在顯示的是系統依你的名稱產生的圖案。"}
-        </p>
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <input
