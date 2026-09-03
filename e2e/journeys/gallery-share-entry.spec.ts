@@ -79,6 +79,15 @@ test.describe("V-SHAREENTRY the wall can reach an item's share page", () => {
     const grid = page.getByTestId("gallery-all-photos");
     await expect(grid).toBeVisible({ timeout: budget(20_000) });
 
+    // `load`, not just the `domcontentloaded` above: the album's onClick is
+    // React's, and a click that lands before hydration is silently dropped —
+    // the lightbox then never opens and this fails as "no share button", which
+    // says nothing about share buttons. Seen once, running four gallery specs
+    // in a row on a busy machine; it passes alone every time, which is exactly
+    // what makes the mechanism worth writing down rather than calling it
+    // flaky. The same wait is already in P-PHOTO, V-DESC and V-BGM.
+    await page.waitForLoadState("load");
+
     // Click the tile rather than calling the lightbox directly: the claim is
     // that a visitor gets there, and AGENTS.md records that tests which
     // navigate instead of clicking are how the last such gap survived.

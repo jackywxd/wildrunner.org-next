@@ -153,6 +153,37 @@ test.describe("V-BGM an album's slideshow carries its background music", () => {
       new RegExp(`^https://www\\.youtube-nocookie\\.com/embed/${VIDEO_ID}\\?`),
     );
 
+    /**
+     * A tap can actually land on it — the whole reason this player is visible.
+     *
+     * It began as a 1×1, transparent, `pointer-events: none` frame, which was
+     * silent on iOS: that platform grants the right to make sound to a gesture
+     * on the media itself and does not pass a parent page's gesture into a
+     * cross-origin frame, so the one action it requires could never be
+     * performed. Nothing in this suite can hear an iPhone, but it can pin the
+     * property that makes the gesture possible at all, and that is the thing a
+     * later tidy-up would take away without noticing.
+     *
+     * `toBeVisible` is not enough on its own: it is satisfied by an element
+     * with `opacity: 0`, which is exactly what the broken version was. The
+     * size and the hit test are what say "reachable".
+     */
+    const box = await player.boundingBox();
+    expect(box, "the player must have a box to tap").not.toBeNull();
+    expect(box!.width, "wide enough to press").toBeGreaterThanOrEqual(100);
+    expect(box!.height, "tall enough to press").toBeGreaterThanOrEqual(50);
+    const hitsThePlayer = await page.evaluate(
+      ([x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        return Boolean(hit?.closest('[data-testid="slideshow-music-panel"]'));
+      },
+      [box!.x + box!.width / 2, box!.y + box!.height / 2],
+    );
+    expect(
+      hitsThePlayer,
+      "a tap at the player's centre must reach it, not something on top of it",
+    ).toBe(true);
+
     // Muting is not cosmetic: the frame goes away, which is the only way this
     // component can stop a sound it never had a handle on.
     await toggle.click();
