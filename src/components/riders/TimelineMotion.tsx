@@ -29,6 +29,7 @@ import { useRef } from "react";
 import type { ReactNode } from "react";
 
 import { transitionApple } from "@/styles/framer-motion";
+import { usePdfDownload } from "@/lib/print/use-pdf-download";
 import { cn } from "@/lib/utils";
 
 export function TimelineMotionConfig({ children }: { children: ReactNode }) {
@@ -111,6 +112,54 @@ export function TimelineReveal({
     >
       {children}
     </motion.div>
+  );
+}
+
+/**
+ * The same rail as a PDF file.
+ *
+ * BESIDE 列印 RATHER THAN INSTEAD OF IT, because the two do different things.
+ * `window.print()` opens the browser's dialog on this page, which
+ * `@media print` in globals.css has already stripped for paper; this asks the
+ * server to render the same URL through Browser Rendering, which is the only
+ * way to get a page number and the page's address on every sheet — Chrome
+ * does not implement the `@page` margin boxes CSS would need for a running
+ * footer.
+ *
+ * Everything behind the press is shared with the article print page — see
+ * `usePdfDownload` for the four non-obvious parts and why they are not
+ * written twice. The markup is here rather than shared with it because the
+ * two controls belong to different design languages, and because a
+ * `data-testid` built from a prop is one `pnpm assert:schema-screen` cannot
+ * find.
+ *
+ * ONLY THE PER-MEMBER RAIL HAS THIS. The club rail is an infinite scroll, so
+ * a server-side render would produce a PDF silently missing everything past
+ * page one; its own print button loads the rest first, which nothing outside
+ * a browser can do.
+ */
+export function TimelineDownloadButton({ slug }: { slug: string }) {
+  const pdf = usePdfDownload(`/api/print/riders/${slug}/timeline`);
+  return (
+    <>
+      <button
+        className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 print:hidden"
+        data-testid="rider-timeline-download"
+        disabled={pdf.downloading}
+        onClick={pdf.download}
+        type="button"
+      >
+        {pdf.downloading ? "產生中…" : "下載 PDF"}
+      </button>
+      {pdf.error && (
+        <span
+          className="w-full text-xs text-destructive print:hidden"
+          data-testid="rider-timeline-download-error"
+        >
+          {pdf.error}
+        </span>
+      )}
+    </>
   );
 }
 

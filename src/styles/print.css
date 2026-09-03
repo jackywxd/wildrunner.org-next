@@ -38,14 +38,14 @@
   /* `next/font` already self-hosts Noto Sans TC and exposes it here; the
      stacks below name real fallbacks so a machine without it still sets
      Chinese rather than falling to a Latin face and tofu. */
-  font-family: var(--font-noto), "PingFang TC", "Microsoft JhengHei", system-ui,
-    sans-serif;
+  font-family:
+    var(--font-noto), "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
   line-height: 1.85;
 }
 
 .print-font-serif {
-  font-family: "Noto Serif TC", "Songti TC", "Songti SC", "PMingLiU", Georgia,
-    serif;
+  font-family:
+    "Noto Serif TC", "Songti TC", "Songti SC", "PMingLiU", Georgia, serif;
 }
 
 /* --- the running head, on screen and on the first sheet ----------- */
@@ -91,37 +91,95 @@
 }
 
 /**
- * A PHOTOGRAPH HAS TO FIT ON A PAGE, and the first print off this route proved
- * it does not by itself. Measured on the real output: an article came back as
- * 78 sheets. The mechanism is arithmetic, not taste — the rich-text converter
- * gives every upload `w-full`, so a portrait phone photo (828×1242 is the
- * common one in this corpus) fills the 170mm printable width and becomes
+ * A PHOTOGRAPH IS AN ILLUSTRATION, not a plate. Two rounds of real output got
+ * this wrong in two different ways, and both were arithmetic rather than taste.
+ *
+ * ROUND ONE: no cap at all. The rich-text converter gives every upload
+ * `w-full`, so a portrait phone photo — 828×1242 is the common one in this
+ * corpus — fills the 170mm printable width and becomes
  *
  *     170mm × 1242/828 = 255mm tall
  *
- * against a printable height of 297 − 44 = 253mm. Every portrait photo is
- * therefore slightly taller than the page it is on: it cannot share a sheet
- * with anything, and `break-inside: avoid` gives it one of its own.
+ * against a printable height of 297 − 44 = 253mm. Every portrait photo was
+ * therefore slightly taller than the page it sat on: it could not share a
+ * sheet with anything, and `break-inside: avoid` gave it one of its own. That
+ * article printed as 78 sheets.
+ *
+ * ROUND TWO: capped at 190mm, which fixed the sheet count and not the
+ * complaint. Measured off that PDF, an A4 page with two images on it: one at
+ * 142.3 × 190.0mm — the cap, working — and one at 150.0 × 225.2mm, because
+ * the cover lives in `.print-cover` and the rule only named `.print-body`. At
+ * 190mm a photograph is 75% of the text height, which is still a plate: no
+ * page carrying one has room for more than a few lines of the article.
+ *
+ * SO THE CAP IS ONE NUMBER PER TEMPLATE and both places read it. At 105mm a
+ * portrait becomes 70mm wide and a landscape 157 × 105mm — either way the
+ * page keeps around 145mm, roughly 25 lines, of the article it illustrates.
  *
  * `width: auto` beats the converter's `.w-full` on specificity (class+element
  * against class) with no `!important`. With both maxima set the browser scales
  * to whichever binds first, so a portrait is capped by height and a landscape
  * by width — each ends up as large as it can be and still fit.
  */
+.print-root {
+  --print-figure-max-h: 105mm;
+}
+
+/* Keepsake: the photographs are half the reason for this template, so they
+   are allowed to be plates. Still capped — uncapped is the 78-sheet bug. */
+/* `.print-root.print-magazine` rather than `.print-magazine`: both classes
+   sit on the same element, so a single-class override would be decided by
+   source order alone. */
+.print-root.print-magazine {
+  --print-figure-max-h: 150mm;
+}
+
 .print-body img,
-.print-body figure {
+.print-body figure,
+.print-cover img {
   width: auto;
   max-width: 100%;
-  max-height: 190mm;
+  max-height: var(--print-figure-max-h);
   height: auto;
   break-inside: avoid;
 }
 
-/* Keepsake: the photographs are half the reason for this template, so they
-   get the rest of the page rather than the reading-sized cap above. */
-.print-magazine .print-body img,
-.print-magazine .print-body figure {
-  max-height: 215mm;
+/* Centred, because an illustration narrower than the text block reads as a
+   mistake when it is flush left. */
+.print-cover,
+.print-body figure {
+  text-align: center;
+}
+
+/**
+ * The byline's portrait.
+ *
+ * 9mm — a passport stamp next to a name, not a headshot. Anything larger
+ * competes with the title it sits under, and this is the one image on the
+ * page that is about the author rather than about the race.
+ *
+ * `print-color-adjust: exact` because a portrait dropped to greyscale by the
+ * browser's own ink-saving is worse than no portrait; the same reason
+ * `printBackground` is on in the PDF options.
+ */
+.print-byline-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+}
+
+.print-avatar {
+  width: 9mm;
+  height: 9mm;
+  border-radius: 50%;
+  object-fit: cover;
+  print-color-adjust: exact;
+}
+
+/* Centred with the title block it sits under, which `text-align: center` on
+   the block already does for the text — the flex row needs telling. */
+.print-magazine .print-byline-inner {
+  justify-content: center;
 }
 
 /* The club's mark in the running head. Sized here rather than by a utility

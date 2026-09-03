@@ -110,11 +110,19 @@ export async function renderPrintPdf(
       cacheTTL: 3600,
       pdfOptions: {
         // `print.css` sets `@page { size: A4; margin: 22mm 20mm }`, and every
-        // measurement in that file — the 190mm cap that stops a portrait
-        // photograph taking a sheet of its own — is against those numbers.
-        // Without this Chrome would use its own Letter default and quietly
-        // invalidate all of them.
+        // measurement in that file — the 105mm cap that keeps a photograph an
+        // illustration rather than a plate — is against those numbers. Without
+        // this Chrome would use its own Letter default and quietly invalidate
+        // all of them.
+        //
+        // `format` is the fallback, not a competitor: `preferCSSPageSize`
+        // means a page that declares `@page size` wins, and one that does not
+        // gets this. The timeline is the second case — it prints from
+        // `globals.css`, which sets no `@page` at all — and Letter under a
+        // Chinese-language club's A4 expectations is not a default worth
+        // inheriting.
         preferCSSPageSize: true,
+        format: "a4",
         printBackground: true,
         displayHeaderFooter: true,
         headerTemplate: "<div></div>",

@@ -31,6 +31,7 @@ import type { ClubRunner, ClubTimelineRow } from "@/lib/riders/club-timeline";
 import type {
   SiteGallery,
   SiteGlobals,
+  SiteImage,
   SiteMediaItem,
   SitePhoto,
   SitePost,
@@ -887,6 +888,31 @@ async function findRiderAuthor(slug: string): Promise<RiderDoc | null> {
     select: RIDER_SELECT,
   });
   return result.docs[0] ?? null;
+}
+
+/**
+ * A byline's picture, for the printed article's masthead.
+ *
+ * A SECOND QUERY RATHER THAN A DEEPER ONE, and the depth is the whole reason.
+ * `POST_DETAIL_SELECT` already asks for `author`, but the avatar is a
+ * relationship *inside* the author, so reaching it from the post means
+ * `depth: 2` — and at depth 2 that query also walks `raceRecord → owner` and
+ * pulls a whole `users` row in behind the badge. The header of this file
+ * explains why that must not happen; `getPostBySlugParam` stops at depth 1
+ * for exactly this reason and keeps doing so.
+ *
+ * Built on `findRiderAuthor`, so it inherits `RIDER_SELECT` — which omits
+ * `owner` — and the `owner: { exists: true }` restriction. That restriction
+ * is not incidental here: an author row with no account behind it was
+ * imported rather than registered, and has no member whose face this would
+ * be. Those bylines correctly get no picture.
+ */
+export async function getBylineAvatar(
+  slug: string,
+): Promise<SiteImage | undefined> {
+  const doc = await findRiderAuthor(slug);
+  if (!doc) return undefined;
+  return isMedia(doc.avatar) ? mapMediaToSiteImage(doc.avatar) : undefined;
 }
 
 /**

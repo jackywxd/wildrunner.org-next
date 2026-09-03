@@ -62,6 +62,7 @@ const ROUTES = [
   // API route beside it compiles separately again.
   "/print/posts/warmup-not-a-real-post",
   "/api/print/posts/warmup-not-a-real-post",
+  "/api/print/riders/warmup-not-a-real-rider/timeline",
   "/gallery",
   "/gallery/warmup-not-a-real-gallery",
   "/races",
