@@ -69,7 +69,7 @@ const IGNORED_PATTERNS: { pattern: RegExp; why: string }[] = [
     why: "YouTube's player probing a permission our embed deliberately withholds",
   },
   {
-    // src/app/(site)/layout.tsx must inline two scripts in <head>: the
+    // src/app/[lang]/(site)/layout.tsx must inline two scripts in <head>: the
     // esbuild `keepNames` shim and the anti-FOUC theme seed. Both have to run
     // before first paint, which rules out next/script, and React 19 warns
     // about the pattern itself rather than about anything going wrong — the

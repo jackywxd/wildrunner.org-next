@@ -106,7 +106,7 @@ export const ownedOnlyPublicRead: Access = ({ req: { user } }) => {
  *
  *   listing   `GET /api/media`, and GraphQL. Anonymous gets exactly what the
  *             public photo wall shows, because nothing else needs it: no page
- *             under src/app/(site)/(public) fetches /api/media from the
+ *             under src/app/[lang]/(site)/(public) fetches /api/media from the
  *             browser (only the admin's LargeUploadPanel does). `not_equals
  *             private` was too wide — with the backfill done, production holds
  *             zero `private` rows, so it returned all 568, including the 138

@@ -206,6 +206,37 @@ is built with a low `SQLITE_MAX_COMPOUND_SELECT`, so six `UNION ALL` terms
 come back as "too many terms in compound SELECT". Count rows with one
 `SELECT (SELECT COUNT(*) FROM t) AS t, …` instead.
 
+### Moving route files kills the dev server, and the tests blame the tests
+
+Moving `(site)` under a `[lang]` segment — 51 files, no code change — left
+Turbopack's incremental cache in `.next` holding the *old* route tree. The
+next `pnpm dev` came up, served pages for a while, and then took a **`FATAL`
+panic naming a path that no longer exists**:
+
+```
+FATAL: An unexpected Turbopack error occurred.
+Failed to write app endpoint /(site)/(public)/page
+Cell ... "next_core::app_structure::AppPageLoaderTree" ... no longer exists
+  in task ... directory_tree_to_loader_tree
+```
+
+**The symptom is dozens of unrelated red specs, not a compile error.** The
+server was already dead when the browser lane reached it, so 47 of 76 tests
+failed with `WebSocket is already in CLOSING or CLOSED state` from the HMR
+client — an error about the test's own page, in tests that have nothing to
+do with routing. Two hypotheses were reached for and paid for before the
+server's own log was read: a stale database (real, and separately worth
+fixing — the local D1 was two migrations behind the code) and a regression
+in the move. Neither produced those numbers.
+
+- **`rm -rf .next` after any route move, before the next `pnpm dev`.** Not
+  when it looks broken.
+- **Then check `pgrep workerd`.** Killing the panicked server orphaned one,
+  which is the contention this file already documents.
+- And the general rule this file already states, broken again here: *read
+  the server's own log before forming a hypothesis.* `grep -c FATAL` on the
+  dev log answers in a second what two re-runs did not.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25

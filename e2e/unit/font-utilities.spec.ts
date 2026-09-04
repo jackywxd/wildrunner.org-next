@@ -131,7 +131,7 @@ test.describe("U-FONTUTIL font classes exist", () => {
     // option in the layout.
     const definitions =
       readFileSync("src/styles/globals.css", "utf8") +
-      readFileSync("src/app/(site)/layout.tsx", "utf8");
+      readFileSync("src/app/[lang]/(site)/layout.tsx", "utf8");
 
     for (const [name, stack] of Object.entries(faces)) {
       const first = (stack as string[])[0];

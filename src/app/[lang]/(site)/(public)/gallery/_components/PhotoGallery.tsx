@@ -3,7 +3,7 @@
 import React from "react";
 import type { SiteGallery } from "@/lib/content-types";
 import type { RaceFilterOption } from "@/lib/media/gallery-index";
-import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
+import { MediaGrid } from "@/app/[lang]/(site)/(public)/gallery/_components/MediaGrid";
 
 /**
  * One album, in the order its curator arranged it.
