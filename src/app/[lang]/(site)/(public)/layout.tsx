@@ -25,9 +25,10 @@ import { getDictionary } from "@/lib/i18n/dictionary";
  */
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   // Resolved once for the whole public tree. Server Components below call
-  // `getDictionary()` themselves — it is cached per request and reads the
-  // route, so it costs them no props; this hands the same object across the
-  // boundary for the Client Components, which cannot read the route at all.
+  // `getDictionary()` themselves rather than take a prop — the dynamic import
+  // behind it is module-cached, so only the first call reads anything. This
+  // hands the same object across the boundary for the Client Components,
+  // which cannot read the route at all.
   const dictionary = await getDictionary();
 
   return (

@@ -10,10 +10,11 @@ import { DEFAULT_LOCALE, isLocaleSegment, type LocaleSegment } from "./locales";
 /**
  * The site's words, for the language the reader asked for.
  *
- * WHY THE STRINGS LEFT THE COMPONENTS. They were spread across 42 files as
- * literals, which is fine while there is one language and impossible the
- * moment there are three: a second locale would mean either a second copy of
- * every component or a conditional at every sentence.
+ * WHY THE STRINGS LEFT THE COMPONENTS. They were spread across the 40 files
+ * that now read this as literals, which is fine while there is one language
+ * and impossible the moment there are three: a second locale would mean
+ * either a second copy of every component or a conditional at every
+ * sentence.
  *
  * WHY IT READS THE ROUTE RATHER THAN TAKING A PARAMETER. More than half of
  * the public site's copy lives in Client Components, and React context does
