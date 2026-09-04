@@ -57,6 +57,36 @@ export const Site: GlobalConfig = {
       ],
     },
     {
+      /**
+       * The prose on /about.
+       *
+       * WHY IT IS NOT `metadata.description`. That page used to render the
+       * description field as its entire body, which reads as reuse and was
+       * really a shortage: `metadata.description` is the sentence written for
+       * a search result, it is already on every page inside a `<meta>` tag,
+       * and it is capped in length by what Google will show. An about page is
+       * the one place the club gets to speak at its own length.
+       *
+       * `textarea` rather than `richText`, deliberately. The page renders one
+       * block of prose with `whitespace-pre-line`, so paragraphs work by
+       * pressing return; a Lexical field would add a serializer to a public
+       * page and a much larger column for formatting nobody has asked for.
+       * Upgrading later is a migration; starting there is a guess.
+       *
+       * Nullable with no default and no backfill. NULL means "nobody has
+       * written one", which is the honest state today, and the page falls
+       * back to the old description so nothing regresses before an admin
+       * types anything.
+       */
+      name: 'about',
+      type: 'textarea',
+      label: { en: 'About Page', 'zh-TW': '關於頁內容' },
+      admin: {
+        description:
+          'The body of /about. Blank falls back to the metadata description, which is written for search results rather than for a reader.',
+      },
+    },
+    {
       name: 'social',
       type: 'group',
       label: { en: 'Social', 'zh-TW': '社群連結' },
