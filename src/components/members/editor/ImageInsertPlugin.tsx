@@ -175,7 +175,7 @@ export function ImageInsertPlugin({
               return;
             }
             bumpPending(1);
-            uploadImageFile(file)
+            uploadImageFile(file, "attachment")
               .then((mediaId) => settlePending(uploadId, mediaId))
               .catch(() => settlePending(uploadId, null))
               .finally(() => {

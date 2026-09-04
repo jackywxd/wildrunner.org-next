@@ -1,28 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarField } from "@/components/members/profile/AvatarField";
 import { Button } from "@/components/ui/button";
+import { FieldLabel, Input, Textarea } from "@/components/ui/input";
 
-const toGb = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2);
-
-type Author = { bio: string; id: number; name: string };
+type Author = {
+  /** The media id, never a populated document — see AvatarField. */
+  avatar: number | null;
+  bio: string;
+  id: number;
+  name: string;
+  slug: string;
+};
 
 export function ProfileForm({
   author,
   displayName: initialDisplayName,
-  quotaBytes,
-  usedBytes,
+  email,
   userId,
 }: {
   author: Author | null;
   displayName: string;
-  quotaBytes: number;
-  usedBytes: number;
+  /** Read-only: changing it is an auth flow (re-verification), not a text
+   *  field. Shown because "which account am I signed in as" is the question
+   *  this section exists to answer. */
+  email: string;
   userId: number;
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [authorName, setAuthorName] = useState(author?.name ?? "");
+  const [avatar, setAvatar] = useState<number | null>(author?.avatar ?? null);
   const [bio, setBio] = useState(author?.bio ?? "");
+  // An upload in flight has no id yet, so saving now would persist the old
+  // avatar and silently discard the new one. Same guard as the post editor.
+  const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle",
   );
@@ -44,7 +56,7 @@ export function ProfileForm({
             method: "PATCH",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: authorName, bio }),
+            body: JSON.stringify({ avatar, bio, name: authorName }),
           }),
         );
       }
@@ -56,34 +68,45 @@ export function ProfileForm({
     }
   }
 
-  const percent =
-    quotaBytes > 0 ? Math.min(Math.round((usedBytes / quotaBytes) * 100), 100) : 0;
 
   return (
     <div className="mt-6 space-y-8">
       <section className="space-y-4 border border-border p-4">
-        <h2 className="font-heading text-sm font-semibold text-foreground/70">
-          作者身分
-        </h2>
+        <div>
+          <h2 className="font-heading text-sm font-semibold text-foreground/70">
+            公開身分
+          </h2>
+          <p className="mt-1 text-xs text-foreground/50">
+            這一區的內容會顯示在成員名錄和你的公開頁面上。
+          </p>
+        </div>
+        {author && (
+          <AvatarField
+            mediaId={avatar}
+            name={authorName || "?"}
+            onBusyChange={setUploading}
+            onChange={setAvatar}
+            ownerId={userId}
+            slug={author.slug}
+          />
+        )}
         <label className="block space-y-1">
-          <span className="text-sm">別名（公開顯示）</span>
-          <input
+          <FieldLabel>別名</FieldLabel>
+          <Input
             data-testid="profile-author-name"
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
             disabled={!author}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            onChange={(e) => setAuthorName(e.target.value)}
+            value={authorName}
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm">簡介</span>
-          <textarea
+          <FieldLabel>簡介</FieldLabel>
+          <Textarea
             data-testid="profile-author-bio"
+            disabled={!author}
+            onChange={(e) => setBio(e.target.value)}
             rows={3}
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            disabled={!author}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
           />
         </label>
       </section>
@@ -93,33 +116,26 @@ export function ProfileForm({
           帳號
         </h2>
         <label className="block space-y-1">
-          <span className="text-sm">顯示名稱</span>
-          <input
+          <FieldLabel hint="只有你自己看得到">顯示名稱</FieldLabel>
+          <Input
             data-testid="profile-display-name"
-            value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            value={displayName}
           />
+        </label>
+        <label className="block space-y-1">
+          <FieldLabel>電子郵件</FieldLabel>
+          <Input data-testid="profile-email" disabled readOnly value={email} />
         </label>
       </section>
 
-      <section
-        className="space-y-3 border border-border p-4"
-        data-testid="quota-detail"
-      >
-        <h2 className="font-heading text-sm font-semibold text-foreground/70">
-          儲存空間
-        </h2>
-        <div className="text-2xl font-heading">
-          {toGb(usedBytes)}{" "}
-          <span className="text-base text-foreground/50">
-            / {toGb(quotaBytes)} GB
-          </span>
-        </div>
-        <div className="h-1.5 bg-secondary">
-          <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
-        </div>
-      </section>
+      {/*
+        The storage block that used to sit here is gone, not moved: it was a
+        verbatim copy of the one on /members, and /members/media has the real
+        one — next to the uploads and the delete controls, which are the only
+        way to act on the number. Three copies of a figure nobody can change
+        from two of those places is not three chances to notice it.
+      */}
 
       <div className="flex items-center justify-end gap-3">
         {status === "saved" && (
@@ -133,7 +149,7 @@ export function ProfileForm({
         <Button
           data-testid="profile-save"
           className="justify-center"
-          disabled={status === "saving"}
+          disabled={status === "saving" || uploading}
           onClick={save}
         >
           儲存變更

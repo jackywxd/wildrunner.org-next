@@ -11,7 +11,8 @@ import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
+import { getBylineAvatar, getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
+import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { postPublicPath } from "@/lib/content-paths";
 import { resolvePostOgCard } from "@/lib/postOg";
 import { pageMetadata } from "@/lib/site-metadata";
@@ -104,6 +105,24 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
     ? catalogueMap(await getRaceCatalogueEvents())
     : null;
 
+  /**
+   * The byline's face.
+   *
+   * `getBylineAvatar` rather than reading it off `blog.author`, and that is
+   * not a stylistic choice: the avatar is a relationship *inside* the author,
+   * so reaching it from the post would mean `depth: 2` — which also walks
+   * `raceRecord → owner` into a whole `users` row. That helper exists to be
+   * the second query instead, and the print route has been using it for
+   * exactly this since it was written.
+   *
+   * Undefined is a real answer, not a failure: an author row with no account
+   * behind it was imported rather than registered, and `RiderAvatar` then
+   * draws the generated avatar the rider directory already shows for them.
+   */
+  const bylineAvatar = blog.authorSlug
+    ? await getBylineAvatar(blog.authorSlug)
+    : undefined;
+
   return (
     <article className="container relative max-w-3xl py-6 lg:py-10">
       <>
@@ -120,15 +139,21 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           {blog.title}
         </h1>
 
+        {/* This used to render `siteConfig.authorImage` — which resolves to
+            `devbertskie.png`, the blog template author's own photograph —
+            beside every member's name, on every article on the site. */}
         {blog.author && (
           <div className="mt-4 flex space-x-4">
-            <Image
-              src={siteConfig.authorImage}
-              alt={blog.author}
-              width={42}
-              height={42}
-              className="grayscale border border-border bg-secondary"
-            />
+            {blog.authorSlug && (
+              <RiderAvatar
+                rider={{
+                  avatar: bylineAvatar,
+                  name: blog.author,
+                  slug: blog.authorSlug,
+                }}
+                size={42}
+              />
+            )}
             <div className="flex-1 text-left leading-tight">
               <p className="font-medium">{blog.author}</p>
               <p className="text-[12px] text-muted-foreground">

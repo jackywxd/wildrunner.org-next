@@ -90,7 +90,7 @@ export function CoverImageField({
     setUploading(true);
     onBusyChange(true);
     try {
-      onChange(await uploadImageFile(file));
+      onChange(await uploadImageFile(file, "attachment"));
     } catch (cause) {
       setError(
         (cause as Error).message === "Storage quota exceeded"

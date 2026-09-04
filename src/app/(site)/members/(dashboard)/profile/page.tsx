@@ -1,6 +1,5 @@
 import { requireMember } from "@/lib/auth";
 import { getPayloadClient } from "@/lib/payload";
-import { quotaBytesFor, usedBytesFor } from "@/lib/quota";
 import { ProfileForm } from "@/components/members/profile/ProfileForm";
 import type { Author } from "@/payload-types";
 
@@ -15,19 +14,15 @@ export default async function ProfilePage() {
       ? user.author.id
       : user.author;
 
-  const [author, usedBytes] = await Promise.all([
-    authorId
-      ? (payload.findByID({
-          collection: "authors",
-          id: authorId,
-          overrideAccess: false,
-          user,
-          depth: 0,
-        }) as Promise<Author>)
-      : Promise.resolve(null),
-    usedBytesFor(payload, user.id),
-  ]);
-  const quotaBytes = quotaBytesFor(user);
+  const author = authorId
+    ? ((await payload.findByID({
+        collection: "authors",
+        id: authorId,
+        overrideAccess: false,
+        user,
+        depth: 0,
+      })) as Author)
+    : null;
 
   return (
     <div className="max-w-xl">
@@ -35,9 +30,21 @@ export default async function ProfilePage() {
       <ProfileForm
         userId={user.id}
         displayName={user.displayName ?? ""}
-        author={author ? { id: author.id, name: author.name, bio: author.bio ?? "" } : null}
-        usedBytes={usedBytes}
-        quotaBytes={quotaBytes}
+        author={
+          author
+            ? {
+                // `avatar` is an id here and must stay one: the query above
+                // is depth 0, so Payload returns the relationship unpopulated
+                // and AvatarField resolves it to a picture itself.
+                avatar: typeof author.avatar === "number" ? author.avatar : null,
+                bio: author.bio ?? "",
+                id: author.id,
+                name: author.name,
+                slug: author.slug,
+              }
+            : null
+        }
+        email={user.email}
       />
     </div>
   );
