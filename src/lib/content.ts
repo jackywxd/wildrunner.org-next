@@ -201,6 +201,11 @@ export function mapSiteGlobal(doc: SiteGlobal): SiteGlobals {
   return {
     heroTitleEn: doc.heroTitleEn ?? "Run wild, run free",
     heroTitleZh: doc.heroTitleZh ?? "心如野馬，馳騁天下",
+    // No `??` fallback: the About page needs to tell "an admin wrote nothing"
+    // apart from "an admin wrote something", and an empty string here would
+    // erase that distinction. Trimmed so a field holding only whitespace
+    // counts as unwritten.
+    about: doc.about?.trim() || undefined,
     metadata: {
       titleDefault: doc.metadata?.titleDefault ?? "野馬營",
       titleTemplate: doc.metadata?.titleTemplate ?? "%s | 野馬營",

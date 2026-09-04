@@ -22,9 +22,14 @@ export default async function AboutPage() {
 
       {/* Bounded, because the container is not. Same reasoning as the rider
           page's bio: at 1440px this paragraph would set ~65 Chinese
-          characters to a line where a readable measure is nearer 40. */}
-      <p className="max-w-2xl whitespace-pre-line text-left text-muted-foreground lg:text-lg">
-        {globals.metadata.description}
+          characters to a line where a readable measure is nearer 40.
+          `whitespace-pre-line` is what makes paragraphs work in a textarea —
+          the admin presses return, and the blank line survives to here. */}
+      <p
+        className="max-w-2xl whitespace-pre-line text-left text-muted-foreground lg:text-lg"
+        data-testid="about-body"
+      >
+        {globals.about ?? globals.metadata.description}
       </p>
     </div>
   );

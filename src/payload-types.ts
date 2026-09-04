@@ -960,6 +960,10 @@ export interface Site {
     titleTemplate?: string | null;
     description?: string | null;
   };
+  /**
+   * The body of /about. Blank falls back to the metadata description, which is written for search results rather than for a reader.
+   */
+  about?: string | null;
   social?: {
     github?: string | null;
   };
@@ -1001,6 +1005,7 @@ export interface SiteSelect<T extends boolean = true> {
         titleTemplate?: T;
         description?: T;
       };
+  about?: T;
   social?:
     | T
     | {

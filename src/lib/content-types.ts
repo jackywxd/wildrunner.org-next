@@ -344,6 +344,13 @@ export type SiteRider = {
 export type SiteGlobals = {
   heroTitleEn: string;
   heroTitleZh: string;
+  /**
+   * The body of /about, or undefined when nobody has written one — which is
+   * the state of both deployed databases until an admin fills it in. The page
+   * falls back to `metadata.description`, so this being absent is a normal
+   * answer rather than a missing value.
+   */
+  about?: string;
   metadata: {
     titleDefault: string;
     titleTemplate: string;
