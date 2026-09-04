@@ -74,6 +74,45 @@ export const Galleries: CollectionConfig = {
       label: { en: 'Cover Image', 'zh-TW': '封面圖片' },
     },
     /**
+     * Which race this whole album is of.
+     *
+     * THE SAME ASSOCIATION `media.raceEdition` ALREADY EXPRESSES, one level
+     * up, and it exists because the per-file form is unusable at album scale:
+     * tagging `UTMB 2025` means 28 edits, and measured on the seeded corpus
+     * the day this field was added, **420 media rows carried 0 tags** while
+     * four of the twenty albums were named after races. The association was
+     * real and lived only in the titles.
+     *
+     * ADDITIVE. `media.raceEdition` stays authoritative for a single file — a
+     * photo of the finish line that ended up in a general album still belongs
+     * to that race. A reader takes this when it is set and otherwise falls
+     * back to the tags the album's own items carry (`albumRaceEditionId`), so
+     * nothing that works today changes.
+     *
+     * A REAL FOREIGN KEY, so Payload itself refuses an edition that does not
+     * exist — the same reasoning `Media.raceEdition` records, and the reason
+     * neither needs a `beforeValidate` hook the way `race-records` did before
+     * `validateRaceCatalogueRef`.
+     *
+     * ADMIN-ONLY, like `musicUrl` above and for the same reason: nothing under
+     * `src/app/(site)/members` edits `galleries`, so the control is the one
+     * Payload generates and there is no second screen for it to drift from.
+     */
+    {
+      name: 'raceEdition',
+      type: 'relationship',
+      relationTo: 'race-editions',
+      label: { en: 'Race', 'zh-TW': '比賽' },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Optional. Which race this album is of. Puts the album on that race’s row in 時間機 instead of in a month of its own.',
+          'zh-TW':
+            '選填。這本相簿是哪一場比賽的。設了之後，相簿會出現在時間機上那場比賽那一列，而不是自己佔一個月份。',
+        },
+      },
+    },
+    /**
      * A YouTube link this album plays while its slideshow runs.
      *
      * STORED AS THE URL SOMEBODY PASTED, not as the id. The id is re-derived

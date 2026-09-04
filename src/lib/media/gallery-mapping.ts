@@ -57,6 +57,7 @@ export type GalleryDoc = Pick<
   | "location"
   | "musicUrl"
   | "name"
+  | "raceEdition"
   | "slug"
 >;
 
@@ -175,6 +176,14 @@ export function mapPayloadGallery(
       own: doc.musicUrl,
       fallback: fallbackMusic,
     }),
+    // A bare id at depth 1: `raceEdition` is a relationship on the album, and
+    // the album query populates its cover and items rather than walking on
+    // into race-editions. `albumRaceEditionId` reads the album's own tag first
+    // and the items' tags second — see its header for why both exist.
+    raceEditionId:
+      typeof doc.raceEdition === "number"
+        ? doc.raceEdition
+        : (doc.raceEdition?.id ?? undefined),
     items,
   };
 }

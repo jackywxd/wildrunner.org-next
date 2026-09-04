@@ -165,6 +165,16 @@ export type SiteGallery = {
   location?: string | null;
   created: string;
   eventDate?: string | null;
+  /**
+   * `galleries.raceEdition` — which race this whole album is of, as a bare id.
+   *
+   * Set by a curator on the album, and the reason it exists alongside the
+   * per-file `SitePhoto.raceEditionId` is scale: tagging one album meant 28
+   * edits, and 0 of 420 media rows had ever been tagged. `albumRaceEditionId`
+   * is what readers should call — it takes this when present and falls back to
+   * the tags the items carry.
+   */
+  raceEditionId?: number;
   isFeatured: boolean;
   /** Legacy OG helper: filename stems marked featured on images */
   featured: string[];

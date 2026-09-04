@@ -77,6 +77,32 @@ export function albumCard(gallery: SiteGallery): SiteAlbumCard {
   }
 }
 
+/**
+ * Which race an album belongs to, or nothing.
+ *
+ * TWO SOURCES, IN THIS ORDER, and the order is the point. `galleries.raceEdition`
+ * is a curator saying "this album is that race" — one edit. `media.raceEdition`
+ * is the older, per-file form, and it is still authoritative for a single
+ * photo; an album whose items all carry the same tag means the same thing and
+ * should not have to be re-tagged to be understood.
+ *
+ * A MIXED ALBUM BELONGS TO NOBODY. If the items name more than one race and
+ * the album itself names none, this returns `undefined` rather than picking
+ * the first: a general album that happens to contain two tagged photos is not
+ * "of" either race, and putting it on one race's row would be a claim the data
+ * does not make. It falls into its month instead, which is true.
+ *
+ * Pure, and the reason it lives here rather than in `content.ts`: it is the
+ * rule, and rules in this file are the ones the unit lane can exercise.
+ */
+export function albumRaceEditionId(
+  gallery: Pick<SiteGallery, "items" | "raceEditionId">,
+): number | undefined {
+  if (gallery.raceEditionId !== undefined) return gallery.raceEditionId;
+  const fromItems = raceIdsOf(gallery.items);
+  return fromItems.length === 1 ? fromItems[0] : undefined;
+}
+
 /** Every race the items are tagged with, deduped, in first-seen order. */
 function raceIdsOf(items: SiteMediaItem[]): number[] {
   const ids = new Set<number>()
