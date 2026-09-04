@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Icon } from "@iconify-icon/react";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import type { SiteAlbumCard } from "@/lib/content-types";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * The albums view: one cover per album, and the contents one click away.
@@ -25,13 +26,14 @@ export function AlbumCards({
   /** Whether a filter is narrowing this list — it decides what empty means. */
   filtered?: boolean;
 }) {
+  const t = useDictionary();
   if (albums.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="gallery-albums-empty">
         {/* "還沒有相簿" is a claim about the site, and it is false the moment a
             race is selected: a visitor who filtered to a race with no album
             has not discovered that the site has no albums. */}
-        {filtered ? "這場比賽還沒有相簿。" : "還沒有相簿。"}
+        {filtered ? t.albums.emptyFiltered : t.albums.emptyAll}
       </p>
     );
   }
@@ -78,9 +80,9 @@ export function AlbumCards({
               {album.name}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {album.photoCount > 0 ? `${album.photoCount} 張照片` : null}
+              {album.photoCount > 0 ? t.albums.photoCount.replace("{count}", String(album.photoCount)) : null}
               {album.photoCount > 0 && album.videoCount > 0 ? " · " : null}
-              {album.videoCount > 0 ? `${album.videoCount} 段影片` : null}
+              {album.videoCount > 0 ? t.albums.videoCount.replace("{count}", String(album.videoCount)) : null}
             </p>
           </div>
         </Link>
