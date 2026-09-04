@@ -347,7 +347,7 @@ export async function RiderTimeline({
         })}
       </div>
 
-      <p className="sr-only">{name} 的時間軸到此為止。</p>
+      <p className="sr-only">{t.riderTimeline.endOfTimeline.replace("{name}", name)}</p>
     </TimelineMotionConfig>
   );
 }

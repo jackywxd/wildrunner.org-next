@@ -33,11 +33,7 @@ import {
   type WallSort,
 } from "@/lib/media/gallery-index";
 import { mediaDisplayName } from "@/lib/media-name";
-import {
-  FilterChip,
-  FilterSelect,
-  KIND_LABELS,
-} from "@/components/media/filters";
+import { FilterChip, FilterSelect } from "@/components/media/filters";
 import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
@@ -665,21 +661,21 @@ export function MediaGrid({
             onClick={() => void applyArrangement("all", sort, race)}
             data-testid="gallery-filter-kind-all"
           >
-            {KIND_LABELS.all}
+            {t.gallery.kindAll}
           </FilterChip>
           <FilterChip
             active={kind === "photo"}
             onClick={() => void applyArrangement("photo", sort, race)}
             data-testid="gallery-filter-kind-photo"
           >
-            {KIND_LABELS.photo}
+            {t.gallery.kindPhoto}
           </FilterChip>
           <FilterChip
             active={kind === "video"}
             onClick={() => void applyArrangement("video", sort, race)}
             data-testid="gallery-filter-kind-video"
           >
-            {KIND_LABELS.video}
+            {t.gallery.kindVideo}
           </FilterChip>
         </div>
         <FilterSelect

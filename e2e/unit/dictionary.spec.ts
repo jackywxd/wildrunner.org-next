@@ -50,9 +50,21 @@ function paths(node: unknown, prefix = ""): string[] {
   );
 }
 
+/**
+ * Comments are stripped first, because both checks below read this text as if
+ * it were code. A sentence in `components/media/filters.tsx` mentioning
+ * `t.gallery.kind*` made U-DICT-2 report `gallery.kind` as a key read but not
+ * defined — the prose describing the change, flagged as the change's bug.
+ * `scripts/assert-test-strategy.mjs` carries the same guard and the same
+ * reason. U-DICT-1 needs it just as much in the other direction: a key
+ * mentioned only in a comment would count as used.
+ */
+const stripComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
 const code = sources(SRC)
   .filter((path) => !path.endsWith("dictionaries/zh-Hant.json"))
-  .map((path) => readFileSync(path, "utf8"))
+  .map((path) => stripComments(readFileSync(path, "utf8")))
   .join("\n");
 
 test.describe("U-DICT the dictionary and its readers agree", () => {

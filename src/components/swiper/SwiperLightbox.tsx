@@ -155,6 +155,11 @@ const SwiperLightbox: React.FC<{
     return () => {
       lightbox.destroy();
     };
+    // Mount-once, as it already was. `t` joins `autoplay` and `images` in the
+    // exhaustive-deps warning and belongs there for the same reason they do:
+    // a page renders in one language, so re-initialising PhotoSwipe for a
+    // dictionary that cannot change would tear down an open lightbox to
+    // rewrite a tooltip.
   }, []);
 
   const setSwiperAutoplay = (to: boolean) => {

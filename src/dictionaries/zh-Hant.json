@@ -36,6 +36,9 @@
     "nextTrack": "下一首",
     "prevTrack": "上一首",
     "sortLabel": "排序",
+    "kindAll": "全部",
+    "kindPhoto": "相片",
+    "kindVideo": "影片",
     "raceLabel": "賽事",
     "anyRace": "所有比賽",
     "emptyAll": "還沒有相片或影片。",
@@ -150,7 +153,8 @@
     "title": "{name}的穿越時光",
     "subtitle": "{name} 跑過的比賽與寫過的文章，依時間排列。",
     "heading": "{name} 的穿越時光",
-    "backToRider": "← 回到 {name} 的頁面"
+    "backToRider": "← 回到 {name} 的頁面",
+    "endOfTimeline": "{name} 的時間軸到此為止。"
   },
   "raceEdition": {
     "subtitle": "{name} {year} 的賽事資訊與相片牆。",

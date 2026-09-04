@@ -1,5 +1,6 @@
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-db";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import { isRegistrationOpen } from "@/lib/races/registration";
 
 import { RaceEntryRow } from "./RaceEntryRow";
@@ -15,7 +16,7 @@ import { RaceEntryRow } from "./RaceEntryRow";
  * months themselves stay in date order. Reordering across months would
  * break the one thing a schedule has to get right.
  */
-export function RaceList({
+export async function RaceList({
   canWriteReport = false,
   catalogue,
   entries,
@@ -26,6 +27,7 @@ export function RaceList({
   entries: SiteRaceScheduleEntry[];
   now: Date;
 }) {
+  const t = await getDictionary();
   const months = new Map<string, SiteRaceScheduleEntry[]>();
   for (const entry of entries) {
     const key = entry.startDate.slice(0, 7);
@@ -47,7 +49,9 @@ export function RaceList({
         return (
           <section data-month={key} key={key}>
             <h2 className="font-heading text-sm font-semibold tracking-wide text-foreground/70">
-              {year} 年 {Number(month)} 月
+              {t.raceSchedule.yearMonth
+                .replace("{year}", year)
+                .replace("{month}", String(Number(month)))}
             </h2>
             <ul className="mt-3 space-y-3">
               {sorted.map((entry) => (
