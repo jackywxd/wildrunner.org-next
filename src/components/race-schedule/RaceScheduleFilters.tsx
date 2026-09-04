@@ -5,6 +5,7 @@ import { raceFiltersHref } from "@/lib/races/race-filters";
 import type { RaceFilters } from "@/lib/races/race-filters";
 import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * View toggle and filters, as links rather than client state.
@@ -59,7 +60,12 @@ function Chip({
   );
 }
 
-export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
+export async function RaceScheduleFilters({
+  filters,
+}: {
+  filters: RaceFilters;
+}) {
+  const t = await getDictionary();
   return (
     <div className="flex flex-col gap-3" data-testid="race-schedule-filter">
       <div
@@ -68,13 +74,13 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
       >
         <div className="flex flex-wrap gap-2">
           <Chip active={filters.view === "list"} target={href(filters, { view: "list" })}>
-            列表
+            {t.raceFilters.list}
           </Chip>
           <Chip
             active={filters.view === "calendar"}
             target={href(filters, { view: "calendar" })}
           >
-            月曆
+            {t.raceFilters.calendar}
           </Chip>
         </div>
 
@@ -85,13 +91,13 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
           rel="noopener noreferrer"
           target="_blank"
         >
-          預約提醒
+          {t.raceFilters.remind}
         </a>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Chip active={!filters.series} target={href(filters, { series: undefined })}>
-          全部系列
+          {t.raceFilters.allSeries}
         </Chip>
         {SCHEDULE_SERIES.map((series) => (
           <Chip
@@ -109,7 +115,7 @@ export function RaceScheduleFilters({ filters }: { filters: RaceFilters }) {
             registration: filters.registration === "open" ? undefined : "open",
           })}
         >
-          只看報名中
+          {t.raceFilters.openOnly}
         </Chip>
       </div>
 
