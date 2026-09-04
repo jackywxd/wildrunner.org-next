@@ -284,7 +284,7 @@ test.describe("V-PRINT an article laid out for paper", () => {
     // THE SECOND ENDPOINT, and asserting it here is the point of the shared
     // helper: both routes get their origin check, their URL construction and
     // their two failure statuses from `pdfDownloadResponse`, so the pair
-    // either behaves identically or this test says so. 時間機 renders the
+    // either behaves identically or this test says so. 穿越時光 renders the
     // live `/riders/<slug>/timeline`, which is already print-styled.
     const timeline = await request.get(
       "/api/print/riders/nobody-by-this-name/timeline",

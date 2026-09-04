@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Params) {
     type: "profile",
     // A MEMBER IS SOMETHING, so they get their own colours rather than the
     // site's furniture card. Seeded on the slug, which means their profile and
-    // their 時間機 carry the same card — the subject of both pages is them.
+    // their 穿越時光 carry the same card — the subject of both pages is them.
     //
     // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
     // is a small square and a card is 1920×1080, so using it as the image

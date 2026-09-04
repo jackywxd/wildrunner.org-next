@@ -8,7 +8,7 @@ import {
 } from "@/lib/riders/timeline";
 
 /**
- * U-TIMELINE — the ordering and the merge behind 時間機
+ * U-TIMELINE — the ordering and the merge behind 穿越時光
  * (/riders/<slug>/timeline).
  *
  * The page draws one rail through a member's races and articles. Everything

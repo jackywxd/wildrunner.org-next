@@ -12,7 +12,7 @@ import {
 } from "@/lib/riders/club-timeline";
 
 /**
- * U-CLUB — the grouping, ordering and paging behind 野馬營時間機
+ * U-CLUB — the grouping, ordering and paging behind 野馬營穿越時光
  * (/riders/timeline).
  *
  * THE FAILURES THESE PROTECT AGAINST, each one costly and none of them

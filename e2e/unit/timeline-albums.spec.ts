@@ -10,7 +10,7 @@ import {
 } from "@/lib/riders/timeline-albums";
 
 /**
- * U-ALBUM — where a picture lands on 時間機, and what date it lands at.
+ * U-ALBUM — where a picture lands on 穿越時光, and what date it lands at.
  *
  * THE FAILURE THAT MADE THIS A FEATURE, pinned first: dating a picture by its
  * upload. Measured on the seeded corpus before any of it was written — 420

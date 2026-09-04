@@ -1,3 +1,4 @@
+import { markDataUri } from "@/lib/brand-mark";
 import {
   loadPosterFont,
   renderPoster,
@@ -41,7 +42,18 @@ function Poster({ subject }: { subject: PosterSubject }) {
         fontFamily: "Inter",
       }}
     >
-      <span style={{ fontSize: 34, letterSpacing: "0.18em", opacity: 0.55 }}>野馬營</span>
+      {/* The lockup, mark and all. The first version of this poster carried
+          only the words 「野馬營」 — which is the same absence this site has
+          already shipped once, when the card's logo was an LFS pointer satori
+          could not decode (see `markDataUri`). Drawn from the shared paths so
+          the poster, the share card and the site header cannot drift apart. */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse requires img */}
+        <img src={markDataUri("#8A3FFA")} alt="" width={56} height={56} />
+        <span style={{ marginLeft: 18, fontSize: 34, letterSpacing: "0.18em", opacity: 0.7 }}>
+          野馬營
+        </span>
+      </div>
 
       <div
         style={{
@@ -111,9 +123,12 @@ function Poster({ subject }: { subject: PosterSubject }) {
 
       {/* The signature. A name, and the only thing on this poster that says
           where it came from. */}
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", width: 44, height: 44, background: "#8A3FFA" }} />
-        <span style={{ marginLeft: 20, fontSize: 40, fontWeight: 700 }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {/* A short accent rule over the byline, the same device `/og` signs
+            its cards with. The plain purple square that used to sit here was
+            standing in for a seal and read as a missing image. */}
+        <div style={{ display: "flex", width: 96, height: 6, background: "#8A3FFA" }} />
+        <span style={{ marginTop: 22, fontSize: 44, fontWeight: 700 }}>
           {subject.byline ?? "野馬營"}
         </span>
       </div>

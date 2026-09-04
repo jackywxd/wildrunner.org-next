@@ -106,9 +106,9 @@ export const Galleries: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: {
-          en: 'Optional. Which race this album is of. Puts the album on that race’s row in 時間機 instead of in a month of its own.',
+          en: 'Optional. Which race this album is of. Puts the album on that race’s row in 穿越時光 instead of in a month of its own.',
           'zh-TW':
-            '選填。這本相簿是哪一場比賽的。設了之後，相簿會出現在時間機上那場比賽那一列，而不是自己佔一個月份。',
+            '選填。這本相簿是哪一場比賽的。設了之後，相簿會出現在穿越時光上那場比賽那一列，而不是自己佔一個月份。',
         },
       },
     },

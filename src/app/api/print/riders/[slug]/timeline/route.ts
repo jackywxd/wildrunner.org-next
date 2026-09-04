@@ -5,7 +5,7 @@ import { getRiderTimeline } from "@/lib/content";
 import { pdfDownloadResponse } from "@/lib/print/pdf-response";
 
 /**
- * 時間機 as a file — the same rail the print button prints, as a PDF.
+ * 穿越時光 as a file — the same rail the print button prints, as a PDF.
  *
  * IT RENDERS THE LIVE PAGE, not a `/print/...` twin, and that is the whole
  * difference from the article's endpoint. `/riders/<slug>/timeline` is
@@ -38,7 +38,7 @@ export async function GET(
   const found = await getRiderTimeline(slug);
   if (!found) {
     return NextResponse.json(
-      { error: "找不到這位跑者的時間機。" },
+      { error: "找不到這位跑者的穿越時光。" },
       { status: 404 },
     );
   }
@@ -47,6 +47,6 @@ export async function GET(
     requestUrl: request.url,
     path: `/riders/${found.rider.slug}/timeline`,
     canonical: `${siteConfig.baseURL}/riders/${found.rider.slug}/timeline`,
-    title: `${found.rider.name} 的時間機`,
+    title: `${found.rider.name} 的穿越時光`,
   });
 }

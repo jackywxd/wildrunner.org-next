@@ -42,7 +42,7 @@ export function PrintToolbar({
   const params = useSearchParams();
   // `/api` in front of this page's own path, same query, so the file matches
   // the template on screen. The behaviour behind the button is shared with
-  // 時間機 — see `usePdfDownload`.
+  // 穿越時光 — see `usePdfDownload`.
   const pdf = usePdfDownload(
     `/api/print${pathname.replace(/^\/print/, "")}?${params.toString()}`,
   );

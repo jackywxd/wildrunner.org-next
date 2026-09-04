@@ -2,7 +2,7 @@ import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
 
 /**
- * V-TIMELINE — 時間機, a member's races and articles on one rail.
+ * V-TIMELINE — 穿越時光, a member's races and articles on one rail.
  *
  * TWO FAILURES, BOTH INVISIBLE TO EVERY OTHER KIND OF ASSERTION.
  *
@@ -74,7 +74,7 @@ async function openTimelineOfAMemberWithContent(
   await expect(page.getByTestId("rider-timeline")).toBeVisible();
 }
 
-test.describe("V-TIMELINE 時間機", () => {
+test.describe("V-TIMELINE 穿越時光", () => {
   test("V-TIMELINE-T1: every row is readable by the time the reader reaches the end", async ({
     page,
   }) => {

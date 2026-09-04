@@ -1,3 +1,4 @@
+import { markDataUri } from "@/lib/brand-mark";
 import {
   loadPosterFont,
   renderPoster,
@@ -42,28 +43,41 @@ function Square({ subject }: { subject: PosterSubject }) {
         fontFamily: "Inter",
       }}
     >
-      {badge ? (
-        <div style={{ display: "flex", alignItems: "center" }}>
+      {/* The lockup is always here, badge or not: this square is what a reader
+          sees in a chat window, and a card with no mark on it is not ours. */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse requires img */}
+        <img src={markDataUri(badge ? badge.ink : "#8A3FFA")} alt="" width={44} height={44} />
+        <span
+          style={{
+            marginLeft: 14,
+            fontSize: 28,
+            letterSpacing: "0.14em",
+            opacity: badge ? 0.9 : 0.6,
+          }}
+        >
+          野馬營
+        </span>
+
+        {badge && (
           <div
             style={{
               display: "flex",
-              width: 96,
-              height: 96,
+              marginLeft: "auto",
+              width: 84,
+              height: 84,
               alignItems: "center",
               justifyContent: "center",
               background: badge.secondary,
               color: badge.ink,
-              fontSize: 34,
+              fontSize: 30,
               fontWeight: 800,
             }}
           >
             {badge.abbr}
           </div>
-          <span style={{ marginLeft: 20, fontSize: 40, opacity: 0.85 }}>{badge.band}</span>
-        </div>
-      ) : (
-        <span style={{ fontSize: 30, letterSpacing: "0.14em", opacity: 0.6 }}>野馬營</span>
-      )}
+        )}
+      </div>
 
       {/* The title is the whole point of this square: it is what a reader sees
           at ~200px in a chat. Two lines at most, very large. */}

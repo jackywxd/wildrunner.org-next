@@ -130,7 +130,7 @@ const GALLERY_SELECT = {
   location: true,
   musicUrl: true,
   name: true,
-  // Which race the album is of, for 時間機 — a bare id at this depth, and the
+  // Which race the album is of, for 穿越時光 — a bare id at this depth, and the
   // reason the album carries one at all is that the per-file tag was unusable
   // at album scale (see `Galleries.raceEdition`). No PII path: `race-editions`
   // has no `owner`.

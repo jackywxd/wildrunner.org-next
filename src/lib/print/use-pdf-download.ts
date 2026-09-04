@@ -7,7 +7,7 @@ import { filenameFromDisposition } from "@/lib/print/filename";
 /**
  * "Give me this page as a PDF file", for any page that has a PDF endpoint.
  *
- * SHARED BY THE ARTICLE AND 時間機, and what is shared is the behaviour
+ * SHARED BY THE ARTICLE AND 穿越時光, and what is shared is the behaviour
  * rather than the button. Neither page's control looks like the other's — the
  * print page is neutral paper-styled chrome, the timeline uses the site's own
  * tokens — but every non-obvious thing about pressing it is identical, and

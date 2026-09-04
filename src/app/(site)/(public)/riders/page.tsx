@@ -63,7 +63,7 @@ export default async function RidersPage({
           data-testid="club-timeline-link"
           href="/riders/timeline"
         >
-          時間機 →
+          穿越時光 →
         </Link>
       </div>
 

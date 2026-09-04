@@ -502,7 +502,7 @@ export interface Gallery {
   eventDate?: string | null;
   cover?: (number | null) | Media;
   /**
-   * Optional. Which race this album is of. Puts the album on that race’s row in 時間機 instead of in a month of its own.
+   * Optional. Which race this album is of. Puts the album on that race’s row in 穿越時光 instead of in a month of its own.
    */
   raceEdition?: (number | null) | RaceEdition;
   /**

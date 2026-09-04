@@ -6,7 +6,7 @@ import { formatMonth } from "@/lib/riders/timeline-albums";
 import { cn } from "@/lib/utils";
 
 /**
- * The two shapes pictures take on 時間機: a strip under a race, and a month of
+ * The two shapes pictures take on 穿越時光: a strip under a race, and a month of
  * their own.
  *
  * NO `"use client"`, DELIBERATELY. The member rail renders these from a server
