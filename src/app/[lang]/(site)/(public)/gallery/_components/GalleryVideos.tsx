@@ -56,6 +56,7 @@ export function GalleryVideos({
             }
           >
             <StreamVideoPlayer
+              transcodingLabel={t.video.transcoding}
               video={video}
               compact={compact}
               className={

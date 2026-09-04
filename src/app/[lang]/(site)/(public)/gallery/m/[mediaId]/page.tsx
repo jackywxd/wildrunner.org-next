@@ -169,7 +169,10 @@ export default async function GalleryMediaByIdPage({
 
       {item.kind === "video" ? (
         <div className="w-full overflow-hidden rounded-none border border-border bg-black">
-          <StreamVideoPlayer video={item} />
+          <StreamVideoPlayer
+            transcodingLabel={t.video.transcoding}
+            video={item}
+          />
         </div>
       ) : (
         <div className="w-full overflow-hidden rounded-none border border-border">

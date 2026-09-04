@@ -27,6 +27,7 @@ const FORMAT_CODE = 16;
  * PR has one place to look.
  */
 const YOUTUBE_TITLE = "YouTube 影片";
+const TRANSCODING = "影片正在轉檔，請稍後再試。";
 
 /**
  * A read-only render of a member's document, used by the import flow to ask
@@ -120,7 +121,7 @@ function PreviewUpload({ value }: { value: number | string }) {
   // and `loading="lazy"`.
   if (media?.mimeType?.startsWith("video/")) {
     const video = mediaToSiteVideo(media);
-    if (video) return <StreamVideoPlayer video={video} compact />;
+    if (video) return <StreamVideoPlayer video={video} compact transcodingLabel={TRANSCODING} />;
   }
 
   // eslint-disable-next-line @next/next/no-img-element

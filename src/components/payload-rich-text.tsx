@@ -45,7 +45,7 @@ function orDefault<Args>(
  * already went through next/image; only rich-text bodies were bypassing it.
  */
 const buildConverters =
-  (youtubeTitle: string): JSXConvertersFunction =>
+  (youtubeTitle: string, transcodingLabel: string): JSXConvertersFunction =>
   ({ defaultConverters }) => ({
   ...defaultConverters,
 
@@ -139,7 +139,9 @@ const buildConverters =
 
     if (value.mimeType?.startsWith("video/")) {
       const video = mediaToSiteVideo(value);
-      return video ? <StreamVideoPlayer video={video} /> : null;
+      return video ? (
+        <StreamVideoPlayer transcodingLabel={transcodingLabel} video={video} />
+      ) : null;
     }
 
     const alt = value.alt ?? "";
@@ -232,7 +234,7 @@ export async function PayloadRichText({ data, className }: PayloadRichTextProps)
   const t = await getDictionary();
   return (
     <div className={className}>
-      <RichText data={data} converters={buildConverters(t.video.youtubeTitle)} />
+      <RichText data={data} converters={buildConverters(t.video.youtubeTitle, t.video.transcoding)} />
     </div>
   );
 }

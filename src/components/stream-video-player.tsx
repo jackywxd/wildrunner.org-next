@@ -4,12 +4,22 @@ import type { CSSProperties, RefObject } from "react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";
 import { streamIframeSrc } from "@/lib/stream";
-import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 type StreamVideoPlayerProps = {
   video: SiteVideo;
   className?: string;
   compact?: boolean;
+  /**
+   * What to say while Cloudflare Stream is still transcoding.
+   *
+   * A required prop, not a dictionary read, for the same reason as
+   * `YouTubeEmbed`'s `title`: this player renders under `(public)`, under the
+   * member dashboard, and under `(print)` — and only the first of those has a
+   * `DictionaryProvider` above it. `useDictionary()` here threw
+   * `V-PICKFRAME-T2` on CI, in the member media dialog, which is a tree the
+   * public site's provider has never wrapped.
+   */
+  transcodingLabel: string;
   /**
    * Passed straight through to whichever element is rendered.
    *
@@ -51,9 +61,9 @@ export function StreamVideoPlayer({
   className,
   compact = false,
   style,
+  transcodingLabel,
   videoRef,
 }: StreamVideoPlayerProps) {
-  const t = useDictionary();
   const streamSrc = streamIframeSrc(video.streamId);
   const label = mediaDisplayName(video);
   const sizing = compact
@@ -110,7 +120,7 @@ export function StreamVideoPlayer({
       data-testid="stream-processing"
       style={style}
     >
-      {t.video.transcoding}
+      {transcodingLabel}
     </div>
   );
 }
