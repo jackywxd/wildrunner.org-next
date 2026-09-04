@@ -163,16 +163,16 @@ export default async function Home() {
         <section className="mt-10 border-t-2 border-border pt-8">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-xl font-bold sm:text-2xl">相册</h2>
+              <h2 className="text-xl font-bold sm:text-2xl">相冊</h2>
               <p className="text-sm text-muted-foreground">
-                浏览 {imageCount} 張圖片
+                瀏覽 {imageCount} 張圖片
               </p>
             </div>
             <Link
               href="/gallery"
               className={cn(buttonVariants({ variant: "ghost" }), "px-6")}
             >
-              前往相册
+              前往相冊
             </Link>
           </div>
 

@@ -68,7 +68,7 @@ export default function GalleryPageClient({
 }: GalleryPageClientProps) {
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
-  // 相册, not a shelf of albums they have to open one at a time. The
+  // 相冊, not a shelf of albums they have to open one at a time. The
   // by-album layout (today's old default) is still one click away.
   const [view, setView] = useState<GalleryView>("all");
   // The shelf's own race filter. Deliberately not shared with the wall's: the
@@ -88,7 +88,7 @@ export default function GalleryPageClient({
     <div className="container max-w-7xl py-6 lg:py-10">
       <div className="flex flex-col gap-6">
         <section className="border-t-2 border-border pt-8">
-          <h1 className="text-4xl font-extrabold text-foreground">相册</h1>
+          <h1 className="text-4xl font-extrabold text-foreground">相冊</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {view === "all" ? "所有相片與影片,依時間排序" : "依相簿瀏覽"}
           </p>

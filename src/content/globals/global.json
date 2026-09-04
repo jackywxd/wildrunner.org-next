@@ -9,9 +9,9 @@
     "description": "這裡記錄一群在溫哥華相遇的優秀跑者們共同經歷的珍貴時光和比賽回憶。相遇是難得的緣分，願這裡成為這段美好時光的永久見證，未來仍能回味當年那顆狂野的心",
     "authors": [{ "name": "追雲逐雪", "url": "https://wildrunner.org" }],
     "keywords": [
-      "技术",
-      "编程",
-      "摄影",
+      "技術",
+      "編程",
+      "攝影",
       "博客",
       "野馬營",
       "超馬",
@@ -37,7 +37,7 @@
           "url": "https://wildrunner.org/images/blog-cover.jpg",
           "width": 1200,
           "height": 630,
-          "alt": "野馬營 封面图片"
+          "alt": "野馬營 封面圖片"
         }
       ],
       "locale": "en",
@@ -54,12 +54,12 @@
       "icon": "ph:article-medium"
     },
     {
-      "label": "相册",
+      "label": "相冊",
       "href": "/gallery",
       "icon": "clarity:image-gallery-line"
     },
     {
-      "label": "关于",
+      "label": "關於",
       "href": "/about",
       "icon": "heroicons:user-circle"
     }

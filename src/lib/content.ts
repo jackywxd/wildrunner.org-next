@@ -226,8 +226,8 @@ const defaultGlobals: SiteGlobals = {
   backgroundMusic: [],
   topNavItems: [
     { label: "文章", href: "/posts", icon: "rss" },
-    { label: "相册", href: "/gallery", icon: "image" },
-    { label: "关于", href: "/about", icon: "about" },
+    { label: "相冊", href: "/gallery", icon: "image" },
+    { label: "關於", href: "/about", icon: "about" },
   ],
 };
 

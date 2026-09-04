@@ -18,17 +18,32 @@ function iconForHref(href: string, iconName?: string | null): NavItemData["icon"
   if (key.includes("rider") || key.includes("member") || key.includes("成員")) {
     return "riders";
   }
-  if (key.includes("gallery") || key.includes("image") || key.includes("相册")) {
+  if (
+    key.includes("gallery") ||
+    key.includes("image") ||
+    key.includes("相冊") ||
+    key.includes("相册")
+  ) {
     return "image";
   }
-  if (key.includes("about") || key.includes("user") || key.includes("关于")) {
+  if (
+    key.includes("about") ||
+    key.includes("user") ||
+    key.includes("關於") ||
+    key.includes("关于")
+  ) {
     return "about";
   }
-  // Matched on the href as well as the icon string, because the Chinese
-  // keywords above are written in simplified form and the labels have since
-  // been changed to traditional (相冊, 關於). Those two still resolve only
-  // because /gallery and /about carry an English keyword — a row whose href
-  // has none falls straight through, which is what put the RSS icon on 賽事.
+  // BOTH SCRIPTS ARE MATCHED, and the simplified forms are not leftovers to
+  // tidy away later: `global.json` now seeds traditional labels, but that
+  // file only shapes a *fresh* database. Staging and production still hold
+  // the simplified rows an admin typed, and will until somebody edits them
+  // in /admin — so dropping 相册/关于 here would break the environments that
+  // matter while every local database kept working.
+  //
+  // Matched on the href as well as the icon string: a row whose href carries
+  // no English keyword falls straight through, which is what put the RSS
+  // icon on 賽事.
   if (key.includes("race") || key.includes("event") || key.includes("賽事")) {
     return "races";
   }
