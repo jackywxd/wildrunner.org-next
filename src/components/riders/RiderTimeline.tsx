@@ -159,7 +159,14 @@ async function Entry({
   // A month of pictures is a whole row of its own and shares nothing with the
   // two below it, so it returns early rather than growing a third branch
   // inside a card built around a badge and an article.
-  if (entry.month) return <MonthMediaCard month={entry.month} />;
+  if (entry.month)
+    return (
+      <MonthMediaCard
+        month={entry.month}
+        photoLabel={t.riderTimeline.photoCount}
+        videoLabel={t.riderTimeline.videoCount}
+      />
+    );
 
   // Three shapes, one attribute, so a test can say which it expected rather
   // than inferring it from what happens to be inside the card.
@@ -208,6 +215,8 @@ async function Entry({
               <RaceMediaStrip
                 href={`/gallery/${raceGallerySlug(race.eventId, race.year)}`}
                 media={entry.media}
+                photoLabel={t.riderTimeline.photoCount}
+                videoLabel={t.riderTimeline.videoCount}
               />
             )}
           </>

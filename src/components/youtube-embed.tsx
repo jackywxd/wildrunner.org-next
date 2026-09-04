@@ -1,5 +1,4 @@
 import { youTubeEmbedUrl } from "@/lib/youtube";
-import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * A YouTube link, shown as the video.
@@ -24,8 +23,24 @@ import { useDictionary } from "@/components/i18n/dictionary-provider";
  * embedded, the preview showed a bare link — which is the drift
  * ContentPreview's own header warns about.
  */
-export function YouTubeEmbed({ videoId }: { videoId: string }) {
-  const t = useDictionary();
+/**
+ * `title` IS A REQUIRED PROP RATHER THAN A DICTIONARY READ. This renders in
+ * three worlds and no single accessor reaches all of them: the public article
+ * (Server Component, inside the provider), `/print/posts/...` (Server
+ * Component under a *different* root layout, with no provider at all), and
+ * the member editor's preview (Client Component, also outside it). A hook
+ * throws in two of those and `getDictionary()` cannot be awaited inside
+ * Lexical's synchronous converters. Having each caller say the word is the
+ * only shape that is correct everywhere — and with no default, a new call
+ * site cannot forget to.
+ */
+export function YouTubeEmbed({
+  title,
+  videoId,
+}: {
+  title: string;
+  videoId: string;
+}) {
   return (
     <span
       data-testid="youtube-embed"
@@ -34,7 +49,7 @@ export function YouTubeEmbed({ videoId }: { videoId: string }) {
     >
       <iframe
         src={youTubeEmbedUrl(videoId)}
-        title={t.video.youtubeTitle}
+        title={title}
         loading="lazy"
         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

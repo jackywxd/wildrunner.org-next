@@ -5,6 +5,7 @@ import type { Media, Post } from "@/payload-types";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { soleYouTubeUrl, youTubeVideoId } from "@/lib/youtube";
 import { YouTubeEmbed } from "@/components/youtube-embed";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import { mediaToSiteVideo } from "@/lib/media/site-video";
 import {
@@ -43,7 +44,9 @@ function orDefault<Args>(
  * the full-size original (these are 1024px+ webp files). Gallery images
  * already went through next/image; only rich-text bodies were bypassing it.
  */
-const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
+const buildConverters =
+  (youtubeTitle: string): JSXConvertersFunction =>
+  ({ defaultConverters }) => ({
   ...defaultConverters,
 
   /**
@@ -55,7 +58,7 @@ const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
    */
   paragraph: (args) => {
     const videoId = soleYouTubeUrl(args.node as unknown as JsonNode);
-    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    if (videoId) return <YouTubeEmbed title={youtubeTitle} videoId={videoId} />;
     return orDefault(defaultConverters.paragraph, args);
   },
 
@@ -66,13 +69,13 @@ const converters: JSXConvertersFunction = ({ defaultConverters }) => ({
   link: (args) => {
     const url = (args.node as { fields?: { url?: string } }).fields?.url;
     const videoId = url ? youTubeVideoId(url) : null;
-    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    if (videoId) return <YouTubeEmbed title={youtubeTitle} videoId={videoId} />;
     return orDefault(defaultConverters.link, args);
   },
   autolink: (args) => {
     const url = (args.node as { fields?: { url?: string } }).fields?.url;
     const videoId = url ? youTubeVideoId(url) : null;
-    if (videoId) return <YouTubeEmbed videoId={videoId} />;
+    if (videoId) return <YouTubeEmbed title={youtubeTitle} videoId={videoId} />;
     return orDefault(defaultConverters.autolink, args);
   },
 
@@ -217,10 +220,19 @@ type PayloadRichTextProps = {
   className?: string;
 };
 
-export function PayloadRichText({ data, className }: PayloadRichTextProps) {
+/**
+ * Async because the one translated string in here has to arrive from
+ * `getDictionary()`: Lexical's converters are synchronous, so they cannot
+ * await it themselves and take it from this closure instead. `/print/posts`
+ * renders this too, under a root layout with no `[lang]` above it —
+ * `getDictionary()` answers there with the default locale rather than
+ * throwing, which is the whole reason it is written that way.
+ */
+export async function PayloadRichText({ data, className }: PayloadRichTextProps) {
+  const t = await getDictionary();
   return (
     <div className={className}>
-      <RichText data={data} converters={converters} />
+      <RichText data={data} converters={buildConverters(t.video.youtubeTitle)} />
     </div>
   );
 }

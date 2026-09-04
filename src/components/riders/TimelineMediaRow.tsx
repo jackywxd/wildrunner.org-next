@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { MediaMonth, RaceMedia } from "@/lib/riders/timeline-albums";
 import { formatMonth } from "@/lib/riders/timeline-albums";
 import { cn } from "@/lib/utils";
-import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * The two shapes pictures take on 穿越時光: a strip under a race, and a month of
@@ -89,14 +88,25 @@ function AlbumLinks({ albums }: { albums: { name: string; slug: string }[] }) {
  * that `race-gallery.ts` describes, which is where every picture tagged with
  * that edition already lives. The strip is a way in, not the collection.
  */
+/**
+ * THE TWO COUNT LABELS ARRIVE AS PROPS, like `countsLabel`'s already do.
+ * These two components render from both sides of the boundary — `RiderTimeline`
+ * is a Server Component and `ClubTimelineFeed` is a Client one — and neither
+ * dictionary accessor works in both. Each parent already holds a dictionary,
+ * so handing the two strings down costs a line at two call sites and removes
+ * the whole question.
+ */
 export function RaceMediaStrip({
   href,
   media,
+  photoLabel,
+  videoLabel,
 }: {
   href: string;
   media: RaceMedia;
+  photoLabel: string;
+  videoLabel: string;
 }) {
-  const t = useDictionary();
   return (
     <div
       className="flex flex-col gap-2 border-t border-border pt-2"
@@ -109,8 +119,8 @@ export function RaceMediaStrip({
         {countsLabel(
           media.photoCount,
           media.videoCount,
-          t.riderTimeline.photoCount,
-          t.riderTimeline.videoCount,
+          photoLabel,
+          videoLabel,
         )}{" "}
         →
       </Link>
@@ -130,11 +140,14 @@ export function RaceMediaStrip({
 export function MonthMediaCard({
   className,
   month,
+  photoLabel,
+  videoLabel,
 }: {
   className?: string;
   month: MediaMonth;
+  photoLabel: string;
+  videoLabel: string;
 }) {
-  const t = useDictionary();
   return (
     <article
       className={cn(
@@ -153,8 +166,8 @@ export function MonthMediaCard({
           {countsLabel(
             month.photoCount,
             month.videoCount,
-            t.riderTimeline.photoCount,
-            t.riderTimeline.videoCount,
+            photoLabel,
+            videoLabel,
           )}
         </p>
       </div>

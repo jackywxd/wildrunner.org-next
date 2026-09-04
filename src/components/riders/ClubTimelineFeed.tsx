@@ -180,7 +180,14 @@ function Row({
   const t = useDictionary();
   // A month of pictures is a whole row of its own — see the member rail's
   // `Entry` for why it returns early rather than becoming a third branch.
-  if (row.month) return <MonthMediaCard month={row.month} />;
+  if (row.month)
+    return (
+      <MonthMediaCard
+        month={row.month}
+        photoLabel={t.riderTimeline.photoCount}
+        videoLabel={t.riderTimeline.videoCount}
+      />
+    );
 
   const race = row.race;
   const badge = race ? resolveBadge(catalogue, race.eventId, race.distanceId) : undefined;
@@ -227,6 +234,8 @@ function Row({
               <RaceMediaStrip
                 href={`/gallery/${raceGallerySlug(race.eventId, row.year)}`}
                 media={row.media}
+                photoLabel={t.riderTimeline.photoCount}
+                videoLabel={t.riderTimeline.videoCount}
               />
             )}
           </>
