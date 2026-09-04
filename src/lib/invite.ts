@@ -13,8 +13,25 @@ export function generatePlaceholderPassword(): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+/**
+ * Where both emailed password links land: the invitation, and an ordinary
+ * reset. `Users.auth.forgotPassword.generateEmailHTML` branches on
+ * `invitePending` to choose the wording, but calls this for the URL either
+ * way, so one destination has to serve both — which is why the page it points
+ * at says 設定密碼 rather than 重設密碼.
+ *
+ * IT USED TO POINT AT `/admin/reset/<token>`. That is Payload's own screen,
+ * inside the admin app: English chrome, and a `users` collection that is
+ * `hidden` for everyone who is not an admin. So the one moment a new member
+ * met this site was a tour of software built for somebody else's job.
+ *
+ * `/admin/reset/<token>` IS NOT REMOVED, and could not safely be — it is
+ * Payload's route, not ours, and invitation tokens live for a week
+ * (`INVITE_TTL_MS`), so links already sitting in inboxes when this shipped
+ * still point there and still have to work.
+ */
 export function inviteLinkFor(serverURL: string, token: string): string {
-  return `${serverURL.replace(/\/$/, '')}/admin/reset/${token}`
+  return `${serverURL.replace(/\/$/, '')}/members/reset/${token}`
 }
 
 export function inviteEmailHTML(link: string, invitedByEmail?: string): string {
