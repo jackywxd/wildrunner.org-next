@@ -4,10 +4,11 @@ import localFont from "next/font/local";
 import { Archivo, Noto_Sans_TC } from "next/font/google";
 import "@/styles/globals.css";
 import { ReactNode } from "react";
+import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
 import { getSiteBaseURL, siteConfig } from "@/config/site";
-import { LOCALES, localeTag } from "@/lib/i18n/locales";
+import { LOCALES, isLocaleSegment, localeTag } from "@/lib/i18n/locales";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -71,6 +72,15 @@ export default async function SiteLayout({
   params: Promise<{ lang: string }>;
 }>) {
   const { lang } = await params;
+  // A language this site is not published in is not a page.
+  //
+  // `[lang]` is one dynamic segment, so it matches anything: `/en/posts`
+  // would otherwise render the Traditional Chinese article under an address
+  // claiming to be English, and every unpublished language would quietly
+  // become a duplicate of the whole site. The rewrites in `next.config.ts`
+  // cannot refuse it — they only add a prefix where one is missing — so the
+  // refusal belongs here, where the list of languages actually lives.
+  if (!isLocaleSegment(lang)) notFound();
 
   return (
     <html
@@ -92,10 +102,8 @@ export default async function SiteLayout({
       //
       // It comes from the route now rather than from this line. `localeTag`
       // maps the URL segment people type (`zh-hant`) to the tag a browser
-      // reads (`zh-Hant`), and answers `zh-Hant` for anything it does not
-      // recognise — a request for a language this site is not published in
-      // is refused by `proxy.ts` before it reaches here, so the fallback is
-      // a belt rather than a decision.
+      // reads (`zh-Hant`); anything it does not recognise has already been
+      // refused above, so its fallback is a belt rather than a decision.
       lang={localeTag(lang)}
       suppressHydrationWarning
       /*

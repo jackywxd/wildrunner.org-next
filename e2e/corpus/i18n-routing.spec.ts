@@ -45,6 +45,18 @@ const EXEMPT = [
   { path: "/api/riders/timeline?limit=1", lang: null, why: "a JSON handler" },
 ];
 
+/**
+ * Languages this site is not published in.
+ *
+ * `[lang]` is one dynamic segment, so it matches any first segment at all —
+ * `/en/posts` would render the Traditional Chinese article under an address
+ * claiming to be English, and every language nobody has written would
+ * quietly become a duplicate copy of the whole site for a crawler to index.
+ * The rewrites in `next.config.ts` cannot refuse those: they only add a
+ * prefix where one is missing. The layout does, and this is what says so.
+ */
+const UNPUBLISHED = ["/en", "/en/posts", "/zh-cn/gallery", "/fr"];
+
 const htmlLang = (body: string) =>
   body.match(/<html[^>]*\blang="([^"]*)"/)?.[1] ?? null;
 
@@ -100,6 +112,15 @@ test.describe("X-I18N the language seam is invisible from outside", () => {
         );
       }
     }
+    for (const path of UNPUBLISHED) {
+      const response = await request.get(path, { maxRedirects: 0 });
+      if (response.status() !== 404) {
+        faults.push(
+          `${path}: answered ${response.status()} — a language this site is not published in must not have a page`,
+        );
+      }
+    }
+
     expect(faults, faults.join("\n")).toEqual([]);
   });
 });

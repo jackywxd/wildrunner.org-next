@@ -239,6 +239,66 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
+
+  /**
+   * Every public address, pointed at the default language's copy of itself.
+   *
+   * WHY NOT `proxy.ts`, which is what this started as and is what the Next
+   * docs reach for first. Next 16 renamed middleware to Proxy and moved it to
+   * the **Node.js runtime**, and it says plainly that you cannot opt out:
+   * "the `runtime` config option is not available in Proxy files. Setting the
+   * `runtime` config option in Proxy will throw an error"
+   * (node_modules/next/dist/docs/.../proxy.md). `@opennextjs/cloudflare`
+   * accepts only an edge middleware — `useNodeMiddleware()` in its build
+   * looks for `middleware["/"]` in the manifest and exits 1 on the Node one,
+   * with "Node.js middleware is not currently supported". So on this stack a
+   * Proxy cannot ship at all. `next build` was perfectly happy; the adapter
+   * refused afterwards, which is why CI's `build` job is the only thing that
+   * could have caught it.
+   *
+   * WHY `beforeFiles`, and why a list rather than one catch-all. The rewrite
+   * has to happen before route matching, because `app/[lang]` is a single
+   * dynamic segment and `/posts` would otherwise match it with `lang` =
+   * "posts" and render the home page at `/posts`. `beforeFiles` is the only
+   * phase early enough — and it is early enough to be dangerous: OpenNext's
+   * router checks public files *after* it (`routingHandler.js`), so a
+   * `/:path*` catch-all would swallow `/icon.svg` and `/fonts/…` on the way
+   * past. Naming the ten segments the site actually has costs a line each and
+   * cannot do that.
+   *
+   * `/api`, `/admin` and `/print` are absent on purpose: Payload owns the
+   * first two, the third is a second root layout reached by machine, and none
+   * of them is a page in a language.
+   *
+   * THE POINT OF ALL OF THIS is that no address changes. Every URL this site
+   * has published is unprefixed — the articles, the share cards whose
+   * `og:url` is already printed into images in other people's chat
+   * histories, the PDFs with the address in their footer. A redirect would
+   * keep them working and still move the site out from under them; a rewrite
+   * is invisible from outside.
+   */
+  rewrites: async () => ({
+    beforeFiles: [
+      { source: "/", destination: "/zh-hant" },
+      ...[
+        "about",
+        "design-preview",
+        "gallery",
+        "members",
+        "og",
+        "posts",
+        "races",
+        "riders",
+        "share",
+        "wx",
+      ].map((segment) => ({
+        source: `/${segment}/:path*`,
+        destination: `/zh-hant/${segment}/:path*`,
+      })),
+    ],
+    afterFiles: [],
+    fallback: [],
+  }),
 };
 
 export default withPayload(nextConfig, { devBundleServerPackages: false });
