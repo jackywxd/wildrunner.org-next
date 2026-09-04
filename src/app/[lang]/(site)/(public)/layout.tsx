@@ -4,6 +4,8 @@ import App from "@/components/app";
 import PageTransitionEffect from "@/components/transition/PageTransitionEffect";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
+import { DictionaryProvider } from "@/components/i18n/dictionary-provider";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * The public marketing site's chrome: SiteHeader nav, the footer, the route
@@ -21,13 +23,21 @@ import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
  * want the public nav and marketing footer stacked on top of their own
  * shell.
  */
-export default function PublicLayout({ children }: { children: ReactNode }) {
+export default async function PublicLayout({ children }: { children: ReactNode }) {
+  // Resolved once for the whole public tree. Server Components below call
+  // `getDictionary()` themselves — it is cached per request and reads the
+  // route, so it costs them no props; this hands the same object across the
+  // boundary for the Client Components, which cannot read the route at all.
+  const dictionary = await getDictionary();
+
   return (
-    <App>
-      <NextTopLoader showSpinner={false} />
-      <PageTransitionEffect>{children}</PageTransitionEffect>
-      <TailwindIndicator />
-      <CloudflareWebAnalytics />
-    </App>
+    <DictionaryProvider dictionary={dictionary}>
+      <App>
+        <NextTopLoader showSpinner={false} />
+        <PageTransitionEffect>{children}</PageTransitionEffect>
+        <TailwindIndicator />
+        <CloudflareWebAnalytics />
+      </App>
+    </DictionaryProvider>
   );
 }

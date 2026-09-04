@@ -6,6 +6,7 @@ import { Music, Pause, Play, Square, VolumeX } from "lucide-react";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
 import { articleSegments } from "@/lib/reader/article-text";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * Reading an article aloud, using the voice the visitor's own device has.
@@ -44,12 +45,14 @@ import { articleSegments } from "@/lib/reader/article-text";
 /** `zh` covers zh-TW, zh-HK, zh-CN and the bare `zh` some platforms report. */
 const CHINESE = /^zh\b/i;
 
+// The labels are keys, not words: this list is module-level and the
+// dictionary is only reachable from inside the component.
 const RATES = [
-  { value: 0.8, label: "慢" },
-  { value: 1, label: "正常" },
-  { value: 1.25, label: "快" },
-  { value: 1.5, label: "很快" },
-];
+  { value: 0.8, labelKey: "speedSlow" },
+  { value: 1, labelKey: "speedNormal" },
+  { value: 1.25, labelKey: "speedFast" },
+  { value: 1.5, labelKey: "speedVeryFast" },
+] as const;
 
 type Status = "idle" | "speaking" | "paused";
 
@@ -79,6 +82,7 @@ export function ArticleReader({
    */
   musicPlaylist?: string[];
 }) {
+  const t = useDictionary();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceName, setVoiceName] = useState("");
   const [rate, setRate] = useState(1);
@@ -283,7 +287,7 @@ export function ArticleReader({
         onClick={toggle}
         disabled={noVoice || segments.length === 0}
         data-testid="article-reader-toggle"
-        aria-label={status === "speaking" ? "暫停朗讀" : "朗讀這篇文章"}
+        aria-label={status === "speaking" ? t.reader.pauseAria : t.reader.readAria}
         className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-40"
       >
         {status === "speaking" ? (
@@ -293,10 +297,10 @@ export function ArticleReader({
         )}
         <span>
           {status === "speaking"
-            ? "暫停"
+            ? t.reader.pause
             : status === "paused"
-              ? "繼續"
-              : "朗讀"}
+              ? t.reader.resume
+              : t.reader.read}
         </span>
       </button>
 
@@ -309,11 +313,11 @@ export function ArticleReader({
           type="button"
           onClick={stop}
           data-testid="article-reader-stop"
-          aria-label="停止朗讀"
+          aria-label={t.reader.stopAria}
           className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm"
         >
           <Square className="size-4" />
-          <span>停止</span>
+          <span>{t.reader.stop}</span>
         </button>
       )}
 
@@ -329,8 +333,8 @@ export function ArticleReader({
           }}
           data-testid="article-music-toggle"
           data-playing={musicPlaying}
-          aria-label={muted ? "播放背景音樂" : "關閉背景音樂"}
-          title={muted ? "播放背景音樂" : "關閉背景音樂"}
+          aria-label={muted ? t.reader.musicOn : t.reader.musicOff}
+          title={muted ? t.reader.musicOn : t.reader.musicOff}
           className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm"
         >
           {muted ? (
@@ -350,7 +354,7 @@ export function ArticleReader({
           // between a reader and the text.
           index={0}
           playing={musicPlaying}
-          title="文章背景音樂"
+          title={t.reader.musicTitle}
         />
       )}
 
@@ -362,12 +366,12 @@ export function ArticleReader({
           className="text-xs text-muted-foreground"
           data-testid="article-reader-no-voice"
         >
-          這台裝置沒有中文語音，無法朗讀。
+          {t.reader.noVoice}
         </p>
       ) : (
         <>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>聲音</span>
+            <span>{t.reader.voice}</span>
             <select
               data-testid="article-reader-voice"
               value={voiceName}
@@ -394,7 +398,7 @@ export function ArticleReader({
           </label>
 
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>語速</span>
+            <span>{t.reader.speed}</span>
             <select
               data-testid="article-reader-rate"
               value={String(rate)}
@@ -412,7 +416,7 @@ export function ArticleReader({
             >
               {RATES.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t.reader[option.labelKey]}
                 </option>
               ))}
             </select>

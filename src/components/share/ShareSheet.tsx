@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * The share panel: a displayer, not a generator.
@@ -34,6 +35,7 @@ export function ShareSheet({
   xiaohongshuText: string;
   title: string;
 }) {
+  const t = useDictionary();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const posterRef = useRef<HTMLImageElement>(null);
   const [copied, setCopied] = useState<"wechat" | "xiaohongshu" | null>(null);
@@ -85,7 +87,7 @@ export function ShareSheet({
         onClick={open}
         type="button"
       >
-        分享
+        {t.share.open}
       </button>
 
       <dialog
@@ -95,14 +97,14 @@ export function ShareSheet({
       >
         <div className="flex flex-col gap-4 p-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-heading text-base font-bold">分享「{title}」</h2>
+            <h2 className="font-heading text-base font-bold">{t.share.heading.replace("{title}", title)}</h2>
             <button
               className="text-sm text-muted-foreground hover:text-foreground"
               data-testid="share-close"
               onClick={() => dialogRef.current?.close()}
               type="button"
             >
-              關閉
+              {t.share.close}
             </button>
           </div>
 
@@ -110,7 +112,7 @@ export function ShareSheet({
               a fixed-size endpoint render; next/image would add srcset and a
               loader for an image we deliberately fetch exactly once. */}
           <img
-            alt={`${title} 的分享圖`}
+            alt={t.share.imageAlt.replace("{title}", title)}
             className="w-full border border-border bg-secondary"
             data-src={posterSrc}
             data-testid="share-poster"
@@ -120,7 +122,7 @@ export function ShareSheet({
           />
 
           <p className="text-xs text-muted-foreground" data-testid="share-hint">
-            手機長按圖片存到相簿,再發到小紅書。
+            {t.share.hint}
           </p>
 
           <div className="flex flex-col gap-2">
@@ -130,7 +132,7 @@ export function ShareSheet({
               onClick={() => copy("xiaohongshu", xiaohongshuText)}
               type="button"
             >
-              {copied === "xiaohongshu" ? "已複製" : "複製小紅書文案(不含網址)"}
+              {copied === "xiaohongshu" ? t.share.copied : t.share.copyXiaohongshu}
             </button>
             <button
               className="border border-border px-3 py-2 text-sm hover:border-primary"
@@ -138,7 +140,7 @@ export function ShareSheet({
               onClick={() => copy("wechat", wechatText)}
               type="button"
             >
-              {copied === "wechat" ? "已複製" : "複製微信文案(含連結)"}
+              {copied === "wechat" ? t.share.copied : t.share.copyWechat}
             </button>
             <a
               className="border border-border px-3 py-2 text-center text-sm hover:border-primary"
@@ -146,7 +148,7 @@ export function ShareSheet({
               download
               href={posterSrc}
             >
-              下載分享圖
+              {t.share.download}
             </a>
           </div>
         </div>

@@ -11,6 +11,7 @@ import ThemeToggle from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import type { NavItemData } from "@/lib/nav";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 type Member = { displayName: string | null; email: string };
 
@@ -21,6 +22,7 @@ export default function SiteHeader({
   member: Member | null;
   navItems: NavItemData[];
 }) {
+  const t = useDictionary();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b-2 border-b-border bg-background px-2">
@@ -46,7 +48,7 @@ export default function SiteHeader({
               href="/members/login"
             >
               <LogIn className="size-4" />
-              <span className="hidden sm:inline">登入</span>
+              <span className="hidden sm:inline">{t.nav.signIn}</span>
             </Link>
           )}
           <ThemeToggle />

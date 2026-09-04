@@ -1,0 +1,90 @@
+{
+  "nav": {
+    "signIn": "登入"
+  },
+  "posts": {
+    "title": "文章",
+    "subtitle": "野馬營的比賽紀錄與山野書寫"
+  },
+  "reader": {
+    "speedSlow": "慢",
+    "speedNormal": "正常",
+    "speedFast": "快",
+    "speedVeryFast": "很快",
+    "pauseAria": "暫停朗讀",
+    "readAria": "朗讀這篇文章",
+    "pause": "暫停",
+    "resume": "繼續",
+    "read": "朗讀",
+    "stopAria": "停止朗讀",
+    "stop": "停止",
+    "musicOn": "播放背景音樂",
+    "musicOff": "關閉背景音樂",
+    "musicTitle": "文章背景音樂",
+    "noVoice": "這台裝置沒有中文語音，無法朗讀。",
+    "voice": "聲音",
+    "speed": "語速"
+  },
+  "gallery": {
+    "shareAria": "分享 {label}",
+    "share": "分享",
+    "sortNewest": "最新",
+    "sortOldest": "最舊",
+    "sortCurated": "相簿順序",
+    "musicOff": "關閉背景音樂",
+    "musicOn": "播放背景音樂",
+    "nextTrack": "下一首",
+    "prevTrack": "上一首",
+    "sortLabel": "排序",
+    "raceLabel": "賽事",
+    "anyRace": "所有比賽",
+    "emptyAll": "還沒有相片或影片。",
+    "emptyFiltered": "沒有符合條件的項目。",
+    "raceOption": "{label}（{count}）"
+  },
+  "home": {
+    "timeline": "穿越時光",
+    "viewPosts": "查看文章",
+    "about": "關於我們",
+    "upcomingRaces": "近期賽事",
+    "upcomingRacesSub": "未來一年的越野賽事與報名時間",
+    "viewAll": "查看全部",
+    "albums": "相冊",
+    "albumsSub": "瀏覽 {count} 張圖片",
+    "toAlbums": "前往相冊",
+    "tagline": "一群野馬，一個家。",
+    "seePhotos": "看照片",
+    "meetMembers": "認識成員"
+  },
+  "races": {
+    "title": "賽事日程",
+    "subtitle": "世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。",
+    "monthRange": "{from} 年 {fromMonth} 月 – {to} 年 {toMonth} 月",
+    "emptyAll": "還沒有公布的賽事日程。",
+    "emptyFiltered": "這個條件下沒有賽事，試試其他條件或看全部。",
+    "earlier": "← 更早的賽事",
+    "later": "更晚的賽事 →",
+    "disclaimerDates": "賽事日期與報名資訊以主辦單位官方公告為準。發現有誤請告訴我們。",
+    "disclaimerQualifiers": "資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。"
+  },
+  "share": {
+    "open": "分享",
+    "heading": "分享「{title}」",
+    "close": "關閉",
+    "imageAlt": "{title} 的分享圖",
+    "hint": "手機長按圖片存到相簿,再發到小紅書。",
+    "copied": "已複製",
+    "copyXiaohongshu": "複製小紅書文案(不含網址)",
+    "copyWechat": "複製微信文案(含連結)",
+    "download": "下載分享圖"
+  },
+  "galleryPage": {
+    "title": "相冊",
+    "subtitleAll": "所有相片與影片,依時間排序",
+    "subtitleAlbums": "依相簿瀏覽",
+    "tabAll": "全部相片",
+    "tabAlbums": "依相簿",
+    "featured": "精選照片",
+    "albums": "相簿"
+  }
+}

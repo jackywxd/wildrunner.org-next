@@ -17,17 +17,16 @@ import type { RaceFilters } from "@/lib/races/race-filters";
 import { hasQualifier } from "@/lib/races/qualifiers";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "賽事日程";
-
 export async function generateMetadata() {
+  const t = await getDictionary();
   return pageMetadata({
     path: "/races",
-    title: TITLE,
-    subtitle:
-      "世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。",
+    title: t.races.title,
+    subtitle: t.races.subtitle,
     card: { kind: "plain" },
   });
 }
@@ -65,10 +64,14 @@ function buildPager(
 const pageHref = (filters: RaceFilters, anchor: string | undefined): string =>
   raceFiltersHref(filters, anchor);
 
-function formatWindow(anchor: string): string {
+function formatWindow(anchor: string, template: string): string {
   const [year, month] = anchor.split("-");
   const end = shiftAnchor(anchor, WINDOW_MONTHS - 1).split("-");
-  return `${year} 年 ${Number(month)} 月 – ${end[0]} 年 ${Number(end[1])} 月`;
+  return template
+    .replace("{from}", year)
+    .replace("{fromMonth}", String(Number(month)))
+    .replace("{to}", end[0])
+    .replace("{toMonth}", String(Number(end[1])));
 }
 
 export default async function RacesPage({
@@ -76,6 +79,7 @@ export default async function RacesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getDictionary();
   const params = await searchParams;
   const filters = parseRaceFilters(params);
   const anchor = parseMonthAnchor(
@@ -120,10 +124,7 @@ export default async function RacesPage({
       className="container max-w-4xl py-6 lg:py-10"
       data-testid="race-schedule"
     >
-      <PageHeader
-        title={TITLE}
-        description="世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。"
-      />
+      <PageHeader title={t.races.title} description={t.races.subtitle} />
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       <RaceScheduleFilters filters={filters} />
@@ -138,8 +139,8 @@ export default async function RacesPage({
                 empty schedule, and telling somebody the schedule is empty
                 while they are looking at an active filter is just wrong. */}
             {all.length === 0
-              ? "還沒有公布的賽事日程。"
-              : "這個條件下沒有賽事，試試其他條件或看全部。"}
+              ? t.races.emptyAll
+              : t.races.emptyFiltered}
           </p>
         ) : filters.view === "calendar" ? (
           <RaceCalendar anchor={anchor} entries={entries} now={now} />
@@ -167,14 +168,14 @@ export default async function RacesPage({
             data-testid="race-pager-older"
             href={pageHref(filters, pager.older)}
           >
-            ← 更早的賽事
+            {t.races.earlier}
           </Link>
         ) : (
           <span />
         )}
 
         <span className="text-xs tabular-nums text-muted-foreground">
-          {formatWindow(windowAnchor)}
+          {formatWindow(windowAnchor, t.races.monthRange)}
         </span>
 
         {pager.newer ? (
@@ -183,7 +184,7 @@ export default async function RacesPage({
             data-testid="race-pager-newer"
             href={pageHref(filters, pager.newer)}
           >
-            更晚的賽事 →
+            {t.races.later}
           </Link>
         ) : (
           <span />
@@ -203,10 +204,10 @@ export default async function RacesPage({
           document wins is the difference between a useful filter and a
           claim that sends somebody to a race that will not count. */}
       <p className="mt-12 border-t-2 border-border pt-4 text-xs text-muted-foreground">
-        賽事日期與報名資訊以主辦單位官方公告為準。發現有誤請告訴我們。
+        {t.races.disclaimerDates}
       </p>
       <p className="mt-2 text-xs text-muted-foreground">
-        資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。
+        {t.races.disclaimerQualifiers}
       </p>
     </div>
   );
