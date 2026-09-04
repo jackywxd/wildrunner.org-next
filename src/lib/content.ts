@@ -24,10 +24,12 @@ import {
 } from "@/lib/media/gallery-mapping";
 import { buildMusicPlaylist } from "@/lib/media/album-music";
 import { parseRaceGallerySlug, raceGallerySlug } from "@/lib/race-gallery";
-import { buildRiderTimeline } from "@/lib/riders/timeline";
+import { buildRiderTimeline, sortDayFor } from "@/lib/riders/timeline";
 import type { RaceEditionFacts, RiderTimelineYear } from "@/lib/riders/timeline";
 import { buildClubTimeline } from "@/lib/riders/club-timeline";
 import type { ClubRunner, ClubTimelineRow } from "@/lib/riders/club-timeline";
+import { resolveMediaDay } from "@/lib/riders/timeline-albums";
+import type { TimelineMedia } from "@/lib/riders/timeline-albums";
 import type {
   SiteGallery,
   SiteGlobals,
@@ -1047,22 +1049,24 @@ const RACE_RECORD_TIMELINE_SELECT = {
  * `race-editions` has no `owner` and no relationship to `users`, so unlike the
  * queries above this one has no PII path to guard — see RACE_EDITIONS_SELECT.
  */
-async function editionFactsByRecord(
-  records: { editionId?: number; id: number }[],
-): Promise<Map<number, RaceEditionFacts>> {
-  const editionIds = new Set(
-    records
-      .map((record) => record.editionId)
-      .filter((id): id is number => typeof id === "number"),
-  );
-  if (editionIds.size === 0) return new Map();
+type EditionFacts = RaceEditionFacts & { year: number };
 
+/**
+ * Every race edition, with the day it ran and the day its event usually runs.
+ *
+ * ONE QUERY FOR TWO CALLERS, `React.cache`'d because both of them run on the
+ * same request: the race rows need it keyed by *record*, and the album rows
+ * need it keyed by *edition* (a photo is tagged to an edition and has no
+ * record). Fetching it twice would be two scans of the same few hundred rows.
+ *
+ * EVERY edition, not only the referenced ones, because `typicalDay` needs a
+ * *different* year of the same event to learn when that event runs.
+ *
+ * `race-editions` has no `owner` and no relation to `users`, so unlike the
+ * queries above this one has no PII path to guard — see RACE_EDITIONS_SELECT.
+ */
+const raceEditionFacts = cache(async (): Promise<Map<number, EditionFacts>> => {
   const payload = await getPayloadClient();
-  // EVERY edition, not only the ones these records point at, because the
-  // fallback below needs a *different* year of the same event to learn when
-  // that event runs. A club's catalogue is a few hundred rows and this is one
-  // query either way; fetching only the referenced ids would need a second
-  // one keyed on the events they turned out to belong to.
   const editions = await payload.find({
     collection: "race-editions",
     depth: 0,
@@ -1072,7 +1076,7 @@ async function editionFactsByRecord(
   });
 
   type EditionRow = { event?: number; location?: string; startDate?: string; year: number };
-  const byId = new Map<number, EditionRow>();
+  const rows = new Map<number, EditionRow>();
   /** Every dated edition of an event, so an undated one can borrow its day. */
   const datedByEvent = new Map<number, { monthDay: string; year: number }[]>();
 
@@ -1080,7 +1084,7 @@ async function editionFactsByRecord(
     // depth 0, so `event` is the bare id.
     const event = typeof doc.event === "number" ? doc.event : undefined;
     const startDate = doc.startDate ? doc.startDate.slice(0, 10) : undefined;
-    byId.set(doc.id, {
+    rows.set(doc.id, {
       event,
       location: orUndefined(doc.location),
       startDate,
@@ -1113,22 +1117,166 @@ async function editionFactsByRecord(
     return best.monthDay;
   };
 
+  const facts = new Map<number, EditionFacts>();
+  for (const [id, row] of rows) {
+    facts.set(id, {
+      location: row.location,
+      startDate: row.startDate,
+      year: row.year,
+      // Only when the edition has no real date of its own. A row that knows
+      // its day never gets a guessed position on top of it.
+      typicalDay: row.startDate ? undefined : typicalDayFor(row.event, row.year),
+    });
+  }
+  return facts;
+});
+
+async function editionFactsByRecord(
+  records: { editionId?: number; id: number }[],
+): Promise<Map<number, RaceEditionFacts>> {
+  const facts = await raceEditionFacts();
   const byRecord = new Map<number, RaceEditionFacts>();
   for (const record of records) {
     if (record.editionId === undefined) continue;
-    const edition = byId.get(record.editionId);
+    const edition = facts.get(record.editionId);
     if (!edition) continue;
-    byRecord.set(record.id, {
-      location: edition.location,
-      startDate: edition.startDate,
-      // Only when the edition has no real date of its own. A row that knows
-      // its day never gets a guessed position on top of it.
-      typicalDay: edition.startDate
-        ? undefined
-        : typicalDayFor(edition.event, edition.year),
-    });
+    byRecord.set(record.id, { ...edition, editionId: record.editionId });
   }
   return byRecord;
+}
+
+/**
+ * Which account owns each album, as bare ids.
+ *
+ * ITS OWN DEPTH-0 QUERY, and that is the point rather than an oversight.
+ * `GALLERY_SELECT` runs at depth 1 to populate the cover and the items;
+ * adding `owner` to it would populate the *account* behind every album —
+ * email, invite state, live sessions — which is the hazard this file's header
+ * is about. Twenty rows of `{id, owner}` costs nothing and never leaves ids.
+ */
+const galleryOwnerBySlug = cache(async (): Promise<Map<string, number>> => {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "galleries",
+    depth: 0,
+    limit: 0,
+    pagination: false,
+    select: { owner: true, slug: true },
+  });
+
+  const owners = new Map<string, number>();
+  for (const doc of result.docs) {
+    if (typeof doc.owner === "number") owners.set(doc.slug, doc.owner);
+  }
+  return owners;
+});
+
+/**
+ * Every public picture, dated and assigned — what both rails build album rows
+ * from.
+ *
+ * THE DATE RULE IS `resolveMediaDay`'s, not this function's: race, then album,
+ * then upload. All this does is find the three facts for each picture. See
+ * that function's header for why the order is what it is, and for the
+ * measurement behind it.
+ *
+ * `ownerId` scopes it to one member's albums — a member's own rail shows the
+ * albums they made. Pictures in *no* album are left out of a scoped rail on
+ * purpose: `GALLERY_MEDIA_SELECT` deliberately omits `owner`, so a loose file
+ * cannot be attributed without re-opening the PII path that select exists to
+ * close, and a rail is not worth that.
+ */
+async function timelineMedia(opts: { ownerId?: number } = {}): Promise<TimelineMedia[]> {
+  const [galleries, editions] = await Promise.all([
+    getPublishedGalleries(),
+    raceEditionFacts(),
+  ]);
+
+  const owners = opts.ownerId === undefined ? undefined : await galleryOwnerBySlug();
+  const mine = (gallery: SiteGallery) =>
+    opts.ownerId === undefined || owners?.get(gallery.slug) === opts.ownerId;
+
+  const dayOfEdition = (id: number | undefined) => {
+    if (id === undefined) return undefined;
+    const edition = editions.get(id);
+    return edition ? sortDayFor(edition.year, edition) : undefined;
+  };
+
+  const media: TimelineMedia[] = [];
+  const inAnAlbum = new Set<number>();
+
+  for (const gallery of galleries) {
+    const album = { name: gallery.name, slug: gallery.slug };
+    // An album's own `eventDate`, never its `createdAt`: an album is very
+    // often made long after the day it is about.
+    const albumDay = orUndefined(gallery.eventDate);
+
+    for (const item of gallery.items) {
+      inAnAlbum.add(item.mediaId);
+      if (!mine(gallery)) continue;
+
+      // Its own tag first, then the one it inherits from the album it is in.
+      const raceEditionId = item.raceEditionId ?? gallery.raceEditionId;
+      const { day, source } = resolveMediaDay({
+        raceDay: dayOfEdition(raceEditionId),
+        albumDay,
+        uploadedAt: item.createdAt,
+      });
+
+      media.push({
+        album,
+        day,
+        daySource: source,
+        image:
+          item.kind === "photo"
+            ? {
+                blurDataURL: item.blurDataURL,
+                height: item.height,
+                src: item.src,
+                width: item.width,
+              }
+            : undefined,
+        kind: item.kind,
+        mediaId: item.mediaId,
+        raceEditionId,
+      });
+    }
+  }
+
+  // Pictures in no album at all. Only the club rail gets them — see the header.
+  if (opts.ownerId === undefined) {
+    const [photos, videos] = await Promise.all([getGalleryPhotos(), getGalleryVideos()]);
+    const loose: SiteMediaItem[] = [
+      ...photos.map((photo): SiteMediaItem => ({ kind: "photo", ...photo })),
+      ...videos.map((video): SiteMediaItem => ({ kind: "video", ...video })),
+    ];
+
+    for (const item of loose) {
+      if (inAnAlbum.has(item.mediaId)) continue;
+      const { day, source } = resolveMediaDay({
+        raceDay: dayOfEdition(item.raceEditionId),
+        uploadedAt: item.createdAt,
+      });
+      media.push({
+        day,
+        daySource: source,
+        image:
+          item.kind === "photo"
+            ? {
+                blurDataURL: item.blurDataURL,
+                height: item.height,
+                src: item.src,
+                width: item.width,
+              }
+            : undefined,
+        kind: item.kind,
+        mediaId: item.mediaId,
+        raceEditionId: item.raceEditionId,
+      });
+    }
+  }
+
+  return media;
 }
 
 /**
@@ -1196,9 +1344,14 @@ export async function getRiderTimeline(
 
   const sitePosts = posts.docs.map(mapPayloadPost);
 
+  // Only this member's own albums — see `timelineMedia`'s header for why a
+  // picture in no album is left off a scoped rail.
+  const media =
+    typeof ownerId === "number" ? await timelineMedia({ ownerId }) : [];
+
   return {
     rider: mapPayloadAuthor(doc, posts.totalDocs, races),
-    years: buildRiderTimeline({ editionFacts, posts: sitePosts, races }),
+    years: buildRiderTimeline({ editionFacts, media, posts: sitePosts, races }),
   };
 }
 
@@ -1305,7 +1458,9 @@ export async function getClubTimelineRows(): Promise<ClubTimelineRow[]> {
     return { author, post };
   });
 
-  return buildClubTimeline({ editionFacts, posts, races });
+  const media = await timelineMedia();
+
+  return buildClubTimeline({ editionFacts, media, posts, races });
 }
 
 export async function getRiderSlugs(): Promise<string[]> {
