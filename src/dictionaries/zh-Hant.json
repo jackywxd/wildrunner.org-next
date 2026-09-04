@@ -40,7 +40,14 @@
     "anyRace": "所有比賽",
     "emptyAll": "還沒有相片或影片。",
     "emptyFiltered": "沒有符合條件的項目。",
-    "raceOption": "{label}（{count}）"
+    "raceOption": "{label}（{count}）",
+    "shareVideo": "分享影片",
+    "albumTitle": "相冊",
+    "albumSubtitle": "野馬營在賽道上、山裡和終點線後的照片與影片。",
+    "albumPhotos": "{name}的照片",
+    "photoCount": "{count}張照片",
+    "videoCountSuffix": " · {count}個影片",
+    "backToAlbums": "相冊"
   },
   "home": {
     "timeline": "穿越時光",
@@ -102,7 +109,10 @@
       "五",
       "六"
     ],
-    "yearMonth": "{year} 年 {month} 月"
+    "yearMonth": "{year} 年 {month} 月",
+    "logRace": "紀錄比賽",
+    "uploadPhotos": "上傳相片",
+    "register": "前往報名 →"
   },
   "riders": {
     "title": "野馬",
@@ -127,27 +137,27 @@
     "pageDescription": "所有成員的比賽和文章，接在同一條時間軸上。",
     "allMembers": "← 所有成員"
   },
-  "mediaFilters": {
-    "kindAll": "全部",
-    "kindPhoto": "相片",
-    "kindVideo": "影片",
-    "usageAll": "全部用途",
-    "usageGallery": "相片牆",
-    "usagePrivate": "不公開",
-    "usageAttachment": "文章附件"
-  },
   "riderTimeline": {
     "raceCount": "{count} 場比賽",
     "postCount": "{count} 篇文章",
     "year": "{year} 年",
     "raceReport": "賽記 · ",
-    "empty": "還沒有比賽紀錄或文章。"
+    "empty": "還沒有比賽紀錄或文章。",
+    "generating": "產生中…",
+    "downloadPdf": "下載 PDF",
+    "photoCount": "{count} 張相片",
+    "videoCount": "{count} 段影片",
+    "title": "{name}的穿越時光",
+    "subtitle": "{name} 跑過的比賽與寫過的文章，依時間排列。",
+    "heading": "{name} 的穿越時光",
+    "backToRider": "← 回到 {name} 的頁面"
   },
   "raceEdition": {
     "subtitle": "{name} {year} 的賽事資訊與相片牆。",
     "officialSite": "官方網站 →",
     "photoWall": "相片牆",
-    "photoWallHint": "會員上傳時標記這場比賽，就會出現在這裡。"
+    "photoWallHint": "會員上傳時標記這場比賽，就會出現在這裡。",
+    "noPhotos": "還沒有這場比賽的照片。"
   },
   "lightbox": {
     "close": "關閉 (Esc)",
@@ -189,5 +199,23 @@
   "about": {
     "title": "關於野馬營",
     "subtitle": "一群在溫哥華相遇的越野跑者，和這個站為什麼存在。"
+  },
+  "theme": {
+    "toLight": "切換為淺色模式",
+    "toDark": "切換為深色模式"
+  },
+  "common": {
+    "print": "列印",
+    "printPdf": "列印 / PDF",
+    "all": "全部",
+    "coverImage": "封面圖片"
+  },
+  "video": {
+    "youtubeTitle": "YouTube 影片",
+    "transcoding": "影片正在轉檔，請稍後再試。"
+  },
+  "badges": {
+    "round": "第 {n} 輪 ",
+    "missing": "還差"
   }
 }

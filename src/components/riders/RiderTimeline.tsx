@@ -275,7 +275,7 @@ export async function RiderTimeline({
         {/* Two buttons that do different things — `TimelineDownloadButton`
             says which, and why only this rail has the second one. */}
         <span className="flex flex-wrap items-center gap-2 print:hidden">
-          <TimelinePrintButton label="列印" />
+          <TimelinePrintButton label={t.common.print} />
           <TimelineDownloadButton slug={slug} />
         </span>
       </div>

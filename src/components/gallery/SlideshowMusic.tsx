@@ -160,7 +160,7 @@ export function SlideshowMusic({
         data-track={index}
         // The caller's name for the frame, not a constant: an article reads
         // itself aloud over this player too. See the prop's own note.
-        title={title}
+        title={title ?? t.slideshowMusic.defaultTitle}
         // `key` on the id, not just `src`: React reuses an <iframe> whose type
         // and position match and only patches attributes, and a patched `src`
         // does not reliably restart a cross-origin frame. Keying forces a new

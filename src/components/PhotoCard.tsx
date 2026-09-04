@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { SitePhoto } from "@/lib/content-types";
 import { useWindowSize } from "usehooks-ts";
 import { calculateDisplayedDimensions } from "@/lib/utils";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 interface IPhotoCardProps {
   item: SitePhoto;
@@ -22,6 +23,7 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({
   priority = false,
   className,
 }) => {
+  const t = useDictionary();
   const { src, slug, width, height, blurDataURL } = photo;
   const { width: windowWidth, height: windowHeight } = useWindowSize();
 
@@ -58,7 +60,7 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({
       >
         <Image
           src={src}
-          alt="封面圖片"
+          alt={t.common.coverImage}
           width={Math.max(1, Math.round(displayedWidth || width))}
           height={Math.max(1, Math.round(displayedHeight || height))}
           sizes={sizes}

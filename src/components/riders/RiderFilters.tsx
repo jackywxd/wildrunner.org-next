@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { RiderBadgeOption } from "@/lib/riders/badge-filter";
 import { riderBadgesHref, toggleRiderBadge } from "@/lib/riders/badge-filter";
 import { cn } from "@/lib/utils";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * Badge filter for the directory, as links rather than client state.
@@ -69,7 +70,7 @@ function Chip({
   );
 }
 
-export function RiderFilters({
+export async function RiderFilters({
   options,
   selected,
   total,
@@ -80,6 +81,7 @@ export function RiderFilters({
   selected: readonly string[];
   total: number;
 }) {
+  const t = await getDictionary();
   const shortcuts = options.filter((option) => option.shortcut);
   const events = options.filter((option) => !option.shortcut);
 
@@ -91,7 +93,7 @@ export function RiderFilters({
           count={total}
           data-testid="rider-filter-all"
           href={riderBadgesHref([])}
-          label="全部"
+          label={t.common.all}
         />
         {shortcuts.map((option) => (
           <Chip

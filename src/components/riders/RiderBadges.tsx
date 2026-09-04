@@ -4,6 +4,7 @@ import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { RACE_SERIES_LABELS } from "@/lib/races/catalogue";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import {
   SIX_MAJORS,
   SIX_MAJORS_LABEL_ZH,
@@ -127,7 +128,7 @@ function sixMajorsBadges(completions: readonly number[]) {
  * entry keeps the count and the list agreeing — a "5/6" listing four races
  * would be a worse bug than an ugly one listing five.
  */
-function SixMajorsProgressLine({
+async function SixMajorsProgressLine({
   catalogue,
   missing,
   sets,
@@ -136,6 +137,7 @@ function SixMajorsProgressLine({
   missing: readonly string[];
   sets: number;
 }) {
+  const t = await getDictionary();
   const names = missing.map((key) => {
     const event = catalogue.get(key);
     return event?.nameZh ?? event?.name ?? key;
@@ -146,8 +148,8 @@ function SixMajorsProgressLine({
       className="mt-1 text-xs text-muted-foreground"
       data-testid="six-majors-progress"
     >
-      {SIX_MAJORS_LABEL_ZH} {sets > 0 ? `第 ${sets + 1} 輪 ` : ""}
-      {SIX_MAJORS.length - missing.length}/{SIX_MAJORS.length} · 還差{" "}
+      {SIX_MAJORS_LABEL_ZH} {sets > 0 ? t.badges.round.replace("{n}", String(sets + 1)) : ""}
+      {SIX_MAJORS.length - missing.length}/{SIX_MAJORS.length} · {t.badges.missing}{" "}
       {names.join("、")}
     </p>
   );

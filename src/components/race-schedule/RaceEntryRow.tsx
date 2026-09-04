@@ -237,7 +237,7 @@ export async function RaceEntryRow({
               // guarantees `entry.eventId` is set here.
               href={`/members/posts/new?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
             >
-              紀錄比賽
+              {t.raceSchedule.logRace}
             </Link>
           )}
           {uploadable && (
@@ -249,7 +249,7 @@ export async function RaceEntryRow({
               // (media/page.tsx) — a hint, not a requirement.
               href={`/members/media?race=${entry.eventId}&year=${entry.startDate.slice(0, 4)}`}
             >
-              上傳相片
+              {t.raceSchedule.uploadPhotos}
             </Link>
           )}
         </div>

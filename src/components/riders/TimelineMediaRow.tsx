@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { MediaMonth, RaceMedia } from "@/lib/riders/timeline-albums";
 import { formatMonth } from "@/lib/riders/timeline-albums";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * The two shapes pictures take on 穿越時光: a strip under a race, and a month of
@@ -19,10 +20,15 @@ import { cn } from "@/lib/utils";
  */
 
 /** "12 張相片 · 3 段影片", with either half dropped when it is zero. */
-function countsLabel(photos: number, videos: number): string {
+function countsLabel(
+  photos: number,
+  videos: number,
+  photoLabel: string,
+  videoLabel: string,
+): string {
   const parts: string[] = [];
-  if (photos > 0) parts.push(`${photos} 張相片`);
-  if (videos > 0) parts.push(`${videos} 段影片`);
+  if (photos > 0) parts.push(photoLabel.replace("{count}", String(photos)));
+  if (videos > 0) parts.push(videoLabel.replace("{count}", String(videos)));
   return parts.join(" · ");
 }
 
@@ -90,6 +96,7 @@ export function RaceMediaStrip({
   href: string;
   media: RaceMedia;
 }) {
+  const t = useDictionary();
   return (
     <div
       className="flex flex-col gap-2 border-t border-border pt-2"
@@ -99,7 +106,13 @@ export function RaceMediaStrip({
         className="text-sm font-semibold text-muted-foreground hover:text-primary"
         href={href}
       >
-        {countsLabel(media.photoCount, media.videoCount)} →
+        {countsLabel(
+          media.photoCount,
+          media.videoCount,
+          t.riderTimeline.photoCount,
+          t.riderTimeline.videoCount,
+        )}{" "}
+        →
       </Link>
       <AlbumLinks albums={media.albums} />
       <Thumbnails images={media.thumbnails} />
@@ -121,6 +134,7 @@ export function MonthMediaCard({
   className?: string;
   month: MediaMonth;
 }) {
+  const t = useDictionary();
   return (
     <article
       className={cn(
@@ -136,7 +150,12 @@ export function MonthMediaCard({
           {formatMonth(month.month)}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {countsLabel(month.photoCount, month.videoCount)}
+          {countsLabel(
+            month.photoCount,
+            month.videoCount,
+            t.riderTimeline.photoCount,
+            t.riderTimeline.videoCount,
+          )}
         </p>
       </div>
       <AlbumLinks albums={month.albums} />

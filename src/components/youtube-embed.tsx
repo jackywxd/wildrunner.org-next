@@ -1,4 +1,5 @@
 import { youTubeEmbedUrl } from "@/lib/youtube";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * A YouTube link, shown as the video.
@@ -24,6 +25,7 @@ import { youTubeEmbedUrl } from "@/lib/youtube";
  * ContentPreview's own header warns about.
  */
 export function YouTubeEmbed({ videoId }: { videoId: string }) {
+  const t = useDictionary();
   return (
     <span
       data-testid="youtube-embed"
@@ -32,7 +34,7 @@ export function YouTubeEmbed({ videoId }: { videoId: string }) {
     >
       <iframe
         src={youTubeEmbedUrl(videoId)}
-        title="YouTube 影片"
+        title={t.video.youtubeTitle}
         loading="lazy"
         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

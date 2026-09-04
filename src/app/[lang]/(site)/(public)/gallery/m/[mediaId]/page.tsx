@@ -13,6 +13,7 @@ import { getGalleryMediaById } from "@/lib/content";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import { streamHlsUrl } from "@/lib/stream";
 import { refreshStreamReady } from "@/lib/stream-ingest";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * A shareable page for one photo or video, with no album around it.
@@ -125,6 +126,7 @@ export async function generateMetadata({
 export default async function GalleryMediaByIdPage({
   params,
 }: GalleryMediaByIdPageProps) {
+  const t = await getDictionary();
   const { mediaId } = await params;
   const id = parseMediaId(mediaId);
   const item = id === null ? null : await getGalleryMediaById(id);
@@ -146,7 +148,7 @@ export default async function GalleryMediaByIdPage({
         )}
       >
         <ChevronLeft className="mr-1 size-4" />
-        相冊
+        {t.gallery.backToAlbums}
       </Link>
 
       <h1 className="!mb-0 text-4xl font-black leading-[1.12] text-foreground">
