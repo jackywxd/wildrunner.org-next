@@ -14,6 +14,11 @@ import { raceGallerySlug } from "@/lib/race-gallery";
 import { pageMetadata } from "@/lib/site-metadata";
 
 import RacePhotoWall from "./_components/RacePhotoWall";
+import { ShareSheet } from "@/components/share/ShareSheet";
+import { WeChatThumb } from "@/components/share/WeChatThumb";
+import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
+import type { ShareSubject } from "@/lib/share/share-text";
+import { siteConfig } from "@/config/site";
 
 export const dynamic = "force-dynamic";
 
@@ -82,8 +87,33 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
   const place = [edition.location, edition.country].filter(Boolean).join(" · ");
   const site = externalHref(edition.url);
 
+  const shareSubject: ShareSubject = {
+    kind: "race",
+    name: edition.nameZh || edition.name,
+    year: edition.year,
+    series: edition.series,
+    location: edition.location,
+    distanceSummary: edition.distanceSummary,
+    url: `${siteConfig.baseURL}/races/${edition.eventKey}/${edition.year}`,
+  };
+  const posterPath = `/share/race/${edition.eventKey}/${edition.year}`;
+
   return (
     <div className="container max-w-4xl py-6 lg:py-10" data-testid="race-edition-page">
+      {/* The first image on this page that is ≥300×300 — the rule WeChat
+          picks by. The photo wall below is full of larger ones, so this has to
+          come before them. */}
+      <WeChatThumb src={`/wx/race/${edition.eventKey}/${edition.year}`} />
+
+      <div className="mb-4">
+        <ShareSheet
+          posterSrc={posterPath}
+          title={shareSubject.name}
+          wechatText={wechatText(shareSubject)}
+          xiaohongshuText={xiaohongshuText(shareSubject)}
+        />
+      </div>
+
       <PageHeader
         title={`${edition.nameZh || edition.name} ${edition.year}`}
         description={edition.nameZh ? edition.name : undefined}

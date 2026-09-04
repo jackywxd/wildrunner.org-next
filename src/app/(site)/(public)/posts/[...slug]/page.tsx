@@ -23,6 +23,10 @@ import {
   resolveBadgeEvent,
 } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
+import { ShareSheet } from "@/components/share/ShareSheet";
+import { WeChatThumb } from "@/components/share/WeChatThumb";
+import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
+import type { ShareSubject } from "@/lib/share/share-text";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -123,9 +127,24 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
     ? await getBylineAvatar(blog.authorSlug)
     : undefined;
 
+  // The share subject, built once and handed to both the panel and the
+  // thumbnail. `slugAsParams` rather than `slug` because that is what the
+  // poster endpoints resolve with, and what the page's own URL is.
+  const shareSubject: ShareSubject = {
+    kind: "post",
+    title: blog.title,
+    author: blog.author,
+    url: `${siteConfig.baseURL}${postPublicPath(blog.slug)}`,
+  };
+  const posterPath = `/share/post/${blog.slugAsParams}`;
+
   return (
     <article className="container relative max-w-3xl py-6 lg:py-10">
       <>
+        {/* First image on the page, and the first one anywhere that is
+            ≥300×300 — which is the rule WeChat picks by. See WeChatThumb. */}
+        <WeChatThumb src={`/wx/post/${blog.slugAsParams}`} />
+
         {blog.date && (
           <time
             dateTime={blog.date}
@@ -138,6 +157,15 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
         <h1 className="mt-2 inline-block text-4xl font-extrabold capitalize leading-tight text-foreground lg:text-5xl">
           {blog.title}
         </h1>
+
+        <div className="mt-3">
+          <ShareSheet
+            posterSrc={posterPath}
+            title={blog.title}
+            wechatText={wechatText(shareSubject)}
+            xiaohongshuText={xiaohongshuText(shareSubject)}
+          />
+        </div>
 
         {/* This used to render `siteConfig.authorImage` — which resolves to
             `devbertskie.png`, the blog template author's own photograph —
