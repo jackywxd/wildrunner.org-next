@@ -11,6 +11,11 @@ import {
   TimelineReveal,
 } from "@/components/riders/TimelineMotion";
 import { postPublicPath } from "@/lib/content-paths";
+import { raceGallerySlug } from "@/lib/race-gallery";
+import {
+  MonthMediaCard,
+  RaceMediaStrip,
+} from "@/components/riders/TimelineMediaRow";
 import { RaceBadge } from "@/lib/races/badge";
 import { resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap } from "@/lib/races/catalogue-shape";
@@ -165,6 +170,10 @@ function Row({
   catalogue: RaceCatalogueMap;
   row: ClubTimelineRow;
 }) {
+  // A month of pictures is a whole row of its own — see the member rail's
+  // `Entry` for why it returns early rather than becoming a third branch.
+  if (row.month) return <MonthMediaCard month={row.month} />;
+
   const race = row.race;
   const badge = race ? resolveBadge(catalogue, race.eventId, race.distanceId) : undefined;
   const kind = race ? (row.posts.length ? "report" : "race") : "post";
@@ -205,6 +214,12 @@ function Row({
                   <PostLine compact key={post.id} post={post} />
                 ))}
               </div>
+            )}
+            {row.media && (
+              <RaceMediaStrip
+                href={`/gallery/${raceGallerySlug(race.eventId, row.year)}`}
+                media={row.media}
+              />
             )}
           </>
         ) : (

@@ -1,5 +1,6 @@
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
+import { adminContext } from "../helpers/members";
 
 /**
  * V-CLUB — 野馬營時間機 (/riders/timeline), the club's whole rail.
@@ -71,6 +72,90 @@ test.describe("V-CLUB 野馬營時間機", () => {
     await page.getByTestId("home-timeline-link").click();
     await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
     await expect(page.getByTestId("club-timeline")).toBeVisible();
+  });
+
+  test("V-CLUB-T4: albums of no race become months, and still name their albums", async ({
+    page,
+  }) => {
+    await open(page, "/riders/timeline");
+
+    const months = page.getByTestId("timeline-month");
+    await expect(
+      months.first(),
+      "no month of pictures on the club rail — the corpus has no albums, not the page",
+    ).toBeVisible();
+
+    // The names people wrote survive the merge, and each is the way back to
+    // that album. A month card that only said "51 張" would be a dead end.
+    const firstLink = months.first().getByTestId("timeline-album-links").locator("a").first();
+    await expect(firstLink).toBeVisible();
+    const href = await firstLink.getAttribute("href");
+    expect(href).toMatch(/^\/gallery\/[^/]+$/);
+    const response = await page.request.get(href as string);
+    expect(response.status(), `${href} is named on the rail but does not open`).toBe(200);
+  });
+
+  test("V-CLUB-T5: tagging an album with a race moves it out of its month onto that race", async ({
+    baseURL,
+    page,
+  }) => {
+    // The only test here that signs in, and it pays for it: an admin login,
+    // three API round trips and a page load, against a dev server that may
+    // still be compiling the route. The others navigate and assert. Through
+    // `budget()` so a deployed target scales it, per docs/testing-strategy.md §7.
+    test.setTimeout(budget(60_000));
+
+    // THE TEST OWNS THIS FIXTURE rather than the seeded corpus carrying it.
+    // Tagging an album in the seed would change ambient data every other spec
+    // reads; doing it here keeps the change inside one test and lets the
+    // teardown put it back — including when the assertions fail, which is the
+    // whole point of `finally` (docs/testing-strategy.md).
+    const admin = await adminContext(baseURL);
+    const albums = await admin.get("/api/galleries?limit=1&depth=0&sort=slug");
+    expect(albums.ok(), await albums.text()).toBeTruthy();
+    const album = ((await albums.json()) as { docs: { id: number; slug: string }[] }).docs[0];
+    expect(album, "no album in the corpus to tag").toBeTruthy();
+
+    // An edition the rail actually draws a row for — otherwise the picture has
+    // nowhere to attach and correctly stays in its month, which would make
+    // this test observe the opposite of what it is for.
+    const records = await admin.get("/api/race-records?limit=1&depth=0");
+    const record = ((await records.json()) as { docs: { edition: number }[] }).docs[0];
+    expect(record?.edition, "no race record with an edition to attach to").toBeTruthy();
+
+    try {
+      const tagged = await admin.patch(`/api/galleries/${album.id}`, {
+        data: { raceEdition: record.edition },
+      });
+      expect(tagged.ok(), await tagged.text()).toBeTruthy();
+
+      await open(page, "/riders/timeline");
+
+      // THE WHOLE RAIL, not the first page of it. The rail paginates at ten
+      // rows and the race this album now belongs to is older than that — the
+      // first version of this test asserted against page one and failed
+      // looking for a link that was three rows below the fold. Scroll until
+      // the sentinel is gone, which is the page saying it has everything.
+      const sentinel = page.getByTestId("club-timeline-sentinel");
+      for (let i = 0; i < 20 && (await sentinel.count()) > 0; i += 1) {
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForTimeout(budget(300));
+      }
+
+      // Its pictures are now on a race row, so no month card may name it.
+      const named = page.locator(`[data-testid="timeline-album-links"] [data-album-slug="${album.slug}"]`);
+      const inAMonth = page.locator(
+        `[data-testid="timeline-month"] [data-album-slug="${album.slug}"]`,
+      );
+      await expect(named.first()).toBeVisible({ timeout: budget(15_000) });
+      await expect(inAMonth).toHaveCount(0);
+      await expect(page.getByTestId("timeline-race-media").first()).toBeVisible();
+    } finally {
+      // By id, and the value it had: this album was untagged, and every album
+      // in the corpus is. Never a pattern, never "clear the column".
+      await admin.patch(`/api/galleries/${album.id}`, { data: { raceEdition: null } });
+      await admin.dispose();
+    }
   });
 
   test("V-CLUB-T2: 列印全部 loads the rest of the rail before opening the dialog", async ({

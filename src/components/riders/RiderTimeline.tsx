@@ -2,6 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { postPublicPath } from "@/lib/content-paths";
+import { raceGallerySlug } from "@/lib/race-gallery";
+import {
+  MonthMediaCard,
+  RaceMediaStrip,
+} from "@/components/riders/TimelineMediaRow";
 import { cn } from "@/lib/utils";
 import type { SitePost } from "@/lib/content-types";
 import { RaceBadge } from "@/lib/races/badge";
@@ -133,6 +138,11 @@ function Entry({
   year: number;
 }) {
   const { post, race } = entry;
+  // A month of pictures is a whole row of its own and shares nothing with the
+  // two below it, so it returns early rather than growing a third branch
+  // inside a card built around a badge and an article.
+  if (entry.month) return <MonthMediaCard month={entry.month} />;
+
   // Three shapes, one attribute, so a test can say which it expected rather
   // than inferring it from what happens to be inside the card.
   const kind = race ? (post ? "report" : "race") : "post";
@@ -175,6 +185,12 @@ function Entry({
               <div className="border-t border-border pt-2">
                 <PostBody compact post={post} />
               </div>
+            )}
+            {entry.media && (
+              <RaceMediaStrip
+                href={`/gallery/${raceGallerySlug(race.eventId, race.year)}`}
+                media={entry.media}
+              />
             )}
           </>
         ) : (
