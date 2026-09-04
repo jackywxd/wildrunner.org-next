@@ -5,6 +5,7 @@ import PageHeader from "@/components/page-header";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import {
   CLUB_PAGE_SIZE,
   catalogueForRows,
@@ -13,7 +14,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "野馬營穿越時光";
 
 /**
  * The club's time machine: every member's races and articles on one rail.
@@ -31,15 +31,17 @@ const TITLE = "野馬營穿越時光";
  * return something this page would not have.
  */
 export async function generateMetadata() {
+  const t = await getDictionary();
   return pageMetadata({
     path: "/riders/timeline",
-    title: TITLE,
-    subtitle: "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
+    title: t.clubTimeline.title,
+    subtitle: t.clubTimeline.subtitle,
     card: { kind: "plain" },
   });
 }
 
 export default async function ClubTimelinePage() {
+  const t = await getDictionary();
   const [rows, events] = await Promise.all([
     getClubTimelineRows(),
     getRaceCatalogueEvents(),
@@ -50,8 +52,8 @@ export default async function ClubTimelinePage() {
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
       <PageHeader
-        title={TITLE}
-        description="所有成員的比賽和文章，接在同一條時間軸上。"
+        title={t.clubTimeline.title}
+        description={t.clubTimeline.pageDescription}
       />
 
       <hr className="my-8 h-0 border-t-2 border-border" />
@@ -62,7 +64,7 @@ export default async function ClubTimelinePage() {
 
       <div className="mt-10 print:hidden">
         <Link className="text-sm text-muted-foreground hover:text-primary" href="/riders">
-          ← 所有成員
+          {t.clubTimeline.allMembers}
         </Link>
       </div>
     </div>

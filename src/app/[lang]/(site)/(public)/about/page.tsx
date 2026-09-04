@@ -4,20 +4,27 @@ import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
 import { getSiteGlobals } from "@/lib/content";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export const metadata: Metadata = pageMetadata({
-  path: "/about",
-  title: "關於野馬營",
-  subtitle: "一群在溫哥華相遇的越野跑者，和這個站為什麼存在。",
-  card: { kind: "plain" },
-});
+export async function generateMetadata(): Promise<Metadata> {
+  // A function rather than the static `metadata` object it was: the title and
+  // the sentence under it come from the dictionary now, and reading that
+  // needs the request's language.
+  const t = await getDictionary();
+  return pageMetadata({
+    path: "/about",
+    title: t.about.title,
+    subtitle: t.about.subtitle,
+    card: { kind: "plain" },
+  });
+}
 
 export default async function AboutPage() {
-  const globals = await getSiteGlobals();
+  const [globals, t] = await Promise.all([getSiteGlobals(), getDictionary()]);
 
   return (
     <div className="container relative max-w-6xl py-6 lg:py-10">
-      <PageHeader title="關於野馬營" description={siteConfig.slogan} />
+      <PageHeader title={t.about.title} description={siteConfig.slogan} />
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       {/* Bounded, because the container is not. Same reasoning as the rider

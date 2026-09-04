@@ -121,7 +121,11 @@
     "loaded": "已載入 {races} 場完賽 · {posts} 篇文章",
     "more": " · 往下捲還有",
     "printing": "整理中…",
-    "printAll": "列印全部"
+    "printAll": "列印全部",
+    "title": "野馬營穿越時光",
+    "subtitle": "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
+    "pageDescription": "所有成員的比賽和文章，接在同一條時間軸上。",
+    "allMembers": "← 所有成員"
   },
   "mediaFilters": {
     "kindAll": "全部",
@@ -159,5 +163,31 @@
     "remind": "預約提醒",
     "allSeries": "全部系列",
     "openOnly": "只看報名中"
+  },
+  "rider": {
+    "bioFallback": "{name} 在野馬營的文章",
+    "postCount": "{count} 篇文章",
+    "readPost": "閱讀文章",
+    "noPosts": "還沒有發布文章。",
+    "allMembers": "← 所有成員",
+    "tabPosts": "文章",
+    "tabTimeline": "穿越時光",
+    "tabsAria": "檢視方式"
+  },
+  "slideshowMusic": {
+    "defaultTitle": "相簿背景音樂",
+    "heading": "背景音樂",
+    "collapse": "收起",
+    "touchHint": "點一下播放器開始音樂"
+  },
+  "albums": {
+    "emptyFiltered": "這場比賽還沒有相簿。",
+    "emptyAll": "還沒有相簿。",
+    "photoCount": "{count} 張照片",
+    "videoCount": "{count} 段影片"
+  },
+  "about": {
+    "title": "關於野馬營",
+    "subtitle": "一群在溫哥華相遇的越野跑者，和這個站為什麼存在。"
   }
 }

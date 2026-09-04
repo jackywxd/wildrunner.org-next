@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * The switch between a member's two views: their articles, and their timeline.
@@ -13,21 +14,26 @@ import { cn } from "@/lib/utils";
  * `aria-current="page"` rather than only a colour — the active tab has to be
  * announced, not just seen.
  */
-export function RiderViewTabs({
+export async function RiderViewTabs({
   active,
   slug,
 }: {
   active: "posts" | "timeline";
   slug: string;
 }) {
+  const t = await getDictionary();
   const tabs = [
-    { href: `/riders/${slug}`, label: "文章", view: "posts" as const },
-    { href: `/riders/${slug}/timeline`, label: "穿越時光", view: "timeline" as const },
+    { href: `/riders/${slug}`, label: t.rider.tabPosts, view: "posts" as const },
+    {
+      href: `/riders/${slug}/timeline`,
+      label: t.rider.tabTimeline,
+      view: "timeline" as const,
+    },
   ];
 
   return (
     <nav
-      aria-label="檢視方式"
+      aria-label={t.rider.tabsAria}
       className="flex items-center gap-2 print:hidden"
       data-testid="rider-view-tabs"
     >

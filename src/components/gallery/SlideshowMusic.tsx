@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { youTubeEmbedUrl } from "@/lib/youtube";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * An album's background music: a playlist, playing or not playing.
@@ -68,7 +69,7 @@ export function SlideshowMusic({
   playlist,
   index,
   playing,
-  title = "相簿背景音樂",
+  title,
 }: {
   /** YouTube ids, in order. Never URLs — see `SiteGallery.musicPlaylist`. */
   playlist: string[];
@@ -86,6 +87,7 @@ export function SlideshowMusic({
    */
   title?: string;
 }) {
+  const t = useDictionary();
   /**
    * Collapsed unless the visitor has to press the player to start it.
    *
@@ -197,12 +199,12 @@ export function SlideshowMusic({
         {collapsed ? (
           <>
             <ChevronDown className="size-3" />
-            背景音樂
+            {t.slideshowMusic.heading}
           </>
         ) : (
           <>
             <ChevronUp className="size-3" />
-            收起
+            {t.slideshowMusic.collapse}
           </>
         )}
       </button>
@@ -220,7 +222,7 @@ export function SlideshowMusic({
           data-testid="slideshow-music-hint"
           className="hidden px-2 pb-1.5 text-center text-[11px] leading-tight text-white/70 touch:block"
         >
-          點一下播放器開始音樂
+          {t.slideshowMusic.touchHint}
         </p>
       )}
     </div>,
