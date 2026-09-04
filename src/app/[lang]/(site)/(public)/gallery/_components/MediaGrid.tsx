@@ -42,6 +42,7 @@ import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
 import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * One grid for everything a gallery holds, in one order.
@@ -141,12 +142,13 @@ function toGridPhotos(items: SiteMediaItem[]): GridPhoto[] {
  * library changes its toolbar metrics.
  */
 function ShareButton({ mediaId, label }: { mediaId: number; label: string }) {
+  const t = useDictionary();
   return (
     <a
       className="yarl__button"
       href={`/gallery/m/${mediaId}`}
-      aria-label={`分享 ${label}`}
-      title="分享"
+      aria-label={t.gallery.shareAria.replace("{label}", label)}
+      title={t.gallery.share}
       data-testid="gallery-share"
     >
       <Share2 className="size-5" />
@@ -198,17 +200,19 @@ function VideoCard({
  * and `WallSort` for why `curated` is the absence of a sort rather than one
  * more of them.
  */
-const WALL_SORTS: { value: WallSort; label: string }[] = [
-  { value: "newest", label: "最新" },
-  { value: "oldest", label: "最舊" },
-];
+// Keys rather than words: these are module-level and the dictionary is only
+// reachable inside the component, so the label is resolved where it renders.
+const WALL_SORTS = [
+  { value: "newest", labelKey: "sortNewest" },
+  { value: "oldest", labelKey: "sortOldest" },
+] as const satisfies readonly { value: WallSort; labelKey: string }[];
 
-const ALBUM_SORTS: { value: WallSort; label: string }[] = [
+const ALBUM_SORTS = [
   // First, and the default, because it is the album's own order — see
   // WallSort's own note on why `curated` is the absence of a sort.
-  { value: "curated", label: "相簿順序" },
+  { value: "curated", labelKey: "sortCurated" },
   ...WALL_SORTS,
-];
+] as const satisfies readonly { value: WallSort; labelKey: string }[];
 
 /** The 賽事 select's "no filter" value — a string, because a `<select>` has
  *  no other kind of value, and `null` is what the arrangement wants. */
@@ -234,13 +238,14 @@ function MusicButton({
   playing: boolean;
   onToggle: () => void;
 }) {
+  const t = useDictionary();
   return (
     <button
       type="button"
       className="yarl__button"
       onClick={onToggle}
-      aria-label={playing ? "關閉背景音樂" : "播放背景音樂"}
-      title={playing ? "關閉背景音樂" : "播放背景音樂"}
+      aria-label={playing ? t.gallery.musicOff : t.gallery.musicOn}
+      title={playing ? t.gallery.musicOff : t.gallery.musicOn}
       data-testid="gallery-music-toggle"
       data-playing={playing}
     >
@@ -275,7 +280,8 @@ function TrackButton({
   onSkip: () => void;
   "data-testid": string;
 }) {
-  const label = direction === "next" ? "下一首" : "上一首";
+  const t = useDictionary();
+  const label = direction === "next" ? t.gallery.nextTrack : t.gallery.prevTrack;
   return (
     <button
       type="button"
@@ -332,6 +338,7 @@ export function MediaGrid({
   nextCursor?: WallCursor | null;
   targetRowHeight?: number;
 }) {
+  const t = useDictionary();
   const [index, setIndex] = useState(-1);
   const paginated = nextCursor !== undefined;
 
@@ -676,17 +683,20 @@ export function MediaGrid({
           </FilterChip>
         </div>
         <FilterSelect
-          label="排序"
+          label={t.gallery.sortLabel}
           value={sort}
           onChange={(next) => void applyArrangement(kind, next, race)}
-          options={paginated ? WALL_SORTS : ALBUM_SORTS}
+          options={(paginated ? WALL_SORTS : ALBUM_SORTS).map((option) => ({
+            value: option.value,
+            label: t.gallery[option.labelKey],
+          }))}
           data-testid="gallery-filter-sort"
         />
         {/* Only when there is something to choose between. A select holding
             one option is a control that cannot change the answer. */}
         {races.length > 0 && (
           <FilterSelect
-            label="賽事"
+            label={t.gallery.raceLabel}
             value={race === null ? ANY_RACE : String(race)}
             onChange={(next) =>
               void applyArrangement(
@@ -696,10 +706,12 @@ export function MediaGrid({
               )
             }
             options={[
-              { value: ANY_RACE, label: "所有比賽" },
+              { value: ANY_RACE, label: t.gallery.anyRace },
               ...races.map((option) => ({
                 value: String(option.id),
-                label: `${option.label}（${option.count}）`,
+                label: t.gallery.raceOption
+                  .replace("{label}", option.label)
+                  .replace("{count}", String(option.count)),
               })),
             ]}
             data-testid="gallery-filter-race"
@@ -716,8 +728,8 @@ export function MediaGrid({
               filter is on: a visitor who picked 影片 on an album of photos has
               not discovered that the site has no videos. */}
           {kind === "all" && race === null
-            ? "還沒有相片或影片。"
-            : "沒有符合條件的項目。"}
+            ? t.gallery.emptyAll
+            : t.gallery.emptyFiltered}
         </p>
       ) : (
         <PhotoAlbum

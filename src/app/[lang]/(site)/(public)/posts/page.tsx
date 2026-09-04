@@ -6,16 +6,18 @@ import { formatDate } from "@/lib/utils";
 import { getPublishedPosts } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const t = await getDictionary();
   return pageMetadata({
     // The subject alone. This was `文章 | Posts | 野馬營`, and the card
     // generator read the last `|` as a byline separator — see `pageMetadata`.
     path: "/posts",
-    title: "文章",
-    subtitle: "野馬營的比賽紀錄與山野書寫",
+    title: t.posts.title,
+    subtitle: t.posts.subtitle,
     card: { kind: "plain" },
   });
 }
