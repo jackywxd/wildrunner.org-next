@@ -31,6 +31,7 @@ import { HtmlEmbedBlock } from './blocks/HtmlEmbedBlock'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
+import { changePasswordEndpoint } from './endpoints/changePassword'
 import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
@@ -204,6 +205,7 @@ export default buildConfig({
   globals: [Site],
   endpoints: [
     aiExpandPostEndpoint,
+    changePasswordEndpoint,
     aiImprovePostEndpoint,
     aiSummarisePostEndpoint,
     inviteMemberEndpoint,
