@@ -321,3 +321,30 @@ h6 {
     break-after: avoid;
   }
 }
+
+/*
+ * The WeChat thumbnail (src/components/share/WeChatThumb.tsx).
+ *
+ * MOVED OFF-SCREEN, NEVER HIDDEN. `display:none`, `visibility:hidden` and a
+ * zero width all stop WeChat picking the image, because its pick depends on
+ * the image being laid out and fetched. A real 600×600 box parked ten
+ * thousand pixels to the left is laid out, fetched, and invisible.
+ *
+ * `contain: strict` is what makes that free: the element is taken out of the
+ * page's layout calculations entirely, so a 600px box off-screen cannot shift
+ * anything on it.
+ */
+.wx-thumb {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 600px;
+  height: 600px;
+  opacity: 0;
+  pointer-events: none;
+  contain: strict;
+}
+
+@media print {
+  .wx-thumb { display: none !important; }
+}
