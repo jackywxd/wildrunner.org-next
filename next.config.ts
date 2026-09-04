@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { withPayload } from "@payloadcms/next/withPayload";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import { defaultLocaleRewrites } from "./src/lib/i18n/rewrites";
 
 const nextConfig: NextConfig = {
   staticPageGenerationTimeout: 600,
@@ -270,6 +271,28 @@ const nextConfig: NextConfig = {
    * first two, the third is a second root layout reached by machine, and none
    * of them is a page in a language.
    *
+   * WHY EACH SEGMENT IS LISTED TWICE — the index exactly, the rest with
+   * `:path+`. `/posts/:path*` alone matches `/posts` as well, which is right
+   * in `next dev` and wrong once OpenNext serves it, and that difference took
+   * staging down: every index page 404'd while the home page and every deep
+   * path worked. `handleRewrites` (@opennextjs/aws
+   * `dist/core/routing/matcher.js`) computes the destination as
+   *
+   *     const params = match(source)(path);
+   *     const isUsingParams = Object.keys(params).length > 0;
+   *     rewrittenPath = isUsingParams ? compile(destination)(params) : pathname;
+   *
+   * and `path-to-regexp` returns `{}` — not `{ path: [] }` — when a `*`
+   * repeat captures nothing. So `/posts` matched, produced no params, and was
+   * rewritten to the **uninterpolated destination string**
+   * `/zh-hant/posts/:path*`, which matches no route, so the router falls
+   * through to `/404`. `/` was fine because its destination has no parameter
+   * to interpolate, and `/members/login` was fine because it has one.
+   *
+   * `:path+` requires at least one segment, so a source that matches always
+   * captures something and the empty-params branch is unreachable. The exact
+   * entries carry the index pages, and their destinations are literals.
+   *
    * THE POINT OF ALL OF THIS is that no address changes. Every URL this site
    * has published is unprefixed — the articles, the share cards whose
    * `og:url` is already printed into images in other people's chat
@@ -278,24 +301,7 @@ const nextConfig: NextConfig = {
    * is invisible from outside.
    */
   rewrites: async () => ({
-    beforeFiles: [
-      { source: "/", destination: "/zh-hant" },
-      ...[
-        "about",
-        "design-preview",
-        "gallery",
-        "members",
-        "og",
-        "posts",
-        "races",
-        "riders",
-        "share",
-        "wx",
-      ].map((segment) => ({
-        source: `/${segment}/:path*`,
-        destination: `/zh-hant/${segment}/:path*`,
-      })),
-    ],
+    beforeFiles: defaultLocaleRewrites("zh-hant"),
     afterFiles: [],
     fallback: [],
   }),
