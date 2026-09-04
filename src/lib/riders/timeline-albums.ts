@@ -1,154 +1,87 @@
 /**
- * Albums on 時間機 — the one rule, shared by both rails.
+ * Where a picture sits on 時間機, and what date it sits at.
  *
- * A member's timeline and the club's timeline are separate builders on
- * purpose (one groups across members, the other does not), but what an album
- * *is* on a rail must not differ between them: the same date, the same month
- * bucket, the same reason it does or does not sit on a race. So that lives
- * here and both import it.
+ * THE UNIT IS ONE MEDIA ROW, NOT ONE ALBUM. An earlier draft placed whole
+ * albums and it was wrong in a way worth recording: a general album that
+ * happens to contain three photos tagged to a race would have kept all three
+ * in its month, when those three belong to that race. The rule below resolves
+ * each picture on its own, so an album is a *source of facts* about its
+ * pictures (a date, a name, possibly a race) rather than the thing being
+ * placed.
  *
- * PURE. Everything below is a function of `SiteGallery` values, so the
- * bucketing is checked without a server — see `e2e/unit/timeline-albums.spec.ts`.
+ * PURE. Everything here is a function of plain values, so the rule is checked
+ * without a server — see `e2e/unit/timeline-albums.spec.ts`.
  *
  * DATES ARE "YYYY-MM-DD" STRINGS, compared lexicographically, per
  * `src/lib/races/calendar.ts`. Nothing here constructs a `Date`.
  */
 
-import type { SiteGallery, SiteImage } from "@/lib/content-types";
-import { albumRaceEditionId } from "@/lib/media/gallery-index";
-import { photosOf, videosOf } from "@/lib/media/gallery-items";
-
-/** An album as a rail shows it. Narrower than `SiteGallery` — this crosses to the browser. */
-export type TimelineAlbum = {
-  slug: string;
-  name: string;
-  /** "YYYY-MM-DD". Always set: `albumDay` falls back to the row's own createdAt. */
-  day: string;
-  photoCount: number;
-  videoCount: number;
-  /** Which race this album is of, when a curator or its items say so. */
-  raceEditionId?: number;
-  /** A few pictures for the strip. Photos only — see `THUMBNAIL_CAP`. */
-  thumbnails: SiteImage[];
-};
+import type { SiteImage } from "@/lib/content-types";
 
 /**
  * How many pictures a row shows before it is just a wall.
  *
- * Six, and the number is set by the printed page rather than the screen: a
- * row already carries a title, a count and album names, and a strip deeper
- * than one line turns a month into half a sheet of paper. On screen the strip
- * wraps and six is comfortably one line at every width the rail is drawn at.
+ * Six, and the number is set by the printed page rather than the screen: a row
+ * already carries a title, a count and album names, and a strip deeper than
+ * one line turns a month into half a sheet of paper.
  */
 export const THUMBNAIL_CAP = 6;
 
+/** Which fact gave a picture its date. Carried so a test can name it. */
+export type DaySource = "race" | "album" | "upload";
+
 /**
- * When the album happened — NOT when its files were uploaded.
+ * The date a picture is filed under, and where that date came from.
  *
- * `eventDate` first, and this is the whole reason albums rather than photos
- * are the unit here. Measured on the seeded corpus the day this shipped:
- * every one of 420 media rows had a `createdAt` inside a single month (the
- * import), while all 20 albums carried a real `eventDate` spread across two
- * years. Bucketing photos by their own timestamps would have produced one row
- * reading "2026年9月 · 420 張" and nothing else.
+ * THE ORDER IS THE RULE, and every step of it exists because the step below
+ * it lies in a case that really happens:
  *
- * `created` is the fallback rather than "no date", because an album with no
- * `eventDate` still has to appear somewhere, and the day somebody made the
- * album is the closest true statement available. No album in the corpus needs
- * it today; the branch exists because the field is optional.
+ *   race    the picture is of a race — the race's own day is when it happened,
+ *           whoever uploaded it whenever. Beats the album, because a race
+ *           photo that ended up in a general album is still of that race.
+ *   album   an album is very often made long after the day it is about, which
+ *           is exactly why `galleries.eventDate` exists; the album's own
+ *           `createdAt` would be the day somebody sat down to organise it.
+ *   upload  only for a picture in no album and of no race. Then the upload is
+ *           genuinely the only timestamp anybody ever recorded.
+ *
+ * MEASURED, not reasoned: on the seeded corpus every one of 420 media rows had
+ * a `createdAt` inside a single month — the import — while the twenty albums
+ * carried real `eventDate`s spread across two years. Filing by `createdAt`
+ * first would have produced one row reading "2026年9月 · 420 張".
  */
-export function albumDay(gallery: Pick<SiteGallery, "created" | "eventDate">): string {
-  return (gallery.eventDate ?? gallery.created).slice(0, 10);
+export function resolveMediaDay(sources: {
+  /** The race edition's day, when this picture is of a race. */
+  raceDay?: string;
+  /** The album's `eventDate` (never its `createdAt`), when it is in one. */
+  albumDay?: string;
+  /** The media row's own `createdAt`. Always present. */
+  uploadedAt: string;
+}): { day: string; source: DaySource } {
+  if (sources.raceDay) return { day: sources.raceDay.slice(0, 10), source: "race" };
+  if (sources.albumDay) return { day: sources.albumDay.slice(0, 10), source: "album" };
+  return { day: sources.uploadedAt.slice(0, 10), source: "upload" };
 }
+
+/** An album, only as much of it as a rail names. */
+export type TimelineAlbumRef = { slug: string; name: string };
+
+/** One picture or clip, dated and assigned. */
+export type TimelineMedia = {
+  mediaId: number;
+  kind: "photo" | "video";
+  /** Photos only — a video has no reliable still, so it is counted, not shown. */
+  image?: SiteImage;
+  day: string;
+  daySource: DaySource;
+  /** Its own tag, or the one it inherits from its album. */
+  raceEditionId?: number;
+  album?: TimelineAlbumRef;
+};
 
 /** "2025-04-25" → "2025-04". */
 export function monthKeyOf(day: string): string {
   return day.slice(0, 7);
-}
-
-export function toTimelineAlbum(gallery: SiteGallery): TimelineAlbum {
-  const photos = photosOf(gallery.items);
-  return {
-    slug: gallery.slug,
-    name: gallery.name,
-    day: albumDay(gallery),
-    photoCount: photos.length,
-    videoCount: videosOf(gallery.items).length,
-    raceEditionId: albumRaceEditionId(gallery),
-    // The cover first when there is one, because a curator chose it; then the
-    // album's own order, which is also a curator's. Deduped by `src` so a
-    // cover that is also the first item does not appear twice.
-    thumbnails: dedupeBySrc([
-      ...(gallery.cover ? [gallery.cover] : []),
-      ...photos.map((photo) => ({
-        src: photo.src,
-        width: photo.width,
-        height: photo.height,
-        blurDataURL: photo.blurDataURL,
-      })),
-    ]).slice(0, THUMBNAIL_CAP),
-  };
-}
-
-function dedupeBySrc(images: SiteImage[]): SiteImage[] {
-  const seen = new Set<string>();
-  const out: SiteImage[] = [];
-  for (const image of images) {
-    if (seen.has(image.src)) continue;
-    seen.add(image.src);
-    out.push(image);
-  }
-  return out;
-}
-
-export type AlbumMonth = {
-  /** "YYYY-MM". */
-  month: string;
-  year: number;
-  /** The latest album day in the month — where the bucket sits among that month's rows. */
-  day: string;
-  albums: TimelineAlbum[];
-  photoCount: number;
-  videoCount: number;
-};
-
-/**
- * Albums with no race, merged one row per month.
- *
- * ONE ROW PER MONTH, BUT THE NAMES SURVIVE. "以月為單位合併" is the rule; a
- * bucket that only said "2025年4月 · 51 張" would throw away "Panorama ridge
- * night run", which is a thing a person wrote. So the row is per month and the
- * albums inside it keep their names and their links.
- *
- * The bucket's `day` is the newest album in it, not the first of the month:
- * the rails sort by day within a year, and a bucket claiming the 1st would sit
- * below races that happened before its own albums did.
- *
- * Albums inside a bucket are newest first, matching every other list on the
- * site; `slug` breaks ties so the order is total and two renders agree.
- */
-export function bucketAlbumsByMonth(albums: TimelineAlbum[]): AlbumMonth[] {
-  const byMonth = new Map<string, TimelineAlbum[]>();
-  for (const album of albums) {
-    const month = monthKeyOf(album.day);
-    const list = byMonth.get(month) ?? [];
-    list.push(album);
-    byMonth.set(month, list);
-  }
-
-  const months: AlbumMonth[] = [];
-  for (const [month, list] of byMonth) {
-    list.sort((a, b) => (a.day === b.day ? a.slug.localeCompare(b.slug) : a.day < b.day ? 1 : -1));
-    months.push({
-      month,
-      year: Number(month.slice(0, 4)),
-      day: list.reduce((latest, album) => (album.day > latest ? album.day : latest), list[0].day),
-      albums: list,
-      photoCount: list.reduce((n, album) => n + album.photoCount, 0),
-      videoCount: list.reduce((n, album) => n + album.videoCount, 0),
-    });
-  }
-  return months;
 }
 
 /** "2025-04" → "2025年4月". String surgery, never a `Date` — see the header. */
@@ -157,35 +90,139 @@ export function formatMonth(month: string): string {
   return `${year}年${Number(m)}月`;
 }
 
+export type MediaMonth = {
+  /** "YYYY-MM". */
+  month: string;
+  year: number;
+  /** The newest picture in the month — where the bucket sits among that month's rows. */
+  day: string;
+  photoCount: number;
+  videoCount: number;
+  /** The albums these pictures came from, newest first, deduped. Loose media name none. */
+  albums: TimelineAlbumRef[];
+  thumbnails: SiteImage[];
+};
+
 /**
- * Split albums into the ones a race row can claim and the ones that cannot.
+ * Pictures of no race, merged one row per month.
+ *
+ * ONE ROW PER MONTH, BUT THE NAMES SURVIVE. "以月為單位合併" is the rule; a
+ * bucket that only said "2025年4月 · 51 張" would throw away "Panorama ridge
+ * night run", which is a thing a person wrote. So the row is per month and the
+ * albums inside it keep their names and their links. A picture in no album
+ * contributes no name, which is correct — there is none.
+ *
+ * The bucket's `day` is its newest picture, not the first of the month: the
+ * rails sort by day within a year, and a bucket claiming the 1st would sit
+ * below races that happened before its own pictures did.
+ */
+export function groupMediaByMonth(media: TimelineMedia[]): MediaMonth[] {
+  const byMonth = new Map<string, TimelineMedia[]>();
+  for (const item of media) {
+    const month = monthKeyOf(item.day);
+    const list = byMonth.get(month) ?? [];
+    list.push(item);
+    byMonth.set(month, list);
+  }
+
+  const months: MediaMonth[] = [];
+  for (const [month, list] of byMonth) {
+    // Newest first, `mediaId` breaking ties so the order is total and two
+    // renders of the same data agree — which is what the rails' cursor needs.
+    list.sort((a, b) => (a.day === b.day ? a.mediaId - b.mediaId : a.day < b.day ? 1 : -1));
+
+    const albums: TimelineAlbumRef[] = [];
+    const seenAlbum = new Set<string>();
+    const thumbnails: SiteImage[] = [];
+    const seenSrc = new Set<string>();
+    let photoCount = 0;
+    let videoCount = 0;
+
+    for (const item of list) {
+      if (item.kind === "photo") photoCount += 1;
+      else videoCount += 1;
+
+      if (item.album && !seenAlbum.has(item.album.slug)) {
+        seenAlbum.add(item.album.slug);
+        albums.push(item.album);
+      }
+      if (item.image && thumbnails.length < THUMBNAIL_CAP && !seenSrc.has(item.image.src)) {
+        seenSrc.add(item.image.src);
+        thumbnails.push(item.image);
+      }
+    }
+
+    months.push({
+      month,
+      year: Number(month.slice(0, 4)),
+      day: list[0].day,
+      photoCount,
+      videoCount,
+      albums,
+      thumbnails,
+    });
+  }
+  return months;
+}
+
+export type RaceMedia = {
+  photoCount: number;
+  videoCount: number;
+  albums: TimelineAlbumRef[];
+  thumbnails: SiteImage[];
+};
+
+/**
+ * Split pictures into the ones a race row can claim and the ones that cannot.
  *
  * `editionIds` is the set of editions the rail actually draws a race row for.
- * An album tagged to a race **nobody logged** has no row to sit on, so it
- * falls into its month instead — which is true rather than inventing a race
- * row for it. The alternative, a row with a badge and no runners, would say
- * the club ran a race it has no record of.
+ * A picture of a race **nobody logged** has no row to sit on, so it falls into
+ * its month instead — carrying the race's date, which is still the truest
+ * thing known about it. Inventing a race row for it would say the club ran a
+ * race it has no record of.
  */
-export function splitAlbumsByRace(
-  albums: TimelineAlbum[],
+export function splitMediaByRace(
+  media: TimelineMedia[],
   editionIds: Set<number>,
-): { attached: Map<number, TimelineAlbum[]>; loose: TimelineAlbum[] } {
-  const attached = new Map<number, TimelineAlbum[]>();
-  const loose: TimelineAlbum[] = [];
+): { byEdition: Map<number, RaceMedia>; loose: TimelineMedia[] } {
+  const grouped = new Map<number, TimelineMedia[]>();
+  const loose: TimelineMedia[] = [];
 
-  for (const album of albums) {
-    const id = album.raceEditionId;
+  for (const item of media) {
+    const id = item.raceEditionId;
     if (id === undefined || !editionIds.has(id)) {
-      loose.push(album);
+      loose.push(item);
       continue;
     }
-    const list = attached.get(id) ?? [];
-    list.push(album);
-    attached.set(id, list);
+    const list = grouped.get(id) ?? [];
+    list.push(item);
+    grouped.set(id, list);
   }
 
-  for (const list of attached.values()) {
-    list.sort((a, b) => (a.day === b.day ? a.slug.localeCompare(b.slug) : a.day < b.day ? 1 : -1));
+  const byEdition = new Map<number, RaceMedia>();
+  for (const [id, list] of grouped) {
+    list.sort((a, b) => a.mediaId - b.mediaId);
+    const albums: TimelineAlbumRef[] = [];
+    const seenAlbum = new Set<string>();
+    const thumbnails: SiteImage[] = [];
+    const seenSrc = new Set<string>();
+    let photoCount = 0;
+    let videoCount = 0;
+
+    for (const item of list) {
+      if (item.kind === "photo") photoCount += 1;
+      else videoCount += 1;
+      if (item.album && !seenAlbum.has(item.album.slug)) {
+        seenAlbum.add(item.album.slug);
+        albums.push(item.album);
+      }
+      if (item.image && thumbnails.length < THUMBNAIL_CAP && !seenSrc.has(item.image.src)) {
+        seenSrc.add(item.image.src);
+        thumbnails.push(item.image);
+      }
+    }
+    byEdition.set(id, { photoCount, videoCount, albums, thumbnails });
   }
-  return { attached, loose };
+
+  return { byEdition, loose };
 }
