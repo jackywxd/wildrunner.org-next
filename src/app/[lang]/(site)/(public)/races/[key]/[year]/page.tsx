@@ -9,7 +9,7 @@ import {
   getRaceEditionVideos,
 } from "@/lib/content";
 import { externalHref } from "@/lib/races/registration";
-import { GalleryVideos } from "@/app/(site)/(public)/gallery/_components/GalleryVideos";
+import { GalleryVideos } from "@/app/[lang]/(site)/(public)/gallery/_components/GalleryVideos";
 import { raceGallerySlug } from "@/lib/race-gallery";
 import { pageMetadata } from "@/lib/site-metadata";
 

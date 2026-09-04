@@ -95,7 +95,7 @@ export const Galleries: CollectionConfig = {
      * `validateRaceCatalogueRef`.
      *
      * ADMIN-ONLY, like `musicUrl` above and for the same reason: nothing under
-     * `src/app/(site)/members` edits `galleries`, so the control is the one
+     * `src/app/[lang]/(site)/members` edits `galleries`, so the control is the one
      * Payload generates and there is no second screen for it to drift from.
      */
     {
@@ -131,7 +131,7 @@ export const Galleries: CollectionConfig = {
      * nothing.
      *
      * ADMIN-ONLY BY CONSTRUCTION. There is no member-facing album editor
-     * (nothing under src/app/(site)/members touches `galleries`), so this
+     * (nothing under src/app/[lang]/(site)/members touches `galleries`), so this
      * control is the one Payload generates from this field and there is no
      * second screen for it to drift from. `scripts/assert-schema-screen.mjs`
      * covers member-facing forms only, and correctly does not reach here.

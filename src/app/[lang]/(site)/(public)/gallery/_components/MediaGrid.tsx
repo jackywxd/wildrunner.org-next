@@ -41,7 +41,7 @@ import {
 import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
-import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
+import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
 
 /**
  * One grid for everything a gallery holds, in one order.

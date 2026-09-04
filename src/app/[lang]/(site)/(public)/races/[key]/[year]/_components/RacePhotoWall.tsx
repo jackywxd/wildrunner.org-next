@@ -14,7 +14,7 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 import PhotoAlbum from "react-photo-album";
 import type { SiteRaceEditionPhoto } from "@/lib/content-types";
-import { NextJsImage } from "@/app/(site)/(public)/gallery/_components/NextJsImage";
+import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
 
 /**
  * One race's photo wall — /gallery/[slug]'s masonry-plus-lightbox pattern

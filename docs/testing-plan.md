@@ -44,7 +44,7 @@ journey test exists for an entry here, or it does not exist.
 
 Derived from the routes that actually exist, not from imagination — the first
 draft of this list omitted `/about` (live, 200 on staging) and had no position
-on `src/app/(site)/design-preview/*`. Those five routes answer 404 on both
+on `src/app/[lang]/(site)/design-preview/*`. Those five routes answer 404 on both
 staging and production, so they are a development surface and get no tests;
 if they ever start resolving, that is a finding, not a feature.
 

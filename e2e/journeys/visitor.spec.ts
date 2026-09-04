@@ -180,7 +180,7 @@ test.describe("V what a visitor can do", () => {
     // THE CHROME IS THE POINT OF THE SECOND BOUNDARY. A not-found caught at
     // the app root replaces the header and footer along with the page, which
     // leaves a visitor on a dead end with only the links the 404 draws
-    // itself. `(site)/(public)/not-found.tsx` exists to catch a public
+    // itself. `[lang]/(site)/(public)/not-found.tsx` exists to catch a public
     // route's miss one level lower; delete it and this line is what says so.
     await expect(page.getByTestId("header-login-link")).toBeVisible();
 

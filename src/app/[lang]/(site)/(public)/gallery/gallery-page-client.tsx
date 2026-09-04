@@ -11,8 +11,8 @@ import type {
   WallCursor,
 } from "@/lib/media/gallery-index";
 import SwiperLightbox from "@/components/swiper/SwiperLightbox";
-import { MediaGrid } from "@/app/(site)/(public)/gallery/_components/MediaGrid";
-import { AlbumCards } from "@/app/(site)/(public)/gallery/_components/AlbumCards";
+import { MediaGrid } from "@/app/[lang]/(site)/(public)/gallery/_components/MediaGrid";
+import { AlbumCards } from "@/app/[lang]/(site)/(public)/gallery/_components/AlbumCards";
 import { FilterChip, FilterSelect } from "@/components/media/filters";
 
 /**

@@ -7,6 +7,7 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
 import { getSiteBaseURL, siteConfig } from "@/config/site";
+import { LOCALES, localeTag } from "@/lib/i18n/locales";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -44,15 +45,33 @@ export const metadata: Metadata = {
 };
 
 const fontCode = localFont({
-  src: "../../assets/fonts/GeistMonoVF.woff2",
+  // Three levels, not two: this file sits under `[lang]/(site)/` now.
+  src: "../../../assets/fonts/GeistMonoVF.woff2",
   variable: "--font-code",
 });
 
-export default function SiteLayout({
+/**
+ * The languages this layout is the root of.
+ *
+ * One entry today. It is here rather than left implicit because a root
+ * parameter with no `generateStaticParams` is a route Next cannot enumerate,
+ * and `LOCALES` is the single list every other part of the three-language
+ * work reads — the segment, the `<html lang>` tag and, later, `hreflang` all
+ * come from it, so they cannot drift apart.
+ */
+export function generateStaticParams() {
+  return LOCALES.map(({ segment }) => ({ lang: segment }));
+}
+
+export default async function SiteLayout({
   children,
+  params,
 }: Readonly<{
   children: ReactNode;
+  params: Promise<{ lang: string }>;
 }>) {
+  const { lang } = await params;
+
   return (
     <html
       // The site is written in Traditional Chinese and said it was English.
@@ -70,7 +89,14 @@ export default function SiteLayout({
       // Payload's own `RootLayout` renders `<html lang={languageCode}>` for
       // it (see src/app/(payload)/layout.tsx, where a hand-written wrapper
       // that pinned it to "en" once broke hydration on every admin page).
-      lang="zh-Hant"
+      //
+      // It comes from the route now rather than from this line. `localeTag`
+      // maps the URL segment people type (`zh-hant`) to the tag a browser
+      // reads (`zh-Hant`), and answers `zh-Hant` for anything it does not
+      // recognise — a request for a language this site is not published in
+      // is refused by `proxy.ts` before it reaches here, so the fallback is
+      // a belt rather than a decision.
+      lang={localeTag(lang)}
       suppressHydrationWarning
       /*
         The next/font variable classes belong here, not on <body>.
