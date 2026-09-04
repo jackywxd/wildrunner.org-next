@@ -6,6 +6,7 @@ import {
   registrationState,
 } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * The registration state of one race, plus the link to act on it.
@@ -26,7 +27,7 @@ const TONE_CLASS = {
   strong: "border-primary bg-primary text-primary-foreground font-semibold",
 } as const;
 
-export function RegistrationStatus({
+export async function RegistrationStatus({
   className,
   entry,
   now,
@@ -35,6 +36,7 @@ export function RegistrationStatus({
   entry: SiteRaceScheduleEntry;
   now: Date;
 }) {
+  const t = await getDictionary();
   const state = registrationState(entry, now);
   const label = registrationLabel(state);
 
@@ -76,7 +78,7 @@ export function RegistrationStatus({
           rel="noopener noreferrer"
           target="_blank"
         >
-          前往報名 →
+          {t.raceSchedule.register}
         </a>
       )}
     </div>

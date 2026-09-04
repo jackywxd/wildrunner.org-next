@@ -15,6 +15,7 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 import PhotoAlbum from "react-photo-album";
 import type { SiteRaceEditionPhoto } from "@/lib/content-types";
 import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * One race's photo wall — /gallery/[slug]'s masonry-plus-lightbox pattern
@@ -27,6 +28,7 @@ import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/Ne
  * is.
  */
 export function RacePhotoWall({ photos }: { photos: SiteRaceEditionPhoto[] }) {
+  const t = useDictionary();
   const [index, setIndex] = useState(-1);
 
   const slides: Slide[] = useMemo(
@@ -60,7 +62,7 @@ export function RacePhotoWall({ photos }: { photos: SiteRaceEditionPhoto[] }) {
         className="text-sm text-muted-foreground"
         data-testid="race-photo-wall-empty"
       >
-        還沒有這場比賽的照片。
+        {t.raceEdition.noPhotos}
       </p>
     );
   }

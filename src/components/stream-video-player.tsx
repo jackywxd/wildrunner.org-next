@@ -4,6 +4,7 @@ import type { CSSProperties, RefObject } from "react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";
 import { streamIframeSrc } from "@/lib/stream";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 type StreamVideoPlayerProps = {
   video: SiteVideo;
@@ -52,6 +53,7 @@ export function StreamVideoPlayer({
   style,
   videoRef,
 }: StreamVideoPlayerProps) {
+  const t = useDictionary();
   const streamSrc = streamIframeSrc(video.streamId);
   const label = mediaDisplayName(video);
   const sizing = compact
@@ -108,7 +110,7 @@ export function StreamVideoPlayer({
       data-testid="stream-processing"
       style={style}
     >
-      影片正在轉檔，請稍後再試。
+      {t.video.transcoding}
     </div>
   );
 }
