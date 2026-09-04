@@ -131,5 +131,33 @@
     "usageGallery": "相片牆",
     "usagePrivate": "不公開",
     "usageAttachment": "文章附件"
+  },
+  "riderTimeline": {
+    "raceCount": "{count} 場比賽",
+    "postCount": "{count} 篇文章",
+    "year": "{year} 年",
+    "raceReport": "賽記 · ",
+    "empty": "還沒有比賽紀錄或文章。"
+  },
+  "raceEdition": {
+    "subtitle": "{name} {year} 的賽事資訊與相片牆。",
+    "officialSite": "官方網站 →",
+    "photoWall": "相片牆",
+    "photoWallHint": "會員上傳時標記這場比賽，就會出現在這裡。"
+  },
+  "lightbox": {
+    "close": "關閉 (Esc)",
+    "zoom": "放大 (單擊圖片)",
+    "prev": "上一張 (左方向鍵)",
+    "next": "下一張 (右方向鍵)",
+    "error": "發生錯誤：無法載入圖片",
+    "info": "顯示照片資訊"
+  },
+  "raceFilters": {
+    "list": "列表",
+    "calendar": "月曆",
+    "remind": "預約提醒",
+    "allSeries": "全部系列",
+    "openOnly": "只看報名中"
   }
 }

@@ -19,6 +19,7 @@ import { WeChatThumb } from "@/components/share/WeChatThumb";
 import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
 import type { ShareSubject } from "@/lib/share/share-text";
 import { siteConfig } from "@/config/site";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ async function loadEdition(params: RaceEditionPageProps["params"]) {
 export async function generateMetadata({
   params,
 }: RaceEditionPageProps): Promise<Metadata> {
+  const t = await getDictionary();
   const edition = await loadEdition(params);
   if (!edition) return {};
 
@@ -48,7 +50,9 @@ export async function generateMetadata({
   return pageMetadata({
     path: `/races/${edition.eventKey}/${edition.year}`,
     title: `${edition.nameZh || edition.name} ${edition.year}`,
-    subtitle: `${edition.nameZh || edition.name} ${edition.year} 的賽事資訊與相片牆。`,
+    subtitle: t.raceEdition.subtitle
+      .replace("{name}", edition.nameZh || edition.name)
+      .replace("{year}", String(edition.year)),
     // Seeded on the event key, not on the edition: it is the same race every
     // year, and `races/design-tokens.ts` hashes that same key for the badge
     // drawn on this very page. The card and the badge therefore agree, which
@@ -60,22 +64,28 @@ export async function generateMetadata({
 }
 
 /** "2026-08-28" -> "8月28日". */
-function formatDay(date: string): string {
+function formatDay(date: string, monthDay: string): string {
   const [, month, day] = date.split("-");
-  return `${Number(month)}月${Number(day)}日`;
+  return monthDay.replace("{month}", String(Number(month))).replace("{day}", String(Number(day)));
 }
 
-function formatRange(startDate?: string, endDate?: string): string | undefined {
+function formatRange(
+  startDate: string | undefined,
+  endDate: string | undefined,
+  monthDay: string,
+  dayOnly: string,
+): string | undefined {
   if (!startDate) return undefined;
-  if (!endDate || endDate === startDate) return formatDay(startDate);
+  if (!endDate || endDate === startDate) return formatDay(startDate, monthDay);
   const sameMonth = endDate.slice(0, 7) === startDate.slice(0, 7);
   const end = sameMonth
-    ? `${Number(endDate.slice(8, 10))}日`
-    : formatDay(endDate);
-  return `${formatDay(startDate)}–${end}`;
+    ? dayOnly.replace("{day}", String(Number(endDate.slice(8, 10))))
+    : formatDay(endDate, monthDay);
+  return `${formatDay(startDate, monthDay)}–${end}`;
 }
 
 export default async function RaceEditionPage({ params }: RaceEditionPageProps) {
+  const t = await getDictionary();
   const edition = await loadEdition(params);
   if (!edition) notFound();
 
@@ -83,7 +93,12 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
     getRaceEditionPhotos(edition.id),
     getRaceEditionVideos(edition.id),
   ]);
-  const range = formatRange(edition.startDate, edition.endDate);
+  const range = formatRange(
+    edition.startDate,
+    edition.endDate,
+    t.raceSchedule.monthDay,
+    t.raceSchedule.dayOnly,
+  );
   const place = [edition.location, edition.country].filter(Boolean).join(" · ");
   const site = externalHref(edition.url);
 
@@ -141,15 +156,15 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
           rel="noopener noreferrer"
           target="_blank"
         >
-          官方網站 →
+          {t.raceEdition.officialSite}
         </a>
       )}
 
       <hr className="my-8 h-0 border-t-2 border-border" />
 
-      <h2 className="font-heading text-lg font-semibold">相片牆</h2>
+      <h2 className="font-heading text-lg font-semibold">{t.raceEdition.photoWall}</h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        會員上傳時標記這場比賽，就會出現在這裡。
+        {t.raceEdition.photoWallHint}
       </p>
 
       {videos.length > 0 && (
