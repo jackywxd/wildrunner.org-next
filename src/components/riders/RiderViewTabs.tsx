@@ -22,7 +22,7 @@ export function RiderViewTabs({
 }) {
   const tabs = [
     { href: `/riders/${slug}`, label: "文章", view: "posts" as const },
-    { href: `/riders/${slug}/timeline`, label: "時間機", view: "timeline" as const },
+    { href: `/riders/${slug}/timeline`, label: "穿越時光", view: "timeline" as const },
   ];
 
   return (

@@ -31,7 +31,7 @@ import { formatMonthDay } from "@/lib/riders/timeline";
 import { cn } from "@/lib/utils";
 
 /**
- * 全員時間機 — the club's races and articles on one rail, newest first.
+ * 全員穿越時光 — the club's races and articles on one rail, newest first.
  *
  * A CLIENT COMPONENT ALL THE WAY DOWN, unlike the per-member timeline, and
  * the infinite scroll is why. A row that arrives from `/api/riders/timeline`

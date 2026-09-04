@@ -21,12 +21,12 @@ export async function generateMetadata({ params }: Params) {
     // 「的」 binds directly to the name: the half-width space that used to sit
     // in front of it came from string interpolation, not from typography.
     path: `/riders/${rider.slug}/timeline`,
-    title: `${rider.name}的時間機`,
+    title: `${rider.name}的穿越時光`,
     subtitle: `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`,
     type: "profile",
     // A MEMBER IS SOMETHING, so they get their own colours rather than the
     // site's furniture card. Seeded on the slug, which means their profile and
-    // their 時間機 carry the same card — the subject of both pages is them.
+    // their 穿越時光 carry the same card — the subject of both pages is them.
     //
     // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
     // is a small square and a card is 1920×1080, so using it as the image
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Params) {
 }
 
 /**
- * 時間機 — the member's own history, races and articles on one rail.
+ * 穿越時光 — the member's own history, races and articles on one rail.
  *
  * ITS OWN ROUTE RATHER THAN A THIRD BLOCK ON THE PROFILE. The timeline
  * contains every article the profile's grid already shows, so the two cannot
@@ -69,7 +69,7 @@ export default async function RiderTimelinePage({ params }: Params) {
             className="font-heading text-3xl font-extrabold tracking-tight lg:text-4xl"
             data-testid="rider-name"
           >
-            {rider.name} 的時間機
+            {rider.name} 的穿越時光
           </h1>
           <div className="mt-3">
             <RiderViewTabs active="timeline" slug={rider.slug} />

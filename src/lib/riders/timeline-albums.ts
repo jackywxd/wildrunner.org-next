@@ -1,5 +1,5 @@
 /**
- * Where a picture sits on 時間機, and what date it sits at.
+ * Where a picture sits on 穿越時光, and what date it sits at.
  *
  * THE UNIT IS ONE MEDIA ROW, NOT ONE ALBUM. An earlier draft placed whole
  * albums and it was wrong in a way worth recording: a general album that

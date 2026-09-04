@@ -3,7 +3,7 @@ import { budget } from "../helpers/budget";
 import { adminContext } from "../helpers/members";
 
 /**
- * V-CLUB — 野馬營時間機 (/riders/timeline), the club's whole rail.
+ * V-CLUB — 野馬營穿越時光 (/riders/timeline), the club's whole rail.
  *
  * WHAT NEEDS A BROWSER HERE IS THE PAGING, and only that. The grouping,
  * ordering and cursor arithmetic are pure and are pinned in
@@ -26,7 +26,7 @@ const open = (page: import("@playwright/test").Page, path: string) =>
 const rows = (page: import("@playwright/test").Page) =>
   page.getByTestId("club-timeline-row");
 
-test.describe("V-CLUB 野馬營時間機", () => {
+test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T1: scrolling to the end brings the next page, once each", async ({
     page,
   }) => {
@@ -63,7 +63,7 @@ test.describe("V-CLUB 野馬營時間機", () => {
   });
 
   test("V-CLUB-T3: the homepage's highlighted link opens it", async ({ page }) => {
-    // The homepage is where most people arrive, and 時間機 is its highlighted
+    // The homepage is where most people arrive, and 穿越時光 is its highlighted
     // call to action — so this is the path most visitors will take to the
     // rail, and the suite has to walk it. By clicking, not by URL: this
     // project has already shipped a bug that lived entirely in soft

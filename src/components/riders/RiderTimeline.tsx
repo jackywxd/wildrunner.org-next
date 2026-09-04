@@ -27,7 +27,7 @@ import {
 } from "@/components/riders/TimelineMotion";
 
 /**
- * 時間機 — a member's races and articles on one rail, newest first.
+ * 穿越時光 — a member's races and articles on one rail, newest first.
  *
  * A SERVER COMPONENT WRAPPING CLIENT ONES, not the other way round. The rows
  * carry badges, cover images and links, all of which resolve against the

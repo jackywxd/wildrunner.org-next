@@ -143,8 +143,8 @@ test.describe("V-SHARE 微信與小紅書", () => {
     }
   });
 
-  test("V-SHARE-T3: a race edition carries the same two things", async ({ page }) => {
-    // Through 時間機, which is where an edition page is actually linked from:
+  test("V-SHARE-T3: a race edition carries the same two things", async ({ page }, testInfo) => {
+    // Through 穿越時光, which is where an edition page is actually linked from:
     // /races lists the schedule and links out to each organiser, not inward to
     // our own edition pages. The first version of this test looked there and
     // found nothing to click.
@@ -167,5 +167,12 @@ test.describe("V-SHARE 微信與小紅書", () => {
 
     const response = await page.request.get(candidate?.src as string);
     expect(response.status()).toBe(200);
+    // Attached for the same reason T2 attaches its two: this is the badge
+    // layout, and satori draws a perfectly valid PNG whether or not the badge
+    // and the lockup actually laid out.
+    await testInfo.attach("wx-race.png", {
+      body: await response.body(),
+      contentType: "image/png",
+    });
   });
 });

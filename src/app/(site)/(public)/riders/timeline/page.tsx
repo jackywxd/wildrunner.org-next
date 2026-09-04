@@ -13,7 +13,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "野馬營時間機";
+const TITLE = "野馬營穿越時光";
 
 /**
  * The club's time machine: every member's races and articles on one rail.
