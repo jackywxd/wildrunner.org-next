@@ -25,14 +25,14 @@ const BlogIndexNav: React.FC<{ path: string; className?: string }> = ({
           )}
           keyName={"blog-index-nav-categories"}
         >
-          <Link href={`/categories`}>分类</Link>
+          <Link href={`/categories`}>分類</Link>
         </MotionDiv>
         <MotionDiv
           role="tab"
           className={cn("tab", path === "/columns" ? "tab-active text-h2" : "")}
           keyName={"blog-index-nav-columns"}
         >
-          <Link href={`/columns`}>专栏</Link>
+          <Link href={`/columns`}>專欄</Link>
         </MotionDiv>
       </div>
     </nav>

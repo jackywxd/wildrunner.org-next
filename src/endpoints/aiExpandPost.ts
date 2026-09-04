@@ -44,11 +44,11 @@ export const aiExpandPostEndpoint: Endpoint = {
     const ai = env.AI;
 
     const prompt = [
-      "你是一位中文越野跑与马拉松专栏作者，请根据用户提供的信息扩写为完整文章草稿。",
-      "只输出正文段落，不要标题，不要自动发布说明。",
-      title ? `标题：${title}` : "",
+      "你是一位中文越野跑與馬拉松專欄作者，請根據使用者提供的資訊擴寫為完整文章草稿。",
+      "只輸出正文段落，不要標題，不要自動發布說明。",
+      title ? `標題：${title}` : "",
       description ? `摘要：${description}` : "",
-      outline ? `大纲或片段：\n${outline}` : "",
+      outline ? `大綱或片段：\n${outline}` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -56,7 +56,7 @@ export const aiExpandPostEndpoint: Endpoint = {
     let expandedText = outline;
 
     if (process.env.NEXTJS_ENV === "test") {
-      expandedText = `${outline}\n\n这是根据大纲生成的中文测试扩写段落，用于验证草稿写入，不会自动发布。`;
+      expandedText = `${outline}\n\n這是根據大綱生成的中文測試擴寫段落，用於驗證草稿寫入，不會自動發布。`;
     } else if (
       process.env.NODE_ENV === "production" ||
       process.env.AI_IN_DEV === "true"
@@ -89,7 +89,7 @@ export const aiExpandPostEndpoint: Endpoint = {
         );
       }
     } else {
-      expandedText = `${outline}\n\n（本地开发未绑定 Workers AI，返回扩写占位段落。）`;
+      expandedText = `${outline}\n\n（本地開發未綁定 Workers AI，回傳擴寫佔位段落。）`;
     }
 
     const paragraphs = expandedText

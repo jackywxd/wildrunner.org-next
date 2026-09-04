@@ -72,8 +72,8 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {gallery.name}
         </h1>
         <div className="text-left text-sm text-muted-foreground">
-          {photoCount}张照片
-          {videoCount > 0 ? ` · ${videoCount}个视频` : null}
+          {photoCount}張照片
+          {videoCount > 0 ? ` · ${videoCount}個影片` : null}
         </div>
         <PhotoGallery gallery={gallery} races={races} />
       </div>

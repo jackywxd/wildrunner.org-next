@@ -108,7 +108,7 @@ export function StreamVideoPlayer({
       data-testid="stream-processing"
       style={style}
     >
-      视频正在转码，请稍后再试。
+      影片正在轉檔，請稍後再試。
     </div>
   );
 }

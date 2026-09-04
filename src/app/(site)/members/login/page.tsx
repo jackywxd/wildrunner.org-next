@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import SiteLogo from "@/components/site-logo";
@@ -118,6 +119,13 @@ export default function MemberLoginPage() {
         >
           登入
         </Button>
+        <Link
+          className="block text-sm text-primary hover:underline"
+          data-testid="member-login-forgot"
+          href="/members/forgot"
+        >
+          忘記密碼？
+        </Link>
       </form>
     </div>
   );

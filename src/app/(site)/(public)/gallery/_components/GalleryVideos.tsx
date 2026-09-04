@@ -75,7 +75,7 @@ export function GalleryVideos({
                   href={shareHref}
                   className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
                   aria-label={`分享 ${label}`}
-                  title="分享视频"
+                  title="分享影片"
                 >
                   <Share2 className="size-3.5" />
                   {!compact && <span>分享</span>}

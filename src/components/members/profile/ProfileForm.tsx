@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AvatarField } from "@/components/members/profile/AvatarField";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Input, Textarea } from "@/components/ui/input";
+import { PasswordFields } from "@/components/members/profile/PasswordFields";
 
 type Author = {
   /** The media id, never a populated document — see AvatarField. */
@@ -127,6 +128,7 @@ export function ProfileForm({
           <FieldLabel>電子郵件</FieldLabel>
           <Input data-testid="profile-email" disabled readOnly value={email} />
         </label>
+        <PasswordFields />
       </section>
 
       {/*
