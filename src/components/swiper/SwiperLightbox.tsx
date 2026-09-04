@@ -116,11 +116,11 @@ const SwiperLightbox: React.FC<{
       bgOpacity: 1,
       // bgOpacity: 0.1,
       // initialZoomLevel: 0.05,
-      closeTitle: "关闭 (Esc)",
-      zoomTitle: "放大 (单击图片)",
-      arrowPrevTitle: "上一张(左方向键)",
-      arrowNextTitle: "下一张(右方向键)",
-      errorMsg: "发生错误：无法加载图片",
+      closeTitle: "關閉 (Esc)",
+      zoomTitle: "放大 (單擊圖片)",
+      arrowPrevTitle: "上一張 (左方向鍵)",
+      arrowNextTitle: "下一張 (右方向鍵)",
+      errorMsg: "發生錯誤：無法載入圖片",
       paddingFn: (viewportSize, itemData, index) => {
         return {
           top: viewportSize.x < 768 ? 60 : 0,
@@ -170,7 +170,7 @@ const SwiperLightbox: React.FC<{
         {lightboxActive && (
           <motion.button
             data-theme="dark"
-            aria-label="显示照片信息"
+            aria-label="顯示照片資訊"
             onTap={() => {
               setShowExif(!showExif);
             }}

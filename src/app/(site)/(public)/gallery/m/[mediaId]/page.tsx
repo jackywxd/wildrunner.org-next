@@ -146,7 +146,7 @@ export default async function GalleryMediaByIdPage({
         )}
       >
         <ChevronLeft className="mr-1 size-4" />
-        相册
+        相冊
       </Link>
 
       <h1 className="!mb-0 text-4xl font-black leading-[1.12] text-foreground">

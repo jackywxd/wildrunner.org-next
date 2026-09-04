@@ -58,7 +58,7 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({
       >
         <Image
           src={src}
-          alt="封面图片"
+          alt="封面圖片"
           width={Math.max(1, Math.round(displayedWidth || width))}
           height={Math.max(1, Math.round(displayedHeight || height))}
           sizes={sizes}
