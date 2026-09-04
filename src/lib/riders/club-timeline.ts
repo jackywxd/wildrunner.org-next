@@ -24,6 +24,13 @@
 
 import type { SiteImage, SitePost, SiteRaceRecord } from "@/lib/content-types";
 import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
+import {
+  groupMediaByMonth,
+  splitMediaByRace,
+  type MediaMonth,
+  type RaceMedia,
+  type TimelineMedia,
+} from "@/lib/riders/timeline-albums";
 import { sortDayFor } from "@/lib/riders/timeline";
 import type { RaceEditionFacts } from "@/lib/riders/timeline";
 
@@ -65,9 +72,19 @@ export type ClubTimelineRow = {
   race?: {
     eventId: string;
     distanceId: string;
+    /**
+     * The edition this race ran — how a picture tagged to it finds this row.
+     * A photo carries an edition and no distance, which is why the pictures
+     * land on only one of an edition's rows; see `attachMediaToRaces`.
+     */
+    editionId?: number;
     /** Everyone who logged it, by name. Never empty on a race row. */
     runners: ClubRunner[];
   };
+  /** The race's pictures. Only ever on a race row, and only on the first of an edition's. */
+  media?: RaceMedia;
+  /** A month of pictures of no race. A row that has this has nothing else. */
+  month?: MediaMonth;
   /**
    * A standalone article row carries exactly one. A race row carries the
    * write-ups its runners published — none, one, or several.
@@ -142,11 +159,14 @@ function raceRowKey(record: SiteRaceRecord): string {
 
 export function buildClubTimeline({
   editionFacts = new Map(),
+  media = [],
   posts,
   races,
 }: {
   /** Keyed by race-record id — the caller has already resolved the edition. */
   editionFacts?: Map<number, RaceEditionFacts>;
+  /** Every public picture, already dated by `resolveMediaDay`. */
+  media?: TimelineMedia[];
   posts: { author?: ClubRunner; post: SitePost }[];
   races: { record: SiteRaceRecord; runner: ClubRunner }[];
 }): ClubTimelineRow[] {
@@ -166,6 +186,7 @@ export function buildClubTimeline({
       // an older record may have no `edition` while a newer one does.
       if (!existing.day && facts?.startDate) existing.day = facts.startDate;
       if (!existing.sortDay) existing.sortDay = sortDayFor(record.year, facts);
+      if (existing.race.editionId === undefined) existing.race.editionId = facts?.editionId;
       if (!existing.location && facts?.location) existing.location = facts.location;
       if (!existing.race.runners.some((r) => r.slug === runner.slug)) {
         existing.race.runners.push(runner);
@@ -182,6 +203,7 @@ export function buildClubTimeline({
       race: {
         eventId: record.eventId,
         distanceId: record.distanceId,
+        editionId: facts?.editionId,
         runners: [runner],
       },
       posts: [],
@@ -229,7 +251,58 @@ export function buildClubTimeline({
     row.race?.runners.sort((a, b) => a.name.localeCompare(b.name));
     row.posts.sort((a, b) => (a.day && b.day && a.day !== b.day ? (a.day < b.day ? 1 : -1) : a.id - b.id));
   }
-  return list.sort(clubRowOrder);
+
+  // Pictures of a race the rail actually draws go onto that race; everything
+  // else becomes a month of its own. `splitMediaByRace` decides which is
+  // which — see its header for why a picture of an unlogged race stays loose.
+  const drawn = new Set<number>();
+  for (const row of list) {
+    if (row.race?.editionId !== undefined) drawn.add(row.race.editionId);
+  }
+  const { byEdition, loose } = splitMediaByRace(media, drawn);
+
+  for (const month of groupMediaByMonth(loose)) {
+    list.push({
+      key: `month-${month.month}`,
+      year: month.year,
+      day: month.day,
+      sortDay: month.day,
+      month,
+      posts: [],
+    });
+  }
+
+  const ordered = list.sort(clubRowOrder);
+  attachMediaToRaces(ordered, byEdition);
+  return ordered;
+}
+
+/**
+ * Hang each edition's pictures on ONE row.
+ *
+ * An edition with two distances is two rows — the badge is (event, distance,
+ * year), so folding them would make it lie. A picture, though, is tagged to
+ * the edition and knows nothing about distance, so both rows have an equal
+ * claim on it. Drawing the same strip twice on one day reads as two different
+ * sets of photographs; drawing it on the first row and linking from the rest
+ * would be a second thing to explain. So: the first row of that edition in the
+ * rail's own order gets them, and the rest are unchanged.
+ *
+ * Runs after the sort, because "first" means first as rendered.
+ */
+function attachMediaToRaces(
+  ordered: ClubTimelineRow[],
+  byEdition: Map<number, RaceMedia>,
+): void {
+  const used = new Set<number>();
+  for (const row of ordered) {
+    const id = row.race?.editionId;
+    if (id === undefined || used.has(id)) continue;
+    const media = byEdition.get(id);
+    if (!media) continue;
+    row.media = media;
+    used.add(id);
+  }
 }
 
 /**

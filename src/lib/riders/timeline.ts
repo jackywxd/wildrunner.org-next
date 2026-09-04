@@ -17,9 +17,24 @@
  */
 
 import type { SitePost, SiteRaceRecord } from "@/lib/content-types";
+import {
+  groupMediaByMonth,
+  splitMediaByRace,
+  type MediaMonth,
+  type RaceMedia,
+  type TimelineMedia,
+} from "@/lib/riders/timeline-albums";
 
 /** What the edition behind a race record adds to it: a real day, a place. */
 export type RaceEditionFacts = {
+  /**
+   * Which edition this is.
+   *
+   * Carried so a rail can match a *picture* to a race row: a photo is tagged
+   * to an edition and has no race record, while a row is built from records.
+   * Without this the two have no id in common.
+   */
+  editionId?: number;
   /** "YYYY-MM-DD". Absent when the edition row has no start date. */
   startDate?: string;
   location?: string;
@@ -74,6 +89,12 @@ export type RiderTimelineEntry = {
    */
   sortDay?: string;
   location?: string;
+  /** The edition this race ran — how a picture tagged to it finds this row. */
+  editionId?: number;
+  /** The race's pictures. Only on a race entry. */
+  media?: RaceMedia;
+  /** A month of pictures of no race. An entry with this has nothing else. */
+  month?: MediaMonth;
   post?: SitePost;
   race?: SiteRaceRecord;
 };
@@ -154,10 +175,13 @@ function byDayDescending(a: RiderTimelineEntry, b: RiderTimelineEntry): number {
  */
 export function buildRiderTimeline({
   editionFacts = new Map(),
+  media = [],
   posts,
   races,
 }: {
   editionFacts?: Map<number, RaceEditionFacts>;
+  /** This member's own pictures, already dated by `resolveMediaDay`. */
+  media?: TimelineMedia[];
   posts: SitePost[];
   races: SiteRaceRecord[];
 }): RiderTimelineYear[] {
@@ -185,6 +209,7 @@ export function buildRiderTimeline({
       day: facts?.startDate,
       sortDay: sortDayFor(race.year, facts),
       location: facts?.location,
+      editionId: facts?.editionId,
       post: reportByRecordId.get(race.id),
       race,
     });
@@ -209,9 +234,44 @@ export function buildRiderTimeline({
     });
   }
 
-  return [...byYear.entries()]
+  // The same split the club rail makes, for the same reasons: pictures of a
+  // race this member logged go onto that race, everything else becomes a month.
+  const drawn = new Set<number>();
+  for (const list of byYear.values()) {
+    for (const entry of list) {
+      if (entry.editionId !== undefined) drawn.add(entry.editionId);
+    }
+  }
+  const { byEdition, loose } = splitMediaByRace(media, drawn);
+
+  for (const month of groupMediaByMonth(loose)) {
+    push(month.year, {
+      key: `month-${month.month}`,
+      day: month.day,
+      sortDay: month.day,
+      month,
+    });
+  }
+
+  const years = [...byYear.entries()]
     .map(([year, list]) => ({ year, entries: list.sort(byDayDescending) }))
     .sort((a, b) => b.year - a.year);
+
+  // After the sort, because "the first entry of that edition" means first as
+  // rendered — see `attachMediaToRaces` in club-timeline.ts for why only one
+  // of an edition's entries gets them.
+  const used = new Set<number>();
+  for (const { entries } of years) {
+    for (const entry of entries) {
+      const id = entry.editionId;
+      if (id === undefined || used.has(id)) continue;
+      const found = byEdition.get(id);
+      if (!found) continue;
+      entry.media = found;
+      used.add(id);
+    }
+  }
+  return years;
 }
 
 /** The one-line summary above the timeline: how much there is, and since when. */

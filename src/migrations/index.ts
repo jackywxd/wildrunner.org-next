@@ -28,6 +28,7 @@ import * as migration_20260903_090000_add_race_edition_music_url from './2026090
 import * as migration_20260903_091000_add_site_background_music from './20260903_091000_add_site_background_music';
 import * as migration_20260903_120000_add_post_music_url from './20260903_120000_add_post_music_url';
 import * as migration_20260904_010000_add_site_about from './20260904_010000_add_site_about';
+import * as migration_20260904_120000_add_gallery_race_edition from './20260904_120000_add_gallery_race_edition';
 
 export const migrations = [
   {
@@ -179,5 +180,10 @@ export const migrations = [
     up: migration_20260904_010000_add_site_about.up,
     down: migration_20260904_010000_add_site_about.down,
     name: '20260904_010000_add_site_about',
+  },
+  {
+    up: migration_20260904_120000_add_gallery_race_edition.up,
+    down: migration_20260904_120000_add_gallery_race_edition.down,
+    name: '20260904_120000_add_gallery_race_edition',
   },
 ];

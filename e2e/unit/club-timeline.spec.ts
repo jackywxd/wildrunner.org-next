@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import type { SitePost, SiteRaceRecord } from "@/lib/content-types";
 import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
+import type { TimelineMedia } from "@/lib/riders/timeline-albums";
 import {
   buildClubTimeline,
   catalogueForRows,
@@ -168,6 +169,71 @@ test("U-CLUB-T8: races with no date of their own still fall in race order", asyn
   ]);
   // Position only: neither card shows a date.
   expect(rows.map((row) => row.day)).toEqual([undefined, undefined, "2023-06-01"]);
+});
+
+function picture(id: number, over: Partial<TimelineMedia> = {}): TimelineMedia {
+  return {
+    mediaId: id,
+    kind: "photo",
+    image: { src: `p${id}`, width: 1200, height: 800 },
+    day: "2024-09-28",
+    daySource: "album",
+    ...over,
+  };
+}
+
+test("U-CLUB-T9: a race's pictures land on one of its rows, not on both", async () => {
+  // One edition, two distances — two rows, because the badge is (event,
+  // distance, year). A picture is tagged to the *edition* and knows nothing
+  // about distance, so both rows have an equal claim; drawing the same strip
+  // twice on one day reads as two different sets of photographs.
+  const rows = buildClubTimeline({
+    posts: [],
+    races: [
+      { record: race(1, 2024, "whistler", "100m"), runner: ann },
+      { record: race(2, 2024, "whistler", "50k"), runner: bo },
+    ],
+    editionFacts: new Map([
+      [1, { editionId: 42, startDate: "2024-09-28" }],
+      [2, { editionId: 42, startDate: "2024-09-28" }],
+    ]),
+    media: [picture(1, { raceEditionId: 42 }), picture(2, { raceEditionId: 42 })],
+  });
+
+  const withMedia = rows.filter((row) => row.media);
+  // fixture-scoped: two rows for one edition, and exactly one of them carries
+  // the pictures.
+  expect(withMedia).toHaveLength(1);
+  expect(withMedia[0].media?.photoCount).toBe(2);
+  // The row that got them is the first as rendered, not an arbitrary one.
+  expect(withMedia[0].key).toBe(rows.find((r) => r.race?.editionId === 42)?.key);
+  // And no month row was made from them.
+  expect(rows.some((row) => row.month)).toBe(false);
+});
+
+test("U-CLUB-T10: pictures of no race become a month row in their own year", async () => {
+  const rows = buildClubTimeline({
+    posts: [{ post: post(1, "2024-11-02T00:00:00.000Z") }],
+    races: [],
+    media: [
+      picture(1, { day: "2024-06-14", album: { slug: "night-run", name: "Panorama ridge night run" } }),
+      picture(2, { day: "2024-06-02", album: { slug: "night-run", name: "Panorama ridge night run" } }),
+      // A different month, so the two must not merge.
+      picture(3, { day: "2023-08-01" }),
+    ],
+  });
+
+  const months = rows.filter((row) => row.month);
+  expect(months.map((row) => row.key)).toEqual(["month-2024-06", "month-2023-08"]);
+  // The article is November, the month row is June — newest first within 2024.
+  expect(rows.map((row) => row.key)).toEqual([
+    "post-1",
+    "month-2024-06",
+    "month-2023-08",
+  ]);
+  expect(months[0].month?.photoCount).toBe(2);
+  // The names people wrote survive the merge.
+  expect(months[0].month?.albums.map((a) => a.slug)).toEqual(["night-run"]);
 });
 
 test("U-CLUB-T6: a grouped race counts once per runner", async () => {

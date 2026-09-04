@@ -502,6 +502,10 @@ export interface Gallery {
   eventDate?: string | null;
   cover?: (number | null) | Media;
   /**
+   * Optional. Which race this album is of. Puts the album on that race’s row in 時間機 instead of in a month of its own.
+   */
+  raceEdition?: (number | null) | RaceEdition;
+  /**
    * A YouTube video link. Plays while a visitor runs this album as a slideshow; they can always mute it.
    */
   musicUrl?: string | null;
@@ -793,6 +797,7 @@ export interface GalleriesSelect<T extends boolean = true> {
   featured?: T;
   eventDate?: T;
   cover?: T;
+  raceEdition?: T;
   musicUrl?: T;
   items?:
     | T
