@@ -86,5 +86,50 @@
     "tabAlbums": "依相簿",
     "featured": "精選照片",
     "albums": "相簿"
+  },
+  "raceSchedule": {
+    "monthDay": "{month}月{day}日",
+    "dayOnly": "{day}日",
+    "inProgress": "進行中",
+    "finished": "已結束",
+    "viewPhotos": "查看相片 →",
+    "weekdays": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ],
+    "yearMonth": "{year} 年 {month} 月"
+  },
+  "riders": {
+    "title": "野馬",
+    "subtitle": "野馬營的成員們",
+    "timeline": "穿越時光 →",
+    "postCount": "{count} 篇文章",
+    "emptyAll": "還沒有成員。",
+    "emptyBadge": "還沒有成員拿到這個徽章。",
+    "emptyBadges": "沒有成員同時拿到這些徽章。"
+  },
+  "clubTimeline": {
+    "year": "{year} 年",
+    "raceReport": "賽記 · ",
+    "runnerCount": " · {count} 位成員",
+    "empty": "還沒有比賽紀錄或文章。",
+    "loaded": "已載入 {races} 場完賽 · {posts} 篇文章",
+    "more": " · 往下捲還有",
+    "printing": "整理中…",
+    "printAll": "列印全部"
+  },
+  "mediaFilters": {
+    "kindAll": "全部",
+    "kindPhoto": "相片",
+    "kindVideo": "影片",
+    "usageAll": "全部用途",
+    "usageGallery": "相片牆",
+    "usagePrivate": "不公開",
+    "usageAttachment": "文章附件"
   }
 }

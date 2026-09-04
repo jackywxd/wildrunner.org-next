@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { RaceQualifierTag } from "./RaceQualifierTag";
 import { RaceSeriesTag } from "./RaceSeriesTag";
 import { RegistrationStatus } from "./RegistrationStatus";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * One race, rendered the same way on `/races` and on the homepage teaser.
@@ -30,26 +31,30 @@ import { RegistrationStatus } from "./RegistrationStatus";
  */
 
 /** "2026-08-28" -> "8月28日". */
-function formatDay(date: string): string {
+function formatDay(date: string, template: string): string {
   const [, month, day] = date.split("-");
-  return `${Number(month)}月${Number(day)}日`;
+  return template.replace("{month}", String(Number(month))).replace("{day}", String(Number(day)));
 }
 
-function formatRange(entry: SiteRaceScheduleEntry): string {
+function formatRange(
+  entry: SiteRaceScheduleEntry,
+  monthDay: string,
+  dayOnly: string,
+): string {
   if (!entry.endDate || entry.endDate === entry.startDate) {
-    return formatDay(entry.startDate);
+    return formatDay(entry.startDate, monthDay);
   }
   // Same month reads better without repeating it: 8月28日–30日.
   const sameMonth = entry.endDate.slice(0, 7) === entry.startDate.slice(0, 7);
   const end = sameMonth
-    ? `${Number(entry.endDate.slice(8, 10))}日`
-    : formatDay(entry.endDate);
-  return `${formatDay(entry.startDate)}–${end}`;
+    ? dayOnly.replace("{day}", String(Number(entry.endDate.slice(8, 10))))
+    : formatDay(entry.endDate, monthDay);
+  return `${formatDay(entry.startDate, monthDay)}–${end}`;
 }
 
 const EMPTY_CATALOGUE: RaceCatalogueMap = new Map();
 
-export function RaceEntryRow({
+export async function RaceEntryRow({
   canWriteReport = false,
   catalogue = EMPTY_CATALOGUE,
   entry,
@@ -74,6 +79,7 @@ export function RaceEntryRow({
   entry: SiteRaceScheduleEntry;
   now: Date;
 }) {
+  const t = await getDictionary();
   const state = raceState(entry, now);
   const finished = state.kind === "finished";
   const ongoing = state.kind === "ongoing";
@@ -122,7 +128,7 @@ export function RaceEntryRow({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-heading text-sm font-semibold tabular-nums text-foreground/70">
-            {formatRange(entry)}
+            {formatRange(entry, t.raceSchedule.monthDay, t.raceSchedule.dayOnly)}
           </span>
           <RaceSeriesTag series={entry.series} />
           {/* Fixed order, not Object.keys: the tag order must not depend on
@@ -142,7 +148,7 @@ export function RaceEntryRow({
               className="border border-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-foreground"
               data-testid="race-state-tag"
             >
-              進行中
+              {t.raceSchedule.inProgress}
             </span>
           )}
           {finished && (
@@ -150,7 +156,7 @@ export function RaceEntryRow({
               className="border border-border px-1.5 py-0.5 text-[10px] leading-tight text-muted-foreground"
               data-testid="race-state-tag"
             >
-              已結束
+              {t.raceSchedule.finished}
             </span>
           )}
         </div>
@@ -196,7 +202,7 @@ export function RaceEntryRow({
             data-testid="race-photo-wall-link"
             href={`/races/${entry.eventId}/${entry.startDate.slice(0, 4)}`}
           >
-            查看相片 →
+            {t.raceSchedule.viewPhotos}
           </Link>
         )}
       </div>
