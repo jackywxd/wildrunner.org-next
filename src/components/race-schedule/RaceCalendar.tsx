@@ -8,6 +8,7 @@ import {
 import { isFinished } from "@/lib/races/race-state";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * Twelve month blocks, built from Tailwind and the pure helpers in
@@ -22,9 +23,8 @@ import { cn } from "@/lib/utils";
  * toggle is right above.
  */
 
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
-export function RaceCalendar({
+export async function RaceCalendar({
   anchor,
   entries,
   months = 12,
@@ -36,6 +36,7 @@ export function RaceCalendar({
   months?: number;
   now: Date;
 }) {
+  const t = await getDictionary();
   const byDate = entriesByDate(entries);
   const today = toDateString(now);
 
@@ -47,11 +48,11 @@ export function RaceCalendar({
         return (
           <section data-month={month.key} data-testid="race-calendar-month" key={month.key}>
             <h2 className="font-heading text-sm font-semibold tracking-wide text-foreground/70">
-              {month.year} 年 {month.month} 月
+              {t.raceSchedule.yearMonth.replace("{year}", String(month.year)).replace("{month}", String(month.month))}
             </h2>
 
             <div className="mt-3 grid grid-cols-7 border-l border-t border-border">
-              {WEEKDAYS.map((label) => (
+              {t.raceSchedule.weekdays.map((label) => (
                 <div
                   className="border-b border-r border-border bg-secondary px-1 py-1 text-center text-[11px] text-muted-foreground"
                   key={label}
