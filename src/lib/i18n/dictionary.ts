@@ -43,7 +43,6 @@ const DICTIONARIES: Record<LocaleSegment, () => Promise<Dictionary>> = {
     import("../../dictionaries/zh-Hant.json").then((m) => m.default),
   "zh-hans": () =>
     import("../../dictionaries/zh-Hans.json").then((m) => m.default),
-  en: () => import("../../dictionaries/en.json").then((m) => m.default),
 };
 
 /**

@@ -68,7 +68,14 @@ const EXEMPT = [
  * The rewrites in `next.config.ts` cannot refuse those: they only add a
  * prefix where one is missing. The layout does, and this is what says so.
  */
-const UNPUBLISHED = ["/zh-cn/gallery", "/zh-TW", "/fr", "/de/posts"];
+/**
+ * `/en` IS BACK IN THIS LIST, and that is the point of the list. The English
+ * interface shipped and was taken out again — no English content ever existed
+ * behind it — so `/en/...` must 404 like any other language this site is not
+ * published in. A removal that left the route answering would be invisible
+ * from the two languages that remain.
+ */
+const UNPUBLISHED = ["/en", "/en/posts", "/zh-cn/gallery", "/zh-TW", "/fr", "/de/posts"];
 
 const htmlLang = (body: string) =>
   body.match(/<html[^>]*\blang="([^"]*)"/)?.[1] ?? null;
