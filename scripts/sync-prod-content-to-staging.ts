@@ -300,7 +300,37 @@ async function main() {
   process.exit(0)
 }
 
+/**
+ * Every message a Payload `ValidationError` is carrying.
+ *
+ * WHY THIS EXISTS. `console.error` on a ValidationError prints
+ * `data: { errors: [ [Object], [Object], [Object], [Object] ] }` — Node's
+ * default inspect depth stops exactly one level above the only part that
+ * says what was wrong. A run against production on 2026-09-05 failed with
+ * four content errors on `post-1788195110040` and the log could not say
+ * which of `guardPostContent`'s two refusals had fired, and those two have
+ * different fixes: a populated upload `value` is this script's bug, a
+ * `pending` key is a defect in the stored document.
+ *
+ * The same lesson `scripts/import-race-qualifiers.ts` already carries about
+ * its own failure line: a message that hides the complaint costs a whole
+ * round trip to a deployed environment to recover.
+ */
+function validationMessages(error: unknown): string[] {
+  const errors = (error as { data?: { errors?: unknown } } | undefined)?.data?.errors
+  if (!Array.isArray(errors)) return []
+  return errors.map((entry, index) => {
+    const { path, message } = (entry ?? {}) as { path?: unknown; message?: unknown }
+    return `  [${index}] ${String(path ?? '?')}: ${String(message ?? JSON.stringify(entry))}`
+  })
+}
+
 main().catch((error) => {
   console.error(error)
+  const details = validationMessages(error)
+  if (details.length > 0) {
+    console.error(`\n${details.length} validation error(s):`)
+    for (const line of details) console.error(line)
+  }
   process.exit(1)
 })
