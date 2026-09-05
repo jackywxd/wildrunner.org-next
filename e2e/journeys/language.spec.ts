@@ -29,14 +29,19 @@ test.describe("V-LANG a reader changes language", () => {
 
     const start = "/riders/timeline";
     await page.goto(start, { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("language-switcher").first()).toBeVisible();
+    const switcher = page.getByTestId("language-switcher").first();
+    await expect(switcher).toBeVisible();
 
-    for (const { segment, tag } of LOCALES) {
-      await page
-        .getByTestId("language-switcher")
-        .first()
-        .getByTestId(`language-${segment}`)
-        .click();
+    for (const { segment, tag, short } of LOCALES) {
+      // The menu has to be opened first — and that is the point of the extra
+      // step, not an inconvenience of it: the control is a `<details>` so
+      // that the choices stay real links, which a `<select>` cannot hold.
+      await switcher.getByTestId("language-switcher-toggle").click();
+      await expect(
+        switcher.getByTestId(`language-${segment}`),
+        `${segment} is not offered once the menu is open`,
+      ).toBeVisible();
+      await switcher.getByTestId(`language-${segment}`).click();
 
       // The address the reader ends on — not a redirect to it, and not the
       // home page. `localizedPath` is the one place that decides the default
@@ -51,18 +56,30 @@ test.describe("V-LANG a reader changes language", () => {
         `switching to ${segment} left the document in another language`,
       ).toHaveAttribute("lang", tag);
 
-      // And the switcher says which of the three you are reading. This is
+      // And the switcher says which of the two you are reading. This is
       // the half a reader who landed on the wrong language needs, and it is
       // `"page"` rather than `"true"` on purpose — `RF-T3` asserts page-wide
       // that nothing carries `aria-current="true"`, which is this site's mark
       // for a selected filter chip.
       await expect(
-        page
-          .getByTestId("language-switcher")
-          .first()
-          .locator('[aria-current="page"]'),
+        switcher.locator('[aria-current="page"]'),
         `the switcher does not mark ${segment} as the language being read`,
       ).toHaveAttribute("data-testid", `language-${segment}`);
+
+      // Closed again, and saying which language this is without being opened.
+      // That second half is what a reader who landed on the wrong language
+      // needs, and a menu that hides the answer behind a click would have
+      // taken it away — which is why the trigger, not only the panel, carries
+      // it. `toHaveText` and not `toContainText`: the trigger holds two icons
+      // and this one string, so an accidental extra label would show up here.
+      await expect(
+        switcher.getByTestId("language-switcher-toggle"),
+        `the trigger does not say the reader is in ${segment}`,
+      ).toHaveText(short);
+      await expect(
+        switcher.getByTestId(`language-${segment}`),
+        "the menu is still hanging open over the page it navigated to",
+      ).not.toBeVisible();
     }
   });
 

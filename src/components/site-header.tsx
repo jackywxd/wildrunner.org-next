@@ -52,7 +52,7 @@ export default function SiteHeader({
               <span className="hidden sm:inline">{t.nav.signIn}</span>
             </Link>
           )}
-          <LanguageSwitcher className="hidden sm:flex" />
+          <LanguageSwitcher className="hidden sm:block" />
           <ThemeToggle />
           <Button
             variant="ghost"

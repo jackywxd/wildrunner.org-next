@@ -220,6 +220,9 @@
     "toLight": "切換為淺色模式",
     "toDark": "切換為深色模式"
   },
+  "language": {
+    "choose": "選擇語言"
+  },
   "common": {
     "print": "列印",
     "printPdf": "列印 / PDF",
