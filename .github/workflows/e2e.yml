@@ -271,34 +271,12 @@ jobs:
               'scripts/import-race-qualifiers.ts',
               'pnpm-lock.yaml'
             ) }}
-      - name: Apply local D1 migrations
-        if: steps.fixture.outputs.cache-hit != 'true'
-        env:
-          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
-          CI: "true"
-        run: |
-          if [ -z "$PAYLOAD_SECRET" ]; then
-            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
-          fi
-          pnpm payload migrate
-      # A migrated database is an empty one, and the journeys are about a
-      # visitor reading things. Without this, `V1` (article), `V2` (gallery)
-      # and `V6` (rider) found nothing to click and *skipped*, while `V4/V5`
-      # failed on an empty race calendar — four of six journeys reporting
-      # something other than whether the site works, under a run that would
-      # otherwise have gone green.
-      #
-      # Both scripts are the documented local-D1 seeds (AGENTS.md), and both
-      # read from the repo: `migrate:velite` creates authors, posts and
-      # galleries from the velite content, `seed:races` the race schedule.
-      # So CI now exercises the same corpus a developer has locally, rather
-      # than an empty shell that every data-dependent assertion steps around.
       - name: Seed the corpus the journeys read
         if: steps.fixture.outputs.cache-hit != 'true'
         # Bounded on purpose: these scripts boot Payload, and one that fails
         # to exit would otherwise burn the job's full 30 minutes before
         # anybody learned the seed was the problem.
-        timeout-minutes: 8
+        timeout-minutes: 10
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
@@ -307,32 +285,18 @@ jobs:
           # suite signs in as cannot drift apart.
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        # One command, and the steps it runs live in scripts/lib/corpus.mjs
+        # next to `db:reset:local`, which runs the same list. They used to be
+        # two hand-copied lists that had to stay in the same order in two
+        # languages — and the comment here admitted it. It also reads the row
+        # counts back and fails on an empty table, which matters more now that
+        # `main` fills this cache for every PR: `migrate:velite` has been seen
+        # exiting 0 having written nothing, and that would otherwise be cached.
         run: |
           if [ -z "$PAYLOAD_SECRET" ]; then
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
-          pnpm migrate:velite
-          pnpm seed:races
-          # Last, because it owns whatever the two above created. Without it
-          # `/riders` is empty: the directory selects authors with an owner,
-          # and `setOwner` stamps that from the authenticated user, which a
-          # CLI script does not have.
-          pnpm seed:e2e:account
-          # Last, and deliberately after seed:e2e:account now too: this
-          # upserts data/race-editions.csv directly (import-race-editions.ts)
-          # rather than deriving from race_schedule, but a race-record above
-          # can auto-create a *minimal* edition as a side effect
-          # (populateRaceRecordRefs) if its (event, year) has none yet.
-          # Running the CSV import afterward upgrades any such stub whenever
-          # the CSV covers that exact (event, year) — see
-          # scripts/reset-local-db.mjs, which mirrors this same ordering.
-          pnpm seed:editions
-          # The qualifier flags live on race_categories, which the migrate
-          # step above created — this only fills four columns per row. CI
-          # needs it for the same reason it needs seed:editions: the
-          # /races filters are about data the CSV carries, and a database
-          # without it renders a filter that matches nothing.
-          pnpm seed:qualifiers
+          pnpm seed:ci
       # Snapshot the corpus here — after seeding, before any test touches it.
       #
       # `cache-primary-key` is the key the restore step computed, so the two

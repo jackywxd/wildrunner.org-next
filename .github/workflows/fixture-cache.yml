@@ -1,0 +1,106 @@
+name: Fixture cache
+
+# Fills the seeded-corpus cache that `e2e.yml` reads, and nothing else.
+#
+# WHY THIS EXISTS. `e2e.yml` restores `.wrangler/state/v3/d1` from a cache so
+# no shard has to migrate and seed. It never hit. Measured on PR #160 and
+# again on PR #161: three shards each re-seeded for 2m17s, on commits touching
+# none of the files the key hashes.
+#
+# The key was never the problem. GitHub scopes a cache written during a
+# `pull_request` run to that pull request's own ref, and `e2e.yml` runs on
+# `pull_request` only — so it could write a cache that only it could read.
+# Proved rather than assumed, by re-running PR #161's own workflow: the second
+# attempt on the same PR restored in 1s and skipped both the migrate and the
+# seed, while every fresh PR before it had missed. Caches written on the
+# default branch are the ones every branch can read, so the write has to
+# happen here.
+#
+# NOT A SECOND GATE. `e2e.yml`'s header rejects `push: main` by name, and it is
+# right to: re-running the suite after every merge duplicates a check that has
+# already passed and costs ~13 minutes. This job runs no tests at all — it
+# migrates, seeds, verifies the row counts and saves. It is the seeding half
+# without the testing half, which is the part that was worth ~2m30s per shard.
+#
+# IF THIS JOB IS RED, NOTHING BREAKS. A missing cache is a miss, and a miss is
+# what every PR already does today: `e2e.yml` seeds for itself. That is the
+# property that makes this safe to add.
+on:
+  push:
+    branches: [main]
+
+# One at a time. Two merges in quick succession would otherwise seed the same
+# key twice and race to save it, and the loser logs a reservation warning for
+# no benefit.
+concurrency:
+  group: fixture-cache
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # THE KEY IS COPIED FROM e2e.yml AND MUST STAY IDENTICAL TO IT.
+      #
+      # A second copy is not free and is chosen with its failure mode in mind:
+      # if the two drift, this saves under a name `e2e.yml` never asks for, so
+      # every PR misses and seeds for itself — slower, never wrong. The
+      # dangerous direction is a key too *coarse* to notice an input changing,
+      # and that is a property of the expression itself, which is why the
+      # reasoning for every pattern in it lives in e2e.yml beside the restore.
+      - name: Has this corpus already been cached?
+        id: fixture
+        uses: actions/cache/restore@v4
+        with:
+          path: .wrangler/state/v3/d1
+          lookup-only: true
+          key: >-
+            d1-fixture-v1-${{ hashFiles(
+              'src/migrations/**',
+              'src/collections/**',
+              'src/payload.config.ts',
+              'src/lib/races/**',
+              '.velite/**',
+              'data/*.csv',
+              'scripts/migrate-velite-to-payload.ts',
+              'scripts/seed-race-schedule.ts',
+              'scripts/seed-e2e-account.ts',
+              'scripts/import-race-editions.ts',
+              'scripts/import-race-qualifiers.ts',
+              'pnpm-lock.yaml'
+            ) }}
+      - name: Seed the corpus
+        if: steps.fixture.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        env:
+          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
+          CI: "true"
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          if [ -z "$PAYLOAD_SECRET" ]; then
+            export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
+          fi
+          pnpm seed:ci
+      # Immediately after seeding, and before anything could touch the rows —
+      # there is nothing here that would, which is the whole point of this
+      # workflow running no tests. `seed:ci` has already read the row counts
+      # back and failed on an empty table, so what is saved is a corpus that
+      # was checked rather than one that merely exited 0.
+      - name: Save the seeded fixture database
+        if: steps.fixture.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .wrangler/state/v3/d1
+          key: ${{ steps.fixture.outputs.cache-primary-key }}
