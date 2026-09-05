@@ -240,11 +240,54 @@ async function main() {
       }
 
       if (Array.isArray(record.children)) {
-        for (const child of record.children) await walk(child)
+        const kept: unknown[] = []
+        for (const child of record.children) {
+          if (isEmptyUpload(child)) {
+            dropped += 1
+            continue
+          }
+          await walk(child)
+          kept.push(child)
+        }
+        record.children = kept
       }
     }
 
+    let dropped = 0
     await walk((content as { root?: unknown } | undefined)?.root)
+    if (dropped > 0) {
+      console.log(`  ~ ${slug}: dropped ${dropped} upload node(s) pointing at nothing`)
+    }
+  }
+
+  /**
+   * An `upload` node whose `value` is null — a picture that is not there.
+   *
+   * WHAT THESE ARE. Production really holds them: `post-1788195110040` has
+   * four, at `children[38]`, `[75]`, `[111]` and one before those. The media
+   * row they pointed at is gone, so Payload's own population at `depth=1`
+   * fills the node's `value` with `null` rather than a document.
+   *
+   * WHY DROPPING THEM IS THE FAITHFUL COPY, not a loss. The public renderer
+   * already draws nothing for them — `payload-rich-text.tsx`'s upload
+   * converter opens with `if (!value || typeof value !== "object" ||
+   * !value.url) return null`. So the article as a reader sees it on
+   * production is the article without these nodes, and staging showing the
+   * same thing is the point of the sync. Keeping them would mean carrying a
+   * node that cannot render into a database whose `guardPostContent` refuses
+   * it outright.
+   *
+   * WHY `remapContentUploads` MISSED THEM BEFORE. Its rewrite is guarded by
+   * `record.value && typeof record.value === 'object'`, and `null` is falsy
+   * — so the node was skipped rather than handled, and the value it was
+   * skipped with is exactly the one the guard rejects. The 2026-08-31 fix
+   * addressed the opposite shape (a *populated* value) and could not see
+   * this one.
+   */
+  function isEmptyUpload(node: unknown): boolean {
+    if (!node || typeof node !== 'object') return false
+    const record = node as Record<string, unknown>
+    return record.type === 'upload' && (record.value === null || record.value === undefined)
   }
 
   // ---- posts ----
