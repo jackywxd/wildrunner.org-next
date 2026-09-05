@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
-import { Archivo, Noto_Sans_TC } from "next/font/google";
+import { Archivo, Noto_Sans_SC, Noto_Sans_TC } from "next/font/google";
 import "@/styles/globals.css";
 import { ReactNode } from "react";
 import { notFound } from "next/navigation";
@@ -16,7 +16,27 @@ const archivo = Archivo({
   weight: ["400", "600", "800"],
 });
 
+/**
+ * One CJK face per script, both bound to `--font-noto`.
+ *
+ * WHY TWO FILES AND NOT ONE. Traditional and Simplified share most of their
+ * code points and draw a number of them differently — 骨, 直, 令 and their
+ * relatives have different strokes in the two conventions — so serving TC
+ * glyphs on a Simplified page is the same class of mistake as the `<html
+ * lang="en">` this layout's own comment below records: legible, wrong, and
+ * invisible to anyone who does not read the script.
+ *
+ * The variable name is shared on purpose. `globals.css` composes
+ * `--font-body: var(--font-archivo), var(--font-noto), …` once, and the
+ * layout decides which face that name resolves to by putting exactly one of
+ * these classes on `<html>`. Nothing downstream has to know there are two.
+ */
 const notoSansTc = Noto_Sans_TC({
+  subsets: ["latin"],
+  variable: "--font-noto",
+});
+
+const notoSansSc = Noto_Sans_SC({
   subsets: ["latin"],
   variable: "--font-noto",
 });
@@ -121,7 +141,11 @@ export default async function SiteLayout({
         Sans TC was used anywhere on the site, though both were downloaded on
         every page.
       */
-      className={cn(archivo.variable, notoSansTc.variable, fontCode.variable)}
+      className={cn(
+        archivo.variable,
+        lang === "zh-hans" ? notoSansSc.variable : notoSansTc.variable,
+        fontCode.variable,
+      )}
     >
       <head>
         {/*

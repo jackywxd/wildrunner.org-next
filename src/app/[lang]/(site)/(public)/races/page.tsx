@@ -17,13 +17,14 @@ import type { RaceFilters } from "@/lib/races/race-filters";
 import { hasQualifier } from "@/lib/races/qualifiers";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/races",
     title: t.races.title,
     subtitle: t.races.subtitle,

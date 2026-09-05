@@ -5,7 +5,7 @@ import PageHeader from "@/components/page-header";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 import {
   CLUB_PAGE_SIZE,
   catalogueForRows,
@@ -33,6 +33,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/riders/timeline",
     title: t.clubTimeline.title,
     subtitle: t.clubTimeline.subtitle,

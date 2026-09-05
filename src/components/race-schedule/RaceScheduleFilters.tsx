@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { RACE_SERIES_LABELS_ZH, SCHEDULE_SERIES } from "@/lib/races/catalogue";
+import { SCHEDULE_SERIES } from "@/lib/races/catalogue";
 import { raceFiltersHref } from "@/lib/races/race-filters";
 import type { RaceFilters } from "@/lib/races/race-filters";
-import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
 import { getDictionary } from "@/lib/i18n/dictionary";
+import { qualifierLabel, seriesLabel } from "@/lib/i18n/race-labels";
 
 /**
  * View toggle and filters, as links rather than client state.
@@ -105,7 +105,7 @@ export async function RaceScheduleFilters({
             key={series}
             target={href(filters, { series })}
           >
-            {RACE_SERIES_LABELS_ZH[series]}
+            {seriesLabel(t, series)}
           </Chip>
         ))}
 
@@ -136,7 +136,7 @@ export async function RaceScheduleFilters({
             qualifier: filters.qualifier === "wser" ? undefined : "wser",
           })}
         >
-          {RACE_QUALIFIER_LABELS_ZH.wser}
+          {qualifierLabel(t, "wser")}
         </Chip>
         <Chip
           active={filters.qualifier === "hardrock"}
@@ -145,7 +145,7 @@ export async function RaceScheduleFilters({
             qualifier: filters.qualifier === "hardrock" ? undefined : "hardrock",
           })}
         >
-          {RACE_QUALIFIER_LABELS_ZH.hardrock}
+          {qualifierLabel(t, "hardrock")}
         </Chip>
       </div>
     </div>

@@ -32,16 +32,34 @@ import { DEFAULT_LOCALE, isLocaleSegment, type LocaleSegment } from "./locales";
  */
 export type Dictionary = typeof import("../../dictionaries/zh-Hant.json");
 
+/**
+ * One dynamic import per locale, so a page ships the language it is in and
+ * not the others. `zh-Hans.json` is generated from `zh-Hant.json` by
+ * `pnpm generate:zh-hans` and committed — `U-CONVERT-3` fails if the two
+ * fall out of step.
+ */
 const DICTIONARIES: Record<LocaleSegment, () => Promise<Dictionary>> = {
   "zh-hant": () =>
     import("../../dictionaries/zh-Hant.json").then((m) => m.default),
+  "zh-hans": () =>
+    import("../../dictionaries/zh-Hans.json").then((m) => m.default),
 };
 
-export async function getDictionary(): Promise<Dictionary> {
+/**
+ * Which language is being rendered.
+ *
+ * Separate from `getDictionary()` because metadata needs the locale itself,
+ * not the words: `hreflang` and the canonical URL are built from the segment.
+ * The fallback is the same one, for the same reason — `(print)`, `(payload)`
+ * and Route Handlers have no `[lang]` above them and must not throw.
+ */
+export async function currentLocale(): Promise<LocaleSegment> {
   const segment = await lang();
-  const locale =
-    typeof segment === "string" && isLocaleSegment(segment)
-      ? segment
-      : DEFAULT_LOCALE;
-  return DICTIONARIES[locale]();
+  return typeof segment === "string" && isLocaleSegment(segment)
+    ? segment
+    : DEFAULT_LOCALE;
+}
+
+export async function getDictionary(): Promise<Dictionary> {
+  return DICTIONARIES[await currentLocale()]();
 }

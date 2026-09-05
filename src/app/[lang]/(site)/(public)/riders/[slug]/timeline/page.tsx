@@ -6,7 +6,7 @@ import { RiderTimeline } from "@/components/riders/RiderTimeline";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
 import { getRiderTimeline } from "@/lib/content";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: Params) {
 
   const { rider } = found;
   return pageMetadata({
+    locale: await currentLocale(),
     // 「的」 binds directly to the name: the half-width space that used to sit
     // in front of it came from string interpolation, not from typography.
     path: `/riders/${rider.slug}/timeline`,

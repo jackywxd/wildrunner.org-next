@@ -7,6 +7,7 @@ import { canReport } from "@/lib/races/report-options";
 import { raceState } from "@/lib/races/race-state";
 import { externalHref, isRegistrationOpen } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
+import { qualifierLabel, seriesLabel } from "@/lib/i18n/race-labels";
 
 import { RaceQualifierTag } from "./RaceQualifierTag";
 import { RaceSeriesTag } from "./RaceSeriesTag";
@@ -130,7 +131,7 @@ export async function RaceEntryRow({
           <span className="font-heading text-sm font-semibold tabular-nums text-foreground/70">
             {formatRange(entry, t.raceSchedule.monthDay, t.raceSchedule.dayOnly)}
           </span>
-          <RaceSeriesTag series={entry.series} />
+          <RaceSeriesTag label={seriesLabel(t, entry.series)} series={entry.series} />
           {/* Fixed order, not Object.keys: the tag order must not depend on
               which lottery happened to be written into the row first. */}
           {RACE_QUALIFIERS.map((qualifier) => {
@@ -139,6 +140,7 @@ export async function RaceEntryRow({
               <RaceQualifierTag
                 categories={categories}
                 key={qualifier}
+                label={qualifierLabel(t, qualifier)}
                 qualifier={qualifier}
               />
             ) : null;

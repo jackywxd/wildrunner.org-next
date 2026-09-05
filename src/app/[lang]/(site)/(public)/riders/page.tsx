@@ -7,7 +7,7 @@ import { RiderFilters } from "@/components/riders/RiderFilters";
 import { getRiders } from "@/lib/content";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 import {
   filterRidersByBadges,
   parseRiderBadges,
@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/riders",
     title: t.riders.title,
     subtitle: t.riders.subtitle,
