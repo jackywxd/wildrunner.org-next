@@ -17,6 +17,7 @@ import { ImageResponse } from "next/og";
 import type { ReactElement } from "react";
 
 import { getPostBySlugParam, getRaceEditionDetail } from "@/lib/content";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 import { badgeToken } from "@/lib/races/design-tokens";
 import { resolveBadgeEvent } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
@@ -76,7 +77,11 @@ export async function resolvePosterSubject(
   const [kind, ...rest] = parts;
 
   if (kind === "post" && rest.length > 0) {
-    const post = await getPostBySlugParam(rest.join("/"));
+    // `/share/…` and `/wx/…` are one address per article, not one per
+    // language, and the card they render is already printed into other
+    // people's chat histories. Traditional keeps a card stable rather than
+    // depending on which language the sharer happened to be reading.
+    const post = await getPostBySlugParam(rest.join("/"), DEFAULT_LOCALE);
     if (!post) return null;
     return {
       title: post.title,

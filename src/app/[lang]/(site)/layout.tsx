@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Providers from "./providers";
 import { getSiteBaseURL, siteConfig } from "@/config/site";
 import { LOCALES, isLocaleSegment, localeTag } from "@/lib/i18n/locales";
+import { localiseText } from "@/lib/i18n/to-simplified";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -56,14 +57,33 @@ const notoSansSc = Noto_Sans_SC({
  * character `/og` splits a legacy `title|author` on, which is one fewer way
  * for a title to end up in a card's byline.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteBaseURL()),
-  title: {
-    template: `%s｜${siteConfig.title}`,
-    default: siteConfig.title,
-  },
-  description: siteConfig.description,
-};
+/**
+ * `generateMetadata` rather than a static `metadata`, so the site name in the
+ * template is in the same script as the page it is appended to.
+ *
+ * `siteConfig.title` is 野馬營, written once and not in any dictionary. That
+ * was invisible while every page was Traditional. The moment articles started
+ * being converted it became the tab title 「芝加哥马拉松｜野馬營」 — two
+ * scripts in one string, in the one string a search result and a chat preview
+ * both show. A static export cannot see `lang`, so it could not have been
+ * fixed where it is composed.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const { lang } = await params;
+  const name = localiseText(siteConfig.title, lang);
+  return {
+    metadataBase: new URL(getSiteBaseURL()),
+    title: {
+      template: `%s｜${name}`,
+      default: name,
+    },
+    description: localiseText(siteConfig.description, lang),
+  };
+}
 
 const fontCode = localFont({
   // Three levels, not two: this file sits under `[lang]/(site)/` now.

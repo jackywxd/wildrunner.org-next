@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { absoluteImageUrl, type OgCard } from "@/lib/og-card";
 import { LOCALES, localizedPath } from "@/lib/i18n/locales";
+import { localiseText } from "@/lib/i18n/to-simplified";
 
 /**
  * One page's title, description and share card, decided in one place.
@@ -88,12 +89,34 @@ const CARD_HEIGHT = 1080;
 
 export function pageMetadata({
   path,
-  title,
-  subtitle,
+  title: storedTitle,
+  subtitle: storedSubtitle,
   card,
   locale,
   type = "website",
 }: PageMetadataInput): Metadata {
+  /**
+   * EVERY STRING THAT REACHES THIS FUNCTION IS CONVERTED FOR `locale`, rather
+   * than each caller remembering to. Callers hand this three different kinds
+   * of string and only one of them was ever going to be right by itself: a
+   * dictionary value is already in the page's script, an article's title has
+   * been converted by `localisePost` before it gets here, and a value written
+   * once in code or typed into `/admin` — `siteConfig.title`, the site
+   * global's `titleDefault` — is Traditional whatever page it lands on. That
+   * third kind is what put 「芝加哥马拉松｜野馬營」 in a tab.
+   *
+   * Converting here is safe for all three because 繁 → 簡 over text that is
+   * already Simplified is a no-op — measured against the corpus, which really
+   * does contain an article written in Simplified
+   * (`posts/2024/royal-victoria-marathon`): it renders identically on both
+   * sites, 18 occurrences of 菜鸟 and none of 菜鳥.
+   *
+   * `locale` is optional, and absent means a route outside `[lang]` — `/print`
+   * and the share cards — which render what is stored.
+   */
+  const title = localiseText(storedTitle, locale ?? "");
+  const subtitle = localiseText(storedSubtitle, locale ?? "");
+
   const baseURL = siteConfig.baseURL.replace(/\/$/, "");
   const url =
     path === undefined
@@ -140,7 +163,17 @@ export function pageMetadata({
     // template has no way to know that: it produced 「野馬營｜野馬營」.
     // `absolute` opts that one page out of the template rather than teaching
     // every caller a flag for a case there is only one of.
-    title: title === siteConfig.title ? { absolute: title } : title,
+    //
+    // BOTH SIDES ARE CONVERTED, and they have to be. `title` above has been;
+    // `siteConfig.title` is the stored Traditional 野馬營. Comparing the two
+    // as they are made this test fail on every Simplified page, and the home
+    // page came back as 「野马营｜野马营」 — the same doubling this branch
+    // exists to prevent, reintroduced by converting one side of its own
+    // check.
+    title:
+      title === localiseText(siteConfig.title, locale ?? "")
+        ? { absolute: title }
+        : title,
     description: subtitle,
     openGraph: {
       title,
@@ -148,7 +181,7 @@ export function pageMetadata({
       // Named once here rather than folded into every title: a crawler that
       // knows the site name shows it separately, and one that does not is no
       // worse off than it was.
-      siteName: siteConfig.title,
+      siteName: localiseText(siteConfig.title, locale ?? ""),
       type,
       url: alternates.canonical,
       images: [

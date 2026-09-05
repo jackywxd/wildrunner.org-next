@@ -46,6 +46,8 @@ import type {
   SiteVideo,
 } from "@/lib/content-types";
 import { postSlugParams } from "@/lib/content-paths";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
+import { localisePost } from "@/lib/i18n/zh-post";
 import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
 import { qualifiersFor } from "@/lib/races/qualifiers";
@@ -261,7 +263,7 @@ export const getSiteGlobals = cache(async (): Promise<SiteGlobals> => {
   return site ? mapSiteGlobal(site) : defaultGlobals;
 });
 
-export async function getPublishedPosts(): Promise<SitePost[]> {
+export async function getPublishedPosts(locale: string): Promise<SitePost[]> {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "posts",
@@ -278,11 +280,12 @@ export async function getPublishedPosts(): Promise<SitePost[]> {
       },
     },
   });
-  return result.docs.map(mapPayloadPost);
+  return result.docs.map((doc) => localisePost(mapPayloadPost(doc), locale));
 }
 
 export async function getPostBySlugParam(
   slugParam: string,
+  locale: string,
 ): Promise<SitePost | null> {
   const payload = await getPayloadClient();
   const attempts = [
@@ -312,7 +315,7 @@ export async function getPostBySlugParam(
       // grid of cards must not pay — `getSiteGlobals` is `React.cache`'d, so
       // on the detail page it is free.
       const { backgroundMusic } = await getSiteGlobals();
-      return {
+      return localisePost({
         ...mapPayloadPost(doc),
         // The same resolution an album gets, keyed on the post's slug: its
         // own link goes first, then the site list, rotated to start at this
@@ -323,14 +326,18 @@ export async function getPostBySlugParam(
           own: doc.musicUrl,
           fallback: backgroundMusic,
         }),
-      };
+      }, locale);
     }
   }
   return null;
 }
 
 export async function getPublishedPostSlugs(): Promise<string[]> {
-  const posts = await getPublishedPosts();
+  // A slug is an address, and `localisePost` never converts one — so the
+  // locale here changes nothing about the answer. It says DEFAULT_LOCALE
+  // rather than taking a parameter because a caller choosing a locale for a
+  // list of slugs would be choosing something that does not exist.
+  const posts = await getPublishedPosts(DEFAULT_LOCALE);
   return posts.map((p) => p.slugAsParams);
 }
 

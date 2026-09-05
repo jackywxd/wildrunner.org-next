@@ -44,7 +44,7 @@ export default async function Home() {
   const [globals, galleries, posts, upcomingRaces] = await Promise.all([
     getSiteGlobals(),
     getPublishedGalleries(),
-    getPublishedPosts(),
+    getPublishedPosts(await currentLocale()),
     getUpcomingRaces({ now }),
   ]);
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { siteConfig } from "@/config/site";
 import { getPostBySlugParam } from "@/lib/content";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 import { postPublicPath } from "@/lib/content-paths";
 import { parsePrintOptions } from "@/lib/print/options";
 import { pdfDownloadResponse } from "@/lib/print/pdf-response";
@@ -30,7 +31,10 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> },
 ) {
   const slugParam = (await params).slug.join("/");
-  const post = await getPostBySlugParam(slugParam);
+  // The same Traditional the print page renders — this route asks Browser
+  // Rendering to print that page, so a different language here would put the
+  // PDF and the page it claims to be a copy of in two scripts.
+  const post = await getPostBySlugParam(slugParam, DEFAULT_LOCALE);
   if (!post) {
     // Member-facing, because it is: the download button shows whatever this
     // says, and an article can be withdrawn between opening the print page

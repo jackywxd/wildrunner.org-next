@@ -83,6 +83,9 @@ importers:
       nextjs-toploader:
         specifier: ^3.9.17
         version: 3.9.17(next@16.3.0(@playwright/test@1.56.1)(@types/node@22.20.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.77.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      opencc-js:
+        specifier: 1.4.2
+        version: 1.4.2
       payload:
         specifier: 3.87.0
         version: 3.87.0(graphql@16.14.2)(typescript@5.9.3)
@@ -222,9 +225,6 @@ importers:
       eslint-config-next:
         specifier: 15.5.20
         version: 15.5.20(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
-      opencc-js:
-        specifier: 1.4.2
-        version: 1.4.2
       postcss:
         specifier: ^8.5.6
         version: 8.5.20
@@ -3336,6 +3336,7 @@ packages:
   eslint@9.39.5:
     resolution: {integrity: sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
