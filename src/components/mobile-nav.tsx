@@ -36,7 +36,12 @@ export default function MobileNav({ items, onOpenChange }: MobileNavProps) {
         {/* The header's copy is hidden below `sm`, so without this a phone
             has no way to change language at all — and a phone is how most of
             this site is read. */}
-        <LanguageSwitcher className="border-t border-border pt-4" />
+        {/* The rule belongs to the menu, not to the control: the switcher is
+            a menu of its own now and shrinks to its trigger, so a border on
+            it would draw a 60px line across a 356px panel. */}
+        <div className="border-t border-border pt-4">
+          <LanguageSwitcher />
+        </div>
       </div>
     </div>
   );
