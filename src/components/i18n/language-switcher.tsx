@@ -49,7 +49,16 @@ export default function LanguageSwitcher({ className }: { className?: string }) 
         const active = segment === current;
         return (
           <Link
-            aria-current={active ? "true" : undefined}
+            // `"page"` and not `"true"`: this link points at the page the
+            // reader is already on, which is the token's specific meaning and
+            // the one `RiderViewTabs` already uses for the same situation.
+            // `"true"` is the generic fallback, and in this codebase it is
+            // spoken for — `RiderFilters` and `RaceScheduleFilters` mark a
+            // selected filter chip with it, and `RF-T3` asserts page-wide that
+            // no chip is selected. A nav control wearing the chip token put a
+            // second meaning on one attribute value and broke that assertion
+            // on every page at once.
+            aria-current={active ? "page" : undefined}
             className={cn(
               "border px-1.5 py-0.5 transition-colors",
               active

@@ -50,6 +50,19 @@ test.describe("V-LANG a reader changes language", () => {
         page.locator("html"),
         `switching to ${segment} left the document in another language`,
       ).toHaveAttribute("lang", tag);
+
+      // And the switcher says which of the three you are reading. This is
+      // the half a reader who landed on the wrong language needs, and it is
+      // `"page"` rather than `"true"` on purpose — `RF-T3` asserts page-wide
+      // that nothing carries `aria-current="true"`, which is this site's mark
+      // for a selected filter chip.
+      await expect(
+        page
+          .getByTestId("language-switcher")
+          .first()
+          .locator('[aria-current="page"]'),
+        `the switcher does not mark ${segment} as the language being read`,
+      ).toHaveAttribute("data-testid", `language-${segment}`);
     }
   });
 });
