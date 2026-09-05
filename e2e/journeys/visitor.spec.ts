@@ -60,6 +60,32 @@ test.describe("V what a visitor can do", () => {
   test("V4/V5: moves the race calendar and switches how it is shown", async ({
     page,
   }) => {
+    /**
+     * Three renders of the heaviest page on the site do not fit in 20s.
+     *
+     * This test loads /races, switches to the calendar, switches back, and
+     * each of those is a full server render — the toggle is a `<Link>`, so
+     * the view is decided on the server and there is nothing cached to reuse.
+     * Measured against the dev server's own log rather than guessed:
+     *
+     *   GET /races                200 in 9.0s (application-code: 3.2s)
+     *   GET /races?view=calendar  200 in 4.6s (application-code: 4.6s)
+     *   GET /races?view=list      200 in 3.5s (application-code: 3.5s)
+     *   GET /races?view=calendar  200 in 3.8s  ← repeats do not get faster
+     *   GET /races?view=list      200 in 3.3s
+     *
+     * That is roughly 11s of server time before the browser does anything.
+     * It is not this page being slow in particular — `GET /` costs 3.4s of
+     * application code on the same server — it is what a dynamic route
+     * against local D1 costs in dev, which `payload.config.ts` documents at
+     * length. On CI the whole test measured 17.2s against the 20s default:
+     * passing, and one busy shard from not.
+     *
+     * So the clock is what is wrong here, not the assertions — every one of
+     * them below is unchanged.
+     */
+    test.setTimeout(budget(60_000));
+
     await open(page, "/races");
     await expect(page.getByTestId("race-schedule")).toBeVisible();
 
