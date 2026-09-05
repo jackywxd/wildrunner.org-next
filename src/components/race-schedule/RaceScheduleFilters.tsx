@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import { SCHEDULE_SERIES } from "@/lib/races/catalogue";
 import { raceFiltersHref } from "@/lib/races/race-filters";

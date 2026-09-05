@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { Button } from "@/components/ui/button";
 import { DesignBanner } from "@/components/design/DesignBanner";
 

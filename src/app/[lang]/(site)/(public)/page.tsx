@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import Marquee from "@/components/magicui/Marquee";
 import PhotoCard from "@/components/PhotoCard";

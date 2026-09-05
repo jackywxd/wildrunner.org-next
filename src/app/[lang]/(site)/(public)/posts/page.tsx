@@ -1,7 +1,7 @@
 import React from "react";
 import PageHeader from "@/components/page-header";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { formatDate } from "@/lib/utils";
 import { getPublishedPosts } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";

@@ -2,10 +2,11 @@
 
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { localeHref } from "@/lib/i18n/locale-href";
 import type { User } from "@/payload-types";
 
 const ITEMS = [
@@ -141,7 +142,7 @@ export function MemberNav({ user }: { user: User }) {
                 method: "POST",
                 credentials: "same-origin",
               }).finally(() => {
-                window.location.href = "/members/login";
+                window.location.href = localeHref("/members/login", pathname);
               });
             }}
             className="block w-full px-3 py-2 text-left text-sm text-foreground/70 hover:bg-secondary hover:text-foreground"

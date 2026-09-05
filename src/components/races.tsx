@@ -1,7 +1,7 @@
 import React from "react";
 import type { SitePost } from "@/lib/content-types";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { formatDate } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { postPublicPath } from "@/lib/content-paths";

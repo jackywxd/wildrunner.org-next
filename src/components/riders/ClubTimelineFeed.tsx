@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { RiderAvatar } from "@/components/riders/RiderAvatar";

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
+import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
 import { RaceChoice } from "@/components/members/posts/RaceChoice";
 import { emptyContent } from "@/lib/editor/empty";
@@ -36,6 +37,7 @@ export function StartRaceReport({
   preselected?: number;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [scheduleId, setScheduleId] = useState<number | null>(
     preselected ?? null,
@@ -103,7 +105,7 @@ export function StartRaceReport({
       return;
     }
 
-    router.push(`/members/posts/${post.doc.id}`);
+    router.push(localeHref(`/members/posts/${post.doc.id}`, pathname));
   }
 
   return (

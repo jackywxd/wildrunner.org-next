@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { AlignLeft, LogIn, User as UserIcon, X } from "lucide-react";
 
 import HeaderNav from "@/components/header-nav";

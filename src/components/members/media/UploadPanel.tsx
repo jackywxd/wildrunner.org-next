@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { Check, ImageUp, Play, X } from "lucide-react";
 
 import { requestTranscode } from "@/lib/members/transcode-video";

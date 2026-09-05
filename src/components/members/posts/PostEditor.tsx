@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
 import {
   ContentEditor,
@@ -46,6 +47,7 @@ export function PostEditor({
   raceOptions: RaceReportOption[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const editorRef = useRef<ContentEditorHandle | null>(null);
 
   const [title, setTitle] = useState(initial.title);
@@ -291,7 +293,7 @@ export function PostEditor({
     if (publish) {
       setStatus("published");
       setMessage("已發布");
-      router.push("/members/posts");
+      router.push(localeHref("/members/posts", pathname));
       return;
     }
     setMessage("已儲存草稿");

@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import SiteHeader from "@/components/site-header";
 import { siteConfig } from "@/config/site";

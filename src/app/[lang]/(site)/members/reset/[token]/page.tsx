@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import Link from "@/components/i18n/locale-link";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-href";
 import { useState } from "react";
 import SiteLogo from "@/components/site-logo";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { FieldLabel, Input } from "@/components/ui/input";
 export default function MemberResetPasswordPage() {
   const params = useParams<{ token: string }>();
   const router = useRouter();
+  const pathname = usePathname();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -59,7 +61,7 @@ export default function MemberResetPasswordPage() {
         setSubmitting(false);
         return;
       }
-      router.replace("/members");
+      router.replace(localeHref("/members", pathname));
     } catch {
       setError("設定密碼時發生錯誤，請再試一次");
       setSubmitting(false);

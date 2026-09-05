@@ -1,7 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { ChevronLeft } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { mediaDisplayName } from "@/lib/media-name";

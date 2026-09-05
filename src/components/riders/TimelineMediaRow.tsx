@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import type { MediaMonth, RaceMedia } from "@/lib/riders/timeline-albums";
 import { formatMonth } from "@/lib/riders/timeline-albums";
