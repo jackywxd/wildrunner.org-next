@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { useState } from "react";
 import SiteLogo from "@/components/site-logo";
 import { Button } from "@/components/ui/button";

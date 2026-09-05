@@ -1,11 +1,12 @@
 "use client";
 
-import React, { ReactNode } from "react";
-import Link, { LinkProps } from "next/link";
+import React, { ComponentProps, ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import LanguageSwitcher from "@/components/i18n/language-switcher";
+import Link from "@/components/i18n/locale-link";
 import { navIcon } from "@/components/nav-icons";
+import { localeHref } from "@/lib/i18n/locale-href";
 import type { NavItemData } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ export default function MobileNav({ items, onOpenChange }: MobileNavProps) {
   );
 }
 
-interface MobileLinkProps extends LinkProps {
+interface MobileLinkProps extends ComponentProps<typeof Link> {
   children: ReactNode;
   onOpenChange?: () => void;
   className?: string;
@@ -56,16 +57,20 @@ const MobileLink = ({
 }: MobileLinkProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  // `Link` rewrites the address it renders, but this handler navigates by
+  // hand and the highlight compares against the address bar — so both need
+  // the same answer `Link` reached, not the bare `href` the caller passed.
+  const target = localeHref(href.toString(), pathname);
   return (
     <Link
       href={href}
       onClick={() => {
-        router.push(href.toString());
+        router.push(target);
         onOpenChange?.();
       }}
       className={cn(
         "transition-colors hover:text-primary",
-        pathname === href.toString() ? "text-primary" : "text-muted-foreground",
+        pathname === target ? "text-primary" : "text-muted-foreground",
         className,
       )}
       {...props}

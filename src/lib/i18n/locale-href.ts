@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, isLocaleSegment } from "./locales";
+import { LOCALIZED_SEGMENTS } from "./rewrites";
 
 /**
  * The address `href` should have, for a reader currently at `pathname`.
@@ -12,6 +13,17 @@ import { DEFAULT_LOCALE, isLocaleSegment } from "./locales";
  * exactly one click — 72 internal links across the app, every one of them
  * hard-coded to the unprefixed address, which `next.config.ts` rewrites to
  * the default locale.
+ *
+ * `LOCALIZED_SEGMENTS` DECIDES, NOT "DOES IT START WITH A SLASH". The first
+ * version of this used the latter and would have shipped two dead links: the
+ * member shell's `/admin` and an article's `/print/...`, both rendered by
+ * pages that are themselves under `[lang]`, and neither of which exists with
+ * a prefix. That list is the same one `next.config.ts` rewrites, so the
+ * question it answers here — "is there a copy of this address under
+ * `[lang]`?" — is the question it was already answering there, and the two
+ * cannot drift. It also settles the switcher's own links for free: a `href`
+ * that already names a language has `zh-hant`/`zh-hans` as its first
+ * segment, which is not in the list, so it comes back untouched.
  *
  * PURE, AND SEPARATE FROM THE COMPONENT, so the rules below can be tested
  * without a renderer, a router or a browser. `LocaleLink` is the thin part.
@@ -28,10 +40,24 @@ export function localeHref(href: string, pathname: string): string {
   // no language to carry.
   if (!isLocaleSegment(first) || first === DEFAULT_LOCALE) return href;
 
-  // Already carrying a language — a link that named one on purpose, such as
-  // the switcher's own. Prefixing again would produce `/zh-hans/zh-hans/...`.
-  const [, target = ""] = href.split("/");
-  if (isLocaleSegment(target)) return href;
+  if (href !== "/" && !isLocalizedSegment(segmentOf(href))) return href;
 
   return href === "/" ? `/${first}` : `/${first}${href}`;
+}
+
+/**
+ * The first path segment of an internal href.
+ *
+ * IT ENDS AT `?` AND `#` AS WELL AS `/`. The rider and race chips link to
+ * `/riders?badge=…` and `/races?view=calendar`; a segment read only up to the
+ * next slash would be `riders?badge=six-majors`, match nothing in the list,
+ * and leave every filter chip on the page pointing out of the reader's
+ * language.
+ */
+function segmentOf(href: string): string {
+  return href.slice(1).split(/[/?#]/)[0] ?? "";
+}
+
+function isLocalizedSegment(segment: string): boolean {
+  return (LOCALIZED_SEGMENTS as readonly string[]).includes(segment);
 }

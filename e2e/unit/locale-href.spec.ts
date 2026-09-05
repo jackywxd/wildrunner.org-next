@@ -61,11 +61,41 @@ test.describe("U-LOCALEHREF a link keeps its reader's language", () => {
     expect(localeHref("/zh-hans/posts", "/zh-hans/posts")).toBe("/zh-hans/posts");
   });
 
-  test("U-LOCALEHREF-6: a path that merely starts like a locale is still a path", () => {
-    // `/enough` and `/zh-hansel` are not `/en` and `/zh-hans`. Matching on a
-    // prefix rather than a whole segment is the classic way to break this,
-    // and it would send a reader to an address that does not exist.
-    expect(localeHref("/zh-hansel", "/zh-hans/posts")).toBe("/zh-hans/zh-hansel");
+  test("U-LOCALEHREF-6: a path that merely starts like one is still its own path", () => {
+    // Matching on a prefix rather than a whole segment is the classic way to
+    // break this, on either side. `/zh-hansel` is not `/zh-hans`, so a reader
+    // there is not reading Simplified; `/postscript` is not `/posts`, so it
+    // is not a page this site publishes in two languages.
     expect(localeHref("/posts", "/zh-hansel")).toBe("/posts");
+    expect(localeHref("/postscript", "/zh-hans/posts")).toBe("/postscript");
+  });
+
+  test("U-LOCALEHREF-7: an address with no copy under `[lang]` keeps the bare one", () => {
+    // Both of these are rendered by pages that ARE under `[lang]` — the
+    // member shell links to Payload's panel, and an article links to its own
+    // print sheet — so the reader is in Simplified and the link is internal
+    // and every earlier rule says prefix it. Neither address exists prefixed:
+    // `/admin`, `/api` and `/print` are absent from `LOCALIZED_SEGMENTS` on
+    // purpose (see `next.config.ts`), which is exactly why that list, and not
+    // "does it start with a slash", is what decides this.
+    const from = "/zh-hans/posts/2024/utmb";
+    expect(localeHref("/admin", from)).toBe("/admin");
+    expect(localeHref("/print/posts/2024/utmb", from)).toBe("/print/posts/2024/utmb");
+    expect(localeHref("/api/print/posts/2024/utmb", from)).toBe(
+      "/api/print/posts/2024/utmb",
+    );
+  });
+
+  test("U-LOCALEHREF-8: a query or a hash does not hide the segment", () => {
+    // The rider and race chips link to `/riders?badge=…`, so the segment has
+    // to be read up to the `?` — reading to the next `/` would see
+    // `riders?badge=six-majors`, match nothing, and leave every filter chip
+    // on the page in the wrong language.
+    expect(localeHref("/riders?badge=six-majors", "/zh-hans/riders")).toBe(
+      "/zh-hans/riders?badge=six-majors",
+    );
+    expect(localeHref("/races#calendar", "/zh-hans/races")).toBe(
+      "/zh-hans/races#calendar",
+    );
   });
 });

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import type { RiderBadgeOption } from "@/lib/riders/badge-filter";
 import { riderBadgesHref, toggleRiderBadge } from "@/lib/riders/badge-filter";

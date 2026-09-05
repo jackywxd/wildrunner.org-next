@@ -31,9 +31,15 @@ import { localeHref } from "@/lib/i18n/locale-href";
  *      own admin included — would be rewritten too.
  *
  * An explicit component is greppable, and the rule can be *enforced*:
- * `U-LINKREACH-1` walks the import graph from every `[lang]` route and fails
- * if anything under it reaches `next/link` directly. A page that forgets is a
- * red test, not a page that quietly drops the reader's language.
+ * `U-LINKREACH-1` reads every file under `src` and fails on any that imports
+ * `next/link`, bar a named list of four with a reason written beside each. A
+ * page that forgets is a red test, not a page that quietly drops the reader's
+ * language.
+ *
+ * MOST CALLERS IMPORT IT AS `Link`, and that is deliberate rather than lazy.
+ * It keeps the conversion of ~40 files to one changed line each — a diff a
+ * reviewer can actually read — and `U-LINKREACH-1` is what makes the short
+ * name safe: in this codebase `Link` cannot mean anything else.
  *
  * `usePathname()` RATHER THAN `lang()`. Same reason `LanguageSwitcher` reads
  * it: `next/root-params` is Server-Component-only, and this has to work in
@@ -47,7 +53,7 @@ export default function LocaleLink({
   href,
   ...rest
 }: ComponentProps<typeof Link>) {
-  const pathname = usePathname() || "/";
+  const pathname = usePathname();
   return (
     <Link
       href={typeof href === "string" ? localeHref(href, pathname) : href}

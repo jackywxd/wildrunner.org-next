@@ -9,7 +9,7 @@ import { siteConfig } from "@/config/site";
 import { ArticleReader } from "@/components/posts/ArticleReader";
 import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft, Printer } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { buttonVariants } from "@/components/ui/button";
 import { getBylineAvatar, getPostBySlugParam, getPublishedPostSlugs } from "@/lib/content";
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
