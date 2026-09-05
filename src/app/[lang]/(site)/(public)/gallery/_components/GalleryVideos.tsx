@@ -5,6 +5,7 @@ import { Share2 } from "lucide-react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 type GalleryVideosProps = {
   videos: SiteVideo[];
@@ -22,6 +23,7 @@ export function GalleryVideos({
   gallerySlug,
   compact = false,
 }: GalleryVideosProps) {
+  const t = useDictionary();
   if (!videos?.length) return null;
 
   return (
@@ -54,6 +56,7 @@ export function GalleryVideos({
             }
           >
             <StreamVideoPlayer
+              transcodingLabel={t.video.transcoding}
               video={video}
               compact={compact}
               className={
@@ -74,11 +77,11 @@ export function GalleryVideos({
                 <Link
                   href={shareHref}
                   className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
-                  aria-label={`分享 ${label}`}
-                  title="分享影片"
+                  aria-label={t.gallery.shareAria.replace("{label}", label)}
+                  title={t.gallery.shareVideo}
                 >
                   <Share2 className="size-3.5" />
-                  {!compact && <span>分享</span>}
+                  {!compact && <span>{t.gallery.share}</span>}
                 </Link>
               )}
             </div>

@@ -15,6 +15,7 @@ import min from "lodash/min";
 import { motion, AnimatePresence } from "framer-motion";
 import { transitionApple } from "@/styles/framer-motion";
 import { Icon } from "@iconify-icon/react";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 // import { cn } from "@/lib/cn";
 // import dayjs from "dayjs";
 // import customParseFormat from "dayjs/plugin/customParseFormat";
@@ -89,6 +90,7 @@ const SwiperLightbox: React.FC<{
   maxHeight?: number;
   featured?: boolean;
 }> = ({ images, autoplay = false, maxHeight = 360, featured = false }) => {
+  const t = useDictionary();
   const swiperRef = useRef<SwiperRef>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const [maxWidth, setMaxWidth] = useState<number>(0);
@@ -116,11 +118,11 @@ const SwiperLightbox: React.FC<{
       bgOpacity: 1,
       // bgOpacity: 0.1,
       // initialZoomLevel: 0.05,
-      closeTitle: "關閉 (Esc)",
-      zoomTitle: "放大 (單擊圖片)",
-      arrowPrevTitle: "上一張 (左方向鍵)",
-      arrowNextTitle: "下一張 (右方向鍵)",
-      errorMsg: "發生錯誤：無法載入圖片",
+      closeTitle: t.lightbox.close,
+      zoomTitle: t.lightbox.zoom,
+      arrowPrevTitle: t.lightbox.prev,
+      arrowNextTitle: t.lightbox.next,
+      errorMsg: t.lightbox.error,
       paddingFn: (viewportSize, itemData, index) => {
         return {
           top: viewportSize.x < 768 ? 60 : 0,
@@ -153,6 +155,11 @@ const SwiperLightbox: React.FC<{
     return () => {
       lightbox.destroy();
     };
+    // Mount-once, as it already was. `t` joins `autoplay` and `images` in the
+    // exhaustive-deps warning and belongs there for the same reason they do:
+    // a page renders in one language, so re-initialising PhotoSwipe for a
+    // dictionary that cannot change would tear down an open lightbox to
+    // rewrite a tooltip.
   }, []);
 
   const setSwiperAutoplay = (to: boolean) => {
@@ -170,7 +177,7 @@ const SwiperLightbox: React.FC<{
         {lightboxActive && (
           <motion.button
             data-theme="dark"
-            aria-label="顯示照片資訊"
+            aria-label={t.lightbox.info}
             onTap={() => {
               setShowExif(!showExif);
             }}

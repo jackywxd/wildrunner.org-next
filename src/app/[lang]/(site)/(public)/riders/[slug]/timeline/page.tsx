@@ -6,12 +6,14 @@ import { RiderTimeline } from "@/components/riders/RiderTimeline";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
 import { getRiderTimeline } from "@/lib/content";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params) {
+  const t = await getDictionary();
   const { slug } = await params;
   const found = await getRiderTimeline(slug);
   if (!found) return {};
@@ -21,8 +23,8 @@ export async function generateMetadata({ params }: Params) {
     // 「的」 binds directly to the name: the half-width space that used to sit
     // in front of it came from string interpolation, not from typography.
     path: `/riders/${rider.slug}/timeline`,
-    title: `${rider.name}的穿越時光`,
-    subtitle: `${rider.name} 跑過的比賽與寫過的文章，依時間排列。`,
+    title: t.riderTimeline.title.replace("{name}", rider.name),
+    subtitle: t.riderTimeline.subtitle.replace("{name}", rider.name),
     type: "profile",
     // A MEMBER IS SOMETHING, so they get their own colours rather than the
     // site's furniture card. Seeded on the slug, which means their profile and
@@ -51,6 +53,7 @@ export async function generateMetadata({ params }: Params) {
  * page is behind no cache tag of its own.
  */
 export default async function RiderTimelinePage({ params }: Params) {
+  const t = await getDictionary();
   const { slug } = await params;
   const found = await getRiderTimeline(slug);
   if (!found) notFound();
@@ -69,7 +72,7 @@ export default async function RiderTimelinePage({ params }: Params) {
             className="font-heading text-3xl font-extrabold tracking-tight lg:text-4xl"
             data-testid="rider-name"
           >
-            {rider.name} 的穿越時光
+            {t.riderTimeline.heading.replace("{name}", rider.name)}
           </h1>
           <div className="mt-3">
             <RiderViewTabs active="timeline" slug={rider.slug} />
@@ -86,7 +89,7 @@ export default async function RiderTimelinePage({ params }: Params) {
           className="text-sm text-muted-foreground hover:text-primary"
           href={`/riders/${rider.slug}`}
         >
-          ← 回到 {rider.name} 的頁面
+          {t.riderTimeline.backToRider.replace("{name}", rider.name)}
         </Link>
       </div>
     </div>

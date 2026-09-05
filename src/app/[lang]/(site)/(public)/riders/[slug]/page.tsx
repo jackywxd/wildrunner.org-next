@@ -9,12 +9,14 @@ import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params) {
+  const t = await getDictionary();
   const { slug } = await params;
   const found = await getRiderBySlug(slug);
   if (!found) return {};
@@ -23,7 +25,7 @@ export async function generateMetadata({ params }: Params) {
   return pageMetadata({
     path: `/riders/${rider.slug}`,
     title: rider.name,
-    subtitle: rider.bio ?? `${rider.name} 在野馬營的文章`,
+    subtitle: rider.bio ?? t.rider.bioFallback.replace("{name}", rider.name),
     type: "profile",
     // A MEMBER IS SOMETHING, so they get their own colours rather than the
     // site's furniture card. Seeded on the slug, which means their profile and
@@ -38,6 +40,7 @@ export async function generateMetadata({ params }: Params) {
 }
 
 export default async function RiderPage({ params }: Params) {
+  const t = await getDictionary();
   const { slug } = await params;
   const found = await getRiderBySlug(slug);
   if (!found) notFound();
@@ -71,7 +74,7 @@ export default async function RiderPage({ params }: Params) {
             </p>
           )}
           <p className="mt-3 text-sm text-muted-foreground">
-            {rider.postCount} 篇文章
+            {t.rider.postCount.replace("{count}", String(rider.postCount))}
           </p>
           <div className="mt-4">
             <RiderViewTabs active="posts" slug={rider.slug} />
@@ -126,20 +129,20 @@ export default async function RiderPage({ params }: Params) {
               )}
 
               <Link className="absolute inset-0" href={postPublicPath(post.slug)}>
-                <span className="sr-only">閱讀文章</span>
+                <span className="sr-only">{t.rider.readPost}</span>
               </Link>
             </article>
           ))}
         </div>
       ) : (
         <p className="text-muted-foreground" data-testid="rider-no-posts">
-          還沒有發布文章。
+          {t.rider.noPosts}
         </p>
       )}
 
       <div className="mt-10">
         <Link className="text-sm text-muted-foreground hover:text-primary" href="/riders">
-          ← 所有成員
+          {t.rider.allMembers}
         </Link>
       </div>
     </div>

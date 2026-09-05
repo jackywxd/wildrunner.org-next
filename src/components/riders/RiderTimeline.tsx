@@ -14,6 +14,7 @@ import { resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { formatMonthDay, summariseTimeline } from "@/lib/riders/timeline";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import type {
   RiderTimelineEntry,
   RiderTimelineYear,
@@ -60,10 +61,15 @@ const NODE = "absolute left-[10px] h-[11px] w-[11px] sm:left-[14px]";
 const CONTENT = "pl-10 sm:pl-14";
 
 /** "3 場比賽 · 2 篇文章", with either half dropped when it is zero. */
-function countsLabel(races: number, posts: number): string {
+function countsLabel(
+  races: number,
+  posts: number,
+  raceLabel: string,
+  postLabel: string,
+): string {
   const parts: string[] = [];
-  if (races > 0) parts.push(`${races} 場比賽`);
-  if (posts > 0) parts.push(`${posts} 篇文章`);
+  if (races > 0) parts.push(raceLabel.replace("{count}", String(races)));
+  if (posts > 0) parts.push(postLabel.replace("{count}", String(posts)));
   return parts.join(" · ");
 }
 
@@ -74,8 +80,12 @@ function countsLabel(races: number, posts: number): string {
  * — see `buildRiderTimeline`, which sorts those to the bottom of their year
  * for the same reason.
  */
-function whenLabel(entry: RiderTimelineEntry, year: number): string {
-  return entry.day ? formatMonthDay(entry.day) : `${year} 年`;
+function whenLabel(
+  entry: RiderTimelineEntry,
+  year: number,
+  yearLabel: string,
+): string {
+  return entry.day ? formatMonthDay(entry.day) : yearLabel.replace("{year}", String(year));
 }
 
 function eventName(catalogue: RaceCatalogueMap, eventId: string): string {
@@ -87,7 +97,14 @@ function eventName(catalogue: RaceCatalogueMap, eventId: string): string {
 }
 
 /** The article half of a row: cover, title, description. */
-function PostBody({ post, compact }: { compact: boolean; post: SitePost }) {
+async function PostBody({
+  post,
+  compact,
+}: {
+  compact: boolean;
+  post: SitePost;
+}) {
+  const t = await getDictionary();
   return (
     <Link
       className="group flex min-w-0 flex-1 gap-3"
@@ -115,7 +132,7 @@ function PostBody({ post, compact }: { compact: boolean; post: SitePost }) {
               : "text-lg font-extrabold text-foreground group-hover:text-primary"
           }
         >
-          {compact && <span className="text-muted-foreground">賽記 · </span>}
+          {compact && <span className="text-muted-foreground">{t.riderTimeline.raceReport}</span>}
           {post.title}
         </h3>
         {post.description && (
@@ -128,7 +145,7 @@ function PostBody({ post, compact }: { compact: boolean; post: SitePost }) {
   );
 }
 
-function Entry({
+async function Entry({
   catalogue,
   entry,
   year,
@@ -137,11 +154,19 @@ function Entry({
   entry: RiderTimelineEntry;
   year: number;
 }) {
+  const t = await getDictionary();
   const { post, race } = entry;
   // A month of pictures is a whole row of its own and shares nothing with the
   // two below it, so it returns early rather than growing a third branch
   // inside a card built around a badge and an article.
-  if (entry.month) return <MonthMediaCard month={entry.month} />;
+  if (entry.month)
+    return (
+      <MonthMediaCard
+        month={entry.month}
+        photoLabel={t.riderTimeline.photoCount}
+        videoLabel={t.riderTimeline.videoCount}
+      />
+    );
 
   // Three shapes, one attribute, so a test can say which it expected rather
   // than inferring it from what happens to be inside the card.
@@ -174,7 +199,7 @@ function Entry({
               <p className="mt-1 text-sm text-muted-foreground">
                 {badge?.distance.label}
                 {" · "}
-                {whenLabel(entry, year)}
+                {whenLabel(entry, year, t.riderTimeline.year)}
                 {entry.location ? ` · ${entry.location}` : ""}
               </p>
             </div>
@@ -190,6 +215,8 @@ function Entry({
               <RaceMediaStrip
                 href={`/gallery/${raceGallerySlug(race.eventId, race.year)}`}
                 media={entry.media}
+                photoLabel={t.riderTimeline.photoCount}
+                videoLabel={t.riderTimeline.videoCount}
               />
             )}
           </>
@@ -198,7 +225,7 @@ function Entry({
             <>
               <PostBody compact={false} post={post} />
               <p className="text-sm text-muted-foreground">
-                {whenLabel(entry, year)}
+                {whenLabel(entry, year, t.riderTimeline.year)}
               </p>
             </>
           )
@@ -218,6 +245,7 @@ export async function RiderTimeline({
   slug: string;
   years: RiderTimelineYear[];
 }) {
+  const t = await getDictionary();
   const catalogue = catalogueMap(await getRaceCatalogueEvents());
   const { firstYear, lastYear, postCount, raceCount } =
     summariseTimeline(years);
@@ -225,7 +253,7 @@ export async function RiderTimeline({
   if (years.length === 0) {
     return (
       <p className="text-muted-foreground" data-testid="rider-timeline-empty">
-        還沒有比賽紀錄或文章。
+        {t.riderTimeline.empty}
       </p>
     );
   }
@@ -248,7 +276,7 @@ export async function RiderTimeline({
           className="text-sm text-muted-foreground"
           data-testid="rider-timeline-summary"
         >
-          {countsLabel(raceCount, postCount)}
+          {countsLabel(raceCount, postCount, t.riderTimeline.raceCount, t.riderTimeline.postCount)}
           {firstYear !== undefined && lastYear !== undefined
             ? ` · ${firstYear === lastYear ? firstYear : `${firstYear}–${lastYear}`}`
             : ""}
@@ -256,7 +284,7 @@ export async function RiderTimeline({
         {/* Two buttons that do different things — `TimelineDownloadButton`
             says which, and why only this rail has the second one. */}
         <span className="flex flex-wrap items-center gap-2 print:hidden">
-          <TimelinePrintButton label="列印" />
+          <TimelinePrintButton label={t.common.print} />
           <TimelineDownloadButton slug={slug} />
         </span>
       </div>
@@ -293,7 +321,7 @@ export async function RiderTimeline({
                   {yearGroup.year}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {countsLabel(races, posts)}
+                  {countsLabel(races, posts, t.riderTimeline.raceCount, t.riderTimeline.postCount)}
                 </p>
               </TimelineReveal>
 
@@ -328,7 +356,7 @@ export async function RiderTimeline({
         })}
       </div>
 
-      <p className="sr-only">{name} 的時間軸到此為止。</p>
+      <p className="sr-only">{t.riderTimeline.endOfTimeline.replace("{name}", name)}</p>
     </TimelineMotionConfig>
   );
 }

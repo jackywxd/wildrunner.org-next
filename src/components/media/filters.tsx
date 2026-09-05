@@ -74,6 +74,12 @@ export function FilterChip({
  * href decides the id, and wrong here, where the three values are a fixed list
  * somebody typed. Twelve lines of loop is not worth a hole in the one check
  * that catches a spec asserting on a selector nothing renders.
+ *
+ * ONLY THE MEMBER LIBRARY READS THIS NOW. /gallery renders the same three
+ * words from `t.gallery.kind*`, because the public site is the half that is
+ * translated; the member area follows in its own PR and this map goes with it.
+ * Until then the words exist twice on purpose — the alternative was leaving
+ * three visitor-facing strings out of the dictionary to keep one map tidy.
  */
 export const KIND_LABELS: Record<MediaKindFilter, string> = {
   all: "全部",

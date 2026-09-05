@@ -81,6 +81,16 @@ const ROUTES = [
   "/members/posts/new",
   "/members/posts/import",
   "/members/posts/0",
+  // The two share-card Route Handlers, which are what WeChat and 小紅書
+  // actually fetch. They live under `(site)` rather than `(public)` and each
+  // is a single `[...slug]/route.tsx`, so one placeholder warms every card
+  // shape it serves. Measured here, cold: `/wx/race/<key>/<year>` took
+  // **7.7s** against 0.29s warm, inside `V-SHARE-T3`, whose whole budget is
+  // 20s and which also loads /riders/timeline and a race edition (6.3s cold
+  // itself) before it gets there. That is what timed it out on CI — the same
+  // shape as `P-PHOTO` above, one route family later.
+  "/wx/warmup-not-a-real-card",
+  "/share/warmup-not-a-real-card",
   // The app-root `not-found.tsx`, which is its own compilation unit and the
   // only route reached by an address that matches nothing. Every entry above
   // warms the `(public)` boundary instead, so without this line the one

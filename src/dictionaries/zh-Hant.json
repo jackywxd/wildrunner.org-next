@@ -1,0 +1,225 @@
+{
+  "nav": {
+    "signIn": "登入"
+  },
+  "posts": {
+    "title": "文章",
+    "subtitle": "野馬營的比賽紀錄與山野書寫"
+  },
+  "reader": {
+    "speedSlow": "慢",
+    "speedNormal": "正常",
+    "speedFast": "快",
+    "speedVeryFast": "很快",
+    "pauseAria": "暫停朗讀",
+    "readAria": "朗讀這篇文章",
+    "pause": "暫停",
+    "resume": "繼續",
+    "read": "朗讀",
+    "stopAria": "停止朗讀",
+    "stop": "停止",
+    "musicOn": "播放背景音樂",
+    "musicOff": "關閉背景音樂",
+    "musicTitle": "文章背景音樂",
+    "noVoice": "這台裝置沒有中文語音，無法朗讀。",
+    "voice": "聲音",
+    "speed": "語速"
+  },
+  "gallery": {
+    "shareAria": "分享 {label}",
+    "share": "分享",
+    "sortNewest": "最新",
+    "sortOldest": "最舊",
+    "sortCurated": "相簿順序",
+    "musicOff": "關閉背景音樂",
+    "musicOn": "播放背景音樂",
+    "nextTrack": "下一首",
+    "prevTrack": "上一首",
+    "sortLabel": "排序",
+    "kindAll": "全部",
+    "kindPhoto": "相片",
+    "kindVideo": "影片",
+    "raceLabel": "賽事",
+    "anyRace": "所有比賽",
+    "emptyAll": "還沒有相片或影片。",
+    "emptyFiltered": "沒有符合條件的項目。",
+    "raceOption": "{label}（{count}）",
+    "shareVideo": "分享影片",
+    "albumTitle": "相冊",
+    "albumSubtitle": "野馬營在賽道上、山裡和終點線後的照片與影片。",
+    "albumPhotos": "{name}的照片",
+    "photoCount": "{count}張照片",
+    "videoCountSuffix": " · {count}個影片",
+    "backToAlbums": "相冊"
+  },
+  "home": {
+    "timeline": "穿越時光",
+    "viewPosts": "查看文章",
+    "about": "關於我們",
+    "upcomingRaces": "近期賽事",
+    "upcomingRacesSub": "未來一年的越野賽事與報名時間",
+    "viewAll": "查看全部",
+    "albums": "相冊",
+    "albumsSub": "瀏覽 {count} 張圖片",
+    "toAlbums": "前往相冊",
+    "tagline": "一群野馬，一個家。",
+    "seePhotos": "看照片",
+    "meetMembers": "認識成員"
+  },
+  "races": {
+    "title": "賽事日程",
+    "subtitle": "世界各地重要的越野賽事日程，含報名開放與截止時間。包含 UTMB 世界系列賽、World Trail Majors 與其他獨立賽事。",
+    "monthRange": "{from} 年 {fromMonth} 月 – {to} 年 {toMonth} 月",
+    "emptyAll": "還沒有公布的賽事日程。",
+    "emptyFiltered": "這個條件下沒有賽事，試試其他條件或看全部。",
+    "earlier": "← 更早的賽事",
+    "later": "更晚的賽事 →",
+    "disclaimerDates": "賽事日期與報名資訊以主辦單位官方公告為準。發現有誤請告訴我們。",
+    "disclaimerQualifiers": "資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。"
+  },
+  "share": {
+    "open": "分享",
+    "heading": "分享「{title}」",
+    "close": "關閉",
+    "imageAlt": "{title} 的分享圖",
+    "hint": "手機長按圖片存到相簿,再發到小紅書。",
+    "copied": "已複製",
+    "copyXiaohongshu": "複製小紅書文案(不含網址)",
+    "copyWechat": "複製微信文案(含連結)",
+    "download": "下載分享圖"
+  },
+  "galleryPage": {
+    "title": "相冊",
+    "subtitleAll": "所有相片與影片,依時間排序",
+    "subtitleAlbums": "依相簿瀏覽",
+    "tabAll": "全部相片",
+    "tabAlbums": "依相簿",
+    "featured": "精選照片",
+    "albums": "相簿"
+  },
+  "raceSchedule": {
+    "monthDay": "{month}月{day}日",
+    "dayOnly": "{day}日",
+    "inProgress": "進行中",
+    "finished": "已結束",
+    "viewPhotos": "查看相片 →",
+    "weekdays": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ],
+    "yearMonth": "{year} 年 {month} 月",
+    "logRace": "紀錄比賽",
+    "uploadPhotos": "上傳相片",
+    "register": "前往報名 →"
+  },
+  "riders": {
+    "title": "野馬",
+    "subtitle": "野馬營的成員們",
+    "timeline": "穿越時光 →",
+    "postCount": "{count} 篇文章",
+    "emptyAll": "還沒有成員。",
+    "emptyBadge": "還沒有成員拿到這個徽章。",
+    "emptyBadges": "沒有成員同時拿到這些徽章。"
+  },
+  "clubTimeline": {
+    "year": "{year} 年",
+    "raceReport": "賽記 · ",
+    "runnerCount": " · {count} 位成員",
+    "empty": "還沒有比賽紀錄或文章。",
+    "loaded": "已載入 {races} 場完賽 · {posts} 篇文章",
+    "more": " · 往下捲還有",
+    "printing": "整理中…",
+    "printAll": "列印全部",
+    "title": "野馬營穿越時光",
+    "subtitle": "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
+    "pageDescription": "所有成員的比賽和文章，接在同一條時間軸上。",
+    "allMembers": "← 所有成員"
+  },
+  "riderTimeline": {
+    "raceCount": "{count} 場比賽",
+    "postCount": "{count} 篇文章",
+    "year": "{year} 年",
+    "raceReport": "賽記 · ",
+    "empty": "還沒有比賽紀錄或文章。",
+    "generating": "產生中…",
+    "downloadPdf": "下載 PDF",
+    "photoCount": "{count} 張相片",
+    "videoCount": "{count} 段影片",
+    "title": "{name}的穿越時光",
+    "subtitle": "{name} 跑過的比賽與寫過的文章，依時間排列。",
+    "heading": "{name} 的穿越時光",
+    "backToRider": "← 回到 {name} 的頁面",
+    "endOfTimeline": "{name} 的時間軸到此為止。"
+  },
+  "raceEdition": {
+    "subtitle": "{name} {year} 的賽事資訊與相片牆。",
+    "officialSite": "官方網站 →",
+    "photoWall": "相片牆",
+    "photoWallHint": "會員上傳時標記這場比賽，就會出現在這裡。",
+    "noPhotos": "還沒有這場比賽的照片。"
+  },
+  "lightbox": {
+    "close": "關閉 (Esc)",
+    "zoom": "放大 (單擊圖片)",
+    "prev": "上一張 (左方向鍵)",
+    "next": "下一張 (右方向鍵)",
+    "error": "發生錯誤：無法載入圖片",
+    "info": "顯示照片資訊"
+  },
+  "raceFilters": {
+    "list": "列表",
+    "calendar": "月曆",
+    "remind": "預約提醒",
+    "allSeries": "全部系列",
+    "openOnly": "只看報名中"
+  },
+  "rider": {
+    "bioFallback": "{name} 在野馬營的文章",
+    "postCount": "{count} 篇文章",
+    "readPost": "閱讀文章",
+    "noPosts": "還沒有發布文章。",
+    "allMembers": "← 所有成員",
+    "tabPosts": "文章",
+    "tabTimeline": "穿越時光",
+    "tabsAria": "檢視方式"
+  },
+  "slideshowMusic": {
+    "defaultTitle": "相簿背景音樂",
+    "heading": "背景音樂",
+    "collapse": "收起",
+    "touchHint": "點一下播放器開始音樂"
+  },
+  "albums": {
+    "emptyFiltered": "這場比賽還沒有相簿。",
+    "emptyAll": "還沒有相簿。",
+    "photoCount": "{count} 張照片",
+    "videoCount": "{count} 段影片"
+  },
+  "about": {
+    "title": "關於野馬營",
+    "subtitle": "一群在溫哥華相遇的越野跑者，和這個站為什麼存在。"
+  },
+  "theme": {
+    "toLight": "切換為淺色模式",
+    "toDark": "切換為深色模式"
+  },
+  "common": {
+    "print": "列印",
+    "printPdf": "列印 / PDF",
+    "all": "全部",
+    "coverImage": "封面圖片"
+  },
+  "video": {
+    "youtubeTitle": "YouTube 影片",
+    "transcoding": "影片正在轉檔，請稍後再試。"
+  },
+  "badges": {
+    "round": "第 {n} 輪 ",
+    "missing": "還差"
+  }
+}

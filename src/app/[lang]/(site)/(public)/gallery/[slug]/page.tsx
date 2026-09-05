@@ -7,6 +7,7 @@ import { resolveGalleryOgCard } from "@/lib/galleryOg";
 import { pageMetadata } from "@/lib/site-metadata";
 import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { raceFilterOptions } from "@/lib/media/gallery-index";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import {
   getGalleryBySlug,
   getGalleryRaceEditions,
@@ -33,6 +34,7 @@ interface GalleryDetailPageProps {
 export async function generateMetadata({
   params,
 }: GalleryDetailPageProps): Promise<Metadata> {
+  const t = await getDictionary();
   const gallery = await getGalleryBySlug((await params).slug);
   // No title for the missing case: the page throws `notFound()`, and the
   // metadata of a segment that threw is discarded. `app/not-found.tsx` owns
@@ -42,7 +44,7 @@ export async function generateMetadata({
   return pageMetadata({
     path: `/gallery/${gallery.slug}`,
     title: gallery.name,
-    subtitle: `${gallery.name}的照片`,
+    subtitle: t.gallery.albumPhotos.replace("{name}", gallery.name),
     card: resolveGalleryOgCard(gallery),
   });
 }
@@ -50,6 +52,7 @@ export async function generateMetadata({
 const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
   params,
 }) => {
+  const t = await getDictionary();
   const gallery = await getGalleryBySlug((await params).slug);
   if (!gallery) notFound();
 
@@ -72,8 +75,8 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {gallery.name}
         </h1>
         <div className="text-left text-sm text-muted-foreground">
-          {photoCount}張照片
-          {videoCount > 0 ? ` · ${videoCount}個影片` : null}
+          {t.gallery.photoCount.replace("{count}", String(photoCount))}
+          {videoCount > 0 ? t.gallery.videoCountSuffix.replace("{count}", String(videoCount)) : null}
         </div>
         <PhotoGallery gallery={gallery} races={races} />
       </div>

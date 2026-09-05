@@ -27,6 +27,7 @@ import { ShareSheet } from "@/components/share/ShareSheet";
 import { WeChatThumb } from "@/components/share/WeChatThumb";
 import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
 import type { ShareSubject } from "@/lib/share/share-text";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -96,6 +97,7 @@ export async function generateStaticParams() {
 }
 
 export default async function BlogPageItem({ params }: BlogPageItemProps) {
+  const t = await getDictionary();
   const slugParam = (await params).slug.join("/");
   const blog = await getPostBySlugParam(slugParam);
   if (!blog) {
@@ -276,7 +278,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             data-testid="post-print-link"
           >
             <Printer className="mr-2 size-4" />
-            列印 / PDF
+            {t.common.printPdf}
           </Link>
         </div>
       </>

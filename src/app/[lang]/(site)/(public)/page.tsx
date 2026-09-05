@@ -17,6 +17,7 @@ import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export async function generateMetadata() {
 const HOME_RACE_COUNT = 4;
 
 export default async function Home() {
+  const t = await getDictionary();
   // One clock for the whole render, so a race cannot be evaluated against
   // two different days within the same page.
   const now = new Date();
@@ -99,19 +101,19 @@ export default async function Home() {
               data-testid="home-timeline-link"
               className={cn(buttonVariants({ variant: "default" }), "px-6")}
             >
-              穿越時光
+              {t.home.timeline}
             </Link>
             <Link
               href="/posts"
               className={cn(buttonVariants({ variant: "outline" }), "px-6")}
             >
-              查看文章
+              {t.home.viewPosts}
             </Link>
             <Link
               href="/about"
               className={cn(buttonVariants({ variant: "outline" }), "px-6")}
             >
-              關於我們
+              {t.home.about}
             </Link>
           </div>
         </div>
@@ -137,9 +139,9 @@ export default async function Home() {
         <section className="mt-10 border-t-2 border-border pt-8">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-xl font-bold sm:text-2xl">近期賽事</h2>
+              <h2 className="text-xl font-bold sm:text-2xl">{t.home.upcomingRaces}</h2>
               <p className="text-sm text-muted-foreground">
-                未來一年的越野賽事與報名時間
+                {t.home.upcomingRacesSub}
               </p>
             </div>
             <Link
@@ -147,7 +149,7 @@ export default async function Home() {
               data-testid="home-races-link"
               className={cn(buttonVariants({ variant: "ghost" }), "px-6")}
             >
-              查看全部
+              {t.home.viewAll}
             </Link>
           </div>
 
@@ -163,16 +165,16 @@ export default async function Home() {
         <section className="mt-10 border-t-2 border-border pt-8">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-xl font-bold sm:text-2xl">相冊</h2>
+              <h2 className="text-xl font-bold sm:text-2xl">{t.home.albums}</h2>
               <p className="text-sm text-muted-foreground">
-                瀏覽 {imageCount} 張圖片
+                {t.home.albumsSub.replace("{count}", String(imageCount))}
               </p>
             </div>
             <Link
               href="/gallery"
               className={cn(buttonVariants({ variant: "ghost" }), "px-6")}
             >
-              前往相冊
+              {t.home.toAlbums}
             </Link>
           </div>
 
@@ -198,7 +200,7 @@ export default async function Home() {
             WILDRUNNER.ORG
           </p>
           <h2 className="mt-2 text-[32px] font-black leading-[1.12]">
-            一群野馬，一個家。
+            {t.home.tagline}
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-primary-foreground/85 sm:text-base">
             {siteConfig.slogan}
@@ -211,7 +213,7 @@ export default async function Home() {
                 "bg-primary-foreground text-primary hover:bg-primary-foreground/90",
               )}
             >
-              查看文章
+              {t.home.viewPosts}
             </Link>
             <Link
               href="/gallery"
@@ -220,7 +222,7 @@ export default async function Home() {
                 "px-6 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground",
               )}
             >
-              看照片
+              {t.home.seePhotos}
             </Link>
             <Link
               href="/riders"
@@ -230,7 +232,7 @@ export default async function Home() {
                 "px-6 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground",
               )}
             >
-              認識成員
+              {t.home.meetMembers}
             </Link>
           </div>
         </div>

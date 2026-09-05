@@ -14,6 +14,7 @@ import SwiperLightbox from "@/components/swiper/SwiperLightbox";
 import { MediaGrid } from "@/app/[lang]/(site)/(public)/gallery/_components/MediaGrid";
 import { AlbumCards } from "@/app/[lang]/(site)/(public)/gallery/_components/AlbumCards";
 import { FilterChip, FilterSelect } from "@/components/media/filters";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * Everything here arrives already reduced — deduped, sorted, capped, counted.
@@ -66,6 +67,7 @@ export default function GalleryPageClient({
   races,
   musicPlaylist,
 }: GalleryPageClientProps) {
+  const t = useDictionary();
   // Default: every photo across every published gallery, newest first —
   // "browse everything" is what most visitors want from a link labelled
   // 相冊, not a shelf of albums they have to open one at a time. The
@@ -88,9 +90,9 @@ export default function GalleryPageClient({
     <div className="container max-w-7xl py-6 lg:py-10">
       <div className="flex flex-col gap-6">
         <section className="border-t-2 border-border pt-8">
-          <h1 className="text-4xl font-extrabold text-foreground">相冊</h1>
+          <h1 className="text-4xl font-extrabold text-foreground">{t.galleryPage.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {view === "all" ? "所有相片與影片,依時間排序" : "依相簿瀏覽"}
+            {view === "all" ? t.galleryPage.subtitleAll : t.galleryPage.subtitleAlbums}
           </p>
 
           <div className="mt-4 flex gap-2" data-testid="gallery-view-toggle">
@@ -99,14 +101,14 @@ export default function GalleryPageClient({
               onClick={() => setView("all")}
               data-testid="gallery-view-all"
             >
-              全部相片
+              {t.galleryPage.tabAll}
             </FilterChip>
             <FilterChip
               active={view === "albums"}
               onClick={() => setView("albums")}
               data-testid="gallery-view-albums"
             >
-              依相簿
+              {t.galleryPage.tabAlbums}
             </FilterChip>
           </div>
 
@@ -126,7 +128,7 @@ export default function GalleryPageClient({
           <>
             {featuredPhotos.length > 0 && (
               <section className="border-t-2 border-border pt-8">
-                <h2 className="text-xl font-extrabold">精選照片</h2>
+                <h2 className="text-xl font-extrabold">{t.galleryPage.featured}</h2>
                 <SwiperLightbox
                   images={featuredPhotos}
                   autoplay={true}
@@ -143,16 +145,16 @@ export default function GalleryPageClient({
             */}
             <section className="border-t-2 border-border pt-8">
               <div className="mb-4 flex flex-wrap items-center gap-3">
-                <h2 className="text-xl font-extrabold">相簿</h2>
+                <h2 className="text-xl font-extrabold">{t.galleryPage.albums}</h2>
                 {races.length > 0 && (
                   <FilterSelect
-                    label="賽事"
+                    label={t.gallery.raceLabel}
                     value={albumRace === null ? ANY_RACE : String(albumRace)}
                     onChange={(next) =>
                       setAlbumRace(next === ANY_RACE ? null : Number(next))
                     }
                     options={[
-                      { value: ANY_RACE, label: "所有比賽" },
+                      { value: ANY_RACE, label: t.gallery.anyRace },
                       ...races.map((option) => ({
                         value: String(option.id),
                         label: option.label,

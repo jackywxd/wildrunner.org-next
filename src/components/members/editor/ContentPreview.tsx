@@ -21,6 +21,15 @@ const FORMAT_STRIKETHROUGH = 4;
 const FORMAT_CODE = 16;
 
 /**
+ * The member area has no dictionary yet — it sits outside
+ * `(public)/layout.tsx`, so neither accessor reaches it — and its own
+ * PR is where these words move. Named rather than inlined twice so that
+ * PR has one place to look.
+ */
+const YOUTUBE_TITLE = "YouTube 影片";
+const TRANSCODING = "影片正在轉檔，請稍後再試。";
+
+/**
  * A read-only render of a member's document, used by the import flow to ask
  * "does this look like your document" and by the editor's preview button to
  * ask "is this what it will look like published".
@@ -70,7 +79,7 @@ function renderInline(nodes: JsonNode[] | undefined): ReactNode {
       case "autolink": {
         const fields = node.fields as { url?: string } | undefined;
         const videoId = fields?.url ? youTubeVideoId(fields.url) : null;
-        if (videoId) return <YouTubeEmbed key={index} videoId={videoId} />;
+        if (videoId) return <YouTubeEmbed key={index} title={YOUTUBE_TITLE} videoId={videoId} />;
         return (
           <a key={index} href={fields?.url ?? "#"}>
             {renderInline(node.children)}
@@ -112,7 +121,7 @@ function PreviewUpload({ value }: { value: number | string }) {
   // and `loading="lazy"`.
   if (media?.mimeType?.startsWith("video/")) {
     const video = mediaToSiteVideo(media);
-    if (video) return <StreamVideoPlayer video={video} compact />;
+    if (video) return <StreamVideoPlayer video={video} compact transcodingLabel={TRANSCODING} />;
   }
 
   // eslint-disable-next-line @next/next/no-img-element
@@ -140,7 +149,7 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
         // this preview's whole job is "is this what it will look like
         // published", and it used to answer wrongly for a pasted YouTube URL.
         const videoId = soleYouTubeUrl(node);
-        if (videoId) return <YouTubeEmbed key={index} videoId={videoId} />;
+        if (videoId) return <YouTubeEmbed key={index} title={YOUTUBE_TITLE} videoId={videoId} />;
         return <p key={index}>{renderInline(node.children)}</p>;
       }
       case "quote":

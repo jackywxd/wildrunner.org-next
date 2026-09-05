@@ -1,12 +1,14 @@
 import React from "react";
 import { Metadata } from "next";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export function generateMetadata(): Metadata {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionary();
   return pageMetadata({
     path: "/gallery",
-    title: "相冊",
-    subtitle: "野馬營在賽道上、山裡和終點線後的照片與影片。",
+    title: t.gallery.albumTitle,
+    subtitle: t.gallery.albumSubtitle,
     card: { kind: "plain" },
   });
 }

@@ -19,10 +19,15 @@ import { cn } from "@/lib/utils";
  */
 
 /** "12 張相片 · 3 段影片", with either half dropped when it is zero. */
-function countsLabel(photos: number, videos: number): string {
+function countsLabel(
+  photos: number,
+  videos: number,
+  photoLabel: string,
+  videoLabel: string,
+): string {
   const parts: string[] = [];
-  if (photos > 0) parts.push(`${photos} 張相片`);
-  if (videos > 0) parts.push(`${videos} 段影片`);
+  if (photos > 0) parts.push(photoLabel.replace("{count}", String(photos)));
+  if (videos > 0) parts.push(videoLabel.replace("{count}", String(videos)));
   return parts.join(" · ");
 }
 
@@ -83,12 +88,24 @@ function AlbumLinks({ albums }: { albums: { name: string; slug: string }[] }) {
  * that `race-gallery.ts` describes, which is where every picture tagged with
  * that edition already lives. The strip is a way in, not the collection.
  */
+/**
+ * THE TWO COUNT LABELS ARRIVE AS PROPS, like `countsLabel`'s already do.
+ * These two components render from both sides of the boundary — `RiderTimeline`
+ * is a Server Component and `ClubTimelineFeed` is a Client one — and neither
+ * dictionary accessor works in both. Each parent already holds a dictionary,
+ * so handing the two strings down costs a line at two call sites and removes
+ * the whole question.
+ */
 export function RaceMediaStrip({
   href,
   media,
+  photoLabel,
+  videoLabel,
 }: {
   href: string;
   media: RaceMedia;
+  photoLabel: string;
+  videoLabel: string;
 }) {
   return (
     <div
@@ -99,7 +116,13 @@ export function RaceMediaStrip({
         className="text-sm font-semibold text-muted-foreground hover:text-primary"
         href={href}
       >
-        {countsLabel(media.photoCount, media.videoCount)} →
+        {countsLabel(
+          media.photoCount,
+          media.videoCount,
+          photoLabel,
+          videoLabel,
+        )}{" "}
+        →
       </Link>
       <AlbumLinks albums={media.albums} />
       <Thumbnails images={media.thumbnails} />
@@ -117,9 +140,13 @@ export function RaceMediaStrip({
 export function MonthMediaCard({
   className,
   month,
+  photoLabel,
+  videoLabel,
 }: {
   className?: string;
   month: MediaMonth;
+  photoLabel: string;
+  videoLabel: string;
 }) {
   return (
     <article
@@ -136,7 +163,12 @@ export function MonthMediaCard({
           {formatMonth(month.month)}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {countsLabel(month.photoCount, month.videoCount)}
+          {countsLabel(
+            month.photoCount,
+            month.videoCount,
+            photoLabel,
+            videoLabel,
+          )}
         </p>
       </div>
       <AlbumLinks albums={month.albums} />

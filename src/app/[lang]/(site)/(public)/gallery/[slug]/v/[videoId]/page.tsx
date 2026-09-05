@@ -16,6 +16,7 @@ import {
   getGalleryVideo,
 } from "@/lib/content";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import { streamHlsUrl } from "@/lib/stream";
 import { refreshStreamReady } from "@/lib/stream-ingest";
 
@@ -88,6 +89,7 @@ export async function generateMetadata({
 export default async function GalleryVideoPage({
   params,
 }: GalleryVideoPageProps) {
+  const t = await getDictionary();
   const { slug, videoId } = await params;
   const gallery = await getGalleryBySlug(slug);
   const result = gallery ? getGalleryVideo(gallery, videoId) : undefined;
@@ -121,7 +123,10 @@ export default async function GalleryVideoPage({
       <p className="!mt-0 text-sm text-muted-foreground">{g.name}</p>
 
       <div className="w-full overflow-hidden rounded-none border border-border bg-black">
-        <StreamVideoPlayer video={video} />
+        <StreamVideoPlayer
+          transcodingLabel={t.video.transcoding}
+          video={video}
+        />
       </div>
     </div>
   );

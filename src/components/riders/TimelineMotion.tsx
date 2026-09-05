@@ -31,6 +31,7 @@ import type { ReactNode } from "react";
 import { transitionApple } from "@/styles/framer-motion";
 import { usePdfDownload } from "@/lib/print/use-pdf-download";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 export function TimelineMotionConfig({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
@@ -139,6 +140,7 @@ export function TimelineReveal({
  * a browser can do.
  */
 export function TimelineDownloadButton({ slug }: { slug: string }) {
+  const t = useDictionary();
   const pdf = usePdfDownload(`/api/print/riders/${slug}/timeline`);
   return (
     <>
@@ -149,7 +151,7 @@ export function TimelineDownloadButton({ slug }: { slug: string }) {
         onClick={pdf.download}
         type="button"
       >
-        {pdf.downloading ? "產生中…" : "下載 PDF"}
+        {pdf.downloading ? t.riderTimeline.generating : t.riderTimeline.downloadPdf}
       </button>
       {pdf.error && (
         <span

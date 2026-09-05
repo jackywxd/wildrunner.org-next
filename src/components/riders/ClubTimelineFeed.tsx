@@ -29,6 +29,7 @@ import type {
 import { countClubRows } from "@/lib/riders/club-timeline";
 import { formatMonthDay } from "@/lib/riders/timeline";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
  * 全員穿越時光 — the club's races and articles on one rail, newest first.
@@ -97,8 +98,13 @@ function eventName(catalogue: RaceCatalogueMap, eventId: string): string {
   return event?.nameZh ?? event?.name ?? eventId;
 }
 
-function whenLabel(row: { day?: string; year: number }): string {
-  return row.day ? formatMonthDay(row.day) : `${row.year} 年`;
+function whenLabel(
+  row: { day?: string; year: number },
+  yearLabel: string,
+): string {
+  return row.day
+    ? formatMonthDay(row.day)
+    : yearLabel.replace("{year}", String(row.year));
 }
 
 /** The members on a race row: face, name, link to their own page. */
@@ -121,6 +127,7 @@ function Runners({ runners }: { runners: ClubRunner[] }) {
 }
 
 function PostLine({ compact, post }: { compact: boolean; post: ClubPost }) {
+  const t = useDictionary();
   return (
     <Link
       className="group flex min-w-0 gap-3"
@@ -147,7 +154,7 @@ function PostLine({ compact, post }: { compact: boolean; post: ClubPost }) {
             compact ? "text-sm font-semibold" : "text-lg font-extrabold",
           )}
         >
-          {compact && <span className="text-muted-foreground">賽記 · </span>}
+          {compact && <span className="text-muted-foreground">{t.clubTimeline.raceReport}</span>}
           {post.title}
         </h3>
         {post.description && (
@@ -170,9 +177,17 @@ function Row({
   catalogue: RaceCatalogueMap;
   row: ClubTimelineRow;
 }) {
+  const t = useDictionary();
   // A month of pictures is a whole row of its own — see the member rail's
   // `Entry` for why it returns early rather than becoming a third branch.
-  if (row.month) return <MonthMediaCard month={row.month} />;
+  if (row.month)
+    return (
+      <MonthMediaCard
+        month={row.month}
+        photoLabel={t.riderTimeline.photoCount}
+        videoLabel={t.riderTimeline.videoCount}
+      />
+    );
 
   const race = row.race;
   const badge = race ? resolveBadge(catalogue, race.eventId, race.distanceId) : undefined;
@@ -202,9 +217,9 @@ function Row({
               <p className="mt-1 text-sm text-muted-foreground">
                 {badge?.distance.label}
                 {" · "}
-                {whenLabel(row)}
+                {whenLabel(row, t.clubTimeline.year)}
                 {row.location ? ` · ${row.location}` : ""}
-                {race.runners.length > 1 ? ` · ${race.runners.length} 位成員` : ""}
+                {race.runners.length > 1 ? t.clubTimeline.runnerCount.replace("{count}", String(race.runners.length)) : ""}
               </p>
             </div>
             <Runners runners={race.runners} />
@@ -219,6 +234,8 @@ function Row({
               <RaceMediaStrip
                 href={`/gallery/${raceGallerySlug(race.eventId, row.year)}`}
                 media={row.media}
+                photoLabel={t.riderTimeline.photoCount}
+                videoLabel={t.riderTimeline.videoCount}
               />
             )}
           </>
@@ -226,7 +243,7 @@ function Row({
           row.posts[0] && (
             <>
               <PostLine compact={false} post={row.posts[0]} />
-              <p className="text-sm text-muted-foreground">{whenLabel(row)}</p>
+              <p className="text-sm text-muted-foreground">{whenLabel(row, t.clubTimeline.year)}</p>
             </>
           )
         )}
@@ -236,6 +253,7 @@ function Row({
 }
 
 export function ClubTimelineFeed({ first }: { first: Page }) {
+  const t = useDictionary();
   const [rows, setRows] = useState<ClubTimelineRow[]>(first.rows);
   const [events, setEvents] = useState<CatalogueEvent[]>(first.events);
   const [cursor, setCursor] = useState<ClubCursor | null>(first.nextCursor);
@@ -334,7 +352,7 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground" data-testid="club-timeline-empty">
-        還沒有比賽紀錄或文章。
+        {t.clubTimeline.empty}
       </p>
     );
   }
@@ -360,8 +378,8 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
               a number claiming to be the club's whole history while more is
               still being fetched would be wrong for as long as anyone is
               reading it. */}
-          已載入 {raceCount} 場完賽 · {postCount} 篇文章
-          {cursor ? " · 往下捲還有" : ""}
+          {t.clubTimeline.loaded.replace("{races}", String(raceCount)).replace("{posts}", String(postCount))}
+          {cursor ? t.clubTimeline.more : ""}
         </p>
         <button
           className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground print:hidden"
@@ -370,7 +388,7 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
           onClick={() => void printAll()}
           type="button"
         >
-          {printing ? "整理中…" : "列印全部"}
+          {printing ? t.clubTimeline.printing : t.clubTimeline.printAll}
         </button>
       </div>
 

@@ -288,6 +288,10 @@ export function MediaDetailDialog({
             <StreamVideoPlayer
               video={video}
               className="h-full w-full"
+              // The member area has no dictionary yet — it sits outside
+              // `(public)/layout.tsx`, so `useDictionary()` throws here. Its
+              // own PR is where this word moves.
+              transcodingLabel="影片正在轉檔，請稍後再試。"
               videoRef={videoEl}
             />
           ) : !src ? (

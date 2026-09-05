@@ -7,6 +7,7 @@ import { RiderFilters } from "@/components/riders/RiderFilters";
 import { getRiders } from "@/lib/content";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import {
   filterRidersByBadges,
   parseRiderBadges,
@@ -16,10 +17,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const t = await getDictionary();
   return pageMetadata({
     path: "/riders",
-    title: "野馬",
-    subtitle: "野馬營的成員們",
+    title: t.riders.title,
+    subtitle: t.riders.subtitle,
     card: { kind: "plain" },
   });
 }
@@ -29,6 +31,7 @@ export default async function RidersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getDictionary();
   const badges = parseRiderBadges(await searchParams);
   const all = await getRiders();
   // Options are built from every rider and counted against the selection —
@@ -49,7 +52,7 @@ export default async function RidersPage({
     // thing: 4xl is a reading width, and there is nothing here to read at
     // length. At 6xl a card goes from 424px to 552px.
     <div className="container max-w-6xl py-6 lg:py-10">
-      <PageHeader title="野馬" description="" />
+      <PageHeader title={t.riders.title} description="" />
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <RiderFilters options={options} selected={badges} total={all.length} />
@@ -63,7 +66,7 @@ export default async function RidersPage({
           data-testid="club-timeline-link"
           href="/riders/timeline"
         >
-          穿越時光 →
+          {t.riders.timeline}
         </Link>
       </div>
 
@@ -118,7 +121,7 @@ export default async function RidersPage({
                       data-post-count={rider.postCount}
                       data-testid="rider-post-count"
                     >
-                      {rider.postCount} 篇文章
+                      {t.riders.postCount.replace("{count}", String(rider.postCount))}
                     </p>
                   </div>
                 </div>
@@ -133,14 +136,14 @@ export default async function RidersPage({
         // *result* means nobody here has that badge yet.
         <p className="text-muted-foreground" data-testid="rider-empty">
           {badges.length === 0
-            ? "還沒有成員。"
+            ? t.riders.emptyAll
             : badges.length === 1
-              ? "還沒有成員拿到這個徽章。"
+              ? t.riders.emptyBadge
               : // Says 同時, because with AND that is the whole reason the
                 // page is empty: each badge on its own may well have
                 // somebody, and without the word this reads as though none
                 // of them does.
-                "沒有成員同時拿到這些徽章。"}
+                t.riders.emptyBadges}
         </p>
       )}
     </div>
