@@ -28,8 +28,8 @@ test.describe("U-METALOCALE metadata in one script", () => {
     expect(meta.description).toBe("野马营的照片");
   });
 
-  test("U-METALOCALE-2: the default and English sites are untouched", () => {
-    for (const locale of ["zh-hant", "en"]) {
+  test("U-METALOCALE-2: the default site is untouched", () => {
+    for (const locale of ["zh-hant"]) {
       const meta = pageMetadata({
         path: "/gallery",
         title: "相簿",
@@ -47,7 +47,7 @@ test.describe("U-METALOCALE metadata in one script", () => {
     // page whose subject IS the site opts out with `absolute`. That opt-out
     // is an equality test against `siteConfig.title`, and converting only the
     // left side of it silently produced 「野马营｜野马营」.
-    for (const locale of ["zh-hant", "zh-hans", "en"]) {
+    for (const locale of ["zh-hant", "zh-hans"]) {
       const meta = pageMetadata({
         path: "/",
         title: siteConfig.title,

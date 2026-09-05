@@ -1,7 +1,7 @@
 /**
  * The languages this site is published in, and the one it is written in.
  *
- * THREE LOCALES, AND THE SECOND AND THIRD EACH COST ONE LINE HERE. That was
+ * TWO LOCALES, AND THE SECOND COST ONE LINE HERE. That was
  * the whole point of the seam: the routing, the document language, the URL
  * shape, the font, `hreflang` and the sitemap all read this list, so
  * publishing a language is an entry in it plus a dictionary — not a change to
@@ -9,8 +9,20 @@
  *
  * THE ORDER IS THE ORDER THE SWITCHER SHOWS. Default first.
  *
- * `label` IS WRITTEN IN ITS OWN LANGUAGE, always — 繁體中文, 简体中文,
- * English. A switcher that named the languages in the language you are
+ * ENGLISH WAS HERE AND WAS TAKEN OUT, and the reason is worth keeping: an
+ * English *interface* shipped, but no English *content* ever did — every
+ * article, and even `/about`'s body (which comes from the `site` global), was
+ * Chinese underneath English chrome. A reader who cannot read Chinese was
+ * promised a site that did not exist and found out three pages in. Browser
+ * translation serves that reader better than a shell does, and it serves
+ * every other language too.
+ *
+ * The two that remain are not a shell: `/zh-hans` is a complete Simplified
+ * edition, because `to-simplified.ts` converts the stored Traditional at
+ * request time. Both languages here are ones the whole site is readable in.
+ *
+ * `label` IS WRITTEN IN ITS OWN LANGUAGE, always — 繁體中文, 简体中文.
+ * A switcher that named the languages in the language you are
  * already reading is useless to the one reader who needs it: somebody who
  * cannot read this page has to recognise their own language on sight. That
  * is also why neither name is ever translated into the dictionary.
@@ -37,7 +49,6 @@
 export const LOCALES = [
   { segment: "zh-hant", tag: "zh-Hant", label: "繁體中文", short: "繁" },
   { segment: "zh-hans", tag: "zh-Hans", label: "简体中文", short: "简" },
-  { segment: "en", tag: "en", label: "English", short: "EN" },
 ] as const;
 
 export type Locale = (typeof LOCALES)[number];

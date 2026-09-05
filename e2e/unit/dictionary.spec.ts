@@ -80,7 +80,7 @@ test.describe("U-DICT the dictionary and its readers agree", () => {
     // can catch a translation that is fluent and wrong, and that job is much
     // harder when the files do not line up.
     const reference = paths(dictionary);
-    for (const file of ["zh-Hans", "en"]) {
+    for (const file of ["zh-Hans"]) {
       const other = paths(
         JSON.parse(readFileSync(`src/dictionaries/${file}.json`, "utf8")),
       );
