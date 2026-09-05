@@ -68,6 +68,26 @@ const code = sources(SRC)
   .join("\n");
 
 test.describe("U-DICT the dictionary and its readers agree", () => {
+  test("U-DICT-3: every language carries exactly the same keys", () => {
+    // The check that a language cannot ship half-written. TypeScript will not
+    // catch it: `Dictionary` is `typeof import(zh-Hant.json)` and the others
+    // are read through a dynamic import, so a missing key becomes `undefined`
+    // at runtime — a real word, nine characters wide, in the middle of a
+    // sentence — and an extra one is a phrase nothing renders.
+    //
+    // Order is compared too, not just the set. It is not load-bearing, but a
+    // reviewer reading two dictionaries side by side is the only person who
+    // can catch a translation that is fluent and wrong, and that job is much
+    // harder when the files do not line up.
+    const reference = paths(dictionary);
+    for (const file of ["zh-Hans", "en"]) {
+      const other = paths(
+        JSON.parse(readFileSync(`src/dictionaries/${file}.json`, "utf8")),
+      );
+      expect(other, `${file}.json does not match zh-Hant.json`).toEqual(reference);
+    }
+  });
+
   test("U-DICT-1: every key the dictionary holds is read by something", () => {
     // `t.reader.pause` in the source, or `t.reader[option.labelKey]` for the
     // handful of module-level option lists — those are matched by their

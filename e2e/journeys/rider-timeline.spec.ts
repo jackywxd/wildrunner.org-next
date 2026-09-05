@@ -136,6 +136,26 @@ test.describe("V-TIMELINE 穿越時光", () => {
     page,
     request,
   }) => {
+    // FOUR RENDERS, and the last one is the most expensive page on the site.
+    // `openTimelineOfAMemberWithContent` walks /riders → the profile → the
+    // timeline tab, and then this test loads /riders/timeline, which the
+    // V-SHARE-T3 measurement in this same branch clocked at 4341ms *warm*.
+    // All four routes are in `warmup.ts`, so none of that is a cold compile —
+    // it is what the journey costs.
+    //
+    // Measured on CI shard 3, same job, adjacent commits:
+    //
+    //   T1 10.0s → 10.8s    T2  9.3s → 11.0s    T3 18.0s → 21.1s ✘
+    //
+    // T3 was passing with 2.0s of headroom under the 20s default on a runner
+    // whose own variance is at least ±2s — V-SHARE-T3 came in 2.1s *faster*
+    // between those same two commits. That is a test failing on which shard
+    // it drew, not on what it asserts, and it is the third one on this branch
+    // (V4/V5, V-SHARE-T3). So T3 declares its own clock; not a single
+    // assertion below changes, and T1/T2 keep the default because at ~10s
+    // they still have it to spare.
+    test.setTimeout(budget(45_000));
+
     await openTimelineOfAMemberWithContent(page);
     const slug = new URL(page.url()).pathname.split("/")[2];
 

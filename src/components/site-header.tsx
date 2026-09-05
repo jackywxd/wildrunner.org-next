@@ -8,6 +8,7 @@ import HeaderNav from "@/components/header-nav";
 import MobileNav from "@/components/mobile-nav";
 import SiteLogo from "@/components/site-logo";
 import ThemeToggle from "@/components/theme-toggle";
+import LanguageSwitcher from "@/components/i18n/language-switcher";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import type { NavItemData } from "@/lib/nav";
@@ -51,6 +52,7 @@ export default function SiteHeader({
               <span className="hidden sm:inline">{t.nav.signIn}</span>
             </Link>
           )}
+          <LanguageSwitcher className="hidden sm:flex" />
           <ThemeToggle />
           <Button
             variant="ghost"

@@ -1,0 +1,229 @@
+{
+  "nav": {
+    "posts": "Journal",
+    "gallery": "Gallery",
+    "riders": "Members",
+    "about": "About",
+    "signIn": "Sign in"
+  },
+  "posts": {
+    "title": "Journal",
+    "subtitle": "Race reports and mountain writing from Wild Runner"
+  },
+  "reader": {
+    "speedSlow": "Slow",
+    "speedNormal": "Normal",
+    "speedFast": "Fast",
+    "speedVeryFast": "Faster",
+    "pauseAria": "Pause reading",
+    "readAria": "Read this article aloud",
+    "pause": "Pause",
+    "resume": "Resume",
+    "read": "Read aloud",
+    "stopAria": "Stop reading",
+    "stop": "Stop",
+    "musicOn": "Play background music",
+    "musicOff": "Mute background music",
+    "musicTitle": "Article background music",
+    "noVoice": "This device has no voice for this language, so it cannot read aloud.",
+    "voice": "Voice",
+    "speed": "Speed"
+  },
+  "gallery": {
+    "shareAria": "Share {label}",
+    "share": "Share",
+    "sortNewest": "Newest",
+    "sortOldest": "Oldest",
+    "sortCurated": "Album order",
+    "musicOff": "Mute background music",
+    "musicOn": "Play background music",
+    "nextTrack": "Next track",
+    "prevTrack": "Previous track",
+    "sortLabel": "Sort",
+    "kindAll": "All",
+    "kindPhoto": "Photos",
+    "kindVideo": "Videos",
+    "raceLabel": "Race",
+    "anyRace": "All races",
+    "emptyAll": "No photos or videos yet.",
+    "emptyFiltered": "Nothing matches these filters.",
+    "raceOption": "{label} ({count})",
+    "shareVideo": "Share video",
+    "albumTitle": "Gallery",
+    "albumSubtitle": "Wild Runner on the trail, in the mountains and past the finish line.",
+    "albumPhotos": "Photos from {name}",
+    "photoCount": "{count} photo|{count} photos",
+    "videoCountSuffix": " · {count} video| · {count} videos",
+    "backToAlbums": "Gallery"
+  },
+  "home": {
+    "timeline": "Through Time",
+    "viewPosts": "Read the journal",
+    "about": "About us",
+    "upcomingRaces": "Upcoming races",
+    "upcomingRacesSub": "Trail races and entry windows over the next year",
+    "viewAll": "See all",
+    "albums": "Gallery",
+    "albumsSub": "Browse {count} picture|Browse {count} pictures",
+    "toAlbums": "Open the gallery",
+    "tagline": "A herd of wild runners, one home.",
+    "seePhotos": "See the photos",
+    "meetMembers": "Meet the members"
+  },
+  "races": {
+    "title": "Race calendar",
+    "subtitle": "Trail races worth planning a year around, with entry windows and deadlines. Covers the UTMB World Series, World Trail Majors and independent races.",
+    "monthRange": "{fromMonth}/{from} – {toMonth}/{to}",
+    "emptyAll": "No races have been published yet.",
+    "emptyFiltered": "No races match these filters. Try another one, or see them all.",
+    "earlier": "← Earlier races",
+    "later": "Later races →",
+    "disclaimerDates": "Dates and entry information follow each organiser's own announcements. Tell us if you spot something wrong.",
+    "disclaimerQualifiers": "Qualifier marks follow the most recent WSER and Hardrock lists. Both are republished every year and each has its own qualifying window, so check the official list before you enter.",
+    "seriesUtmb": "UTMB World Series",
+    "seriesWtm": "World Trail Majors",
+    "seriesMarathon": "Marathon",
+    "seriesOthers": "Independent races",
+    "qualifierWser": "Western States qualifier",
+    "qualifierHardrock": "Hardrock qualifier"
+  },
+  "share": {
+    "open": "Share",
+    "heading": "Share “{title}”",
+    "close": "Close",
+    "imageAlt": "Share image for {title}",
+    "hint": "On a phone, press and hold the image to save it, then post it.",
+    "copied": "Copied",
+    "copyXiaohongshu": "Copy text for Xiaohongshu (no link)",
+    "copyWechat": "Copy text for WeChat (with link)",
+    "download": "Download the image"
+  },
+  "galleryPage": {
+    "title": "Gallery",
+    "subtitleAll": "Every photo and video, newest first",
+    "subtitleAlbums": "Browse by album",
+    "tabAll": "All photos",
+    "tabAlbums": "By album",
+    "featured": "Featured",
+    "albums": "Albums"
+  },
+  "raceSchedule": {
+    "monthDay": "{month}/{day}",
+    "dayOnly": "{day}",
+    "inProgress": "Under way",
+    "finished": "Finished",
+    "viewPhotos": "See the photos →",
+    "weekdays": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    "yearMonth": "{month}/{year}",
+    "logRace": "Log this race",
+    "uploadPhotos": "Upload photos",
+    "register": "Enter →"
+  },
+  "riders": {
+    "title": "Members",
+    "subtitle": "The runners of Wild Runner",
+    "timeline": "Through Time →",
+    "postCount": "{count} article|{count} articles",
+    "emptyAll": "No members yet.",
+    "emptyBadge": "No member has earned this badge yet.",
+    "emptyBadges": "No member holds all of these badges."
+  },
+  "clubTimeline": {
+    "year": "{year}",
+    "raceReport": "Race report · ",
+    "runnerCount": " · {count} member| · {count} members",
+    "empty": "No races or articles yet.",
+    "loadedPrefix": "Loaded ",
+    "loadedRaces": "{count} finish|{count} finishes",
+    "loadedPosts": "{count} article|{count} articles",
+    "more": " · scroll for more",
+    "printing": "Preparing…",
+    "printAll": "Print everything",
+    "title": "Wild Runner Through Time",
+    "subtitle": "Every race run and every article written by Wild Runner, in order.",
+    "pageDescription": "Every member's races and articles on one timeline.",
+    "allMembers": "← All members"
+  },
+  "riderTimeline": {
+    "raceCount": "{count} race|{count} races",
+    "postCount": "{count} article|{count} articles",
+    "year": "{year}",
+    "raceReport": "Race report · ",
+    "empty": "No races or articles yet.",
+    "generating": "Preparing…",
+    "downloadPdf": "Download PDF",
+    "photoCount": "{count} photo|{count} photos",
+    "videoCount": "{count} video|{count} videos",
+    "title": "{name} Through Time",
+    "subtitle": "The races {name} has run and the articles they have written, in order.",
+    "heading": "{name} Through Time",
+    "backToRider": "← Back to {name}",
+    "endOfTimeline": "That is the end of {name}'s timeline."
+  },
+  "raceEdition": {
+    "subtitle": "Race information and photos from {name} {year}.",
+    "officialSite": "Official site →",
+    "photoWall": "Photo wall",
+    "photoWallHint": "Tag this race when you upload and your photos appear here.",
+    "noPhotos": "No photos from this race yet."
+  },
+  "lightbox": {
+    "close": "Close (Esc)",
+    "zoom": "Zoom (click the image)",
+    "prev": "Previous (left arrow)",
+    "next": "Next (right arrow)",
+    "error": "Something went wrong: the image could not be loaded",
+    "info": "Show photo information"
+  },
+  "raceFilters": {
+    "list": "List",
+    "calendar": "Calendar",
+    "remind": "Remind me",
+    "allSeries": "All series",
+    "openOnly": "Open for entry"
+  },
+  "rider": {
+    "bioFallback": "Articles by {name} at Wild Runner",
+    "postCount": "{count} article|{count} articles",
+    "readPost": "Read",
+    "noPosts": "No articles published yet.",
+    "allMembers": "← All members",
+    "tabPosts": "Articles",
+    "tabTimeline": "Through Time",
+    "tabsAria": "View"
+  },
+  "slideshowMusic": {
+    "defaultTitle": "Album background music",
+    "heading": "Background music",
+    "collapse": "Collapse",
+    "touchHint": "Tap the player to start the music"
+  },
+  "albums": {
+    "emptyFiltered": "No albums from this race yet.",
+    "emptyAll": "No albums yet.",
+    "photoCount": "{count} photo|{count} photos",
+    "videoCount": "{count} video|{count} videos"
+  },
+  "about": {
+    "title": "About Wild Runner",
+    "subtitle": "A group of trail runners who met in Vancouver, and why this site exists."
+  },
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "common": {
+    "print": "Print",
+    "printPdf": "Print / PDF",
+    "all": "All",
+    "coverImage": "Cover image"
+  },
+  "video": {
+    "youtubeTitle": "YouTube video",
+    "transcoding": "This video is still being processed. Please try again shortly."
+  },
+  "badges": {
+    "round": "Round {n} ",
+    "missing": "Still needs"
+  }
+}

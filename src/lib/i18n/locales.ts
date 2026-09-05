@@ -1,12 +1,24 @@
 /**
  * The languages this site is published in, and the one it is written in.
  *
- * TWO LOCALES, AND THE SECOND ONE COST ONE LINE HERE. That was the whole
- * point of the seam: the routing, the document language, the URL shape and
- * the font all read this list, so publishing 簡體中文 is an entry in it plus
- * a generated dictionary — not a change to the shape of the app.
+ * THREE LOCALES, AND THE SECOND AND THIRD EACH COST ONE LINE HERE. That was
+ * the whole point of the seam: the routing, the document language, the URL
+ * shape, the font, `hreflang` and the sitemap all read this list, so
+ * publishing a language is an entry in it plus a dictionary — not a change to
+ * the shape of the app.
  *
- * THE ORDER IS THE ORDER A SWITCHER WILL SHOW. Default first.
+ * THE ORDER IS THE ORDER THE SWITCHER SHOWS. Default first.
+ *
+ * `label` IS WRITTEN IN ITS OWN LANGUAGE, always — 繁體中文, 简体中文,
+ * English. A switcher that named the languages in the language you are
+ * already reading is useless to the one reader who needs it: somebody who
+ * cannot read this page has to recognise their own language on sight. That
+ * is also why neither name is ever translated into the dictionary.
+ *
+ * `short` is what the header has room for; `label` is what a screen reader
+ * and a title attribute get. 繁 and 简 are the characters those two scripts
+ * name themselves by, and they differ from each other in both scripts, which
+ * a pair like 中文/中文 would not.
  *
  * THE TAGS ARE SCRIPT TAGS, NOT REGIONS — `zh-Hant`, not `zh-TW`; `zh-Hans`,
  * not `zh-CN`. That follows `(site)/layout.tsx`'s own reasoning about
@@ -23,8 +35,9 @@
  * `hreflang` need to be correct; the segment is what a person types.
  */
 export const LOCALES = [
-  { segment: "zh-hant", tag: "zh-Hant", label: "繁體中文" },
-  { segment: "zh-hans", tag: "zh-Hans", label: "简体中文" },
+  { segment: "zh-hant", tag: "zh-Hant", label: "繁體中文", short: "繁" },
+  { segment: "zh-hans", tag: "zh-Hans", label: "简体中文", short: "简" },
+  { segment: "en", tag: "en", label: "English", short: "EN" },
 ] as const;
 
 export type Locale = (typeof LOCALES)[number];

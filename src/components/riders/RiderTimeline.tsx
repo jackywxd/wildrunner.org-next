@@ -15,6 +15,7 @@ import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { formatMonthDay, summariseTimeline } from "@/lib/riders/timeline";
 import { getDictionary } from "@/lib/i18n/dictionary";
+import { countLabel } from "@/lib/i18n/count";
 import type {
   RiderTimelineEntry,
   RiderTimelineYear,
@@ -68,8 +69,8 @@ function countsLabel(
   postLabel: string,
 ): string {
   const parts: string[] = [];
-  if (races > 0) parts.push(raceLabel.replace("{count}", String(races)));
-  if (posts > 0) parts.push(postLabel.replace("{count}", String(posts)));
+  if (races > 0) parts.push(countLabel(raceLabel, races));
+  if (posts > 0) parts.push(countLabel(postLabel, posts));
   return parts.join(" · ");
 }
 

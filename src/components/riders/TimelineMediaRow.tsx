@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { MediaMonth, RaceMedia } from "@/lib/riders/timeline-albums";
 import { formatMonth } from "@/lib/riders/timeline-albums";
 import { cn } from "@/lib/utils";
+import { countLabel } from "@/lib/i18n/count";
 
 /**
  * The two shapes pictures take on 穿越時光: a strip under a race, and a month of
@@ -26,8 +27,8 @@ function countsLabel(
   videoLabel: string,
 ): string {
   const parts: string[] = [];
-  if (photos > 0) parts.push(photoLabel.replace("{count}", String(photos)));
-  if (videos > 0) parts.push(videoLabel.replace("{count}", String(videos)));
+  if (photos > 0) parts.push(countLabel(photoLabel, photos));
+  if (videos > 0) parts.push(countLabel(videoLabel, videos));
   return parts.join(" · ");
 }
 

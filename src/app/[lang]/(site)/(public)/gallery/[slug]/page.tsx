@@ -8,6 +8,7 @@ import { pageMetadata } from "@/lib/site-metadata";
 import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { raceFilterOptions } from "@/lib/media/gallery-index";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { countLabel } from "@/lib/i18n/count";
 import {
   getGalleryBySlug,
   getGalleryRaceEditions,
@@ -76,8 +77,8 @@ const GalleryDetailPage: React.FC<GalleryDetailPageProps> = async ({
           {gallery.name}
         </h1>
         <div className="text-left text-sm text-muted-foreground">
-          {t.gallery.photoCount.replace("{count}", String(photoCount))}
-          {videoCount > 0 ? t.gallery.videoCountSuffix.replace("{count}", String(videoCount)) : null}
+          {countLabel(t.gallery.photoCount, photoCount)}
+          {videoCount > 0 ? countLabel(t.gallery.videoCountSuffix, videoCount) : null}
         </div>
         <PhotoGallery gallery={gallery} races={races} />
       </div>

@@ -4,6 +4,7 @@ import React, { ReactNode } from "react";
 import Link, { LinkProps } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import LanguageSwitcher from "@/components/i18n/language-switcher";
 import { navIcon } from "@/components/nav-icons";
 import type { NavItemData } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,10 @@ export default function MobileNav({ items, onOpenChange }: MobileNavProps) {
             </MobileLink>
           );
         })}
+        {/* The header's copy is hidden below `sm`, so without this a phone
+            has no way to change language at all — and a phone is how most of
+            this site is read. */}
+        <LanguageSwitcher className="border-t border-border pt-4" />
       </div>
     </div>
   );

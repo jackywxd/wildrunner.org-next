@@ -55,14 +55,20 @@ const EXEMPT = [
 /**
  * Languages this site is not published in.
  *
- * `[lang]` is one dynamic segment, so it matches any first segment at all —
- * `/en/posts` would render the Traditional Chinese article under an address
- * claiming to be English, and every language nobody has written would
- * quietly become a duplicate copy of the whole site for a crawler to index.
+ * `[lang]` is one dynamic segment, so it matches any first segment at all,
+ * and every language nobody has written would otherwise become a duplicate
+ * copy of the whole site for a crawler to index.
+ *
+ * `/en` USED TO BE ON THIS LIST and has moved to the published side, which is
+ * the point of keeping the two lists apart: adding a language is one entry in
+ * `LOCALES`, and this list is what still says no to the rest. `/zh-TW` is
+ * here on purpose — it is a plausible thing to type, it is not what this site
+ * publishes (`locales.ts` explains why the tags are script tags), and a
+ * dynamic segment would happily serve it.
  * The rewrites in `next.config.ts` cannot refuse those: they only add a
  * prefix where one is missing. The layout does, and this is what says so.
  */
-const UNPUBLISHED = ["/en", "/en/posts", "/zh-cn/gallery", "/fr"];
+const UNPUBLISHED = ["/zh-cn/gallery", "/zh-TW", "/fr", "/de/posts"];
 
 const htmlLang = (body: string) =>
   body.match(/<html[^>]*\blang="([^"]*)"/)?.[1] ?? null;

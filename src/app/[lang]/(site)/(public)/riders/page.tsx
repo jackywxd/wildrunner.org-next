@@ -8,6 +8,7 @@ import { getRiders } from "@/lib/content";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { countLabel } from "@/lib/i18n/count";
 import {
   filterRidersByBadges,
   parseRiderBadges,
@@ -122,7 +123,7 @@ export default async function RidersPage({
                       data-post-count={rider.postCount}
                       data-testid="rider-post-count"
                     >
-                      {t.riders.postCount.replace("{count}", String(rider.postCount))}
+                      {countLabel(t.riders.postCount, rider.postCount)}
                     </p>
                   </div>
                 </div>
