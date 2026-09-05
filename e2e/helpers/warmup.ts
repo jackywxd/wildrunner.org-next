@@ -99,34 +99,65 @@ const ROUTES = [
   "/warmup-not-a-real-route",
 ];
 
+/**
+ * How many routes are compiled at once.
+ *
+ * MEASURED, NOT PICKED. One at a time cost 167.2s for the 29 routes below on
+ * a cold `.next` (and 139s on a CI runner), which is time every shard pays
+ * before its first test starts. `next dev` compiles on a worker pool, so a
+ * queue of one leaves most of it idle waiting on a single route.
+ *
+ * FOUR, AND NOT MORE, because this is the one place in the suite where
+ * concurrency has a documented way of backfiring. AGENTS.md records that
+ * `next dev` forks a fresh child per dynamic route to ask for
+ * `generateStaticParams`, and each such child opens its own miniflare over
+ * the same local SQLite file — the contention that produced `database is
+ * locked` and a red `V-RACEALBUM-T1`. Warming several dynamic routes at once
+ * is exactly what multiplies those forks, so the lane count is kept low
+ * enough to stay inside what was measured rather than set to "as many as
+ * there are routes".
+ */
+const LANES = 4;
+
 export default async function warmup() {
   // A deployed origin serves a built app: there is nothing to compile, and
   // hitting it here would only add requests to someone else's server.
   if (!isLocalTarget) return;
 
   const started = Date.now();
-  for (const route of ROUTES) {
-    const at = Date.now();
-    try {
-      const response = await fetch(`${BASE_URL}${route}`, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(120_000),
-      });
-      console.log(
-        `[warmup] ${route} → ${response.status} in ${Date.now() - at}ms`,
-      );
-    } catch (error) {
-      // Not fatal. A route that cannot be reached is a finding for the spec
-      // that asserts about it, which will say so in its own terms; failing
-      // the whole run here would replace that with a stack trace from a
-      // helper, and would also break the suite on any route a future branch
-      // has legitimately removed.
-      console.log(
-        `[warmup] ${route} → unreachable after ${Date.now() - at}ms: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+  const queue = [...ROUTES];
+
+  const lane = async () => {
+    for (let route = queue.shift(); route; route = queue.shift()) {
+      const at = Date.now();
+      try {
+        const response = await fetch(`${BASE_URL}${route}`, {
+          redirect: "manual",
+          signal: AbortSignal.timeout(120_000),
+        });
+        console.log(
+          `[warmup] ${route} → ${response.status} in ${Date.now() - at}ms`,
+        );
+      } catch (error) {
+        // Not fatal. A route that cannot be reached is a finding for the spec
+        // that asserts about it, which will say so in its own terms; failing
+        // the whole run here would replace that with a stack trace from a
+        // helper, and would also break the suite on any route a future branch
+        // has legitimately removed.
+        console.log(
+          `[warmup] ${route} → unreachable after ${Date.now() - at}ms: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
     }
-  }
+  };
+
+  // `shift()` off a shared array rather than a chunked split: the routes
+  // differ by an order of magnitude (`/admin` 13.1s against `/about` 0.3s on
+  // CI), so fixed chunks would leave three lanes finished and one still
+  // compiling the admin panel.
+  await Promise.all(Array.from({ length: LANES }, lane));
+
   console.log(`[warmup] ${ROUTES.length} routes in ${Date.now() - started}ms`);
 }

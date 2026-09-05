@@ -66,6 +66,7 @@
     "seed:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --write",
     "assert:schema-screen": "node scripts/assert-schema-screen.mjs",
     "db:reset:local": "node scripts/reset-local-db.mjs",
+    "seed:ci": "node scripts/seed-ci-fixture.mjs",
     "seed:editions:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --remote --write",
     "seed:editions:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-editions.ts --remote --write",
     "seed:qualifiers:dry": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts",
