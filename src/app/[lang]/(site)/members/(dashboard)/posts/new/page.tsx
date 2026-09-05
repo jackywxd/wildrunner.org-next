@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import { StartRaceReport } from "@/components/members/posts/StartRaceReport";
 import { requireMember } from "@/lib/auth";

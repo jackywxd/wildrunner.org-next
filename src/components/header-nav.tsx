@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { useSelectedLayoutSegment } from "next/navigation";
 
 import { navIcon } from "@/components/nav-icons";

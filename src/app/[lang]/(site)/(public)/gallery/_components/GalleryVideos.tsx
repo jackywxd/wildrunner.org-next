@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 import { Share2 } from "lucide-react";
 import type { SiteVideo } from "@/lib/content-types";
 import { mediaDisplayName } from "@/lib/media-name";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import { ClubTimelineFeed } from "@/components/riders/ClubTimelineFeed";
 import PageHeader from "@/components/page-header";

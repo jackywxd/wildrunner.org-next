@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/i18n/locale-link";
+import { usePathname, useRouter } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
 import { createPost, deletePost } from "@/lib/members/posts";
 import { emptyContent } from "@/lib/editor/empty";
@@ -19,6 +20,7 @@ function formatUpdated(iso: string | undefined) {
 
 export function PostsList({ posts }: { posts: Post[] }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -38,7 +40,7 @@ export function PostsList({ posts }: { posts: Post[] }) {
       setCreating(false);
       return;
     }
-    router.push(`/members/posts/${result.doc.id}`);
+    router.push(localeHref(`/members/posts/${result.doc.id}`, pathname));
   }
 
   async function remove(id: number) {

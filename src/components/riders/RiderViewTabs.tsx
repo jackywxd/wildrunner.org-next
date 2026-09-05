@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import { cn } from "@/lib/utils";
 import { getDictionary } from "@/lib/i18n/dictionary";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/locale-link";
 
 import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { requireMember } from "@/lib/auth";

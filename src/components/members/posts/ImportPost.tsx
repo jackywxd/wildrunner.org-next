@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
+import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
 import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { createPost } from "@/lib/members/posts";
@@ -34,6 +35,7 @@ type Parsed = {
  */
 export function ImportPost() {
   const router = useRouter();
+  const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [source, setSource] = useState("");
@@ -124,7 +126,7 @@ export function ImportPost() {
       return;
     }
 
-    router.push(`/members/posts/${result.doc.id}`);
+    router.push(localeHref(`/members/posts/${result.doc.id}`, pathname));
   }
 
   return (

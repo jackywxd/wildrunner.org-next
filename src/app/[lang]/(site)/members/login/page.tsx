@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/i18n/locale-link";
+import { usePathname, useRouter } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
 import SiteLogo from "@/components/site-logo";
 
@@ -15,6 +16,7 @@ import SiteLogo from "@/components/site-logo";
  */
 export default function MemberLoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +30,7 @@ export default function MemberLoginPage() {
       .then((body) => {
         if (cancelled) return;
         if ((body as { user?: unknown } | null)?.user) {
-          router.replace("/members");
+          router.replace(localeHref("/members", pathname));
           return;
         }
         setChecking(false);
@@ -39,7 +41,7 @@ export default function MemberLoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -60,7 +62,7 @@ export default function MemberLoginPage() {
         setSubmitting(false);
         return;
       }
-      router.replace("/members");
+      router.replace(localeHref("/members", pathname));
     } catch {
       setError("登入時發生錯誤，請再試一次");
       setSubmitting(false);
