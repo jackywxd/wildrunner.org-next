@@ -32,9 +32,17 @@ import { DEFAULT_LOCALE, isLocaleSegment, type LocaleSegment } from "./locales";
  */
 export type Dictionary = typeof import("../../dictionaries/zh-Hant.json");
 
+/**
+ * One dynamic import per locale, so a page ships the language it is in and
+ * not the others. `zh-Hans.json` is generated from `zh-Hant.json` by
+ * `pnpm generate:zh-hans` and committed — `U-CONVERT-3` fails if the two
+ * fall out of step.
+ */
 const DICTIONARIES: Record<LocaleSegment, () => Promise<Dictionary>> = {
   "zh-hant": () =>
     import("../../dictionaries/zh-Hant.json").then((m) => m.default),
+  "zh-hans": () =>
+    import("../../dictionaries/zh-Hans.json").then((m) => m.default),
 };
 
 export async function getDictionary(): Promise<Dictionary> {

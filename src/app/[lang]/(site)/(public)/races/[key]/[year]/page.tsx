@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import PageHeader from "@/components/page-header";
 import { RaceSeriesTag } from "@/components/race-schedule/RaceSeriesTag";
+import { seriesLabel } from "@/lib/i18n/race-labels";
 import {
   getRaceEditionDetail,
   getRaceEditionPhotos,
@@ -135,7 +136,7 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <RaceSeriesTag series={edition.series} />
+        <RaceSeriesTag label={seriesLabel(t, edition.series)} series={edition.series} />
         {range && (
           <span className="text-sm font-medium tabular-nums text-foreground/70">
             {range}

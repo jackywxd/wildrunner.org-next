@@ -1,4 +1,3 @@
-import { RACE_SERIES_LABELS_ZH } from "@/lib/races/catalogue";
 import type { RaceSeries } from "@/lib/races/catalogue";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +23,11 @@ const SERIES_CLASS: Record<RaceSeries, string> = {
 
 export function RaceSeriesTag({
   className,
+  label,
   series,
 }: {
   className?: string;
+  label: string;
   series: RaceSeries;
 }) {
   return (
@@ -39,7 +40,7 @@ export function RaceSeriesTag({
       data-series={series}
       data-testid="race-series-tag"
     >
-      {RACE_SERIES_LABELS_ZH[series]}
+      {label}
     </span>
   );
 }

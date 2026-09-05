@@ -7,10 +7,38 @@ export type NavItemData = {
   icon: "rss" | "image" | "about" | "riders" | "races";
 };
 
-const RIDERS_ITEM: NavItemData = {
-  label: "成員",
-  path: "/riders",
-  icon: "riders",
+/**
+ * The label for a path the site itself owns, in the language being read.
+ *
+ * WHY THE CMS NO LONGER DECIDES THESE FOUR WORDS. `topNavItems` is a D1 row
+ * an admin typed once, in one language — and the rows staging and production
+ * actually hold are a mix of scripts (`相册`, `关于` in Simplified next to
+ * `成員` in Traditional), which is how the Traditional site came to show two
+ * Simplified words in its own header. One label cannot be right on
+ * /zh-hant/posts and /zh-hans/posts at the same time, and the alternative —
+ * three label columns on the global — is a migration, which this stage of the
+ * work does not have.
+ *
+ * So the CMS keeps deciding *which* pages are in the nav and in what order,
+ * which is the part an editor actually curates, and the four paths the site
+ * ships take their word from the dictionary. A row pointing anywhere else
+ * still shows the label that was typed for it: an editor adding a link is not
+ * overruled, they simply get the one language they wrote it in.
+ */
+function labelForPath(path: string, labels: NavLabels): string | null {
+  if (path.startsWith("/posts")) return labels.posts;
+  if (path.startsWith("/gallery")) return labels.gallery;
+  if (path.startsWith("/riders")) return labels.riders;
+  if (path.startsWith("/about")) return labels.about;
+  return null;
+}
+
+/** The dictionary's `nav` section, as much of it as this needs. */
+export type NavLabels = {
+  posts: string;
+  gallery: string;
+  riders: string;
+  about: string;
 };
 
 function iconForHref(href: string, iconName?: string | null): NavItemData["icon"] {
@@ -50,16 +78,19 @@ function iconForHref(href: string, iconName?: string | null): NavItemData["icon"
   return "rss";
 }
 
-export function resolveNavItems(globals: SiteGlobals): NavItemData[] {
+export function resolveNavItems(
+  globals: SiteGlobals,
+  labels: NavLabels,
+): NavItemData[] {
   const items =
     globals.topNavItems.length > 0
       ? globals.topNavItems.map((item) => ({
-          label: item.label,
+          label: labelForPath(item.href, labels) ?? item.label,
           path: item.href,
           icon: iconForHref(item.href, item.icon),
         }))
       : NAV_LIST.map((item) => ({
-          label: item.label,
+          label: labelForPath(item.path, labels) ?? item.label,
           path: item.path,
           icon: iconForHref(item.path),
         }));
@@ -68,9 +99,9 @@ export function resolveNavItems(globals: SiteGlobals): NavItemData[] {
   // and production already holds three rows, so the first branch always wins
   // there and NAV_LIST is dead code — editing only that would have shipped a
   // nav link that never appeared on the live site. Skipped once an editor adds
-  // their own /riders row, so the CMS still decides label and position.
+  // their own /riders row, so the CMS still decides position.
   if (!items.some((item) => item.path.startsWith("/riders"))) {
-    items.push(RIDERS_ITEM);
+    items.push({ label: labels.riders, path: "/riders", icon: "riders" });
   }
 
   return items;

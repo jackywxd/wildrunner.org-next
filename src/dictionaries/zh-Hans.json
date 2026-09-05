@@ -1,0 +1,235 @@
+{
+  "nav": {
+    "posts": "文章",
+    "gallery": "相册",
+    "riders": "成员",
+    "about": "关于",
+    "signIn": "登入"
+  },
+  "posts": {
+    "title": "文章",
+    "subtitle": "野马营的比赛纪录与山野书写"
+  },
+  "reader": {
+    "speedSlow": "慢",
+    "speedNormal": "正常",
+    "speedFast": "快",
+    "speedVeryFast": "很快",
+    "pauseAria": "暂停朗读",
+    "readAria": "朗读这篇文章",
+    "pause": "暂停",
+    "resume": "继续",
+    "read": "朗读",
+    "stopAria": "停止朗读",
+    "stop": "停止",
+    "musicOn": "播放背景音乐",
+    "musicOff": "关闭背景音乐",
+    "musicTitle": "文章背景音乐",
+    "noVoice": "这台装置没有中文语音，无法朗读。",
+    "voice": "声音",
+    "speed": "语速"
+  },
+  "gallery": {
+    "shareAria": "分享 {label}",
+    "share": "分享",
+    "sortNewest": "最新",
+    "sortOldest": "最旧",
+    "sortCurated": "相册顺序",
+    "musicOff": "关闭背景音乐",
+    "musicOn": "播放背景音乐",
+    "nextTrack": "下一首",
+    "prevTrack": "上一首",
+    "sortLabel": "排序",
+    "kindAll": "全部",
+    "kindPhoto": "相片",
+    "kindVideo": "影片",
+    "raceLabel": "赛事",
+    "anyRace": "所有比赛",
+    "emptyAll": "还没有相片或影片。",
+    "emptyFiltered": "没有符合条件的项目。",
+    "raceOption": "{label}（{count}）",
+    "shareVideo": "分享影片",
+    "albumTitle": "相册",
+    "albumSubtitle": "野马营在赛道上、山里和终点线后的照片与影片。",
+    "albumPhotos": "{name}的照片",
+    "photoCount": "{count}张照片",
+    "videoCountSuffix": " · {count}个影片",
+    "backToAlbums": "相册"
+  },
+  "home": {
+    "timeline": "穿越时光",
+    "viewPosts": "查看文章",
+    "about": "关于我们",
+    "upcomingRaces": "近期赛事",
+    "upcomingRacesSub": "未来一年的越野赛事与报名时间",
+    "viewAll": "查看全部",
+    "albums": "相册",
+    "albumsSub": "浏览 {count} 张图片",
+    "toAlbums": "前往相册",
+    "tagline": "一群野马，一个家。",
+    "seePhotos": "看照片",
+    "meetMembers": "认识成员"
+  },
+  "races": {
+    "title": "赛事日程",
+    "subtitle": "世界各地重要的越野赛事日程，含报名开放与截止时间。包含 UTMB 世界系列赛、World Trail Majors 与其他独立赛事。",
+    "monthRange": "{from} 年 {fromMonth} 月 – {to} 年 {toMonth} 月",
+    "emptyAll": "还没有公布的赛事日程。",
+    "emptyFiltered": "这个条件下没有赛事，试试其他条件或看全部。",
+    "earlier": "← 更早的赛事",
+    "later": "更晚的赛事 →",
+    "disclaimerDates": "赛事日期与报名资讯以主办单位官方公告为准。发现有误请告诉我们。",
+    "disclaimerQualifiers": "资格赛标示依 WSER 与 Hardrock 最近一次公布的名单整理，两份名单每年更新，且各有自己的资格认定期间；报名前请以官方名单为准。",
+    "seriesUtmb": "UTMB 世界系列赛",
+    "seriesWtm": "World Trail Majors",
+    "seriesMarathon": "马拉松",
+    "seriesOthers": "其他独立赛事",
+    "qualifierWser": "西部100 资格赛",
+    "qualifierHardrock": "Hardrock 资格赛"
+  },
+  "share": {
+    "open": "分享",
+    "heading": "分享「{title}」",
+    "close": "关闭",
+    "imageAlt": "{title} 的分享图",
+    "hint": "手机长按图片存到相册,再发到小红书。",
+    "copied": "已复制",
+    "copyXiaohongshu": "复制小红书文案(不含网址)",
+    "copyWechat": "复制微信文案(含连结)",
+    "download": "下载分享图"
+  },
+  "galleryPage": {
+    "title": "相册",
+    "subtitleAll": "所有相片与影片,依时间排序",
+    "subtitleAlbums": "依相册浏览",
+    "tabAll": "全部相片",
+    "tabAlbums": "依相册",
+    "featured": "精选照片",
+    "albums": "相册"
+  },
+  "raceSchedule": {
+    "monthDay": "{month}月{day}日",
+    "dayOnly": "{day}日",
+    "inProgress": "进行中",
+    "finished": "已结束",
+    "viewPhotos": "查看相片 →",
+    "weekdays": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ],
+    "yearMonth": "{year} 年 {month} 月",
+    "logRace": "纪录比赛",
+    "uploadPhotos": "上传相片",
+    "register": "前往报名 →"
+  },
+  "riders": {
+    "title": "野马",
+    "subtitle": "野马营的成员们",
+    "timeline": "穿越时光 →",
+    "postCount": "{count} 篇文章",
+    "emptyAll": "还没有成员。",
+    "emptyBadge": "还没有成员拿到这个徽章。",
+    "emptyBadges": "没有成员同时拿到这些徽章。"
+  },
+  "clubTimeline": {
+    "year": "{year} 年",
+    "raceReport": "赛记 · ",
+    "runnerCount": " · {count} 位成员",
+    "empty": "还没有比赛纪录或文章。",
+    "loaded": "已载入 {races} 场完赛 · {posts} 篇文章",
+    "more": " · 往下卷还有",
+    "printing": "整理中…",
+    "printAll": "列印全部",
+    "title": "野马营穿越时光",
+    "subtitle": "野马营全体成员跑过的比赛与写过的文章，依时间排列。",
+    "pageDescription": "所有成员的比赛和文章，接在同一条时间轴上。",
+    "allMembers": "← 所有成员"
+  },
+  "riderTimeline": {
+    "raceCount": "{count} 场比赛",
+    "postCount": "{count} 篇文章",
+    "year": "{year} 年",
+    "raceReport": "赛记 · ",
+    "empty": "还没有比赛纪录或文章。",
+    "generating": "产生中…",
+    "downloadPdf": "下载 PDF",
+    "photoCount": "{count} 张相片",
+    "videoCount": "{count} 段影片",
+    "title": "{name}的穿越时光",
+    "subtitle": "{name} 跑过的比赛与写过的文章，依时间排列。",
+    "heading": "{name} 的穿越时光",
+    "backToRider": "← 回到 {name} 的页面",
+    "endOfTimeline": "{name} 的时间轴到此为止。"
+  },
+  "raceEdition": {
+    "subtitle": "{name} {year} 的赛事资讯与相片墙。",
+    "officialSite": "官方网站 →",
+    "photoWall": "相片墙",
+    "photoWallHint": "会员上传时标记这场比赛，就会出现在这里。",
+    "noPhotos": "还没有这场比赛的照片。"
+  },
+  "lightbox": {
+    "close": "关闭 (Esc)",
+    "zoom": "放大 (单击图片)",
+    "prev": "上一张 (左方向键)",
+    "next": "下一张 (右方向键)",
+    "error": "发生错误：无法载入图片",
+    "info": "显示照片资讯"
+  },
+  "raceFilters": {
+    "list": "列表",
+    "calendar": "月历",
+    "remind": "预约提醒",
+    "allSeries": "全部系列",
+    "openOnly": "只看报名中"
+  },
+  "rider": {
+    "bioFallback": "{name} 在野马营的文章",
+    "postCount": "{count} 篇文章",
+    "readPost": "阅读文章",
+    "noPosts": "还没有发布文章。",
+    "allMembers": "← 所有成员",
+    "tabPosts": "文章",
+    "tabTimeline": "穿越时光",
+    "tabsAria": "检视方式"
+  },
+  "slideshowMusic": {
+    "defaultTitle": "相册背景音乐",
+    "heading": "背景音乐",
+    "collapse": "收起",
+    "touchHint": "点一下播放器开始音乐"
+  },
+  "albums": {
+    "emptyFiltered": "这场比赛还没有相册。",
+    "emptyAll": "还没有相册。",
+    "photoCount": "{count} 张照片",
+    "videoCount": "{count} 段影片"
+  },
+  "about": {
+    "title": "关于野马营",
+    "subtitle": "一群在温哥华相遇的越野跑者，和这个站为什么存在。"
+  },
+  "theme": {
+    "toLight": "切换为浅色模式",
+    "toDark": "切换为深色模式"
+  },
+  "common": {
+    "print": "列印",
+    "printPdf": "列印 / PDF",
+    "all": "全部",
+    "coverImage": "封面图片"
+  },
+  "video": {
+    "youtubeTitle": "YouTube 影片",
+    "transcoding": "影片正在转码，请稍后再试。"
+  },
+  "badges": {
+    "round": "第 {n} 轮 ",
+    "missing": "还差"
+  }
+}

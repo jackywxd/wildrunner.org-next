@@ -1,5 +1,9 @@
 {
   "nav": {
+    "posts": "文章",
+    "gallery": "相冊",
+    "riders": "成員",
+    "about": "關於",
     "signIn": "登入"
   },
   "posts": {
@@ -75,7 +79,13 @@
     "earlier": "← 更早的賽事",
     "later": "更晚的賽事 →",
     "disclaimerDates": "賽事日期與報名資訊以主辦單位官方公告為準。發現有誤請告訴我們。",
-    "disclaimerQualifiers": "資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。"
+    "disclaimerQualifiers": "資格賽標示依 WSER 與 Hardrock 最近一次公布的名單整理，兩份名單每年更新，且各有自己的資格認定期間；報名前請以官方名單為準。",
+    "seriesUtmb": "UTMB 世界系列賽",
+    "seriesWtm": "World Trail Majors",
+    "seriesMarathon": "馬拉松",
+    "seriesOthers": "其他獨立賽事",
+    "qualifierWser": "西部100 資格賽",
+    "qualifierHardrock": "Hardrock 資格賽"
   },
   "share": {
     "open": "分享",

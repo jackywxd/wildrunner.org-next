@@ -1,4 +1,3 @@
-import { RACE_QUALIFIER_LABELS_ZH } from "@/lib/races/qualifiers";
 import type { RaceQualifier } from "@/lib/races/qualifiers";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +23,13 @@ import { cn } from "@/lib/utils";
 export function RaceQualifierTag({
   categories,
   className,
+  label,
   qualifier,
 }: {
   /** The category labels that qualify, e.g. ["UTMB", "CCC"]. */
   categories: string[];
   className?: string;
+  label: string;
   qualifier: RaceQualifier;
 }) {
   if (categories.length === 0) return null;
@@ -42,9 +43,9 @@ export function RaceQualifierTag({
       )}
       data-qualifier={qualifier}
       data-testid="race-qualifier-tag"
-      title={`${RACE_QUALIFIER_LABELS_ZH[qualifier]}：${categories.join("、")}`}
+      title={`${label}：${categories.join("、")}`}
     >
-      {RACE_QUALIFIER_LABELS_ZH[qualifier]} · {categories.join(" / ")}
+      {label} · {categories.join(" / ")}
     </span>
   );
 }
