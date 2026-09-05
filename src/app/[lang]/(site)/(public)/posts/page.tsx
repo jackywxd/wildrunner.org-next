@@ -24,7 +24,7 @@ export async function generateMetadata() {
 }
 
 export default async function BlogPage() {
-  const blogs = (await getPublishedPosts()).sort(
+  const blogs = (await getPublishedPosts(await currentLocale())).sort(
     (a, b) =>
       new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
   );

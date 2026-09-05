@@ -39,7 +39,7 @@ export async function generateMetadata({
   params,
 }: BlogPageItemProps): Promise<Metadata> {
   const slugParam = (await params).slug.join("/");
-  const post = await getPostBySlugParam(slugParam);
+  const post = await getPostBySlugParam(slugParam, await currentLocale());
   if (!post) return {};
 
   return pageMetadata({
@@ -100,7 +100,7 @@ export async function generateStaticParams() {
 export default async function BlogPageItem({ params }: BlogPageItemProps) {
   const t = await getDictionary();
   const slugParam = (await params).slug.join("/");
-  const blog = await getPostBySlugParam(slugParam);
+  const blog = await getPostBySlugParam(slugParam, await currentLocale());
   if (!blog) {
     notFound();
   }

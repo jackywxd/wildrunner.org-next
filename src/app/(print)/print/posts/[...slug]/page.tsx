@@ -7,6 +7,7 @@ import { PayloadRichText } from "@/components/payload-rich-text";
 import { PrintToolbar } from "@/components/print/PrintToolbar";
 import { siteConfig } from "@/config/site";
 import { getBylineAvatar, getPostBySlugParam } from "@/lib/content";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 import { postPublicPath } from "@/lib/content-paths";
 import type { SiteImage } from "@/lib/content-types";
 import {
@@ -47,7 +48,16 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
-  const post = await getPostBySlugParam((await params).slug.join("/"));
+  // DEFAULT_LOCALE, because this route is outside `[lang]` and has no locale
+  // to read: `/print/posts/…` is one address, reached from the article in
+  // whichever language the reader was in. A printed sheet is a keepsake of
+  // the article as its author wrote it, so it prints the stored Traditional.
+  // Saying so here is the point of the required parameter — the alternative
+  // is a default that quietly decides this on every route that forgets.
+  const post = await getPostBySlugParam(
+    (await params).slug.join("/"),
+    DEFAULT_LOCALE,
+  );
   return {
     robots: { follow: true, index: false },
     title: post?.title ?? siteConfig.title,
@@ -94,7 +104,7 @@ export default async function PrintPostPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const slugParam = (await params).slug.join("/");
-  const post = await getPostBySlugParam(slugParam);
+  const post = await getPostBySlugParam(slugParam, DEFAULT_LOCALE);
   if (!post) notFound();
 
   const { template, font } = parsePrintOptions(await searchParams);
