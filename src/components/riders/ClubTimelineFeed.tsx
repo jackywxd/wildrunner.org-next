@@ -30,6 +30,7 @@ import { countClubRows } from "@/lib/riders/club-timeline";
 import { formatMonthDay } from "@/lib/riders/timeline";
 import { cn } from "@/lib/utils";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
+import { countLabel } from "@/lib/i18n/count";
 
 /**
  * 全員穿越時光 — the club's races and articles on one rail, newest first.
@@ -219,7 +220,7 @@ function Row({
                 {" · "}
                 {whenLabel(row, t.clubTimeline.year)}
                 {row.location ? ` · ${row.location}` : ""}
-                {race.runners.length > 1 ? t.clubTimeline.runnerCount.replace("{count}", String(race.runners.length)) : ""}
+                {race.runners.length > 1 ? countLabel(t.clubTimeline.runnerCount, race.runners.length) : ""}
               </p>
             </div>
             <Runners runners={race.runners} />
@@ -378,7 +379,10 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
               a number claiming to be the club's whole history while more is
               still being fetched would be wrong for as long as anyone is
               reading it. */}
-          {t.clubTimeline.loaded.replace("{races}", String(raceCount)).replace("{posts}", String(postCount))}
+          {t.clubTimeline.loadedPrefix}
+          {countLabel(t.clubTimeline.loadedRaces, raceCount)}
+          {" · "}
+          {countLabel(t.clubTimeline.loadedPosts, postCount)}
           {cursor ? t.clubTimeline.more : ""}
         </p>
         <button

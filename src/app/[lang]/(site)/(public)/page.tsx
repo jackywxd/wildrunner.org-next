@@ -18,6 +18,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { countLabel } from "@/lib/i18n/count";
 
 export const dynamic = "force-dynamic";
 
@@ -168,7 +169,7 @@ export default async function Home() {
             <div>
               <h2 className="text-xl font-bold sm:text-2xl">{t.home.albums}</h2>
               <p className="text-sm text-muted-foreground">
-                {t.home.albumsSub.replace("{count}", String(imageCount))}
+                {countLabel(t.home.albumsSub, imageCount)}
               </p>
             </div>
             <Link

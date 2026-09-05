@@ -5,6 +5,7 @@ import { Icon } from "@iconify-icon/react";
 import { Link } from "@/components/transition/react-transition-progress/next";
 import type { SiteAlbumCard } from "@/lib/content-types";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
+import { countLabel } from "@/lib/i18n/count";
 
 /**
  * The albums view: one cover per album, and the contents one click away.
@@ -80,9 +81,9 @@ export function AlbumCards({
               {album.name}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {album.photoCount > 0 ? t.albums.photoCount.replace("{count}", String(album.photoCount)) : null}
+              {album.photoCount > 0 ? countLabel(t.albums.photoCount, album.photoCount) : null}
               {album.photoCount > 0 && album.videoCount > 0 ? " · " : null}
-              {album.videoCount > 0 ? t.albums.videoCount.replace("{count}", String(album.videoCount)) : null}
+              {album.videoCount > 0 ? countLabel(t.albums.videoCount, album.videoCount) : null}
             </p>
           </div>
         </Link>

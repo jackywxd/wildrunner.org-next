@@ -10,6 +10,7 @@ import { postPublicPath } from "@/lib/content-paths";
 import { formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { countLabel } from "@/lib/i18n/count";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export default async function RiderPage({ params }: Params) {
             </p>
           )}
           <p className="mt-3 text-sm text-muted-foreground">
-            {t.rider.postCount.replace("{count}", String(rider.postCount))}
+            {countLabel(t.rider.postCount, rider.postCount)}
           </p>
           <div className="mt-4">
             <RiderViewTabs active="posts" slug={rider.slug} />
