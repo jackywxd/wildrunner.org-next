@@ -7,7 +7,7 @@ import { resolveGalleryOgCard } from "@/lib/galleryOg";
 import { pageMetadata } from "@/lib/site-metadata";
 import { photosOf, videosOf } from "@/lib/media/gallery-items";
 import { raceFilterOptions } from "@/lib/media/gallery-index";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 import {
   getGalleryBySlug,
   getGalleryRaceEditions,
@@ -42,6 +42,7 @@ export async function generateMetadata({
   if (gallery == null) return {};
 
   return pageMetadata({
+    locale: await currentLocale(),
     path: `/gallery/${gallery.slug}`,
     title: gallery.name,
     subtitle: t.gallery.albumPhotos.replace("{name}", gallery.name),

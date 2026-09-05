@@ -45,11 +45,21 @@ const DICTIONARIES: Record<LocaleSegment, () => Promise<Dictionary>> = {
     import("../../dictionaries/zh-Hans.json").then((m) => m.default),
 };
 
-export async function getDictionary(): Promise<Dictionary> {
+/**
+ * Which language is being rendered.
+ *
+ * Separate from `getDictionary()` because metadata needs the locale itself,
+ * not the words: `hreflang` and the canonical URL are built from the segment.
+ * The fallback is the same one, for the same reason — `(print)`, `(payload)`
+ * and Route Handlers have no `[lang]` above them and must not throw.
+ */
+export async function currentLocale(): Promise<LocaleSegment> {
   const segment = await lang();
-  const locale =
-    typeof segment === "string" && isLocaleSegment(segment)
-      ? segment
-      : DEFAULT_LOCALE;
-  return DICTIONARIES[locale]();
+  return typeof segment === "string" && isLocaleSegment(segment)
+    ? segment
+    : DEFAULT_LOCALE;
+}
+
+export async function getDictionary(): Promise<Dictionary> {
+  return DICTIONARIES[await currentLocale()]();
 }

@@ -1,11 +1,12 @@
 import React from "react";
 import { Metadata } from "next";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/gallery",
     title: t.gallery.albumTitle,
     subtitle: t.gallery.albumSubtitle,

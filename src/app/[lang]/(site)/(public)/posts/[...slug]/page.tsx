@@ -27,7 +27,7 @@ import { ShareSheet } from "@/components/share/ShareSheet";
 import { WeChatThumb } from "@/components/share/WeChatThumb";
 import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
 import type { ShareSubject } from "@/lib/share/share-text";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 interface BlogPageItemProps {
   params: Promise<{
@@ -43,6 +43,7 @@ export async function generateMetadata({
   if (!post) return {};
 
   return pageMetadata({
+    locale: await currentLocale(),
     path: postPublicPath(post.slug),
     title: post.title,
     // The byline is the card's, and the description is the article's own

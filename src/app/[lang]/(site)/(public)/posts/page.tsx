@@ -6,13 +6,14 @@ import { formatDate } from "@/lib/utils";
 import { getPublishedPosts } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     // The subject alone. This was `文章 | Posts | 野馬營`, and the card
     // generator read the last `|` as a byline separator — see `pageMetadata`.
     path: "/posts",

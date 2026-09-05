@@ -4,7 +4,7 @@ import { siteConfig } from "@/config/site";
 import { Metadata } from "next";
 import { getSiteGlobals } from "@/lib/content";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   // A function rather than the static `metadata` object it was: the title and
@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // needs the request's language.
   const t = await getDictionary();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/about",
     title: t.about.title,
     subtitle: t.about.subtitle,

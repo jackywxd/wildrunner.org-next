@@ -43,3 +43,20 @@ export function isLocaleSegment(value: string): value is LocaleSegment {
 export function localeTag(segment: string): string {
   return LOCALES.find((l) => l.segment === segment)?.tag ?? "zh-Hant";
 }
+
+/**
+ * The address this page has in `locale`, given its unprefixed path.
+ *
+ * THE DEFAULT LANGUAGE KEEPS THE BARE ADDRESS. Every URL this site has ever
+ * published is unprefixed — the articles, the share cards whose `og:url` is
+ * already printed into images in other people's chat histories, the PDFs with
+ * the address in their footer. `next.config.ts` rewrites those to `/zh-hant`
+ * internally, and this is the outward-facing half of the same decision: the
+ * Traditional page's canonical stays what it always was, and only the new
+ * language gets a prefix.
+ */
+export function localizedPath(locale: string, path: string): string {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  if (locale === DEFAULT_LOCALE) return clean === "/" ? "/" : clean;
+  return clean === "/" ? `/${locale}` : `/${locale}${clean}`;
+}

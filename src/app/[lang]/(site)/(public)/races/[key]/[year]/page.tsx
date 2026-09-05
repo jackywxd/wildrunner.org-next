@@ -20,7 +20,7 @@ import { WeChatThumb } from "@/components/share/WeChatThumb";
 import { wechatText, xiaohongshuText } from "@/lib/share/share-text";
 import type { ShareSubject } from "@/lib/share/share-text";
 import { siteConfig } from "@/config/site";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,7 @@ export async function generateMetadata({
   const [photo] = await getRaceEditionPhotos(edition.id);
 
   return pageMetadata({
+    locale: await currentLocale(),
     path: `/races/${edition.eventKey}/${edition.year}`,
     title: `${edition.nameZh || edition.name} ${edition.year}`,
     subtitle: t.raceEdition.subtitle

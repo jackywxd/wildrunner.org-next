@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { siteConfig } from "@/config/site";
 import { absoluteImageUrl, type OgCard } from "@/lib/og-card";
+import { LOCALES, localizedPath } from "@/lib/i18n/locales";
 
 /**
  * One page's title, description and share card, decided in one place.
@@ -66,6 +67,19 @@ export type PageMetadataInput = {
   card: OgCard;
   /** `article` for a post, `profile` for a member; everything else is a `website`. */
   type?: "article" | "profile" | "website";
+  /**
+   * Which language this render is in, for the canonical URL and `hreflang`.
+   *
+   * A PARAMETER RATHER THAN A LOOKUP INSIDE. `next/root-params` is only
+   * readable from a Server Component, and `app/not-found.tsx` — the one
+   * caller outside `[lang]` — supplies its metadata as a module-level
+   * constant that cannot await anything. Passing it keeps that page working
+   * and puts the locale where a reader of the call site can see it.
+   *
+   * Omitted means "no language of its own": no canonical alternates are
+   * emitted, which is right for the 404 and is what it did before.
+   */
+  locale?: string;
 };
 
 /** `/og` renders at 1920×1080; saying so lets a crawler lay out before it fetches. */
@@ -77,6 +91,7 @@ export function pageMetadata({
   title,
   subtitle,
   card,
+  locale,
   type = "website",
 }: PageMetadataInput): Metadata {
   const baseURL = siteConfig.baseURL.replace(/\/$/, "");
@@ -86,7 +101,37 @@ export function pageMetadata({
       : `${baseURL}${path.startsWith("/") ? path : `/${path}`}`;
   const image = cardUrl(card, { baseURL, title, subtitle });
 
+  /**
+   * `hreflang` for every language this page exists in, and a canonical that
+   * points at the language being read rather than at the default one.
+   *
+   * A canonical naming the Traditional page from the Simplified one would be
+   * a request to drop the Simplified pages from the index — the two are
+   * translations of each other, not duplicates of one, and `alternates` is
+   * how that is said. `x-default` names the address with no language in it,
+   * which is the one this site has always published.
+   *
+   * Only when `path` is known: the 404 answers for addresses the site does
+   * not have, so it has no set of language versions to enumerate.
+   */
+  const alternates =
+    path === undefined || locale === undefined
+      ? { canonical: url }
+      : {
+          canonical: `${baseURL}${localizedPath(locale, path)}`,
+          languages: {
+            ...Object.fromEntries(
+              LOCALES.map(({ segment, tag }) => [
+                tag,
+                `${baseURL}${localizedPath(segment, path)}`,
+              ]),
+            ),
+            "x-default": url,
+          },
+        };
+
   return {
+    alternates,
     // The bare subject. `(site)/layout.tsx`'s template appends the site name,
     // so a route that added it itself would produce it twice — which is
     // exactly what every route did before this existed.
@@ -105,7 +150,7 @@ export function pageMetadata({
       // worse off than it was.
       siteName: siteConfig.title,
       type,
-      url,
+      url: alternates.canonical,
       images: [
         { url: image, alt: title, width: CARD_WIDTH, height: CARD_HEIGHT },
       ],

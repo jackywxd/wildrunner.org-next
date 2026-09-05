@@ -9,7 +9,7 @@ import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: Params) {
 
   const { rider } = found;
   return pageMetadata({
+    locale: await currentLocale(),
     path: `/riders/${rider.slug}`,
     title: rider.name,
     subtitle: rider.bio ?? t.rider.bioFallback.replace("{name}", rider.name),

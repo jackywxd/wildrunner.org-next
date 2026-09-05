@@ -17,13 +17,14 @@ import Races from "@/components/races";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
-import { getDictionary } from "@/lib/i18n/dictionary";
+import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const globals = await getSiteGlobals();
   return pageMetadata({
+    locale: await currentLocale(),
     path: "/",
     title: globals.metadata.titleDefault || siteConfig.title,
     subtitle: globals.metadata.description || siteConfig.description,
