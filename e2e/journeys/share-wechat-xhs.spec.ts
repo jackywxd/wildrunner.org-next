@@ -144,6 +144,29 @@ test.describe("V-SHARE 微信與小紅書", () => {
   });
 
   test("V-SHARE-T3: a race edition carries the same two things", async ({ page }, testInfo) => {
+    /**
+     * Four server renders and a satori card do not fit in 20s.
+     *
+     * Measured with every route already warmed the way `warmup.ts` warms
+     * them, so this is the steady-state cost and not a first compile:
+     *
+     *   /riders/timeline                4341ms   ← the club rail, the
+     *   /races/<key>/<year>              552ms     expensive one
+     *   /races/<key>/<year>              487ms   ← the reload below
+     *   /wx/race/<key>/<year>           2414ms   ← satori, warm
+     *
+     * Roughly 7.8s of server time before the browser renders anything, and
+     * the rail it starts on is the longest page the site has. On CI this
+     * timed out twice, the second time inside the card fetch on line 168 —
+     * far enough in that the `/wx` warmup entry added for it was working and
+     * the budget was simply the wrong size.
+     *
+     * The assertions are untouched. T1 and T2 above do the same shape on a
+     * post rather than a race and pass inside the default, so only this one
+     * declares its own.
+     */
+    test.setTimeout(budget(60_000));
+
     // Through 穿越時光, which is where an edition page is actually linked from:
     // /races lists the schedule and links out to each organiser, not inward to
     // our own edition pages. The first version of this test looked there and
