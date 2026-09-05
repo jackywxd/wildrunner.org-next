@@ -54,17 +54,42 @@ name: E2E
 # NOT BALANCED, and better said than implied. Measured on CI run 33290945244,
 # the first fully green one: checks 50s, e2e 2m42s / 4m56s / 4m23s, build
 # 2m49s, whole workflow 5m02s against the ~9m45s it replaced. The uploads and
-# the AI journeys land together in shard 2, so the spread is about 1.8x here
-# (2.9x locally) — the right shape rather than the finished one, and it caps
-# what sharding can buy. If that starts to matter the next lever is sharding
-# by duration from the previous run's JSON report instead of by count;
-# `--shard` itself only ever divides by count.
+# the AI journeys land together in one shard, so the spread was about 1.8x
+# there — the right shape rather than the finished one. If that starts to
+# matter the next lever is sharding by duration from the previous run's JSON
+# report instead of by count; `--shard` itself only ever divides by count.
 #
-# Where the 5m02s goes, on a cache hit: ~51s of container, checkout, install
-# and restore, then 53.8s of `globalSetup` warming 20 routes, then the tests.
-# Warming grew from 8 routes to 20 (e2e/helpers/warmup.ts) after `P-PHOTO`
-# timed out on a route nobody had warmed — that cost is compile time moved
-# out of test budgets, not removed.
+# THREE SHARDS BECAME FIVE, and the numbers above are why they had to. They
+# describe a 42-test browser lane. That lane is 130 tests now — the same work
+# per test, three times as many of them, as the gallery, race, i18n and member
+# features landed — and the wall clock tracked it: measured on run 33985339576,
+# e2e 14m18s / 14m45s / 14m13s. Nothing regressed; the suite grew.
+#
+# Where a 14m18s shard went, measured on that run (shard 1):
+#
+#   49s    container, checkout, install
+#   2m34s  migrate + seed — the fixture cache MISSED (see the restore step)
+#   10m00s Playwright, of which:
+#            2m19s  globalSetup warming 29 routes
+#            7m16s  44 tests — X-I18N 98.2s and X-OG 91.5s are 44% of it
+#   52s    post-job steps
+#
+# So five shards, not more: the per-shard fixed cost above is ~4 minutes
+# whatever the shard count, and dividing 7m16s of tests further buys less each
+# time while paying that fixed cost again on another runner. Five puts the
+# test half at roughly 4m20s, which is the point where the fixed half starts
+# to dominate.
+#
+# The other two levers in that table were pulled in the same change rather
+# than instead of this one — the warmup now compiles four routes at a time
+# (e2e/helpers/warmup.ts: 167.2s to 77.8s measured locally), and the fixture
+# cache actually hits. Sharding alone would have left both.
+#
+# NOT PULLED, and worth recording so nobody spends the afternoon twice: making
+# the X-I18N and X-OG sweeps fetch concurrently does nothing. Measured on
+# X-I18N-1: serial 47.0s, six at a time 43.2s, twelve at a time 47.4s. They
+# hit already-warmed routes, so the bottleneck is the dev server rendering on
+# one thread, not the round trip.
 #
 # `playwright` at the bottom exists only to keep that name as the required
 # check; branch protection cannot depend on a matrix job, whose runs are named
@@ -160,7 +185,7 @@ jobs:
       # to discover them costs another full round.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -353,7 +378,7 @@ jobs:
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
           pnpm seed:e2e:account
-      - name: Run Playwright (shard ${{ matrix.shard }}/3)
+      - name: Run Playwright (shard ${{ matrix.shard }}/5)
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}
           CI: "true"
@@ -368,9 +393,9 @@ jobs:
           if [ -z "$PAYLOAD_SECRET" ]; then
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
-          # No `--` before the flag: `pnpm test:e2e -- --shard=1/3` exits 1
+          # No `--` before the flag: `pnpm test:e2e -- --shard=1/5` exits 1
           # under pnpm 10, while passing it directly works. Checked both.
-          pnpm test:e2e --shard=${{ matrix.shard }}/3
+          pnpm test:e2e --shard=${{ matrix.shard }}/5
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
