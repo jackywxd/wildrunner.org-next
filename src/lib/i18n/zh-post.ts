@@ -1,10 +1,6 @@
 import type { SitePost } from "@/lib/content-types";
 
-import type { LocaleSegment } from "./locales";
 import { isSimplified, toSimplified } from "./to-simplified";
-
-/** The one locale whose articles are stored rather than derived. */
-const ENGLISH_SEGMENT = "en" satisfies LocaleSegment;
 
 /**
  * An article, in Simplified, derived from the Traditional one it is stored as.
@@ -80,41 +76,10 @@ export function toSimplifiedRichText<T>(node: T): T {
 /**
  * The article as `locale` should read it.
  *
- * THREE LANGUAGES, THREE DIFFERENT ANSWERS, and they are different in kind:
- *
- *   zh-hant  what is stored, returned untouched
- *   zh-hans  derived from it here, every time, and therefore never stale
- *   en       a stored translation if somebody made one, else the original
- *
- * The English branch is the only one that can come up empty, and it must not
- * answer with a 404: `/en/posts/<slug>` is an address that gets shared and
- * indexed, and translations arrive one article at a time. So an untranslated
- * article renders as written and says so — `untranslated` is what the page
- * reads to show that notice.
- *
- * `english` IS ALWAYS DROPPED from what comes back, in every branch. A
- * component that could still reach the stored translation could render the
- * English title under the Chinese article, and nothing in the type system
- * would object. The one place that decides is this one.
- *
- * A TRANSLATION IS THE TITLE, not the whole group. `english.content` alone,
- * with no `english.title`, is a half-finished edit in `/admin`, and showing
- * an English body under a Chinese heading is worse than showing neither —
- * so the title is what says a translation exists, and the body and
- * description fall back to the original when they are missing.
+ * The locale decision itself lives in `to-simplified.ts` and is shared with
+ * the site name in the page title, so an article and the chrome around it
+ * can never disagree about which script the page is in.
  */
 export function localisePost(post: SitePost, locale: string): SitePost {
-  const { english, ...rest } = post;
-
-  if (isSimplified(locale)) return toSimplifiedPost(rest);
-  if (locale !== ENGLISH_SEGMENT) return rest;
-
-  if (!english?.title) return { ...rest, untranslated: true };
-
-  return {
-    ...rest,
-    title: english.title,
-    description: english.description || rest.description,
-    content: english.content ?? rest.content,
-  };
+  return isSimplified(locale) ? toSimplifiedPost(post) : post;
 }

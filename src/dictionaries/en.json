@@ -8,8 +8,7 @@
   },
   "posts": {
     "title": "Journal",
-    "subtitle": "Race reports and mountain writing from Wild Runner",
-    "untranslated": "This article has not been translated yet. It is shown below as its author wrote it."
+    "subtitle": "Race reports and mountain writing from Wild Runner"
   },
   "reader": {
     "speedSlow": "Slow",
@@ -114,15 +113,7 @@
     "inProgress": "Under way",
     "finished": "Finished",
     "viewPhotos": "See the photos →",
-    "weekdays": [
-      "Su",
-      "Mo",
-      "Tu",
-      "We",
-      "Th",
-      "Fr",
-      "Sa"
-    ],
+    "weekdays": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
     "yearMonth": "{month}/{year}",
     "logRace": "Log this race",
     "uploadPhotos": "Upload photos",

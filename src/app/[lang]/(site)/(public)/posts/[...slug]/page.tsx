@@ -256,20 +256,6 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             musicPlaylist={blog.musicPlaylist}
           />
         )}
-        {/* Above the body, not below it: a reader who has already read three
-            Chinese paragraphs has worked out that it is not English, and a
-            note underneath would be telling them what went wrong after it
-            went wrong. `localisePost` sets this only for the English page of
-            an article nobody has translated — /zh-hans is derived and can
-            never be in this state. */}
-        {blog.untranslated && (
-          <p
-            className="mb-8 border-l-2 border-border py-2 pl-4 text-sm text-muted-foreground"
-            data-testid="post-untranslated"
-          >
-            {t.posts.untranslated}
-          </p>
-        )}
         {blog.content && (
           <PayloadRichText data={blog.content} className="article-body" />
         )}
