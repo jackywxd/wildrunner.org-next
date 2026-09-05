@@ -8,7 +8,8 @@
   },
   "posts": {
     "title": "文章",
-    "subtitle": "野馬營的比賽紀錄與山野書寫"
+    "subtitle": "野馬營的比賽紀錄與山野書寫",
+    "untranslated": "這篇文章還沒有英文版，以下是作者寫的原文。"
   },
   "reader": {
     "speedSlow": "慢",

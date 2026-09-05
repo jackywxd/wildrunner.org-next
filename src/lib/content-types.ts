@@ -271,6 +271,25 @@ export type SitePost = {
   /** Only the detail query selects the body; card queries leave it undefined. */
   content?: import("@/payload-types").Post["content"];
   /**
+   * The stored English version, before `localisePost` decides whether to use
+   * it. Present on a document straight out of the query and absent from
+   * anything a page renders — `localisePost` either swaps it in or drops it,
+   * so no component can read the wrong language's title by reaching past the
+   * one that was chosen for it.
+   */
+  english?: import("@/payload-types").Post["english"];
+  /**
+   * Set when this page's language has no stored translation and the reader is
+   * being shown the article as its author wrote it.
+   *
+   * Only English can be in this state: `/zh-hans` is derived from the stored
+   * Traditional and therefore always exists, and the default locale *is* what
+   * is stored. A flag rather than the page comparing languages itself,
+   * because the page does not have the untranslated original to compare
+   * against once `localisePost` has returned.
+   */
+  untranslated?: true;
+  /**
    * The eleven-character YouTube id this article plays while it is read
    * aloud, or `null`/absent for silence.
    *

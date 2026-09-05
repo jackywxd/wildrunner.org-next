@@ -381,6 +381,28 @@ export interface Post {
    */
   slug: string;
   description: string;
+  /**
+   * Optional. Shown on /en/posts/… when present; otherwise that page shows this article as written, with a notice.
+   */
+  english?: {
+    title?: string | null;
+    description?: string | null;
+    content?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+  };
   image?: (number | null) | Media;
   author?: (number | null) | Author;
   /**
@@ -774,6 +796,13 @@ export interface PostsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   description?: T;
+  english?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        content?: T;
+      };
   image?: T;
   author?: T;
   raceRecord?: T;

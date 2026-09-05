@@ -63,6 +63,54 @@ export const Posts: CollectionConfig = {
       required: true,
     },
     {
+      /**
+       * The English version of this article, when one has been made.
+       *
+       * A GROUP, NOT AN ARRAY KEYED BY LOCALE, because there is exactly one
+       * stored translation and there is a reason for that rather than a gap:
+       * `/zh-hans` is *derived* from this document at request time
+       * (`src/lib/i18n/to-simplified.ts`), so Simplified has nothing to store
+       * and never falls out of date. English is the only language a converter
+       * cannot produce, so English is the only language with columns. An
+       * array would invite rows for languages that must not have them.
+       *
+       * EMPTY IS A REAL STATE AND THE COMMON ONE. Nothing here is required:
+       * every article that exists today has no English version, and
+       * `/en/posts/<slug>` renders the Chinese with a notice rather than a
+       * 404 — an address that has been published and shared does not stop
+       * answering because nobody has translated it yet.
+       *
+       * The three fields mirror the three the reader sees, and stop there.
+       * `slug` is deliberately absent: one article is one address in every
+       * language, which is what `localizedPath` and every share card already
+       * assume.
+       */
+      name: 'english',
+      type: 'group',
+      label: { en: 'English version', 'zh-TW': '英文版' },
+      admin: {
+        description:
+          'Optional. Shown on /en/posts/… when present; otherwise that page shows this article as written, with a notice.',
+      },
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          label: { en: 'Title', 'zh-TW': '標題' },
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          label: { en: 'Description', 'zh-TW': '描述' },
+        },
+        {
+          name: 'content',
+          type: 'richText',
+          label: { en: 'Content', 'zh-TW': '內容' },
+        },
+      ],
+    },
+    {
       name: 'image',
       type: 'upload',
       relationTo: 'media',

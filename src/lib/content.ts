@@ -79,6 +79,12 @@ const POST_CARD_SELECT = {
   author: true,
   createdAt: true,
   description: true,
+  // The whole group, because Payload's `select` takes a field and this field
+  // is a group — asking for `english` on a card query brings its `content`
+  // too. That is the one thing `POST_CARD_SELECT` otherwise refuses to pay
+  // for, and it is the reason `mapPayloadPost` drops the body rather than
+  // carrying it: a grid of 500 cards must not hold 500 article bodies.
+  english: true,
   featured: true,
   image: true,
   publishedAt: true,
@@ -151,6 +157,7 @@ type PostCardDoc = Pick<
   | "author"
   | "createdAt"
   | "description"
+  | "english"
   | "featured"
   | "id"
   | "image"
@@ -203,6 +210,7 @@ export function mapPayloadPost(doc: PostCardDoc): SitePost {
     // detail page renders the badge, and it asks.
     race: isRaceRecord(doc.raceRecord) ? mapRaceRecord(doc.raceRecord) : undefined,
     content: doc.content,
+    english: doc.english,
   };
 }
 

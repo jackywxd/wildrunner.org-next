@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { toSimplifiedPost, toSimplifiedRichText } from "@/lib/i18n/zh-post";
+import { localisePost, toSimplifiedPost, toSimplifiedRichText } from "@/lib/i18n/zh-post";
 import type { SitePost } from "@/lib/content-types";
 
 /**
@@ -108,5 +108,63 @@ test.describe("U-ZHPOST an article in Simplified", () => {
     const before = JSON.stringify(post);
     toSimplifiedPost(post);
     expect(JSON.stringify(post)).toBe(before);
+  });
+});
+
+/**
+ * U-ENPOST — which language an article is served in, and what happens when
+ * the answer does not exist yet.
+ */
+test.describe("U-ENPOST the English branch", () => {
+  const translated: SitePost = {
+    ...post,
+    english: {
+      title: "Through the Years",
+      description: "A club rail",
+      content: { root: { children: [{ type: "text", text: "English body" }] } } as never,
+    },
+  };
+
+  test("U-ENPOST-1: a stored translation is used, and the stored original is not exposed", () => {
+    const out = localisePost(translated, "en");
+    expect(out.title).toBe("Through the Years");
+    expect(out.description).toBe("A club rail");
+    // The one thing no component may be able to reach: whichever language was
+    // not chosen. `english` is dropped in every branch.
+    expect(out.english).toBeUndefined();
+    expect(out.untranslated).toBeUndefined();
+  });
+
+  test("U-ENPOST-2: no translation shows the original and says so", () => {
+    const out = localisePost(post, "en");
+    expect(out.title).toBe(post.title);
+    expect(out.untranslated).toBe(true);
+    expect(out.english).toBeUndefined();
+  });
+
+  test("U-ENPOST-3: a body with no title is not a translation", () => {
+    // A half-finished edit in /admin. An English body under a Chinese heading
+    // is worse than neither, so the title is what says a translation exists.
+    const half: SitePost = { ...post, english: { content: translated.english!.content } };
+    const out = localisePost(half, "en");
+    expect(out.title).toBe(post.title);
+    expect(out.untranslated).toBe(true);
+  });
+
+  test("U-ENPOST-4: the other two languages never carry the flag", () => {
+    // /zh-hans is derived from the stored Traditional, so it always exists;
+    // the default locale *is* what is stored. Only English can be missing.
+    for (const locale of ["zh-hant", "zh-hans"]) {
+      const out = localisePost(post, locale);
+      expect(out.untranslated, locale).toBeUndefined();
+      expect(out.english, locale).toBeUndefined();
+    }
+  });
+
+  test("U-ENPOST-5: a translation does not stop /zh-hans being derived", () => {
+    // An article with an English version is still converted for Simplified
+    // from its Traditional original, not from the English.
+    const out = localisePost(translated, "zh-hans");
+    expect(out.title).toBe("野马营穿越时光");
   });
 });
