@@ -4,6 +4,7 @@ import {
   articleAudioKey,
   articleAudioKeyForPost,
   articleScript,
+  orphanAudioKeys,
 } from "@/lib/reader/article-audio";
 
 /**
@@ -111,5 +112,50 @@ test.describe("U-AUDIOKEY the key R2 is indexed by", () => {
     expect(articleAudioKey(7, articleScript("舊標題", body))).not.toBe(
       articleAudioKey(7, articleScript("新標題", body)),
     );
+  });
+
+  test("U-AUDIOKEY-8: a script file is judged by the audio it belongs to", () => {
+    // The one corner in the orphan rule. Every narration is two objects —
+    // `<key>.mp3` and `<key>.mp3.txt` — so a `.txt` weighed on its own would
+    // never be in the wanted set, and every healthy article would report a
+    // companion orphan. A report where half the entries are noise is a report
+    // nobody reads twice.
+    const wanted = new Set(["article-audio/7-abcd1234.mp3"]);
+    expect(
+      orphanAudioKeys(
+        ["article-audio/7-abcd1234.mp3", "article-audio/7-abcd1234.mp3.txt"],
+        wanted,
+      ),
+    ).toEqual([]);
+  });
+
+  test("U-AUDIOKEY-9: an unwanted narration is reported with its script", () => {
+    // Exactly the shape production produced: the key changed, so both halves
+    // of the old pair became unreachable together.
+    const wanted = new Set(["article-audio/22-75e28f51.mp3"]);
+    expect(
+      orphanAudioKeys(
+        [
+          "article-audio/22-75e28f51.mp3",
+          "article-audio/22-75e28f51.mp3.txt",
+          "article-audio/22-3fdcea01.mp3",
+          "article-audio/22-3fdcea01.mp3.txt",
+        ],
+        wanted,
+      ),
+    ).toEqual([
+      "article-audio/22-3fdcea01.mp3",
+      "article-audio/22-3fdcea01.mp3.txt",
+    ]);
+  });
+
+  test("U-AUDIOKEY-10: nothing wanted means nothing is spared", () => {
+    // The control. Without it every assertion above would also pass for a
+    // function that returned an empty list, which is what a wrong `wanted`
+    // lookup produces — and an orphan report that always says "none" is the
+    // silent failure this whole prefix already had.
+    expect(
+      orphanAudioKeys(["article-audio/1-aaaaaaaa.mp3"], new Set()),
+    ).toEqual(["article-audio/1-aaaaaaaa.mp3"]);
   });
 });

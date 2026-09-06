@@ -156,7 +156,23 @@ test.describe("V-LANG a reader changes language", () => {
     // The wall opens on every photo; the albums are the other tab. That is
     // client state rather than an address, so this click changes nothing
     // about the language — it is how the album cards get on screen at all.
-    await page.getByTestId("gallery-view-albums").click();
+    //
+    // AND IT HAS TO BE PROVED TO HAVE LANDED. The chips are server-rendered,
+    // so `domcontentloaded` is reached well before React attaches their
+    // onClick; a click dispatched in that window is silently dropped, `view`
+    // stays "all", and the album cards never render at all. The wait below
+    // then reports "the corpus is empty" — the one thing it is not, which is
+    // what made this expensive to read. Measured on CI twice in a row while
+    // passing everywhere else. `race-gallery.spec.ts` already carries this
+    // pattern for the same two chips; this spec did not.
+    const albumsChip = page.getByTestId("gallery-view-albums");
+    await expect(albumsChip).toBeEnabled({ timeout: budget(15_000) });
+    await expect(async () => {
+      await albumsChip.click();
+      await expect(albumsChip).toHaveAttribute("data-active", "true", {
+        timeout: budget(2_000),
+      });
+    }).toPass({ timeout: budget(20_000) });
 
     const card = page.getByTestId("gallery-album-card").first();
     await expect(card, "no albums on the wall — the corpus is empty").toBeVisible({
