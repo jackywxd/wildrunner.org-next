@@ -1,5 +1,6 @@
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
+import { waitForHydration } from "../helpers/hydration";
 import { LOCALES, localizedPath } from "@/lib/i18n/locales";
 
 /**
@@ -29,6 +30,12 @@ test.describe("V-LANG a reader changes language", () => {
 
     const start = "/riders/timeline";
     await page.goto(start, { waitUntil: "domcontentloaded" });
+    // The switcher is a native `<details>`: the browser opens it with no JS
+    // at all, so a click before React arrives succeeds, writes `open=""`
+    // into the DOM, and the hydration that follows finds an attribute its
+    // tree never had. That is how this test died on CI, on an element it is
+    // not asserting about.
+    await waitForHydration(page);
     const switcher = page.getByTestId("language-switcher").first();
     await expect(switcher).toBeVisible();
 
@@ -90,6 +97,12 @@ test.describe("V-LANG a reader changes language", () => {
     test.setTimeout(budget(60_000));
 
     await page.goto("/zh-hans", { waitUntil: "domcontentloaded" });
+    // Load-bearing here rather than merely safe: the click below exists to
+    // prove a wrapper's `preventDefault` + `router.push` sends the reader to
+    // the address it rendered. Un-hydrated, that wrapper is not running and
+    // the browser simply follows the href — the assertions all pass and the
+    // thing under test was never exercised.
+    await waitForHydration(page);
 
     // FIRST, EVERY LINK ON THE PAGE AT ONCE — this is what the bug actually
     // was, and one click can only ever prove one of them. The switcher is
@@ -130,6 +143,7 @@ test.describe("V-LANG a reader changes language", () => {
     // than by another click: the click under test is the article card's, and
     // getting there is setup.
     await page.goto("/zh-hans/posts", { waitUntil: "domcontentloaded" });
+    await waitForHydration(page);
     const article = page.locator('a[href^="/zh-hans/posts/"]').first();
     await expect(article, "no articles listed — the corpus is empty").toBeVisible({
       timeout: budget(20_000),
@@ -152,6 +166,7 @@ test.describe("V-LANG a reader changes language", () => {
     // preventDefaults and pushes an address of its own choosing. This is the
     // one path in the app where only a real click can tell.
     await page.goto("/zh-hans/gallery", { waitUntil: "domcontentloaded" });
+    await waitForHydration(page);
 
     // The wall opens on every photo; the albums are the other tab. That is
     // client state rather than an address, so this click changes nothing

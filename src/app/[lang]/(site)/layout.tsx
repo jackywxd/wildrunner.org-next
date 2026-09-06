@@ -7,6 +7,7 @@ import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
+import { HydrationMarker } from "@/components/hydration-marker";
 import { getSiteBaseURL, siteConfig } from "@/config/site";
 import { LOCALES, isLocaleSegment, localeTag } from "@/lib/i18n/locales";
 import { localiseText } from "@/lib/i18n/to-simplified";
@@ -201,6 +202,13 @@ export default async function SiteLayout({
       </head>
       <body className="min-h-screen antialiased font-lexend bg-background">
         <Providers>{children}</Providers>
+        {/*
+          Last inside <body> on purpose: it publishes `data-hydrated` on
+          <html>, and being last means the tree above it has already
+          hydrated when its effect runs. See the component for what that
+          does and does not prove.
+        */}
+        <HydrationMarker />
       </body>
     </html>
   );

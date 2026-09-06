@@ -22,6 +22,7 @@
  * a member actually uses.
  */
 import { expect, test } from "../helpers/test";
+import { waitForHydration } from "../helpers/hydration";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { getWithRetry } from "../helpers/request";
@@ -62,6 +63,12 @@ test.describe("R what a member does with a race report", () => {
     test.setTimeout(budget(60_000));
 
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
@@ -214,6 +221,12 @@ test.describe("R what a member does with a race report", () => {
     test.setTimeout(budget(60_000));
 
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();
@@ -296,6 +309,12 @@ test.describe("R what a member does with a race report", () => {
     // routed *around* this by hunting for an unused race, which discarded the
     // case and hid why the happy path was blocked.
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();

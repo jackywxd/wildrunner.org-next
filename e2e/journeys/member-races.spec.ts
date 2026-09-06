@@ -18,6 +18,7 @@
  * the renderer agree, which is not the claim being made.
  */
 import { expect, test } from "../helpers/test";
+import { waitForHydration } from "../helpers/hydration";
 import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
 import { budget } from "../helpers/budget";
@@ -145,6 +146,12 @@ test.describe("M what a member does with race records", () => {
     //    login-only spec because a session that cannot reach a page that
     //    queries the database is not a session. `/members/races` queries.
     await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
     await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
     await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
     await page.getByTestId("member-login-submit").click();

@@ -595,6 +595,43 @@ Anything added to that file's ignore list is a class of error the suite can no
 longer see. The bar is "the app cannot cause it and cannot stop it", never
 "this is currently failing".
 
+### A click before hydration fails in two opposite ways
+
+`waitUntil: "domcontentloaded"` returns while the page is still server-rendered
+markup. A control in that window is **visible, enabled and stable**, so every
+actionability check Playwright can make passes and it will click. What happens
+next depends on the control, and the two outcomes look nothing alike — which is
+why they were diagnosed as separate problems, hours apart, in the same file.
+
+- **A control that needs JS swallows the click.** `FilterChip` is a `<button>`
+  whose `onClick` calls `setView`. Clicked early: no error, no state change,
+  nothing. `V-LANG-3` waited 20s for album cards that could not render and then
+  reported "the corpus is empty" — a message that named the one explanation
+  ruled out by construction, and sent two readings of the log to the database.
+- **A control that works without JS corrupts hydration.** `LanguageSwitcher` is
+  a native `<details>`, chosen so the language choices stay real links. The
+  browser opens it with no JS, so an early click *succeeds* and writes `open=""`
+  into the DOM; React then hydrates onto a tree that never had `open` and the
+  console guard above fails the test. `V-LANG-1` died this way. There is no
+  dropped click to notice — "the click worked" is true and useless.
+
+The same trap covers `<select>` (`selectOption` changes the value natively and
+fires no React `onChange`) and the members' login form, which is a Client
+Component whose `<form>` has no `action`: submitted early, nothing is sent and
+the spec blames the credentials.
+
+**So `await waitForHydration(page)` after any `goto` that is followed by an
+interaction** (`e2e/helpers/hydration.ts`). It waits for `data-hydrated` on
+`<html>`, published by `HydrationMarker` in `[lang]/(site)/layout.tsx`. Proving
+the click landed instead — the `toPass` + `data-active` shape in
+`race-gallery.spec.ts` — fixes only the first kind; by the time you can observe
+a `<details>`, it is already open.
+
+Two things that marker does **not** cover: routes outside `[lang]/(site)`
+(`(print)`, `(payload)`, `not-found`), and anything inside its own `<Suspense>`
+boundary — there are none on the site today, and a new one would need its own
+signal.
+
 ---
 
 ## Workflow

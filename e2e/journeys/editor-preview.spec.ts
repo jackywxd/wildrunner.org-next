@@ -1,4 +1,5 @@
 import { expect, test } from "../helpers/test";
+import { waitForHydration } from "../helpers/hydration";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
@@ -39,6 +40,12 @@ const PARAGRAPH = "預覽測試的段落文字";
  */
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
   await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
   await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
   await page.getByTestId("member-login-submit").click();
