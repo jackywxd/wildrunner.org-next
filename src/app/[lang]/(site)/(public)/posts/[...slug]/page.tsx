@@ -6,6 +6,8 @@ import "@/styles/mdx.css";
 
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
+import { ArticleAudio } from "@/components/posts/ArticleAudio";
+import { narrationUrl } from "@/lib/reader/narration";
 import { ArticleReader } from "@/components/posts/ArticleReader";
 import { PayloadRichText } from "@/components/payload-rich-text";
 import { ChevronLeft, Printer } from "lucide-react";
@@ -110,6 +112,19 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
   // in a Map rather than a second query.
   const catalogue = blog.race
     ? catalogueMap(await getRaceCatalogueEvents())
+    : null;
+
+  /**
+   * Narration, if this exact article has been through the voice already.
+   *
+   * One `head()` against R2 — there is no column for this, the key is the
+   * index (see `article-audio.ts`). `null` is the ordinary answer for an
+   * article nobody has generated yet, and for every prerender that runs
+   * without bindings; both fall through to `ArticleReader` and the device's
+   * own voice, which is what this page did before any of it existed.
+   */
+  const narration = blog.content
+    ? await narrationUrl(blog.id, blog.title, blog.content)
     : null;
 
   /**
@@ -249,13 +264,16 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             and only for a post that has one, since an empty article has
             nothing to say. The control renders nothing at all on a browser
             with no `speechSynthesis`. */}
-        {blog.content && (
-          <ArticleReader
-            title={blog.title}
-            content={blog.content}
-            musicPlaylist={blog.musicPlaylist}
-          />
-        )}
+        {blog.content &&
+          (narration ? (
+            <ArticleAudio src={narration} musicPlaylist={blog.musicPlaylist} />
+          ) : (
+            <ArticleReader
+              title={blog.title}
+              content={blog.content}
+              musicPlaylist={blog.musicPlaylist}
+            />
+          ))}
         {blog.content && (
           <PayloadRichText data={blog.content} className="article-body" />
         )}
