@@ -27,7 +27,8 @@
     "musicTitle": "文章背景音乐",
     "noVoice": "这台装置没有中文语音，无法朗读。",
     "voice": "声音",
-    "speed": "语速"
+    "speed": "语速",
+    "download": "下载语音"
   },
   "gallery": {
     "shareAria": "分享 {label}",
