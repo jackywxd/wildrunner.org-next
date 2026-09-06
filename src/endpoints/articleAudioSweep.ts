@@ -4,7 +4,11 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 import { isAdminUser } from '@/access'
 import { getR2Bucket } from '@/lib/r2-bucket'
-import { articleAudioKeyForPost, articleScript } from '@/lib/reader/article-audio'
+import {
+  articleAudioKeyForPost,
+  articleScript,
+  orphanAudioKeys,
+} from '@/lib/reader/article-audio'
 import { narrateArticle } from '@/lib/reader/narrate'
 
 /**
@@ -99,6 +103,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
      * this reports missing is exactly what `apply=true` will generate.
      */
     const pending: Candidate[] = []
+    const wanted = new Set<string>()
     let scanned = 0
     let page = 1
     for (;;) {
@@ -117,7 +122,11 @@ export const articleAudioSweepEndpoint: Endpoint = {
         scanned += 1
         const script = articleScript(post.title ?? '', post.content)
         if (!script.trim()) continue
-        if (await bucket.head(articleAudioKeyForPost(post))) continue
+        const key = articleAudioKeyForPost(post)
+        // Every published post's key, not only the missing ones: this set is
+        // what `orphanReport` measures the bucket against below.
+        wanted.add(key)
+        if (await bucket.head(key)) continue
         pending.push({ id: post.id, title: post.title ?? '', chars: script.length })
       }
 
@@ -134,6 +143,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
         chars,
         wouldNarrate: pending.slice(0, MAX_PER_RUN).map((item) => item.id),
         maxPerRun: MAX_PER_RUN,
+        ...(await orphanReport(bucket, wanted)),
       })
     }
 
@@ -176,4 +186,49 @@ export const articleAudioSweepEndpoint: Endpoint = {
       remaining: Math.max(0, pending.length - MAX_PER_RUN),
     })
   },
+}
+
+/**
+ * What is under `article-audio/` that no published article asks for.
+ *
+ * REPORTED, NEVER DELETED, and the default is the one `unusedMediaSweep`
+ * argues for at length: this destroys nothing, so anyone who reaches the URL
+ * to find out what is there gets an answer rather than a consequence.
+ *
+ * WHY THE PREFIX NEEDS ITS OWN ACCOUNTING. `unusedMediaSweep` walks `media`
+ * rows and reclaims objects nothing references — and narration has no row at
+ * all, which is the whole point of `articleAudioKeyForPost`. That is why this
+ * prefix was kept away from that job, and the cost of the separation is that
+ * nothing was reclaiming it either. Three orphans appeared within a day of the
+ * feature shipping, from one key-shaped mistake. An edited article, a changed
+ * voice or a changed prompt each leave another.
+ *
+ * A `.txt` IS NOT ITS OWN OBJECT HERE. The script is stored as `<key>.txt`
+ * beside the audio, so it is judged by the key it belongs to — otherwise every
+ * healthy narration would report a companion orphan.
+ *
+ * AN UNPUBLISHED ARTICLE'S NARRATION IS LISTED, and that is honest rather than
+ * ideal: the scan above sees published posts only, so a draft that once had
+ * audio shows up here. Nothing serves that audio while the post is a draft,
+ * and republishing regenerates under the same key — so the entry is a fact
+ * about now, not a recommendation to delete.
+ */
+async function orphanReport(
+  bucket: R2Bucket,
+  wanted: Set<string>,
+): Promise<{ orphans: string[]; orphanBytes: number }> {
+  const sizes = new Map<string, number>()
+  let cursor: string | undefined
+
+  do {
+    const listed = await bucket.list({ prefix: 'article-audio/', cursor })
+    for (const object of listed.objects) sizes.set(object.key, object.size)
+    cursor = listed.truncated ? listed.cursor : undefined
+  } while (cursor)
+
+  const orphans = orphanAudioKeys([...sizes.keys()], wanted)
+  return {
+    orphans,
+    orphanBytes: orphans.reduce((total, key) => total + (sizes.get(key) ?? 0), 0),
+  }
 }
