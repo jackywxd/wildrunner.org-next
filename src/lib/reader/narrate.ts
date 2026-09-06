@@ -1,18 +1,24 @@
 import { speakArticle } from "@/lib/ai/speak";
 import { spokenScript } from "@/lib/ai/spoken-script";
 
-import { articleAudioKey, articleScript } from "./article-audio";
+import { articleAudioKeyForPost, articleScript } from "./article-audio";
 
 /**
  * Narrate one article into R2, or report that it is already there.
  *
  * Extracted the moment there were two callers — the single-article endpoint
- * and the sweep — because the order of the steps is the part that is easy to
- * get wrong and expensive to get wrong twice: the rewrite has to happen
- * *before* the key is computed, since the rewritten text is both what gets
- * spoken and what gets hashed. Reversed, the key would name a script that is
- * not the one in the audio, and every check downstream would agree with
- * itself while being wrong.
+ * and the sweep.
+ *
+ * AN EARLIER VERSION OF THIS FILE ARGUED, AT LENGTH, FOR THE BUG. It said the
+ * rewrite had to happen before the key was computed, because the rewritten
+ * text is "both what gets spoken and what gets hashed" — which sounds like
+ * care and was the defect. The page cannot run the rewrite, so it could never
+ * arrive at that hash, and three narrations went to production under keys no
+ * render would ever ask for. The reasoning was confident, internally
+ * consistent, and never checked against the other side.
+ *
+ * The key is the article as written, from `articleAudioKeyForPost`, which is
+ * now the only way anything computes one.
  */
 
 export type NarrationOutcome = {
@@ -37,12 +43,15 @@ export async function narrateArticle(
     throw new Error(`Post ${post.id} has nothing to say.`);
   }
 
-  const spoken = await spokenScript(ai, script);
-  const key = articleAudioKey(post.id, spoken);
-
+  // The key comes from the article, not from the rewrite — see
+  // `articleAudioKeyForPost`, which exists because doing it the other way
+  // round put three unreachable MP3s on production.
+  const key = articleAudioKeyForPost(post);
   if (!options.force && (await bucket.head(key))) {
-    return { key, chars: spoken.length, skipped: true, rewritten: spoken !== script };
+    return { key, chars: script.length, skipped: true, rewritten: false };
   }
+
+  const spoken = await spokenScript(ai, script);
 
   const audio = await speakArticle(ai, spoken);
   await bucket.put(key, audio, {

@@ -4,7 +4,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 import { isAdminUser } from '@/access'
 import { getR2Bucket } from '@/lib/r2-bucket'
-import { articleAudioKey, articleScript } from '@/lib/reader/article-audio'
+import { articleAudioKeyForPost, articleScript } from '@/lib/reader/article-audio'
 import { narrateArticle } from '@/lib/reader/narrate'
 
 /**
@@ -92,18 +92,11 @@ export const articleAudioSweepEndpoint: Endpoint = {
     const bucket = await getR2Bucket()
 
     /**
-     * WHAT COUNTS AS "ALREADY NARRATED" IS THE UNREWRITTEN SCRIPT'S KEY, and
-     * that is a deliberate approximation. The real key is the hash of the
-     * *rewritten* script, which is only knowable after paying for the rewrite
-     * — so a survey that wanted to be exact would cost the thing it is meant
-     * to let you decide about.
-     *
-     * The consequence is stated rather than hidden: an article narrated from a
-     * rewritten script is listed as missing here, and `narrateArticle` then
-     * rewrites it, computes the real key and answers `skipped` without calling
-     * the voice. So the dry run over-reports work by one rewrite pass per already
-     * narrated article, and `apply=true` never re-pays MiniMax for one. The
-     * count of MP3s is right; the count of rewrites is a ceiling.
+     * THE SURVEY IS NOW EXACT, and it was not always. The key used to be
+     * hashed from the rewritten script, so this scan could only approximate it
+     * — and the same mismatch meant the article page could never find the
+     * audio either. `articleAudioKeyForPost` is the single answer now, so what
+     * this reports missing is exactly what `apply=true` will generate.
      */
     const pending: Candidate[] = []
     let scanned = 0
@@ -124,7 +117,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
         scanned += 1
         const script = articleScript(post.title ?? '', post.content)
         if (!script.trim()) continue
-        if (await bucket.head(articleAudioKey(post.id, script))) continue
+        if (await bucket.head(articleAudioKeyForPost(post))) continue
         pending.push({ id: post.id, title: post.title ?? '', chars: script.length })
       }
 
