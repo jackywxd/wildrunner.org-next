@@ -3,10 +3,8 @@ import { APIError } from 'payload'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 import { isAdminUser } from '@/access'
-import { speakArticle } from '@/lib/ai/speak'
-import { spokenScript } from '@/lib/ai/spoken-script'
 import { getR2Bucket } from '@/lib/r2-bucket'
-import { articleAudioKey, articleScript } from '@/lib/reader/article-audio'
+import { narrateArticle } from '@/lib/reader/narrate'
 
 /**
  * Narrate one article and put the result where the page can find it.
@@ -82,51 +80,16 @@ export const articleAudioEndpoint: Endpoint = {
       req,
     })
 
-    const script = articleScript(post.title ?? '', post.content)
-    if (!script.trim()) {
-      throw new APIError('This article has nothing to say.', 400)
-    }
-
     const { env } = await getCloudflareContext({ async: true })
     const ai = (env as unknown as { AI?: Ai }).AI
     if (!ai) {
       throw new APIError('The AI binding is not available here.', 503)
     }
 
-    // The rewrite first, because its output is what gets both hashed and
-    // spoken. Doing it the other way round would key the audio by text that
-    // is not the text in it.
-    const spoken = await spokenScript(ai, script)
-    const key = articleAudioKey(post.id, spoken)
-
     const bucket = await getR2Bucket()
-    const force = req.searchParams.get('force') === 'true'
-    if (!force && (await bucket.head(key))) {
-      return Response.json({ key, skipped: true, chars: spoken.length })
-    }
-
-    const audio = await speakArticle(ai, spoken)
-    await bucket.put(key, audio, {
-      httpMetadata: {
-        contentType: 'audio/mpeg',
-        // Immutable because the key changes whenever the words do — the hash
-        // is in it. A reader who has the file has the right file forever.
-        cacheControl: 'public, max-age=31536000, immutable',
-      },
+    const outcome = await narrateArticle(ai, bucket, post, {
+      force: req.searchParams.get('force') === 'true',
     })
-
-    // The script beside the audio, under the same key, so a narration that
-    // reads wrongly can be diagnosed by reading what was actually sent rather
-    // than by regenerating and hoping. Two kilobytes against an MP3.
-    await bucket.put(`${key}.txt`, spoken, {
-      httpMetadata: { contentType: 'text/plain; charset=utf-8' },
-    })
-
-    return Response.json({
-      key,
-      bytes: audio.byteLength,
-      chars: spoken.length,
-      rewritten: spoken !== script,
-    })
+    return Response.json(outcome)
   },
 }
