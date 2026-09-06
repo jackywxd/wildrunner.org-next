@@ -61,10 +61,27 @@ export function realAIAvailable(): boolean {
  */
 export async function callTextModel(
   ai: Ai,
-  { system, text, maxTokens }: { system: string; text: string; maxTokens: number },
+  {
+    system,
+    text,
+    maxTokens,
+    /**
+     * Which model, defaulting to the one above.
+     *
+     * Added for the narration rewrite, which is a different *kind* of job from
+     * the two this file was written for. Improving and summarising an article
+     * need judgement, and `MODEL` was chosen for it; rewriting `307` into
+     * 三小時零七分 line for line needs none — and Kimi's reasoning makes it
+     * pay for judgement anyway, measured at **106-178 seconds per ten lines**
+     * against Mistral's 9. See `spoken-script.ts` for the comparison, which
+     * includes the model that was faster still and got the one case that
+     * matters wrong.
+     */
+    model = MODEL,
+  }: { system: string; text: string; maxTokens: number; model?: string },
 ): Promise<string> {
   try {
-    const response = await ai.run(MODEL, {
+    const response = await ai.run(model, {
       messages: [
         { role: "system", content: system },
         { role: "user", content: text },
