@@ -38,11 +38,20 @@ const FALLBACK = "wildrunner-article";
  * that used one as a separator does not run together.
  */
 export function pdfFilename(title: string): string {
+  return downloadFilename(title, "pdf");
+}
+
+/** The narration of an article, saved. Same sanitising, different extension. */
+export function audioFilename(title: string): string {
+  return downloadFilename(title, "mp3");
+}
+
+function downloadFilename(title: string, extension: string): string {
   const cleaned = title
     .replace(/[\u0000-\u001f\u007f"\\/:*?<>|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return `${cleaned || FALLBACK}.pdf`;
+  return `${cleaned || FALLBACK}.${extension}`;
 }
 
 /**
@@ -61,9 +70,15 @@ const rfc5987 = (value: string) =>
 /** The whole `Content-Disposition` value, both halves. */
 export function contentDisposition(filename: string): string {
   const ascii = filename.replace(/[^\u0020-\u007e]/g, "").trim();
+  // The extension comes from the name rather than being spelled `.pdf` here:
+  // narration downloads share every line of this file, and a helper that
+  // hardcoded one format would have been copied rather than reused — which is
+  // the same RFC 5987 handling wrong in a second place.
+  const extension = filename.slice(filename.lastIndexOf("."));
   // A Chinese title strips to nothing but its extension, and here that is the
   // common case rather than an edge one.
-  const plain = ascii === ".pdf" || ascii === "" ? `${FALLBACK}.pdf` : ascii;
+  const plain =
+    ascii === extension || ascii === "" ? `${FALLBACK}${extension}` : ascii;
   return `attachment; filename="${plain}"; filename*=UTF-8''${rfc5987(filename)}`;
 }
 
