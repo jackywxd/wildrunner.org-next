@@ -3,7 +3,7 @@ import "server-only";
 import { publicMediaUrl } from "@/lib/media-url";
 import { getR2Bucket } from "@/lib/r2-bucket";
 
-import { articleAudioKey, articleScript } from "./article-audio";
+import { articleAudioKeyForPost } from "./article-audio";
 
 /**
  * Whether this article has narration, and where.
@@ -29,7 +29,7 @@ export async function narrationUrl(
   content: unknown,
 ): Promise<string | null> {
   try {
-    const key = articleAudioKey(postId, articleScript(title, content));
+    const key = articleAudioKeyForPost({ id: postId, title, content });
     const bucket = await getR2Bucket();
     return (await bucket.head(key)) ? publicMediaUrl(key) : null;
   } catch {

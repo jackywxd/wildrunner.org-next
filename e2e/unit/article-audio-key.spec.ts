@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { articleAudioKey, articleScript } from "@/lib/reader/article-audio";
+import {
+  articleAudioKey,
+  articleAudioKeyForPost,
+  articleScript,
+} from "@/lib/reader/article-audio";
 
 /**
  * U-AUDIOKEY — the key that stands in for a database column.
@@ -70,6 +74,33 @@ test.describe("U-AUDIOKEY the key R2 is indexed by", () => {
     });
     expect(withPhoto).toBe(plain);
     expect(articleAudioKey(7, withPhoto)).toBe(articleAudioKey(7, plain));
+  });
+
+  test("U-AUDIOKEY-6: the page and the generator ask for the same key", () => {
+    // THE ASSERTION THAT WAS MISSING, and its absence cost three narrations on
+    // production. The generator used to hash the script the model had
+    // rewritten; the page can only hash the article as written, because it
+    // cannot run a model. So the two computed different keys — `22-3fdcea01`
+    // was written while every render asked for `22-75e28f51` — and nothing
+    // anywhere failed: the sweep reported success, the MP3s were real, and the
+    // article went on being read by the device.
+    //
+    // `articleAudioKeyForPost` is now the only way to get one, and this pins
+    // that a post is all it takes. Nothing a model produces may enter it.
+    const post = { id: 22, title: "我的首50km越野", content: doc("跑了307。") };
+    expect(articleAudioKeyForPost(post)).toBe(
+      articleAudioKey(post.id, articleScript(post.title, post.content)),
+    );
+    // The same post, however its narration might have come out.
+    expect(articleAudioKeyForPost(post)).toBe(articleAudioKeyForPost({ ...post }));
+  });
+
+  test("U-AUDIOKEY-7: a missing title or body is still a key, not a crash", () => {
+    // Both arrive from a `select`ed Payload document, where either can be null.
+    expect(articleAudioKeyForPost({ id: 1 })).toMatch(/^article-audio\/1-[0-9a-f]{8}\.mp3$/);
+    expect(articleAudioKeyForPost({ id: 1, title: null, content: null })).toMatch(
+      /^article-audio\/1-[0-9a-f]{8}\.mp3$/,
+    );
   });
 
   test("U-AUDIOKEY-5: the title is part of what is said", () => {

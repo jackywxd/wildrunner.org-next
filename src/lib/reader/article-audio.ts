@@ -67,6 +67,34 @@ export function articleAudioKey(postId: number | string, script: string): string
 }
 
 /**
+ * THE key for a post. Every caller goes through here — page, sweep, generator.
+ *
+ * IT EXISTS BECAUSE THE ALTERNATIVE SHIPPED AND FAILED SILENTLY. The generator
+ * used to hash the script *after* the model rewrote it, while the page could
+ * only hash the article as written — so the two computed different keys and
+ * the page never found the audio. Three narrations were generated on
+ * production, paid for, and were unreachable the moment they were written:
+ * `22-3fdcea01.mp3` sitting in R2 while every render asked for
+ * `22-75e28f51.mp3`. Nothing failed. The sweep reported success, the files
+ * were real, and the article went on being read by the device.
+ *
+ * So the key is hashed from the article AS WRITTEN, which is the only version
+ * both sides can see without paying a model. What the voice actually says is
+ * stored beside the audio as `<key>.txt`.
+ *
+ * The cost of that choice, stated: changing the rewrite prompt or the voice
+ * does not change the key, so neither regenerates anything on its own. That is
+ * what `?force=true` is for, and it was already the documented reason for it.
+ */
+export function articleAudioKeyForPost(post: {
+  id: number | string;
+  title?: string | null;
+  content?: unknown;
+}): string {
+  return articleAudioKey(post.id, articleScript(post.title ?? "", post.content));
+}
+
+/**
  * MiniMax's own ceiling — `text` is `maxLength: 10000`.
  *
  * The longest article in the corpus is 7,102 characters of script, so nothing
