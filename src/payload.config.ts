@@ -32,6 +32,7 @@ import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { articleAudioEndpoint } from './endpoints/articleAudio'
+import { articleAudioSweepEndpoint } from './endpoints/articleAudioSweep'
 import { changePasswordEndpoint } from './endpoints/changePassword'
 import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
@@ -207,6 +208,7 @@ export default buildConfig({
   endpoints: [
     aiExpandPostEndpoint,
     articleAudioEndpoint,
+    articleAudioSweepEndpoint,
     changePasswordEndpoint,
     aiImprovePostEndpoint,
     aiSummarisePostEndpoint,
