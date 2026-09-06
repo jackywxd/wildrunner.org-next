@@ -36,11 +36,16 @@ import { useEffect } from "react";
 export function HydrationMarker() {
   useEffect(() => {
     document.documentElement.setAttribute("data-hydrated", "true");
-    // Removed on unmount so a client navigation that tears this layout down
-    // cannot leave a stale "ready" behind for the next page to be believed on.
-    return () => {
-      document.documentElement.removeAttribute("data-hydrated");
-    };
+    // NO CLEANUP, and that is the considered choice rather than an omission.
+    // Strict Mode runs effects mount → cleanup → mount in development, so a
+    // cleanup that removed the attribute would take it away and put it back —
+    // a window, however narrow, in which the one thing waiting on it sees it
+    // missing. Introducing a race into the component whose entire job is to
+    // end one would be a poor trade.
+    //
+    // It costs nothing to leave. Nothing unmounts this within the site layout,
+    // and leaving that layout is a full document load, which replaces the
+    // element the attribute is on.
   }, []);
 
   return null;
