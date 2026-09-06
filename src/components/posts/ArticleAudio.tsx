@@ -1,5 +1,7 @@
 "use client";
 
+import { Download } from "lucide-react";
+
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
@@ -26,8 +28,11 @@ import { useDictionary } from "@/components/i18n/dictionary-provider";
 export function ArticleAudio({
   /** The generated narration, already an absolute R2 URL. */
   src,
+  /** This article's id — the download goes through our own origin. */
+  postId,
 }: {
   src: string;
+  postId: number | string;
 }) {
   const t = useDictionary();
   return (
@@ -51,6 +56,26 @@ export function ArticleAudio({
         aria-label={t.reader.readAria}
         className="h-10 min-w-0 flex-1"
       />
+
+      {/*
+        A plain link, not a button and not a fetch. The server sets
+        `Content-Disposition`, so the browser saves the file without a line of
+        JavaScript — and it has to be our own origin, because the R2 object
+        carries neither that header nor a CORS one. See the endpoint.
+
+        `download` is on it anyway for the same-origin case where a browser
+        would otherwise navigate; the header is what actually decides.
+      */}
+      <a
+        data-testid="article-audio-download"
+        href={`/api/article-audio/${postId}/download`}
+        download
+        aria-label={t.reader.download}
+        title={t.reader.download}
+        className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm"
+      >
+        <Download className="size-4" />
+      </a>
     </div>
   );
 }

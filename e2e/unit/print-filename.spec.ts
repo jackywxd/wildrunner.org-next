@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  audioFilename,
   contentDisposition,
   filenameFromDisposition,
   pdfFilename,
@@ -19,6 +20,11 @@ import {
  * The second claim here is not about names at all. Post titles are written by
  * members, and a header ends at a CRLF: a title carrying one would let its
  * author append headers of their own to every download of that article.
+ *
+ * IT COVERS TWO FORMATS NOW. The narration download reuses every line of this
+ * file rather than carrying a second copy of RFC 5987 — so the extension is
+ * the one thing that varies, and U-PDFNAME-4 is here because the fallback
+ * used to spell `.pdf` outright.
  */
 
 test.describe("U-PDFNAME the downloaded article's filename", () => {
@@ -83,5 +89,36 @@ test.describe("U-PDFNAME the downloaded article's filename", () => {
     // browser name the file rather than inventing one.
     expect(filenameFromDisposition(null)).toBeNull();
     expect(filenameFromDisposition("attachment")).toBeNull();
+  });
+
+  test("U-PDFNAME-4: an audio download falls back to .mp3, not to .pdf", () => {
+    // THE REGRESSION THIS PINS is one line long and silent: the fallback used
+    // to be `${FALLBACK}.pdf`, so a title with no ASCII in it would have saved
+    // the narration as `wildrunner-article.pdf`. A file with the wrong
+    // extension opens in the wrong application and looks like a corrupt
+    // download.
+    //
+    // The title has to be ASCII-free to reach that branch at all — the first
+    // version of this test used 「我的首50km越野」 and the `50km` survived the
+    // strip, so the fallback never fired and the assertion was about nothing.
+    expect(audioFilename("野馬營的由來")).toBe("野馬營的由來.mp3");
+
+    const header = contentDisposition(audioFilename("野馬營的由來"));
+    expect(header).toContain('filename="wildrunner-article.mp3"');
+    expect(header).not.toContain(".pdf");
+    // The extended half still carries the real name, which is what every
+    // browser since IE11 actually uses.
+    expect(filenameFromDisposition(header)).toBe("野馬營的由來.mp3");
+  });
+
+  test("U-PDFNAME-5: a title with usable ASCII keeps it, whatever the format", () => {
+    // The control for the fallback above: it must not fire when the plain half
+    // has something to say, or every English-titled download would be renamed.
+    expect(contentDisposition(audioFilename("Squamish 50/50"))).toContain(
+      'filename="Squamish 50 50.mp3"',
+    );
+    expect(contentDisposition(pdfFilename("Squamish 50/50"))).toContain(
+      'filename="Squamish 50 50.pdf"',
+    );
   });
 });
