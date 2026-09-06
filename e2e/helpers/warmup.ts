@@ -102,22 +102,49 @@ const ROUTES = [
 /**
  * How many routes are compiled at once.
  *
- * MEASURED, NOT PICKED. One at a time cost 167.2s for the 29 routes below on
- * a cold `.next` (and 139s on a CI runner), which is time every shard pays
- * before its first test starts. `next dev` compiles on a worker pool, so a
- * queue of one leaves most of it idle waiting on a single route.
+ * ONE, BOUGHT AT A KNOWN PRICE. Serial warmup was measured at 167.2s for the
+ * 29 routes below on a cold `.next`, and 139s on a CI runner — time every
+ * shard pays before its first test starts. Four lanes were chosen for exactly
+ * that reason and held for months.
  *
- * FOUR, AND NOT MORE, because this is the one place in the suite where
- * concurrency has a documented way of backfiring. AGENTS.md records that
- * `next dev` forks a fresh child per dynamic route to ask for
- * `generateStaticParams`, and each such child opens its own miniflare over
- * the same local SQLite file — the contention that produced `database is
- * locked` and a red `V-RACEALBUM-T1`. Warming several dynamic routes at once
- * is exactly what multiplies those forks, so the lane count is kept low
- * enough to stay inside what was measured rather than set to "as many as
- * there are routes".
+ * Re-measured on the change to one, same machine, warm `.next`: **64.3s
+ * serial against 20.9-26.9s on four lanes**, so roughly +40s locally and more
+ * on a cold CI runner, per shard. That is the bill. It is worth paying only
+ * while it actually buys something — see below, and check.
+ *
+ * WHAT CHANGED IS THAT THE COST OF CONCURRENCY GOT A NAME. `next dev` updates
+ * `.next/dev/prerender-manifest.json` with an unsynchronised read-modify-write
+ * — `readFile`, `JSON.parse`, mutate, `writeFile`, with `await` between every
+ * step and no lock (`next/dist/server/dev/next-dev-server.js`, ~660-690). It
+ * runs once per dynamic route whose `generateStaticParams` resolves, and the
+ * write is a plain `fs.promises.writeFile`, not the `writeFileAtomic` Next
+ * ships in `next/dist/lib/fs/write-atomic.js` and uses for other manifests.
+ *
+ * Two of those overlapping leave the file as one writer's valid JSON followed
+ * by a longer writer's tail, and the dev server's own `JSON.parse` of it then
+ * throws `Unexpected non-whitespace character after JSON at position N` —
+ * where N is the shorter write's length. That kills whatever request is in
+ * flight, `/api/users/login` most often, and 20-30 unrelated specs in the
+ * shard fail with `fixture setup could not sign in`. Measured on PR #170:
+ * 192-316 copies of that error per shard, four of five shards red, green on
+ * re-run. Every site route lives under `[lang]` and is therefore dynamic, so
+ * every route this file warms takes that path.
+ *
+ * Warming routes concurrently is precisely what overlaps those writes, so the
+ * queue is serial. It narrows the window rather than closing it — requests
+ * after warmup still compile — and it does not touch the deployed app, which
+ * is a built Worker with no on-demand compilation and has never shown this.
+ *
+ * The older reason for keeping this number low still holds and points the
+ * same way: AGENTS.md records that `next dev` forks a fresh child per dynamic
+ * route to ask for `generateStaticParams`, each opening its own miniflare over
+ * the same local SQLite file — the contention behind `database is locked` and
+ * a red `V-RACEALBUM-T1`.
+ *
+ * If the wall-clock cost proves worse than the flake, raise it back; the
+ * numbers above are what to weigh it against.
  */
-const LANES = 4;
+const LANES = 1;
 
 export default async function warmup() {
   // A deployed origin serves a built app: there is nothing to compile, and
