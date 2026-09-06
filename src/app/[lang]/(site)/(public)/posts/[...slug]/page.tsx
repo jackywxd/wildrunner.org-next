@@ -266,13 +266,9 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             with no `speechSynthesis`. */}
         {blog.content &&
           (narration ? (
-            <ArticleAudio src={narration} musicPlaylist={blog.musicPlaylist} />
+            <ArticleAudio src={narration} />
           ) : (
-            <ArticleReader
-              title={blog.title}
-              content={blog.content}
-              musicPlaylist={blog.musicPlaylist}
-            />
+            <ArticleReader title={blog.title} content={blog.content} />
           ))}
         {blog.content && (
           <PayloadRichText data={blog.content} className="article-body" />
