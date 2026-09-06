@@ -45,11 +45,31 @@ test.describe("U-SCRIPT the rewrite a voice is allowed to be given", () => {
     expect(reconcileSpokenScript(original, withPreamble)).toBe(original);
   });
 
-  test("U-SCRIPT-4: an empty reply, or one with a blank line, is refused", () => {
+  test("U-SCRIPT-7: a correct rewrite that came back double-spaced is taken", () => {
+    // MEASURED, and the reason blank lines are stripped before the count is
+    // taken. Mistral returns a right answer with a blank line between every
+    // line about as often as not: ten lines arrive as nineteen. The first
+    // version of the reconciler refused two chunks in five of the Chicago
+    // article that way — including the one holding the 415 pace — and the
+    // reply had been correct every time.
+    const doubled = [
+      "柏林跑了三小時零七分",
+      "",
+      "保持每公里四分十五秒左右的配速",
+      "",
+      "完賽時間是三小時三十六分",
+    ].join("\n");
+    expect(reconcileSpokenScript(original, doubled)).toBe(
+      ["柏林跑了三小時零七分", "保持每公里四分十五秒左右的配速", "完賽時間是三小時三十六分"].join("\n"),
+    );
+  });
+
+  test("U-SCRIPT-4: an empty reply, or a lost line, is refused", () => {
     expect(reconcileSpokenScript(original, "")).toBe(original);
     expect(reconcileSpokenScript(original, "   ")).toBe(original);
-    // Same count, but a line the voice would say nothing for — which reads as
-    // the article having a silent gap in it.
+    // A blank standing in for a line the model dropped. Stripping blanks
+    // first is what stops that disguising itself as the right count: three
+    // lines in, two of substance out, refused.
     expect(
       reconcileSpokenScript(original, ["柏林跑了三小時零七分", "", "完賽時間是三小時三十六分"].join("\n")),
     ).toBe(original);

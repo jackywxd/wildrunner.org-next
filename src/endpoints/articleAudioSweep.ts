@@ -13,7 +13,7 @@ import { narrateArticle } from '@/lib/reader/narrate'
  * DRY RUN UNLESS `?apply=true`, and the default is copied from
  * `unusedMediaSweep` for a related reason. That one defaults to reporting
  * because it *destroys*; this one defaults to reporting because it *spends* —
- * every article costs a MiniMax call plus a Kimi call per ten lines, and the
+ * every article costs a MiniMax call plus a rewrite call per ten lines, and the
  * report is what makes that number visible before it is spent rather than
  * afterwards on a bill.
  *
@@ -55,18 +55,27 @@ function authorise(req: PayloadRequest): void {
 /**
  * How many articles one run may narrate.
  *
- * Five, and the number comes from Kimi's rate limit rather than from cost.
- * `call-model.ts` records it: 20 requests per minute per account, 50 with
- * prepaid credits — and the rewrite is one request per ten lines, so a
- * corpus-sized article is about five. Five articles is therefore roughly
- * twenty-five requests, which fits inside a minute's budget with room for
- * whatever else the account is doing.
+ * THE LIMIT IS THE REQUEST, not the rate limit or the money, and the first
+ * version had this wrong in a way that only production showed. It was five,
+ * chosen from Kimi's requests-per-minute — and with Kimi taking 106-178
+ * seconds per ten lines, five articles was over an hour inside one HTTP
+ * request. `apply=true` on production returned nothing at all and wrote
+ * nothing at all, while the dry run answered in three seconds.
  *
- * A backlog simply drains over consecutive runs, the same way
- * `unusedMediaSweep`'s does. Reaching for a bigger number here buys a faster
- * first pass and a `429` in the middle of it.
+ * With the rewrite on Mistral and its chunks issued in parallel
+ * (`spoken-script.ts`), an article measures about ten seconds of rewriting
+ * plus six and a half of MiniMax — call it twenty. Three is a minute, which
+ * sits under Cloudflare's ~100s edge timeout with room for an article longer
+ * than any in the corpus.
+ *
+ * Articles are narrated in turn rather than together on purpose: the chunks
+ * inside one article already run concurrently, and three articles at once
+ * would be forty-odd simultaneous model calls for no gain the clock can see.
+ *
+ * A backlog drains over consecutive runs — `remaining` in the response says
+ * how many are left, so a caller can simply call again.
  */
-const MAX_PER_RUN = 5
+const MAX_PER_RUN = 3
 
 /** How many posts to read per page. Bodies are large — see `references.ts`. */
 const PAGE_SIZE = 50
@@ -92,7 +101,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
      * The consequence is stated rather than hidden: an article narrated from a
      * rewritten script is listed as missing here, and `narrateArticle` then
      * rewrites it, computes the real key and answers `skipped` without calling
-     * the voice. So the dry run over-reports work by one Kimi pass per already
+     * the voice. So the dry run over-reports work by one rewrite pass per already
      * narrated article, and `apply=true` never re-pays MiniMax for one. The
      * count of MP3s is right; the count of rewrites is a ceiling.
      */
