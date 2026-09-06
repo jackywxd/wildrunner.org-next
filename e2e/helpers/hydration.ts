@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 import { budget } from "./budget";
 
@@ -42,8 +42,14 @@ import { budget } from "./budget";
  * for the precise claim.
  */
 export async function waitForHydration(page: Page): Promise<void> {
-  await page.waitForSelector("html[data-hydrated='true']", {
-    state: "attached",
-    timeout: budget(20_000),
-  });
+  // The message says what was not observed, not why — deliberately. Being the
+  // first thing that touches the page makes this the first thing to fail when
+  // the server is unwell, and a sentence blaming hydration would then send the
+  // next reader to React while a 500 sat in the server log. That mistake has
+  // already been paid for once here, by an assertion that said "the corpus is
+  // empty" about a corpus that was fine.
+  await expect(
+    page.locator("html[data-hydrated='true']"),
+    "the page never signalled that React took over — it may not have rendered at all; read the server log before suspecting hydration",
+  ).toBeAttached({ timeout: budget(20_000) });
 }
