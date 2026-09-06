@@ -24,6 +24,7 @@
  * with no editor, no browser and no voices.
  */
 
+import { pronounce } from "./pronounce";
 import { soleYouTubeUrl } from "@/lib/youtube";
 
 /**
@@ -188,5 +189,9 @@ export function articleSegments(content: unknown): string[] {
   if (!root) return [];
   const out: string[] = [];
   walk(root, out);
-  return out;
+  // Last, and over the finished sentences rather than inside the walk: the
+  // substitutions are about how a unit is *said*, and applying them here keeps
+  // every rule about document shape above and every rule about pronunciation
+  // below. See pronounce.ts for why that list is as short as it is.
+  return out.map(pronounce).filter(Boolean);
 }
