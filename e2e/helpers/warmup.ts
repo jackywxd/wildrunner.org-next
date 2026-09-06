@@ -107,10 +107,23 @@ const ROUTES = [
  * shard pays before its first test starts. Four lanes were chosen for exactly
  * that reason and held for months.
  *
- * Re-measured on the change to one, same machine, warm `.next`: **64.3s
- * serial against 20.9-26.9s on four lanes**, so roughly +40s locally and more
- * on a cold CI runner, per shard. That is the bill. It is worth paying only
- * while it actually buys something — see below, and check.
+ * Re-measured on the change to one. Locally, same machine, warm `.next`:
+ * 64.3s serial against 20.9-26.9s on four lanes. On CI, the two runs either
+ * side of this change:
+ *
+ *   four lanes   warmup  84.1s    e2e jobs 388-458s
+ *   one lane     warmup 130.4s    e2e jobs 354-562s
+ *
+ * **+46s of warmup, and about a tenth of each shard's wall clock.** Much less
+ * than the 139s the paragraph above feared, because that figure was a cold
+ * `.next` and CI restores one. That is the bill; it is worth paying only while
+ * it buys something.
+ *
+ * AND WHETHER IT DOES IS NOT YET ESTABLISHED. The run immediately before this
+ * change was also green. One green run proves nothing about a fault that was
+ * always green on re-run — the honest test is several runs, watched. If they
+ * stay clean, keep it; if the parse errors come back, raise the lanes and stop
+ * paying for nothing.
  *
  * WHAT CHANGED IS THAT THE COST OF CONCURRENCY GOT A NAME. `next dev` updates
  * `.next/dev/prerender-manifest.json` with an unsynchronised read-modify-write
