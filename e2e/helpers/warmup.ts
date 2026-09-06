@@ -119,11 +119,19 @@ const ROUTES = [
  * `.next` and CI restores one. That is the bill; it is worth paying only while
  * it buys something.
  *
- * AND WHETHER IT DOES IS NOT YET ESTABLISHED. The run immediately before this
- * change was also green. One green run proves nothing about a fault that was
- * always green on re-run — the honest test is several runs, watched. If they
- * stay clean, keep it; if the parse errors come back, raise the lanes and stop
- * paying for nothing.
+ * WHAT IT HAS BOUGHT SO FAR, counted rather than felt — copies of the parse
+ * error in each shard's own log:
+ *
+ *   four lanes, earlier that evening    192, 203, 257, 316   (4 of 5 shards red)
+ *   four lanes, run before this change  0, 1, 0, 0, 0        (green)
+ *   one lane, two runs                  0 × 10 shards
+ *
+ * Ten shards clean is worth more than one green run, and there is a mechanism
+ * that predicts it. It is still not decisive: the last four-lane run was
+ * nearly clean too, so the fault's intensity varies with something nobody has
+ * pinned down — most likely how loaded the runner is. Keep counting. If the
+ * parse errors come back at this lane count, raise it and stop paying the 46
+ * seconds for nothing.
  *
  * WHAT CHANGED IS THAT THE COST OF CONCURRENCY GOT A NAME. `next dev` updates
  * `.next/dev/prerender-manifest.json` with an unsynchronised read-modify-write
