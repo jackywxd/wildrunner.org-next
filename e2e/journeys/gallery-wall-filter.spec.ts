@@ -21,6 +21,7 @@
 import { expect, test } from "../helpers/test";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
+import { waitForHydration } from "../helpers/hydration";
 import { recordCreated } from "../helpers/created";
 import { deleteCreatedRows } from "../helpers/teardown";
 
@@ -51,6 +52,13 @@ test.describe("V-WALLFILTER the wall filters where the rest of the wall is", () 
     );
 
     await page.goto("/gallery", { waitUntil: "domcontentloaded" });
+    // The controls below are server-rendered and change nothing on their
+    // own: the kind chips are `<button>`s whose onClick sets state, and the
+    // race `<select>` reaches the server through React's onChange. Driven
+    // before React attaches, both are accepted by the browser and ignored by
+    // the app — and the `waitForRequest` below then times out blaming a
+    // missing network request rather than the timing.
+    await waitForHydration(page);
     await expect(page.getByTestId("gallery-all-photos")).toBeVisible({
       timeout: budget(20_000),
     });
@@ -174,6 +182,13 @@ test.describe("V-WALLFILTER the wall filters where the rest of the wall is", () 
     recordCreated({ collection: "media", id: mediaId, note: "V-WALLFILTER race" });
 
     await page.goto("/gallery", { waitUntil: "domcontentloaded" });
+    // The controls below are server-rendered and change nothing on their
+    // own: the kind chips are `<button>`s whose onClick sets state, and the
+    // race `<select>` reaches the server through React's onChange. Driven
+    // before React attaches, both are accepted by the browser and ignored by
+    // the app — and the `waitForRequest` below then times out blaming a
+    // missing network request rather than the timing.
+    await waitForHydration(page);
     await expect(page.getByTestId("gallery-all-photos")).toBeVisible({
       timeout: budget(20_000),
     });

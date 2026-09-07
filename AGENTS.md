@@ -237,6 +237,47 @@ in the move. Neither produced those numbers.
   the server's own log before forming a hypothesis.* `grep -c FATAL` on the
   dev log answers in a second what two re-runs did not.
 
+### A whole shard goes red and the cause is a file nobody wrote
+
+`next dev` keeps `.next/dev/prerender-manifest.json` up to date with an
+**unsynchronised read-modify-write** — `readFile`, `JSON.parse`, mutate,
+`writeFile`, with an `await` between every step and no lock
+(`next/dist/server/dev/next-dev-server.js`, ~660-690). It runs once per
+dynamic route whose `generateStaticParams` resolves, and the write is a plain
+`fs.promises.writeFile`, **not** the `writeFileAtomic` Next ships in
+`next/dist/lib/fs/write-atomic.js` and uses for its other manifests.
+
+Two of those overlapping leave the file as one writer's complete JSON followed
+by a longer writer's tail. The dev server's own `JSON.parse` then throws:
+
+```
+⨯ SyntaxError: Unexpected non-whitespace character after JSON
+              at position 2035 (line 1 column 2036)
+    at JSON.parse (<anonymous>) { page: '/zh-hant/members/login' }
+```
+
+**Nothing in the test output names the manifest.** The throw kills whichever
+request is in flight — usually `POST /api/users/login` — so the first casualty
+is `Failed to create admin user: 500` at `e2e/helpers/auth.ts:95`, and then
+20-30 unrelated specs fail with `fixture setup could not sign in`. It reads
+exactly like "my branch broke everything". Measured on PR #170: 192-316 copies
+per shard, four of five shards red, green on re-run.
+
+- **The stack has no application frames.** That is the tell: the `JSON.parse`
+  is Next's, and `page:` is only what was being served at the time.
+- **Every route here is dynamic**, because they all live under `[lang]` — so
+  every one of them takes that code path.
+- **The offset varies between runs and is constant within one**, and it is the
+  *shorter* write's length. Hours went into reading it as a rising counter.
+- **Development only.** A built Worker rewrites no manifests, which is why
+  staging has never shown it.
+- `e2e/helpers/warmup.ts` compiles routes **serially** for this reason; its
+  header carries the numbers. That narrows the window, it does not close it.
+- The write-up for upstream is `docs/next-prerender-manifest-race.md`.
+
+**So grep a broadly-red shard's log for `Unexpected non-whitespace` before
+believing the change under test.**
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
@@ -594,6 +635,43 @@ importing it there would launch a browser for nothing.
 Anything added to that file's ignore list is a class of error the suite can no
 longer see. The bar is "the app cannot cause it and cannot stop it", never
 "this is currently failing".
+
+### A click before hydration fails in two opposite ways
+
+`waitUntil: "domcontentloaded"` returns while the page is still server-rendered
+markup. A control in that window is **visible, enabled and stable**, so every
+actionability check Playwright can make passes and it will click. What happens
+next depends on the control, and the two outcomes look nothing alike — which is
+why they were diagnosed as separate problems, hours apart, in the same file.
+
+- **A control that needs JS swallows the click.** `FilterChip` is a `<button>`
+  whose `onClick` calls `setView`. Clicked early: no error, no state change,
+  nothing. `V-LANG-3` waited 20s for album cards that could not render and then
+  reported "the corpus is empty" — a message that named the one explanation
+  ruled out by construction, and sent two readings of the log to the database.
+- **A control that works without JS corrupts hydration.** `LanguageSwitcher` is
+  a native `<details>`, chosen so the language choices stay real links. The
+  browser opens it with no JS, so an early click *succeeds* and writes `open=""`
+  into the DOM; React then hydrates onto a tree that never had `open` and the
+  console guard above fails the test. `V-LANG-1` died this way. There is no
+  dropped click to notice — "the click worked" is true and useless.
+
+The same trap covers `<select>` (`selectOption` changes the value natively and
+fires no React `onChange`) and the members' login form, which is a Client
+Component whose `<form>` has no `action`: submitted early, nothing is sent and
+the spec blames the credentials.
+
+**So `await waitForHydration(page)` after any `goto` that is followed by an
+interaction** (`e2e/helpers/hydration.ts`). It waits for `data-hydrated` on
+`<html>`, published by `HydrationMarker` in `[lang]/(site)/layout.tsx`. Proving
+the click landed instead — the `toPass` + `data-active` shape in
+`race-gallery.spec.ts` — fixes only the first kind; by the time you can observe
+a `<details>`, it is already open.
+
+Two things that marker does **not** cover: routes outside `[lang]/(site)`
+(`(print)`, `(payload)`, `not-found`), and anything inside its own `<Suspense>`
+boundary — there are none on the site today, and a new one would need its own
+signal.
 
 ---
 

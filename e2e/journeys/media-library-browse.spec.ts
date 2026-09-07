@@ -24,6 +24,7 @@
  * a client-side filter.
  */
 import { expect, test } from "../helpers/test";
+import { waitForHydration } from "../helpers/hydration";
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
@@ -66,6 +67,12 @@ async function signIn(
   credentials: { email: string; password: string },
 ) {
   await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component: `onSubmit` preventDefaults and
+    // fetches `/api/users/login`, and the <form> carries no `action`. Submit
+    // it before React attaches and nothing is sent at all — the sign-in just
+    // never happens, and the URL assertion below times out blaming the
+    // credentials.
+    await waitForHydration(page);
   await page.getByTestId("member-login-email").fill(credentials.email);
   await page.getByTestId("member-login-password").fill(credentials.password);
   await page.getByTestId("member-login-submit").click();
