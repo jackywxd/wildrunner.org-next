@@ -140,7 +140,7 @@ export function CoverImageField({
           ref={fileRef}
           data-testid="post-cover-file"
           type="file"
-          accept="image/*"
+          accept="image/*,.dng"
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];

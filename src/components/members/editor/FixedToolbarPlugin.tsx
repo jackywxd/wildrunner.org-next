@@ -205,7 +205,7 @@ export function FixedToolbarPlugin() {
         ref={fileInputRef}
         data-testid="editor-toolbar-image-input"
         type="file"
-        accept="image/*"
+        accept="image/*,.dng"
         multiple
         className="hidden"
         onChange={(event) => {
