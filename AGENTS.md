@@ -324,21 +324,40 @@ fills in the missing `Origin` with `payload.config.serverURL`
 (`src/lib/auth-origin.ts`), and only when it is missing: a request that names
 an origin keeps it and is still checked.
 
-**The suite could not have caught this, and still nearly did not.** Two
-independent blindfolds, and both have to be removed at once:
+**The e2e lane cannot see any of this, and the reason is the whole point.**
+`.github/workflows/e2e.yml`'s "Run Playwright" step sets `PAYLOAD_SECRET`,
+`E2E_ADMIN_*` and `NEXTJS_ENV` — and **not `NEXT_PUBLIC_SITE_URL`**, which only
+the `build` job passes. So in the shards `serverURL` is `''`, `csrf` is `[]`,
+and the table above collapses to "accepted" on every row. The suite runs a
+different auth configuration from the one that ships, which is why a gate that
+was rejecting live sessions in production was green here for the life of the
+feature.
+
+Two further blindfolds were hit trying to write a journey test for it anyway,
+and both are worth knowing before the next attempt:
 
 - `playwright.config.ts` sets `extraHTTPHeaders: { Origin: BASE_URL }` for the
   whole suite. Its own comment says why — an APIRequestContext sends neither
-  header, so without it every API call authenticates as nobody — and that fix
-  is exactly what hides the navigation case from every spec. `test.use({
-  extraHTTPHeaders: {} })` in the one spec that needs a bare request is how
-  M-REFRESH gets out from under it.
+  header, so without it every API call authenticates as nobody — and that is
+  also what hides the navigation case from every spec. `test.use({
+  extraHTTPHeaders: {} })` lifts it for one file.
 - **A browser test cannot reproduce it at all.** Chromium refuses to let
   `page.setExtraHTTPHeaders` override a `Sec-` header, so `goto` always sends
-  `Sec-Fetch-Site: none` — the one value that passes. The first draft of
-  M-REFRESH did that and went green against the unfixed server *twice*,
-  reporting success while measuring nothing. Only a non-browser client can put
-  a request into the shape that breaks.
+  `Sec-Fetch-Site: none` — the one value that passes. That draft went green
+  against the unfixed server *twice*, reporting success while measuring
+  nothing. Only a non-browser client can put a request into the shape that
+  breaks.
+
+**There is no journey test, deliberately.** With `csrf` empty a reload passes
+whether or not the fix is there, so the test could not fail in the lane that
+runs it — and its companion assertion (a foreign `Origin` is refused) is
+*false* in that configuration, which is how CI found this: it went red on PR
+#174 asserting a property CI does not have. A test that cannot fail is worse
+than no test, so the coverage lives in `U-AUTHORIGIN`, which is pure and
+environment-independent. Giving the shards a `serverURL` would make the lane
+match production here — and would also stop Payload rewriting external media
+URLs, which is what the corpus's R2 addresses depend on, so it is a change to
+weigh rather than a tidy-up.
 
 The general rule this file already states, and which is what finally found it:
 **a probe must be able to report both outcomes.** Four `curl` calls with one
