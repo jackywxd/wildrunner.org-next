@@ -26,13 +26,28 @@ import { checkAiRateLimit } from "@/lib/ai/rate-limit";
  * How much article the endpoint accepts, and how much reply it allows.
  *
  * The input cap matches improve-post — it is the same article, with line
- * numbers on it. The output allowance does not, and is far smaller: a reply
- * here is a list of short fragments, and 2k tokens is already a hundred
- * corrections. A model that wants more than that has stopped proofreading
- * and started rewriting, and the truncation is the cheapest place to say so.
+ * numbers on it.
+ *
+ * **The output allowance is not about the size of the reply**, and sizing it
+ * that way is what broke this endpoint in production. It shipped at 2,000 on
+ * the reasoning that a list of short fragments needs nothing like that much,
+ * which is true and irrelevant: Kimi K2.6 is a reasoning model and spends its
+ * thinking out of this same allowance. A member pressed 改錯字 on a real race
+ * report and got 「AI 沒有回覆內容」 with `finish_reason=length，內文 0 字` —
+ * the whole 2,000 gone before it wrote a character.
+ *
+ * `reply-text.ts` already carried this incident, from the summary endpoint
+ * shipping at 400 and failing the same way. Reading `call-model.ts` and not
+ * that file is how the same mistake was made twice with a different constant.
+ *
+ * So: the same 16,000 improve-post allows. The two read the same 12,000
+ * characters and think about them for the same reason; improve then spends
+ * most of its allowance writing the article back, and this spends almost none
+ * of it, so every token improve uses for prose is thinking room here. A
+ * number chosen from the length of the answer would be wrong again.
  */
 const MAX_INPUT_CHARS = 12_000;
-const MAX_OUTPUT_TOKENS = 2_000;
+const MAX_OUTPUT_TOKENS = 16_000;
 
 /**
  * What the model is told.
