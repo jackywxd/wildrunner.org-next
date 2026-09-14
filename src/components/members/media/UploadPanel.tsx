@@ -17,7 +17,7 @@ import {
   uploadParts,
 } from "@/lib/direct-upload";
 import { clearSession, loadSession, saveSession } from "@/lib/upload-store";
-import { downscaleImage } from "@/lib/media/downscale";
+import { prepareImageForUpload } from "@/lib/media/prepare-upload";
 import { MAX_UPLOAD_LABEL } from "@/lib/media/upload-limits";
 import {
   isFinished,
@@ -184,12 +184,14 @@ export function UploadPanel({
   async function uploadOne(index: number, picked: File, raceEditionId: number | null) {
     patchItem(index, { status: "checking", percent: 0, message: "" });
 
-    // Shrink first, so everything downstream describes the file that will
-    // actually be stored: the fingerprint below is of the stored bytes, and
-    // the quota `enforceStorageQuota` bills is the stored size. Fingerprinting
-    // the original would also make the same photo look new after a change to
-    // MAX_EDGE. A file that needs no resizing comes back unchanged.
-    const chosen = await downscaleImage(picked);
+    // Convert and shrink first, so everything downstream describes the file
+    // that will actually be stored: the fingerprint below is of the stored
+    // bytes, and the quota `enforceStorageQuota` bills is the stored size.
+    // Fingerprinting the original would also make the same photo look new
+    // after a change to MAX_EDGE. A file that needs neither comes back
+    // unchanged; one the site could never display throws, and the message
+    // lands on this row rather than on a broken image weeks later.
+    const chosen = await prepareImageForUpload(picked);
 
     // Before any bytes move. A member who picked the same 400 MB clip twice
     // should learn that now, not after waiting for the second copy to
@@ -385,7 +387,7 @@ export function UploadPanel({
         data-testid="media-upload-input"
         id="media-upload-input"
         type="file"
-        accept="image/*,video/*"
+        accept="image/*,video/*,.dng"
         multiple
         disabled={running}
         onChange={(event) => choose(event.target.files)}

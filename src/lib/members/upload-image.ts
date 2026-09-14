@@ -1,4 +1,4 @@
-import { downscaleImage } from "@/lib/media/downscale";
+import { prepareImageForUpload } from "@/lib/media/prepare-upload";
 import type { Media } from "@/payload-types";
 import {
   DIRECT_UPLOAD_THRESHOLD,
@@ -88,8 +88,10 @@ export async function uploadImageFile(
 ): Promise<number> {
   // Before the quota check, not after: the whole point of shrinking is that
   // the smaller file is what gets billed, and checking the original's size
-  // would refuse an upload that comfortably fits.
-  const shrunk = await downscaleImage(file);
+  // would refuse an upload that comfortably fits. A ProRAW file becomes its
+  // embedded JPEG here, which is the difference between billing a member
+  // ~3 MB and ~40 MB for the same photograph.
+  const shrunk = await prepareImageForUpload(file);
 
   if (await wouldExceedQuota(shrunk.size)) {
     throw new Error("Storage quota exceeded");

@@ -228,7 +228,7 @@ export function LargeUploadPanel() {
         ref={inputRef}
         data-testid="large-upload-input"
         type="file"
-        accept="image/*,video/*"
+        accept="image/*,video/*,.dng"
         disabled={busy}
         onChange={(event) => choose(event.target.files?.[0] ?? null)}
       />

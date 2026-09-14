@@ -171,7 +171,7 @@ export function AvatarField({
         <div className="flex flex-wrap gap-2">
           <input
             ref={fileRef}
-            accept="image/*"
+            accept="image/*,.dng"
             className="hidden"
             data-testid="profile-avatar-file"
             onChange={(event) => {
