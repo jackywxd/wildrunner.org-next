@@ -30,8 +30,13 @@ import type { JsonNode, PayloadContent } from "./serialize";
  * the whole round trip is testable without an editor, a browser or a model.
  */
 
-/** Block types whose text the model may rewrite. Everything else is opaque. */
-const REWRITABLE = new Set(["paragraph", "heading", "quote", "list"]);
+/**
+ * Block types whose text the model may rewrite. Everything else is opaque.
+ *
+ * Exported for `typos.ts`, which draws the same line for a stronger reason:
+ * 錯別字 in a code block are called identifiers.
+ */
+export const REWRITABLE = new Set(["paragraph", "heading", "quote", "list"]);
 
 const FORMAT_BOLD = 1;
 const FORMAT_ITALIC = 2;
