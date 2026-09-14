@@ -6,9 +6,13 @@ import {
   $createParagraphNode,
   $getSelection,
   $isRangeSelection,
+  CAN_REDO_COMMAND,
+  CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
   FORMAT_TEXT_COMMAND,
+  REDO_COMMAND,
   SELECTION_CHANGE_COMMAND,
+  UNDO_COMMAND,
 } from "@payloadcms/richtext-lexical/lexical";
 import {
   $createHeadingNode,
@@ -63,6 +67,14 @@ const BLOCK_LABELS: Record<BlockKind, string> = {
 export function FixedToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const [block, setBlock] = useState<BlockKind>("paragraph");
+  /**
+   * Whether there is anything to go back to, straight from the history
+   * plugin rather than guessed at. A button that is always live promises an
+   * undo that does nothing on a fresh document, and the member cannot tell
+   * that from one that silently failed.
+   */
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,6 +108,25 @@ export function FixedToolbarPlugin() {
         SELECTION_CHANGE_COMMAND,
         () => {
           editor.getEditorState().read(sync);
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+      // False, not handled: HistoryPlugin is the one that acts on these.
+      // Returning true would take the announcement away from it and the
+      // buttons would be the only thing in the editor that knew.
+      editor.registerCommand(
+        CAN_UNDO_COMMAND,
+        (value) => {
+          setCanUndo(value);
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+      editor.registerCommand(
+        CAN_REDO_COMMAND,
+        (value) => {
+          setCanRedo(value);
           return false;
         },
         COMMAND_PRIORITY_LOW,
@@ -157,6 +188,35 @@ export function FixedToolbarPlugin() {
         event.preventDefault();
       }}
     >
+      {/*
+        First, where every editor puts them — and the only way to reach
+        undo on a phone, which has no ⌘Z. HistoryPlugin has been mounted
+        since the editor shipped, so on a laptop this adds reach rather
+        than capability; on a touch device it adds the capability itself.
+      */}
+      <button
+        type="button"
+        data-testid="editor-toolbar-undo"
+        className={button}
+        disabled={!canUndo}
+        aria-label="復原"
+        onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
+      >
+        復原
+      </button>
+      <button
+        type="button"
+        data-testid="editor-toolbar-redo"
+        className={button}
+        disabled={!canRedo}
+        aria-label="重做"
+        onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
+      >
+        重做
+      </button>
+
+      <span className="mx-1 h-4 w-px bg-border" />
+
       <select
         data-testid="editor-block-type"
         value={block}
