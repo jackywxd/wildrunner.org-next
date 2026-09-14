@@ -286,6 +286,84 @@ per shard, four of five shards red, green on re-run.
 **So grep a broadly-red shard's log for `Unexpected non-whitespace` before
 believing the change under test.**
 
+### A signed-in member is signed out by one header, and the suite cannot see it
+
+`payload.auth()` resolves the session through `extractJWT`
+(`node_modules/payload/dist/auth/extractJWT.js`), which gates the cookie on
+where the request says it came from:
+
+```
+Origin present            → accepted only if config.csrf includes it
+Origin absent, csrf empty → accepted
+Origin absent, csrf set   → accepted only for Sec-Fetch-Site
+                            same-origin / same-site / none
+```
+
+**`config.csrf` cannot be empty here.** `sanitize.js` pushes `serverURL` into
+it whenever `serverURL !== ''`, and `payload.config.ts` must set `serverURL`
+or Payload rewrites every externally-hosted media URL. So every request lands
+in the third row.
+
+And a page render is precisely the request with no `Origin`: browsers send one
+on `fetch`, never on an ordinary top-level navigation. Measured against the dev
+server with one real session cookie:
+
+```
+no Origin, no Sec-Fetch-Site            307 → /members/login
+no Origin, Sec-Fetch-Site: cross-site   307 → /members/login
+no Origin, Sec-Fetch-Site: none         200
+Origin: https://evil.example            307 → /members/login
+```
+
+So whether a member is signed in came down to one header they do not control,
+while the *same* cookie resolved perfectly through any client-side fetch. A
+member hit it the obvious way: editing a post, leaving the tab, refreshing,
+landing on `/members/login` — which then found the session alive and bounced
+them to `/members`, losing the article they had open. `getCurrentUser` now
+fills in the missing `Origin` with `payload.config.serverURL`
+(`src/lib/auth-origin.ts`), and only when it is missing: a request that names
+an origin keeps it and is still checked.
+
+**The e2e lane cannot see any of this, and the reason is the whole point.**
+`.github/workflows/e2e.yml`'s "Run Playwright" step sets `PAYLOAD_SECRET`,
+`E2E_ADMIN_*` and `NEXTJS_ENV` — and **not `NEXT_PUBLIC_SITE_URL`**, which only
+the `build` job passes. So in the shards `serverURL` is `''`, `csrf` is `[]`,
+and the table above collapses to "accepted" on every row. The suite runs a
+different auth configuration from the one that ships, which is why a gate that
+was rejecting live sessions in production was green here for the life of the
+feature.
+
+Two further blindfolds were hit trying to write a journey test for it anyway,
+and both are worth knowing before the next attempt:
+
+- `playwright.config.ts` sets `extraHTTPHeaders: { Origin: BASE_URL }` for the
+  whole suite. Its own comment says why — an APIRequestContext sends neither
+  header, so without it every API call authenticates as nobody — and that is
+  also what hides the navigation case from every spec. `test.use({
+  extraHTTPHeaders: {} })` lifts it for one file.
+- **A browser test cannot reproduce it at all.** Chromium refuses to let
+  `page.setExtraHTTPHeaders` override a `Sec-` header, so `goto` always sends
+  `Sec-Fetch-Site: none` — the one value that passes. That draft went green
+  against the unfixed server *twice*, reporting success while measuring
+  nothing. Only a non-browser client can put a request into the shape that
+  breaks.
+
+**There is no journey test, deliberately.** With `csrf` empty a reload passes
+whether or not the fix is there, so the test could not fail in the lane that
+runs it — and its companion assertion (a foreign `Origin` is refused) is
+*false* in that configuration, which is how CI found this: it went red on PR
+#174 asserting a property CI does not have. A test that cannot fail is worse
+than no test, so the coverage lives in `U-AUTHORIGIN`, which is pure and
+environment-independent. Giving the shards a `serverURL` would make the lane
+match production here — and would also stop Payload rewriting external media
+URLs, which is what the corpus's R2 addresses depend on, so it is a change to
+weigh rather than a tidy-up.
+
+The general rule this file already states, and which is what finally found it:
+**a probe must be able to report both outcomes.** Four `curl` calls with one
+real cookie answered in seconds what two green browser runs had actively
+obscured — and the green runs were the more convincing of the two.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
