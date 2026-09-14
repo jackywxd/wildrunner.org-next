@@ -10,6 +10,7 @@ import {
 } from "@/components/members/editor/ContentEditor";
 import { AIImprovePanel } from "@/components/members/editor/AIImprovePanel";
 import { AISummaryButton } from "@/components/members/editor/AISummaryButton";
+import { AITypoPanel } from "@/components/members/editor/AITypoPanel";
 import { ContentPreview } from "@/components/members/editor/ContentPreview";
 import { CoverImageField } from "@/components/members/posts/CoverImageField";
 import {
@@ -503,6 +504,23 @@ export function PostEditor({
         onComparingChange={setComparing}
         readDocument={readDocument}
       />
+
+      {/*
+        Not offered while the improve pane is comparing. Accepting a typo
+        edits the document under that comparison — the one column the member
+        cannot see — and the version they are about to accept or reject was
+        built before the edit either way.
+      */}
+      {!comparing && (
+        <AITypoPanel
+          onAccept={(content) => {
+            editorRef.current?.replace(content);
+            setDirty(true);
+            lastEditAt.current = Date.now();
+          }}
+          readDocument={readDocument}
+        />
+      )}
 
       <div
         className={

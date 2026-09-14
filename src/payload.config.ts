@@ -31,6 +31,7 @@ import { HtmlEmbedBlock } from './blocks/HtmlEmbedBlock'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
+import { aiFixTyposEndpoint } from './endpoints/aiFixTypos'
 import { articleAudioEndpoint } from './endpoints/articleAudio'
 import { articleAudioDownloadEndpoint } from './endpoints/articleAudioDownload'
 import { articleAudioSweepEndpoint } from './endpoints/articleAudioSweep'
@@ -212,6 +213,7 @@ export default buildConfig({
     articleAudioSweepEndpoint,
     articleAudioDownloadEndpoint,
     changePasswordEndpoint,
+    aiFixTyposEndpoint,
     aiImprovePostEndpoint,
     aiSummarisePostEndpoint,
     inviteMemberEndpoint,

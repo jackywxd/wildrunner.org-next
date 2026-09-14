@@ -197,7 +197,15 @@ What it is **not**, each ruled out by measurement rather than argument:
 The cause is still open. The silence is not: the reset reads its row counts
 back with `wrangler d1 execute --local` and exits non-zero naming the empty
 table and the step that should have filled it. Re-running the step alone has
-worked every time.
+worked every time on a developer's machine.
+
+**It is not always intermittent.** In the remote agent container — network
+through an HTTP proxy, no `.wrangler` state to start from — it failed **four
+times out of four**, standalone re-runs included, with exactly the signature
+above: the proxy warning, then nothing, exit 0, no rows. So "re-run it" is
+where to start, not a fix to rely on; a spec that builds its own fixture
+through the API does not need this corpus at all, and running that alone is
+the way past it.
 
 **Two things that guard learned the same day, both by being run rather than
 read.** `execSync` goes through `/bin/sh`, so backticks quoting a table name
