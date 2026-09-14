@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SpellCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -125,16 +126,27 @@ export function AITypoPanel({
 
   return (
     <div className="grid gap-3">
-      <div className="flex items-center gap-3">
-        <button
+      <div className="flex flex-wrap items-center gap-3">
+        {/*
+          A solid button, where the two AI triggers above it are muted 12px
+          text. The inconsistency is deliberate, so nobody tidies it away:
+          those two are decisions a member makes about an article they are
+          still writing, and being easy to overlook is part of why they are
+          quiet. This one is the last thing you want before publishing, and
+          a grey link the colour of a caption is not something anybody finds
+          when they are looking for it.
+        */}
+        <Button
           type="button"
           data-testid="ai-typos-run"
           onClick={scan}
           disabled={busy}
-          className="text-xs text-foreground/50 hover:text-primary disabled:opacity-50"
+          size="sm"
+          className="gap-2"
         >
+          <SpellCheck className="size-4" aria-hidden="true" />
           {busy ? "AI 檢查錯字中…" : "AI 改錯字"}
-        </button>
+        </Button>
         {notice && (
           <span data-testid="ai-typos-notice" className="text-xs text-foreground/50">
             {notice}
