@@ -4,6 +4,7 @@ import { isAdminFieldLevel, isAuthenticated, isOwner, ownedOnly } from '../acces
 import { ownerField } from '../fields/owner'
 import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
+import { stampPublishDates } from './hooks/publish-dates'
 import { revalidatePosts } from './hooks/revalidate'
 import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
@@ -25,7 +26,7 @@ export const Posts: CollectionConfig = {
     // Reversed, a member who cleared the field would be told nothing collides
     // and then have the save refused for a missing required value anyway.
     beforeValidate: [guardPostContent, derivePostSlug, uniquePostSlug],
-    beforeChange: [setOwner],
+    beforeChange: [setOwner, stampPublishDates],
     afterChange: [revalidatePosts],
   },
   versions: {
@@ -173,6 +174,25 @@ export const Posts: CollectionConfig = {
       name: 'publishedAt',
       type: 'date',
       label: { en: 'Published At', 'zh-TW': '發布時間' },
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+        },
+        position: 'sidebar',
+      },
+    },
+    {
+      /**
+       * `revisedAt`, not `updatedAt`: Payload owns that name and stamps it on
+       * every write including an autosaved draft, which is the opposite of
+       * what a reader is being told here. Written by `stampPublishDates` on
+       * re-publish and empty until then — empty is the honest value for an
+       * article nobody has changed, and the public page renders nothing for
+       * it.
+       */
+      name: 'revisedAt',
+      type: 'date',
+      label: { en: 'Revised At', 'zh-TW': '更新時間' },
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',

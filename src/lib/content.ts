@@ -82,6 +82,7 @@ const POST_CARD_SELECT = {
   featured: true,
   image: true,
   publishedAt: true,
+  revisedAt: true,
   slug: true,
   title: true,
   _status: true,
@@ -155,6 +156,7 @@ type PostCardDoc = Pick<
   | "id"
   | "image"
   | "publishedAt"
+  | "revisedAt"
   | "slug"
   | "title"
   | "_status"
@@ -191,6 +193,11 @@ export function mapPayloadPost(doc: PostCardDoc): SitePost {
     slugAsParams: params,
     description: doc.description,
     date: doc.publishedAt ?? doc.createdAt,
+    // Only when the article has actually been re-published. `undefined` is
+    // the ordinary answer and the page renders nothing for it — an article
+    // nobody has changed has no revision date to show, and `updatedAt` is
+    // not one (it moves on every autosaved draft).
+    revised: doc.revisedAt ?? undefined,
     published: doc._status === "published",
     featured: Boolean(doc.featured),
     author: author?.name,

@@ -393,6 +393,7 @@ export interface Post {
    */
   musicUrl?: string | null;
   publishedAt?: string | null;
+  revisedAt?: string | null;
   content: {
     root: {
       type: string;
@@ -780,6 +781,7 @@ export interface PostsSelect<T extends boolean = true> {
   featured?: T;
   musicUrl?: T;
   publishedAt?: T;
+  revisedAt?: T;
   content?: T;
   updatedAt?: T;
   createdAt?: T;

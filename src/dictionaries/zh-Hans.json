@@ -8,7 +8,9 @@
   },
   "posts": {
     "title": "文章",
-    "subtitle": "野马营的比赛纪录与山野书写"
+    "subtitle": "野马营的比赛纪录与山野书写",
+    "publishedOn": "发表于",
+    "revisedOn": "更新于"
   },
   "reader": {
     "speedSlow": "慢",

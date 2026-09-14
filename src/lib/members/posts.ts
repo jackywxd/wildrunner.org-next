@@ -82,6 +82,12 @@ export async function savePost(
   // an explicit "save draft", editing an already-published post — writes to
   // the draft version, leaving what the public sees untouched.
   const query = publish ? "" : "?draft=true";
+  // NO `publishedAt` HERE, deliberately. This used to stamp `new Date()` on
+  // every publish, which re-dated a year-old article to today the moment its
+  // author fixed a typo. Both dates are the server's now — `stampPublishDates`
+  // writes `publishedAt` once, on the first publish, and `revisedAt` on each
+  // one after that. A date the client sends is also a date a member can
+  // choose by editing the request body.
   const response = await fetch(`/api/posts/${id}${query}`, {
     method: "PATCH",
     credentials: "same-origin",
@@ -89,7 +95,6 @@ export async function savePost(
     body: JSON.stringify({
       ...data,
       _status: publish ? "published" : "draft",
-      ...(publish ? { publishedAt: new Date().toISOString() } : {}),
     }),
   });
   if (!response.ok) return readError(response);

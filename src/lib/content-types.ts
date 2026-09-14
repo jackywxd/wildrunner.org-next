@@ -252,6 +252,14 @@ export type SitePost = {
   slugAsParams: string;
   description: string;
   date?: string;
+  /**
+   * When this article was last re-published, if it ever was.
+   *
+   * Absent is the ordinary answer and means "unchanged since it first went
+   * up" — not "unknown". `date` above is the day it first appeared and does
+   * not move, which is what makes this one worth showing at all.
+   */
+  revised?: string;
   published: boolean;
   featured: boolean;
   author?: string;

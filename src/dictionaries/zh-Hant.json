@@ -8,7 +8,9 @@
   },
   "posts": {
     "title": "文章",
-    "subtitle": "野馬營的比賽紀錄與山野書寫"
+    "subtitle": "野馬營的比賽紀錄與山野書寫",
+    "publishedOn": "發表於",
+    "revisedOn": "更新於"
   },
   "reader": {
     "speedSlow": "慢",

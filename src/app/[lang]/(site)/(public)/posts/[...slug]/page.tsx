@@ -168,7 +168,22 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             dateTime={blog.date}
             className="block text-sm text-muted-foreground"
           >
-            Published on {formatDate(blog.date)}
+            {t.posts.publishedOn} {formatDate(blog.date)}
+          </time>
+        )}
+
+        {/* Only for an article that has actually been re-published. Absent is
+            the ordinary case — most articles go up once and stay — and a line
+            reading "updated" on every one of them would say nothing. `revised`
+            is written by `stampPublishDates` on re-publish only, so it is
+            never Payload's `updatedAt`, which moves on every autosaved
+            draft. */}
+        {blog.revised && (
+          <time
+            dateTime={blog.revised}
+            className="block text-sm text-muted-foreground"
+          >
+            {t.posts.revisedOn} {formatDate(blog.revised)}
           </time>
         )}
 
