@@ -103,7 +103,10 @@ export class MemberUploadNode extends DecoratorBlockNode {
     // The key goes down so the preview can own selection and deletion:
     // a DecoratorNode is invisible to ordinary caret editing, so without
     // `useLexicalNodeSelection` there is no gesture that can remove it.
-    return <UploadPreview nodeKey={this.getKey()} value={this.getData().value} />
+    // `fields` goes down too: it carries the author's width choice, and the
+    // preview is what draws it.
+    const data = this.getData()
+    return <UploadPreview nodeKey={this.getKey()} value={data.value} fields={data.fields} />
   }
 
   isInline(): false {

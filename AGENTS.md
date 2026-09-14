@@ -759,6 +759,37 @@ Two things that marker does **not** cover: routes outside `[lang]/(site)`
 boundary — there are none on the site today, and a new one would need its own
 signal.
 
+### A hidden control still takes the tap, and the fix for that does not hold
+
+The image-width buttons shipped first as a hover-revealed `opacity-0` bar
+floating on the picture — the shape every editor uses. On a phone it ate the
+gesture it was drawn for: `small` on a 320px screen is a 149x100 picture under
+a 141x92 bar, so the tap meant to *select* the image landed on a button. It set
+滿版 and selected nothing, with the bar never once visible, and one target to
+the right it would have deleted the photo.
+
+- **`opacity-0` is not `display: none`.** A transparent element is laid out and
+  hit-tested exactly like an opaque one.
+- **`pointer-events-none` does not close it either.** Chromium applies `:hover`
+  on touchstart, so the `group-hover:pointer-events-auto` that any hover-reveal
+  needs turns the bar live again *before* the click is dispatched. Measured: it
+  fixed a 390px screen and left 320px broken, which is the worst of both — a
+  fix that reports success on the device you happen to be testing.
+- So on a touch target the control goes **in normal flow**, always visible.
+  There is no reveal rule to get wrong, and hover is not a gesture a phone has.
+
+Two things about finding it, both of which cost time here:
+
+- **`page.tap()` ignores opacity and respects `pointer-events`**, so a spec can
+  drive a control no member could see. Every early version of the journey test
+  "passed" by tapping an invisible button.
+- **The fixture's aspect ratio decided whether the test could fail at all.**
+  The 1x1 PNG the other specs use renders square — 190x190 at `small`, where a
+  44px bar covers a quarter and a centred tap always misses it. The test went
+  green against the broken build. A 64x16 fixture is 190x47, which the bar
+  covers outright. *The picture in the fixture was the instrument*, and the
+  first one was pointed the wrong way.
+
 ---
 
 ## Workflow

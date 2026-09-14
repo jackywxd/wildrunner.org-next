@@ -9,6 +9,12 @@ import { getDictionary } from "@/lib/i18n/dictionary";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import { mediaToSiteVideo } from "@/lib/media/site-video";
 import {
+  imageWidthClass,
+  imageWidthOf,
+  imageWidthSizes,
+} from "@/lib/editor/image-width";
+import { cn } from "@/lib/utils";
+import {
   RichText,
   type JSXConvertersFunction,
 } from "@payloadcms/richtext-lexical/react";
@@ -161,14 +167,25 @@ const buildConverters =
     const src = mediaImageSrc(value);
     if (!src) return null;
 
+    // The author's chosen width, from the node rather than the media row:
+    // the same picture can be full bleed in one article and small in
+    // another. Absent — which is every image written before the feature —
+    // is `full`, the width this converter has always used.
+    //
+    // `sizes` moves with the class and is the half that actually saves a
+    // phone's data: see src/lib/editor/image-width.ts, and src/lib/
+    // image-loader.ts for why the requested width is the width that
+    // travels.
+    const chosen = imageWidthOf((node as { fields?: unknown }).fields);
+
     return (
       <Image
         src={src}
         alt={alt}
         width={width}
         height={height}
-        sizes="(min-width: 768px) 768px, 100vw"
-        className="h-auto w-full rounded-lg"
+        sizes={imageWidthSizes(chosen)}
+        className={cn("h-auto rounded-lg", imageWidthClass(chosen))}
         placeholder={value.blurDataURL ? "blur" : undefined}
         blurDataURL={value.blurDataURL ?? undefined}
       />

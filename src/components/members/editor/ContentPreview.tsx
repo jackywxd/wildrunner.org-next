@@ -8,6 +8,8 @@ import { StreamVideoPlayer } from "@/components/stream-video-player";
 import { YouTubeEmbed } from "@/components/youtube-embed";
 import { soleYouTubeUrl, youTubeVideoId } from "@/lib/youtube";
 import type { PayloadContent } from "@/lib/editor/serialize";
+import { imageWidthClass, imageWidthOf } from "@/lib/editor/image-width";
+import { cn } from "@/lib/utils";
 
 type JsonNode = {
   type: string;
@@ -103,7 +105,13 @@ function renderInline(nodes: JsonNode[] | undefined): ReactNode {
  * not worth a second image pipeline with its own layout rules to show a
  * member what they already have on screen in the editor beside it.
  */
-function PreviewUpload({ value }: { value: number | string }) {
+function PreviewUpload({
+  value,
+  fields,
+}: {
+  value: number | string;
+  fields: unknown;
+}) {
   const media = useMediaById(value);
   const src = media ? mediaImageSrc(media) : "";
 
@@ -124,8 +132,17 @@ function PreviewUpload({ value }: { value: number | string }) {
     if (video) return <StreamVideoPlayer video={video} compact transcodingLabel={TRANSCODING} />;
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={media?.alt ?? ""} className="h-auto max-w-full" />;
+  // The same width the published page will use, from the same table — this
+  // pane's whole job is to answer "what will this look like", and a picture
+  // that is full bleed here and 40% there answers it wrongly.
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={media?.alt ?? ""}
+      className={cn("h-auto max-w-full", imageWidthClass(imageWidthOf(fields)))}
+    />
+  );
 }
 
 function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
@@ -199,7 +216,7 @@ function renderBlocks(nodes: JsonNode[] | undefined): ReactNode {
         // — `loadPost` reads at depth 0 — but a populated value must fall
         // through to nothing rather than render `[object Object]`.
         if (typeof value !== "number" && typeof value !== "string") return null;
-        return <PreviewUpload key={index} value={value} />;
+        return <PreviewUpload key={index} value={value} fields={node.fields} />;
       }
       case "block": {
         const fields = node.fields as

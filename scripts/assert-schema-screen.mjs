@@ -188,6 +188,12 @@ const CONSTRUCTED = {
     'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
   "member-nav-members":
     'MemberNav.tsx: data-testid={`member-nav-${item.href.split("/").pop()}`}',
+  "editor-upload-width-full":
+    "UploadPreview.tsx: data-testid={`editor-upload-width-${width}`} over IMAGE_WIDTHS",
+  "editor-upload-width-medium":
+    "UploadPreview.tsx: data-testid={`editor-upload-width-${width}`} over IMAGE_WIDTHS",
+  "editor-upload-width-small":
+    "UploadPreview.tsx: data-testid={`editor-upload-width-${width}`} over IMAGE_WIDTHS",
 };
 
 function checkTestIds() {
