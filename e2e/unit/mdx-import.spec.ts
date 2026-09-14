@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { importMarkdown } from "@/lib/mdx-import";
 import { emptyContent } from "@/lib/editor/empty";
 import { RECOGNIZED_TYPES } from "@/lib/editor/nodes";
+import { EDITOR_BLOCK_SLUGS } from "@/lib/editor/blocks";
 import { roundTripPayloadContent } from "@/lib/editor/serialize";
 
 /**
@@ -310,6 +311,49 @@ test.describe("U-MDX markdown import", () => {
       expect(allowed.has(type), `emitted an unrecognized node type: ${type}`).toBe(true);
     }
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * U-MDX-17 above allows `block` wholesale, which is as far as a check on
+   * `type` can go: every block node carries the literal string `"block"`, and
+   * what decides whether it renders is `fields.blockType`. Nothing compared
+   * that against the blocks actually registered, so `CodeBlock()` could leave
+   * `payload.config.ts` with the whole suite still green — while the public
+   * page printed the literal text "unknown node" for every post holding a
+   * diagram or a snippet, which is what the dispatcher in
+   * `lexicalToJsx` does with a block it has no converter for.
+   *
+   * Not a hypothetical gap: `payload-rich-text.tsx` records that its own
+   * `Code` converter was added only once the importer made code blocks
+   * reachable, because none of the 15 migrated posts had ever contained one.
+   */
+  test("U-MDX-28: every blockType the importer emits is one the editor registers", () => {
+    const result = importMarkdown(
+      ["```", "a fenced block", "```", "", "<div>raw html block</div>"].join("\n"),
+    );
+
+    const emitted = new Set<string>();
+    const walk = (node: JsonNode) => {
+      if (node.type === "block") {
+        const blockType = (node.fields as { blockType?: string } | undefined)?.blockType;
+        if (blockType) emitted.add(blockType);
+      }
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(result.content.root as unknown as JsonNode);
+
+    // Both branches of `to-lexical.ts` that build a block, so a rename on
+    // either side is caught rather than only the one this document happens
+    // to reach.
+    expect(emitted).toEqual(new Set(["Code", "HtmlEmbed"]));
+
+    for (const blockType of emitted) {
+      expect(
+        EDITOR_BLOCK_SLUGS.has(blockType),
+        `the importer emits blockType "${blockType}", which no block in ` +
+          `EDITOR_BLOCKS registers — the public page would render "unknown node"`,
+      ).toBe(true);
+    }
   });
 
   test("U-MDX-18: an empty or whitespace-only source produces the exact empty document", () => {
