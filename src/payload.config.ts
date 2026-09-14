@@ -4,7 +4,6 @@ import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
 import {
   lexicalEditor,
   BlocksFeature,
-  CodeBlock,
   EXPERIMENTAL_TableFeature,
   FixedToolbarFeature,
   TextStateFeature,
@@ -27,7 +26,7 @@ import { RaceEditions } from './collections/RaceEditions'
 import { RaceEvents } from './collections/RaceEvents'
 import { RaceRecords } from './collections/RaceRecords'
 import { RaceSchedule } from './collections/RaceSchedule'
-import { HtmlEmbedBlock } from './blocks/HtmlEmbedBlock'
+import { EDITOR_BLOCKS } from './lib/editor/blocks'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
@@ -239,7 +238,7 @@ export default buildConfig({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures,
       EXPERIMENTAL_TableFeature(),
-      BlocksFeature({ blocks: [CodeBlock(), HtmlEmbedBlock] }),
+      BlocksFeature({ blocks: EDITOR_BLOCKS }),
       TextStateFeature(),
       FixedToolbarFeature(),
     ],
