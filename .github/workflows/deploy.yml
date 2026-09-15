@@ -5,7 +5,12 @@ name: Deploy
 #   PR  -> e2e.yml gates on typecheck + the local suite + an OpenNext build
 #   merge to main -> this workflow deploys STAGING, then re-runs the suite
 #                    against the deployed origin
-#   manual approval -> the SAME commit goes to PRODUCTION
+#   approval (1) -> pending PRODUCTION MIGRATIONS are applied, if there are any
+#   approval (2) -> the SAME commit goes to PRODUCTION
+#
+# Both approvals are the `production` GitHub Environment's required reviewers.
+# They are separate decisions on purpose — schema first, then code — and a run
+# with no pending migration only ever asks for the second.
 #
 # The gate deliberately sits before the merge (e2e.yml, `on: pull_request`)
 # rather than after it, and there is no second integration branch: the tree
@@ -88,10 +93,11 @@ jobs:
       # The deploy step below sets it too — see the note there for why it is
       # in this file and not in the STAGING_DOTENV secret.
       #
-      # Production deliberately does NOT do this: its job asserts migrations
-      # are already applied (`preflight:prod`) and fails if they are not,
-      # because applying schema changes to production should be a decision,
-      # not a deploy side effect.
+      # Production deliberately does NOT do this inside its deploy job:
+      # applying schema changes to production is a decision, not a deploy
+      # side effect. It gets its own approval-gated job further down
+      # (`migrate-production`), and the deploy still asserts afterwards that
+      # nothing is pending (`preflight:prod`).
       #
       # Retried because remote bindings mean this opens a *remote dev
       # session* against api.cloudflare.com before it can run any SQL, and
@@ -296,9 +302,239 @@ jobs:
           # started without PAYLOAD_SECRET and died with "missing secret key".
           node scripts/with-env.mjs .env.staging pnpm cleanup:staging
 
+  # THE SCHEMA GATE — what a reviewer reads before approving a change to
+  # production's database.
+  #
+  # Production migrations used to happen OUTSIDE CI entirely: somebody ran
+  # `NODE_ENV=production pnpm payload migrate` on a laptop holding production
+  # credentials, and the `Preflight` step below merely refused to deploy when
+  # they had not. That works, and it leaves no record — no approval, no
+  # restore point, and nothing afterwards saying which migrations ran or who
+  # decided they should. These two jobs move that decision onto the mechanism
+  # the release itself already uses: a GitHub Environment approval, recorded
+  # against the run and naming the person who granted it.
+  #
+  # TWO JOBS, BECAUSE AN ENVIRONMENT GATE BLOCKS A WHOLE JOB. A reviewer
+  # cannot read a plan produced by the job they are being asked to approve,
+  # so the plan runs first and ungated, and writes the pending migrations and
+  # their source into the run summary. The approval is then a decision about
+  # something readable rather than about a job name.
+  #
+  # AFTER `verify-staging`, ON PURPOSE. The `staging` job has already applied
+  # these same migrations to staging's D1, and the smoke check has passed
+  # against the result — so the approval is granted on a rehearsal rather
+  # than on a hope. The other half of that requirement is staging holding
+  # production's rows; `pnpm sync:staging` (db-safety.yml) is how that gets
+  # closed, and it is worth running first for any migration that rewrites
+  # existing rows rather than only adding columns.
+  #
+  # NOTHING PENDING -> `migrate-production` skips and the pipeline runs
+  # through to the release gate exactly as it did before. The extra approval
+  # only appears when there is a schema change to approve.
+  plan-production-migrations:
+    name: Plan production migrations
+    needs: verify-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      pending: ${{ steps.plan.outputs.pending }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Reads the ledger with `wrangler d1 execute --remote`, which touches
+      # nothing. NOT `payload migrate:status`: the D1 adapter applies
+      # `prodMigrations` on connect when NODE_ENV=production, so a status
+      # check IS the write — that is how add_race_domain_model reached
+      # production. NODE_ENV is deliberately left alone here for the same
+      # reason; this step must not be able to migrate anything.
+      - name: Read production's migration ledger
+        id: plan
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm plan:prod-migrations
+
+      # THE WAY BACK, recorded before the change and not after it —
+      # AGENTS.md's standing rule, and the reason db-safety.yml exists. Only
+      # when something is actually pending: a bookmark printed by a run that
+      # changes nothing is noise, and its value here is the record of when
+      # somebody looked, tied to the change they were about to approve.
+      #
+      # Empty output fails the job. A restore point nobody recorded is the
+      # exact shape this is meant to prevent, and a green step that recorded
+      # nothing would be worse than no step at all.
+      #
+      # Read the WINDOW as well as the bookmark: it is what says whether Time
+      # Travel alone covers this change, or whether it needs a dump taken by
+      # hand to a private destination first. Nothing here exports rows — this
+      # repository is public and the dump carries members' emails and
+      # password hashes.
+      - name: Record a restore point
+        if: steps.plan.outputs.pending == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          info=$(npx wrangler d1 time-travel info wildrunner-org-next)
+          echo "$info"
+          if [ -z "$info" ]; then
+            echo "::error::time-travel returned nothing — there is no recorded restore point, so this migration must not be approved"
+            exit 1
+          fi
+          {
+            echo '## Restore point'
+            echo
+            echo 'Recorded before the migration below runs.'
+            echo '`wrangler d1 time-travel restore wildrunner-org-next --bookmark <id>` is the way back.'
+            echo
+            echo '```'
+            echo "$info"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # THE APPLY. Waits for a required reviewer on the `production` Environment,
+  # which is where the approval and its audit trail come from.
+  #
+  # TWO APPROVALS PER RUN when something is pending: this job, then
+  # `production` below, both against the same environment. That is not an
+  # accident of configuration — they are separate decisions taken in order
+  # ("change the schema", then "ship this code"), and GitHub records each one
+  # with its own reviewer and timestamp. A run with nothing pending still
+  # asks only once.
+  migrate-production:
+    name: Apply production migrations
+    needs: plan-production-migrations
+    if: needs.plan-production-migrations.outputs.pending == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://wildrunner.org
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Payload needs a PAYLOAD_SECRET to boot at all, even to migrate, and
+      # scripts/with-env.mjs requires the file to exist.
+      - name: Materialise .env.production
+        env:
+          PRODUCTION_DOTENV: ${{ secrets.PRODUCTION_DOTENV }}
+        run: |
+          if [ -z "$PRODUCTION_DOTENV" ]; then
+            echo "::error::secrets.PRODUCTION_DOTENV is not set — see docs/workers-builds.md"
+            exit 1
+          fi
+          printf '%s' "$PRODUCTION_DOTENV" > .env.production
+
+      # with-env OVERRIDES pre-existing process.env entries by design — the
+      # file is authoritative for its environment — so a CLOUDFLARE_ENV left
+      # in this secret cannot be undone by the step below not setting it.
+      # `.env.production` did once set it, and unsetting it in the shell did
+      # not help. A secret's contents cannot be reviewed or diffed, so the
+      # one setting that decides which database this writes to gets checked
+      # here instead.
+      - name: Refuse a CLOUDFLARE_ENV in .env.production
+        run: |
+          if grep -qE '^[[:space:]]*CLOUDFLARE_ENV[[:space:]]*=[[:space:]]*[^[:space:]]' .env.production; then
+            echo "::error::.env.production sets CLOUDFLARE_ENV. Production is wrangler's top-level environment and is named by its ABSENCE — any value here either fails outright (\"No environment found ... production\") or points this migration at staging's database. Remove it from the PRODUCTION_DOTENV secret."
+            exit 1
+          fi
+
+      # Symmetrical with "Apply staging migrations" above, differing in
+      # exactly one variable: CLOUDFLARE_ENV is UNSET. wrangler.jsonc has one
+      # `env` section — `staging` — and production is the top level, so
+      # `CLOUDFLARE_ENV=production` resolves to nothing and fails.
+      #
+      # NODE_ENV=production is what makes payload.config ask wrangler for
+      # REMOTE bindings (getCloudflareContextFromWrangler passes
+      # `remoteBindings: isProduction`). Without it this migrates the
+      # runner's throwaway local D1 and reports success — exactly what
+      # Workers Builds did, and what `Preflight` was written to catch.
+      #
+      # RETRIED ONLY ON THE EDGE SAYING "NOT NOW". Remote bindings mean this
+      # opens a remote dev session against api.cloudflare.com before it can
+      # run any SQL, and that handshake is a network call with a 10s connect
+      # timeout; the first staging deploy to use this step died on exactly
+      # that. Those signatures happen BEFORE any statement runs, so a retry
+      # re-enters a database nothing has touched.
+      #
+      # Anything else exits on the first attempt, and the asymmetry with
+      # staging is deliberate. D1 has no transactional DDL: a migration that
+      # failed midway has already created some of what it creates, with no
+      # `payload_migrations` row, and re-running it dies on "table already
+      # exists" at best. That state needs a person, not a second attempt.
+      - name: Apply production migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NODE_ENV: production
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if node scripts/with-env.mjs .env.production pnpm payload migrate 2>&1 | tee migrate-prod.log; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ] && grep -qE 'Error while creating remote dev session|ConnectTimeoutError|D1_ERROR: Failed to parse body as JSON|too much load on D1' migrate-prod.log; then
+              echo "::warning::migrate attempt $attempt hit a transient condition before any SQL ran, retrying"
+              sleep 20
+              continue
+            fi
+            echo "::error::production migrations failed on attempt $attempt — do NOT re-run this job. D1 has no transactional DDL, so read the log and the ledger before deciding what state the database is in."
+            exit 1
+          done
+
+      # POLL THE END STATE, NOT THE PROCESS. The step above reports on its own
+      # round trip; this asks the database, through wrangler rather than
+      # Payload, and fails if anything is still pending. A `payload migrate`
+      # that had resolved local emulated bindings would have printed every
+      # migration as applied and changed nothing in production — that claim
+      # cannot survive this check.
+      #
+      # `!cancelled()` rather than running only on success: a failed run has
+      # not proven it wrote nothing (AGENTS.md, "a row reported as failed may
+      # already be written"), and what actually landed is the first thing
+      # anybody repairing this needs to know. A cancelled job has no state
+      # worth reporting.
+      - name: Re-read production's ledger
+        if: ${{ !cancelled() }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm plan:prod-migrations --assert-none
+
   production:
     name: Deploy production
-    needs: verify-staging
+    needs: [verify-staging, plan-production-migrations, migrate-production]
+    # `migrate-production` SKIPS when production's schema is already current,
+    # and a skipped dependency skips this job too unless the condition says
+    # otherwise — hence the explicit result checks rather than a bare `needs`.
+    # Read them as: staging was verified, the schema state is known, and the
+    # migration either succeeded or was never needed. A rejected approval
+    # leaves `migrate-production` cancelled, which matches none of these, so
+    # refusing the schema change also refuses the release.
+    if: >-
+      ${{ !cancelled()
+      && needs.verify-staging.result == 'success'
+      && needs.plan-production-migrations.result == 'success'
+      && (needs.migrate-production.result == 'success'
+      || needs.migrate-production.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # THE GATE. Configure `production` as a GitHub Environment with required
@@ -329,9 +565,12 @@ jobs:
           fi
           printf '%s' "$PRODUCTION_DOTENV" > .env.production
 
-      # Schema changes must already be applied: the migrate step inside a
-      # Workers Builds container writes to a throwaway local D1, so this
-      # checks for pending migrations instead of assuming.
+      # Schema changes must already be applied. `migrate-production` above
+      # is what applies them, after an approval — this is the independent
+      # check that it worked, and the reason a migration applied any other
+      # way (by hand, or by a Workers Builds container writing to its own
+      # throwaway local D1 and reporting success) still cannot ship a build
+      # against a schema production does not have.
       - name: Preflight
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

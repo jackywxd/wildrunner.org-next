@@ -232,15 +232,11 @@ not block shipping the feature either.
 ## Deploying
 
 The `race-schedule` table ships as
-`src/migrations/20260801_030616_add_race_schedule.ts`. Staging migrates
-automatically; **production does not** — `preflight:prod` only checks and
-will fail the deploy if anything is pending:
-
-```bash
-node scripts/with-env.mjs .env.production pnpm payload migrate
-```
-
-Then approve the `production` environment gate. See
+`src/migrations/20260801_030616_add_race_schedule.ts`. Both environments
+migrate from `deploy.yml`: staging as part of its own deploy, production in
+`migrate-production`, which prints the pending migrations' source and then
+waits for an approval on the `production` environment. So merging to `main`
+is all this needs — approve the schema gate, then the release gate. See
 [`docs/release-pipeline.md`](./release-pipeline.md).
 
 ## Tests
