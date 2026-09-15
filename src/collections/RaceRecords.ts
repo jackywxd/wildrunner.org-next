@@ -7,6 +7,7 @@ import { setOwner } from './hooks/owner'
 import { uniqueRaceRecord } from './hooks/unique-race-record'
 import { validateRaceCatalogueRef } from './hooks/validate-race-catalogue-ref'
 import { populateRaceRecordRefs } from './hooks/populate-race-record-refs'
+import { refuseRaceRecordInUse } from './hooks/race-record-in-use'
 import { revalidateRaceRecord } from './hooks/revalidate'
 
 /**
@@ -77,6 +78,11 @@ export const RaceRecords: CollectionConfig = {
     // complaint first.
     beforeValidate: [validateRaceCatalogueRef, uniqueRaceRecord],
     beforeChange: [setOwner, populateRaceRecordRefs],
+    // Deleting a record an article still cites fails on a foreign key, and
+    // the member was told to try again — which could never work. This turns
+    // that into a sentence that is true; see the hook for why it cannot
+    // make the delete succeed instead.
+    beforeDelete: [refuseRaceRecordInUse],
     afterChange: [revalidateRaceRecord.afterChange],
     afterDelete: [revalidateRaceRecord.afterDelete],
   },

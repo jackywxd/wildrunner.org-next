@@ -115,7 +115,12 @@ export function RaceRecordManager({
         credentials: "same-origin",
       });
       if (!response.ok) {
-        setError("刪除失敗，請再試一次");
+        // The server's sentence, not ours. A refused delete now carries a
+        // reason — the record is cited by N articles — and the hardcoded
+        // message that used to stand here replaced it with advice to retry,
+        // which for a foreign key is advice that can never work. The
+        // fallback keeps that shape only for a refusal that says nothing.
+        setError(await readError(response, "刪除失敗"));
         return;
       }
       setRecords((current) => current.filter((record) => record.id !== id));
@@ -128,6 +133,10 @@ export function RaceRecordManager({
       // instead. The row stays either way, but in that second case nothing
       // tells the member anything: pressing 刪除 simply does nothing, which
       // is the one outcome this file otherwise never allows.
+      //
+      // This branch keeps 「請再試一次」 and the one above no longer does:
+      // here the request never got an answer, so trying again is exactly
+      // the right thing to do.
       setError("刪除失敗，請再試一次");
     } finally {
       setBusy(false);
@@ -278,7 +287,18 @@ export function RaceRecordManager({
   );
 }
 
-async function readError(response: Response): Promise<string> {
+/**
+ * The server's own sentence, or `fallback`.
+ *
+ * `fallback` is a parameter because the two callers are different verbs. It
+ * was a hardcoded 「儲存失敗」 while only `add()` used this, and `remove()`
+ * hardcoded its own — which is how a refused delete came to say 「請再試一
+ * 次」 about a foreign key that will refuse it every time.
+ */
+async function readError(
+  response: Response,
+  fallback = "儲存失敗，請再試一次",
+): Promise<string> {
   try {
     const body = (await response.json()) as {
       errors?: {
@@ -290,10 +310,8 @@ async function readError(response: Response): Promise<string> {
     // Payload nests field-level messages one level down; the duplicate guard
     // and the catalogue validators both land there, and those are the two
     // messages a member will actually see.
-    return (
-      first?.data?.errors?.[0]?.message ?? first?.message ?? "儲存失敗，請再試一次"
-    );
+    return first?.data?.errors?.[0]?.message ?? first?.message ?? fallback;
   } catch {
-    return "儲存失敗，請再試一次";
+    return fallback;
   }
 }
