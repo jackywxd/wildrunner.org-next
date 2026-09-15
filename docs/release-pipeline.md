@@ -9,10 +9,81 @@ feature branch
         │
         ▼
   push main → deploy.yml
-      1. staging          部署 staging Worker
-      2. verify-staging   等 staging answers，再跑 smoke（e2e/deployed）
-      3. production       ⏸ 等人工批准 → 同一個 commit 上 prod → smoke check
+      1. staging                     部署 staging Worker（含套用 staging migration）
+      2. verify-staging              等 staging answers，再跑 smoke（e2e/deployed）
+      3. plan-production-migrations  讀 prod ledger，把 pending migration 連原始碼
+                                     寫進 job summary，並記錄 time-travel bookmark
+      4. migrate-production          ⏸ 等人工批准 → 對 prod D1 套用 migration
+                                     （沒有 pending 就整個 skip）
+      5. production                  ⏸ 等人工批准 → 同一個 commit 上 prod → smoke check
 ```
+
+## 資料庫 migration 的批准閘門
+
+**以前 prod 的 migration 根本不在 CI 裡。** 得有人拿著 production 憑證在自己的
+機器上跑 `NODE_ENV=production pnpm payload migrate`，`production` job 的
+`preflight:prod` 只負責在沒跑的時候把部署擋下來。這樣會動，但它不留任何紀錄
+——沒有批准、沒有還原點、事後也沒有東西說得出跑了哪幾個 migration、是誰決定
+要跑的。
+
+現在它走的是發布本身早就在用的那個機制：GitHub Environment 的 required
+reviewer。差別在於**批准之前你看得到你在批准什麼**。
+
+### 一次 push 會發生什麼
+
+`plan-production-migrations`（不需批准）先跑：
+
+- 用 `wrangler d1 execute --remote` 讀 prod 的 `payload_migrations`。
+  **不是** `pnpm payload migrate:status`——在 `NODE_ENV=production` 之下
+  「連線」本身就是寫入，AGENTS.md 有完整說明。
+- 把 pending 的 migration 名稱**和每個檔案的原始碼**寫進 job summary。
+- 有 pending 才記錄 `wrangler d1 time-travel info` 的 bookmark，一併寫進
+  summary。這是回頭路；拿不到就讓 job 紅掉，因為「沒人記錄過還原點」正是這
+  一步要防的事。
+
+有 pending 的話，`migrate-production` 停下來等批准。批准後才對 prod D1 跑
+`payload migrate`，跑完再用 `wrangler` **重讀一次 ledger**，還有 pending 就讓
+job 失敗——那一步問的是資料庫本身，不是剛剛宣稱自己成功的那個程序。
+
+沒有 pending 的話這個 job 整個 skip，流程和以前一模一樣。
+
+### 有 schema 變更時會按兩次批准
+
+`migrate-production` 和 `production` 都掛同一個 `production` environment，所以
+一次 run 會分別跳出兩次審核。這是刻意的：那是兩個決定——「同意改 schema」和
+「同意這份程式碼上線」——照這個順序發生，GitHub 會各自記下批准的人和時間。在
+`migrate-production` 按拒絕，`production` 也不會跑。
+
+### 批准之前該看什麼
+
+summary 裡的 migration 原始碼是第一手材料，另外三件事值得先確認：
+
+- **這些 migration 已經在 staging 上跑過了。** `staging` job 會套用，
+  `verify-staging` 的 smoke 是對套用後的結果跑的，所以你批的是排練過的東西。
+- **但排練只有在 staging 有 prod 的資料時才算數。** 只加欄位的影響不大；會改寫
+  既有資料列的，先跑 `db-safety.yml`（`pnpm sync:staging`）再說。
+- **time-travel 的視窗**（和 bookmark 一起印在 summary 裡）夠不夠蓋住這次變更。
+  不夠就要先手動匯出一份到私人位置——這個 repo 是公開的，dump 裡有真人的 email
+  和密碼 hash，所以不會有任何 workflow 幫你做這件事。
+
+### 失敗了不要重跑
+
+D1 沒有 transactional DDL：中途失敗的 migration 已經建了一部分東西、而且沒有
+寫下 `payload_migrations` 那一列，再跑一次最好的情況是死在 "table already
+exists"。step 裡的 retry 只認那幾個「SQL 還沒開始跑」的網路訊號（remote dev
+session 握手逾時、D1 回不出 JSON、D1 要求退讓），其他一律第一次就停，因為那種
+狀態需要人看，不是需要第二次嘗試。
+
+### 還是可以手動跑
+
+閘門擋的是「無聲地改 prod schema」，不是擋你。急的時候本機仍然可以：
+
+```bash
+node scripts/with-env.mjs .env.production pnpm payload migrate
+pnpm plan:prod-migrations   # 確認 ledger；只讀，不會啟動 Payload
+```
+
+下一次 push 時 `migrate-production` 會因為沒有 pending 而自動 skip。
 
 ## 為什麼不開 `staging` 分支
 
@@ -39,7 +110,7 @@ trunk-based 把 staging 當成「即將上線的東西」的排練場，prod 則
 
 | 項目 | 值 | 為什麼 |
 |---|---|---|
-| Environment `production` | required reviewer = `jackywxd`；`prevent_self_review = false` | 投產閘門。單人維護時若禁止自我審核，就永遠沒人能批准 |
+| Environment `production` | required reviewer = `jackywxd`；`prevent_self_review = false` | 投產閘門，也是 `migrate-production` 的 schema 閘門。單人維護時若禁止自我審核，就永遠沒人能批准 |
 | Environment 分支政策 | 只允許 `main` | 別的分支無法藉 `workflow_dispatch` 直接推上 prod |
 | `main` required check | `playwright` | 這是 check run 的實際名稱（job 名，不是 workflow 名 `E2E`） |
 | `main` strict | `true` | 分支需與 main 同步才可合併；偶爾要按一下 Update branch |
