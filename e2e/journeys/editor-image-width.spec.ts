@@ -213,7 +213,18 @@ test.describe("M-IMGWIDTH a member narrows a picture on a phone", () => {
     expect(await widthOf(picture), "the tap moved the width").toBe(narrowed);
 
     await page.getByTestId("post-save-draft").click();
-    await expect(page.getByTestId("post-status")).toBeVisible({
+    // `post-status` is the wrong thing to wait for and waiting for it is
+    // what made this test intermittent: it is a static span reading 草稿 /
+    // 已發布, on screen from first render and unchanged by a draft save, so
+    // that expectation resolved immediately and the reload below raced the
+    // PATCH it was supposed to wait for. Measured on the dev server — the
+    // save and the reload's page render overlap at ~2.5s each, and the
+    // render wins often enough to read back the pre-save document.
+    //
+    // `post-message` is written by `write()` only once the request has come
+    // back, and its text says which way it went, so this can report both
+    // outcomes: a save that failed puts its error here instead.
+    await expect(page.getByTestId("post-message")).toHaveText("已儲存草稿", {
       timeout: budget(20_000),
     });
 

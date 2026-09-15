@@ -562,7 +562,27 @@ because `deploy.yml`'s first job is `payload migrate`.
 - Reading a deployed ledger is `wrangler d1 execute --remote --command "SELECT
   name, batch FROM payload_migrations …"`. **Never `payload migrate:status`** —
   connecting with `NODE_ENV=production` is the write, as the two-environment-
-  variables section above records.
+  variables section above records. `pnpm plan:prod-migrations` is that query
+  with the diff against `src/migrations/index.ts` already done; it imports the
+  migration list and nothing else, so it cannot boot Payload.
+- **Production migrations are applied by CI, after an approval — not by hand.**
+  `deploy.yml`'s `plan-production-migrations` reads the ledger and writes the
+  pending migrations *and their source* into the run summary along with a
+  time-travel bookmark; `migrate-production` then waits for a required
+  reviewer on the `production` environment before applying them, and re-reads
+  the ledger afterwards. So the way to get a schema change into production is
+  to merge it and approve the gate, and the thing to hand over when a task
+  needs one is that — not a `payload migrate` command for somebody to run on
+  a laptop. `docs/release-pipeline.md` has the whole flow.
+
+  With a pending migration a run asks for **two** approvals against the same
+  environment, schema then release. That is the design, not a misconfiguration.
+
+  It does not make the migration safe, only reviewable and reversible. Every
+  rule above still applies: the bookmark is worth reading rather than merely
+  recording, and a migration that rewrites existing rows still wants
+  `pnpm sync:staging` run first, because the rehearsal it is approved on is
+  only worth what staging's data is worth.
 
 **Never delete by `like`, prefix, or any pattern.** Only by ids captured when
 the rows were created. A fuzzy match in a query returns wrong rows; in a delete
@@ -601,6 +621,10 @@ pnpm db:reset:local          # rebuild local D1 into the corpus CI seeds — run
 
 pnpm build:staging           # the CI build path — NEVER `pnpm build`
 pnpm deploy:staging
+pnpm plan:prod-migrations    # what production has not applied yet, read with
+                             # wrangler. Boots nothing, so it is safe to run
+                             # against production — unlike `payload
+                             # migrate:status`, which applies what it reports
 
 pnpm seed:races              # local D1
 pnpm seed:qualifiers         # WS/Hardrock qualifier flags from the CSV (:staging, :prod)

@@ -53,6 +53,7 @@
     "sync:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/sync-prod-content-to-staging.ts",
     "build:staging": "node scripts/with-env.mjs .env.staging opennextjs-cloudflare build --env staging",
     "deploy:staging": "pnpm run build:staging && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && cross-env CLOUDFLARE_ENV=staging node scripts/deploy-with-build-id.mjs --env staging",
+    "plan:prod-migrations": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/plan-production-migrations.ts",
     "preflight:prod": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env.production scripts/preflight-production.ts",
     "build:prod": "node scripts/with-env.mjs .env.production opennextjs-cloudflare build",
     "deploy:prod": "pnpm run build:prod && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && node scripts/deploy-with-build-id.mjs",

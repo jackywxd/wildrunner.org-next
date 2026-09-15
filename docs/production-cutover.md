@@ -57,8 +57,14 @@ e2e 不受影响：它现在跑在 staging 自己的资料库上，那边有各�
 
 ### 3. 套用 migration（如果有 pending）
 
+> 日常发布不需要这一步：`deploy.yml` 的 `migrate-production` job 会在人工批准
+> 后套用，并且批准前会把 pending migration 的原始码写进 job summary。见
+> [`docs/release-pipeline.md`](./release-pipeline.md)。下面是切换当天、还没有
+> 走那条流程时的手动做法。
+
 ```bash
 NODE_ENV=production pnpm payload migrate
+pnpm plan:prod-migrations   # 读 ledger 确认；只读，不会启动 Payload
 ```
 
 > 不要依赖建置流程里的 `payload migrate`：`payload.config.ts` 依
