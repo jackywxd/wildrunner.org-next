@@ -4,6 +4,7 @@ import { groupRecordsBySeries, resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap, getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { RACE_SERIES_LABELS } from "@/lib/races/catalogue";
+import { finishesOnly, isFinish, latestPerEvent } from "@/lib/races/race-result";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import {
   SIX_MAJORS,
@@ -67,25 +68,6 @@ const ROW_BADGE_SIZE = 44;
  */
 const SHELF_CLASS =
   "mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-4";
-
-/**
- * One badge per event, showing the most recent year.
- *
- * A directory row has room for a handful of badges, and somebody who has
- * run the same race eight times would otherwise fill the row with eight
- * near-identical squares and crowd out every other race they have done. The
- * profile page shows the full history.
- */
-function latestPerEvent(records: SiteRaceRecord[]): SiteRaceRecord[] {
-  const best = new Map<string, SiteRaceRecord>();
-  for (const record of records) {
-    const current = best.get(record.eventId);
-    if (!current || record.year > current.year) best.set(record.eventId, record);
-  }
-  return [...best.values()].sort(
-    (a, b) => b.year - a.year || a.eventId.localeCompare(b.eventId),
-  );
-}
 
 /**
  * One badge per completed set, newest first.
@@ -191,7 +173,12 @@ export async function RiderBadgeRow({
   // squares, not two rows: a second set costs six more marathons, so the
   // count that could crowd a card here is bounded by something far scarcer
   // than the layout.
-  const badges = sixMajorsBadges(sixMajorsProgress(records).completions);
+  // FINISHES ONLY. A Six Star Finisher is an external credential requiring
+  // six finishes, so counting a DNF towards it would have this site award
+  // something World Marathon Majors would not.
+  const badges = sixMajorsBadges(
+    sixMajorsProgress(finishesOnly(records)).completions,
+  );
 
   return (
     <div className={SHELF_CLASS} data-testid="rider-badge-row">
@@ -202,6 +189,7 @@ export async function RiderBadgeRow({
         <RaceBadge
           key={record.id}
           {...resolveBadge(catalogue, record.eventId, record.distanceId)}
+          result={isFinish(record) ? "finished" : "dnf"}
           size={ROW_BADGE_SIZE}
           year={record.year}
         />
@@ -232,7 +220,8 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
   // The grouping lives in badge-source.ts so it can be checked without a
   // browser — see U-GROUP in e2e/unit/badge-source.spec.ts.
   const { groups, unknown } = groupRecordsBySeries(catalogue, records);
-  const { completions, missing } = sixMajorsProgress(records);
+  // Finishes only — see the note in RiderBadgeRow above.
+  const { completions, missing } = sixMajorsProgress(finishesOnly(records));
   const badges = sixMajorsBadges(completions);
   // How many majors count toward the *next* set — 0 for somebody who has just
   // finished one. `missing` is never empty (it is every major sitting at the
@@ -283,6 +272,7 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
               <RaceBadge
                 key={record.id}
                 {...resolveBadge(catalogue, record.eventId, record.distanceId)}
+                result={isFinish(record) ? "finished" : "dnf"}
                 size={72}
                 year={record.year}
               />
@@ -297,6 +287,7 @@ export async function RiderBadgeWall({ records }: { records: SiteRaceRecord[] })
             <RaceBadge
               key={record.id}
               {...resolveBadge(catalogue, record.eventId, record.distanceId)}
+              result={isFinish(record) ? "finished" : "dnf"}
               size={72}
               year={record.year}
             />

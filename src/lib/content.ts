@@ -82,6 +82,7 @@ const POST_CARD_SELECT = {
   featured: true,
   image: true,
   publishedAt: true,
+  revisedAt: true,
   slug: true,
   title: true,
   _status: true,
@@ -155,6 +156,7 @@ type PostCardDoc = Pick<
   | "id"
   | "image"
   | "publishedAt"
+  | "revisedAt"
   | "slug"
   | "title"
   | "_status"
@@ -191,6 +193,11 @@ export function mapPayloadPost(doc: PostCardDoc): SitePost {
     slugAsParams: params,
     description: doc.description,
     date: doc.publishedAt ?? doc.createdAt,
+    // Only when the article has actually been re-published. `undefined` is
+    // the ordinary answer and the page renders nothing for it — an article
+    // nobody has changed has no revision date to show, and `updatedAt` is
+    // not one (it moves on every autosaved draft).
+    revised: doc.revisedAt ?? undefined,
     published: doc._status === "published",
     featured: Boolean(doc.featured),
     author: author?.name,
@@ -417,6 +424,14 @@ function mapPayloadAuthor(
 const RACE_RECORD_SELECT = {
   distanceId: true,
   eventId: true,
+  // Both new in `20260915_090000_add_race_record_result`, and both have to be
+  // HERE rather than only in the mapper: a `select` that omits them returns
+  // `undefined` for every row, which `mapRaceRecord` resolves to "finished,
+  // no time" — a silently wrong answer rather than a missing one, on every
+  // badge on the site. `RACE_RECORD_TIMELINE_SELECT` spreads this, so the two
+  // queries that use it are covered by the same line.
+  finishSeconds: true,
+  result: true,
   owner: true,
   year: true,
 } as const;
@@ -424,13 +439,22 @@ const RACE_RECORD_SELECT = {
 function mapRaceRecord(doc: {
   distanceId: string;
   eventId: string;
+  finishSeconds?: number | null;
   id: number;
+  result?: "finished" | "dnf" | null;
   year: number;
 }): SiteRaceRecord {
   return {
     distanceId: doc.distanceId,
     eventId: doc.eventId,
+    finishSeconds: doc.finishSeconds ?? undefined,
     id: doc.id,
+    // NULL READS AS `finished`, and this is the one place that decides it.
+    // Every row written before `20260915_090000_add_race_record_result` holds
+    // NULL and was entered when the collection meant "finished" — there is no
+    // backfill, so resolving it here is what keeps those rows on the badge
+    // wall and in the Six Star count.
+    result: doc.result === "dnf" ? "dnf" : "finished",
     year: doc.year,
   };
 }

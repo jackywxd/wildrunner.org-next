@@ -28,6 +28,7 @@ import {
   SIX_MAJORS_LABEL_ZH,
   sixMajorsProgress,
 } from "@/lib/races/six-majors";
+import { finishesOnly } from "@/lib/races/race-result";
 
 /**
  * The three the club asked to reach in one click.
@@ -129,7 +130,13 @@ export function riderMatchesBadge(
   if (badge === SIX_MAJORS_ID) {
     // At least one completed set. Somebody wearing two Six Stars is still one
     // rider, and the chip asks who has done it — not how many times.
-    return sixMajorsProgress(records).completions.length > 0;
+    //
+    // FINISHES ONLY, and this is the third of the three places that must say
+    // so. The other two are in RiderBadges; miss this one and a DNF would
+    // list a rider under the Six Star chip while their own badge wall showed
+    // no star — a disagreement visible only on the filtered page, which is
+    // the kind that survives review.
+    return sixMajorsProgress(finishesOnly(records)).completions.length > 0;
   }
 
   const shortcut = RIDER_BADGE_SHORTCUTS.find((entry) => entry.id === badge);

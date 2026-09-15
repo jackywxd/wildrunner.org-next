@@ -2,6 +2,7 @@ import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cn, formatDate } from "@/lib/utils";
+import { formatFinishTime } from "@/lib/races/finish-time";
 import "@/styles/mdx.css";
 
 import Image from "next/image";
@@ -168,7 +169,22 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             dateTime={blog.date}
             className="block text-sm text-muted-foreground"
           >
-            Published on {formatDate(blog.date)}
+            {t.posts.publishedOn} {formatDate(blog.date)}
+          </time>
+        )}
+
+        {/* Only for an article that has actually been re-published. Absent is
+            the ordinary case — most articles go up once and stay — and a line
+            reading "updated" on every one of them would say nothing. `revised`
+            is written by `stampPublishDates` on re-publish only, so it is
+            never Payload's `updatedAt`, which moves on every autosaved
+            draft. */}
+        {blog.revised && (
+          <time
+            dateTime={blog.revised}
+            className="block text-sm text-muted-foreground"
+          >
+            {t.posts.revisedOn} {formatDate(blog.revised)}
           </time>
         )}
 
@@ -225,6 +241,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
                 blog.race.eventId,
                 blog.race.distanceId,
               )}
+              result={blog.race.result}
               size={56}
               year={blog.race.year}
             />
@@ -242,6 +259,20 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
                     blog.race.distanceId,
                   ).label
                 }
+                {/* The report is about this race either way — a DNF is a
+                    story, often a better one. What it must not do is read as
+                    a finish, and the greyed badge beside it is a colour cue
+                    that says nothing to a screen reader. */}
+                {blog.race.result === "dnf" && (
+                  <span data-testid="post-race-dnf">{" · 未完賽"}</span>
+                )}
+                {blog.race.result === "finished" &&
+                  typeof blog.race.finishSeconds === "number" && (
+                    <span data-testid="post-race-time">
+                      {" · "}
+                      {formatFinishTime(blog.race.finishSeconds)}
+                    </span>
+                  )}
               </p>
             </div>
           </div>
