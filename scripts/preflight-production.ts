@@ -70,8 +70,12 @@ add(
   pending.length
     ? `${pending.length} pending: ${pending.map((m) => m.name).join(', ')}. ` +
       'Note Workers Builds runs `payload migrate` with NODE_ENV unset, which ' +
-      "targets the build container's LOCAL D1 — apply them first with " +
-      'NODE_ENV=production pnpm payload migrate'
+      "targets the build container's LOCAL D1: it succeeds and changes " +
+      'nothing here. These are applied by deploy.yml\'s `migrate-production` ' +
+      'job, after an approval on the `production` environment — so this is ' +
+      'either a run where that job has not happened yet, or one where it ' +
+      'reported a success it did not have. `pnpm plan:prod-migrations` reads ' +
+      'the ledger without booting Payload if you need to look.'
     : `${appliedNames.size} applied, 0 pending`,
 )
 
