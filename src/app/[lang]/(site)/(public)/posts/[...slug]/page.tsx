@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cn, formatDate } from "@/lib/utils";
 import { formatFinishTime } from "@/lib/races/finish-time";
+import { ViewBeacon } from "@/components/posts/ViewBeacon";
 import "@/styles/mdx.css";
 
 import Image from "next/image";
@@ -163,6 +164,13 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
         {/* First image on the page, and the first one anywhere that is
             ≥300×300 — which is the rule WeChat picks by. See WeChatThumb. */}
         <WeChatThumb src={`/wx/post/${blog.slugAsParams}`} />
+
+        {/* Renders nothing; reports one read per browser session. It is here
+            rather than in the page's server code because this route is
+            prerendered into the R2 incremental cache — a cache hit runs no
+            application code, so a server-side counter would count edits
+            rather than readers. */}
+        <ViewBeacon postId={blog.id} />
 
         {blog.date && (
           <time

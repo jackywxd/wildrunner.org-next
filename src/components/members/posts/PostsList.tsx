@@ -18,7 +18,21 @@ function formatUpdated(iso: string | undefined) {
   });
 }
 
-export function PostsList({ posts }: { posts: Post[] }) {
+export function PostsList({
+  posts,
+  /**
+   * Read counts by post id. A PLAIN OBJECT, not the Map the data layer
+   * returns: this crosses the server/client boundary as a prop, and a Map is
+   * not serializable — the page converts it once.
+   *
+   * A post missing from here has not been read yet rather than being an
+   * error, so the row renders 0.
+   */
+  views = {},
+}: {
+  posts: Post[];
+  views?: Record<number, number>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [creating, setCreating] = useState(false);
@@ -117,6 +131,15 @@ export function PostsList({ posts }: { posts: Post[] }) {
                     {published ? "已發布" : "草稿"}
                   </span>
                   {formatUpdated(post.updatedAt)}
+                  {/* Only on a published post. A draft has no public URL, so
+                      its count is 0 by construction and printing it would
+                      read as "nobody read this" rather than "this is not out
+                      yet". */}
+                  {published && (
+                    <span data-testid={`post-views-${post.id}`}>
+                      {views[post.id] ?? 0} 次閱讀
+                    </span>
+                  )}
                   {confirmingDelete === post.id ? (
                     <span className="flex items-center gap-2">
                       <button
