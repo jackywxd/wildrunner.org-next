@@ -303,7 +303,25 @@ export type SitePost = {
 export type SiteRaceRecord = {
   distanceId: string;
   eventId: string;
+  /**
+   * Seconds, or absent. Absent on every DNF by construction, and on a finish
+   * whose time the member has not filled in — the two are not distinguished
+   * here because nothing renders them differently: a finish with no time
+   * shows a badge without a time, which is what it did before this existed.
+   */
+  finishSeconds?: number;
   id: number;
+  /**
+   * `"finished"` for every record the database leaves NULL.
+   *
+   * The collection meant "a race a member has finished" until
+   * `20260915_090000_add_race_record_result`, so absence carries the answer
+   * for every row written before it and there is no backfill. `mapRaceRecord`
+   * resolves that once, here, so nothing downstream has to remember it — a
+   * `record.result === "finished"` test anywhere else would silently exclude
+   * every historical row.
+   */
+  result: "finished" | "dnf";
   year: number;
 };
 

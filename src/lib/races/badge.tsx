@@ -40,6 +40,19 @@ export type RaceBadgeProps = {
    * track — this prop is the seam, not an invitation to draw here.
    */
   renderArt?: BadgeArtRenderer;
+  /**
+   * `"dnf"` draws the badge greyed and says so in its accessible name.
+   *
+   * THE NAME IS NOT OPTIONAL HERE. Greyscale alone is a colour cue, and a
+   * badge that only *looks* different is a badge a screen reader announces as
+   * an ordinary finish — the same race, the same year, no hint that the
+   * runner dropped. So the two travel together and neither call site gets to
+   * pass one without the other.
+   *
+   * Defaults to a finish, which is what every badge was before `result`
+   * existed and what a NULL row still means.
+   */
+  result?: "finished" | "dnf";
   size?: number;
   /**
    * Overrides the accessible name. Only for badges that are not one race —
@@ -55,6 +68,7 @@ export function RaceBadge({
   distance,
   event,
   renderArt = renderBadgeArt,
+  result = "finished",
   size = 64,
   title: titleOverride,
   year,
@@ -63,7 +77,12 @@ export function RaceBadge({
 
   const distanceLabel = distance.label;
   const showYear = size >= BADGE_YEAR_MIN_SIZE;
-  const title = titleOverride ?? `${event.name} — ${distanceLabel} ${year}`;
+  const dnf = result === "dnf";
+  // The suffix goes on the DERIVED name only. A `title` override is for
+  // badges that are not one race, and appending to one would produce
+  // "Six Star Finisher（未完賽）" the day somebody passes both.
+  const title =
+    titleOverride ?? `${event.name} — ${distanceLabel} ${year}${dnf ? "（未完賽）" : ""}`;
 
   const band = fitBandLabel(
     distanceLabel,
@@ -74,9 +93,10 @@ export function RaceBadge({
   return (
     <svg
       aria-label={title}
-      className={cn("shrink-0", className)}
+      className={cn("shrink-0", dnf && "opacity-50 grayscale", className)}
       data-distance-id={distance.id}
       data-event-id={event.id}
+      data-result={result}
       data-testid="race-badge"
       data-year={year}
       height={size}

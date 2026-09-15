@@ -34,7 +34,10 @@ const ann: ClubRunner = { name: "Ann", slug: "ann" };
 const bo: ClubRunner = { name: "Bo", slug: "bo" };
 
 function race(id: number, year: number, eventId: string, distanceId = "100k"): SiteRaceRecord {
-  return { distanceId, eventId, id, year };
+  // Every record in this file is a finish. The timeline does not read
+  // `result` at all — it places races on a calendar — so saying it here is
+  // what keeps the fixture honest rather than what makes the test pass.
+  return { distanceId, eventId, id, result: "finished", year };
 }
 
 function post(id: number, date: string, extra: Partial<SitePost> = {}): SitePost {

@@ -434,6 +434,14 @@ export interface RaceRecord {
    * Resolved automatically from Event + Distance.
    */
   category?: (number | null) | RaceCategory;
+  /**
+   * A DNF is kept, shown greyed, and never counts towards a Six Star.
+   */
+  result?: ('finished' | 'dnf') | null;
+  /**
+   * Stored in seconds; the member form takes H:MM:SS.
+   */
+  finishSeconds?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -885,6 +893,8 @@ export interface RaceRecordsSelect<T extends boolean = true> {
   year?: T;
   edition?: T;
   category?: T;
+  result?: T;
+  finishSeconds?: T;
   updatedAt?: T;
   createdAt?: T;
 }

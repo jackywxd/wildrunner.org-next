@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import type { SiteRider } from "@/lib/content-types";
+import type { SiteRaceRecord, SiteRider } from "@/lib/content-types";
 import type { RaceCatalogueMap } from "@/lib/races/catalogue-shape";
 import { SIX_MAJORS, SIX_MAJORS_ID } from "@/lib/races/six-majors";
 import {
@@ -29,10 +29,16 @@ import {
  * it — the only place that pairing is written down is the data itself.
  */
 
-const record = (eventId: string, distanceId: string, year: number) => ({
+const record = (
+  eventId: string,
+  distanceId: string,
+  year: number,
+  result: "finished" | "dnf" = "finished",
+): SiteRaceRecord => ({
   id: Math.floor(Math.random() * 1e6),
   eventId,
   distanceId,
+  result,
   year,
 });
 
@@ -95,6 +101,30 @@ test.describe("U-RIDERFILTER filtering the directory by badge", () => {
     // Five of six is not five sixths of a badge.
     const five = CHLOE.races.slice(0, 5);
     expect(riderMatchesBadge(five, SIX_MAJORS_ID)).toBe(false);
+  });
+
+  test("U-RIDERFILTER-11: a DNF does not count towards the six-star chip", () => {
+    // A Six Star Finisher is an external credential that requires six
+    // FINISHES. Counting a DNF here would list a rider under the chip while
+    // their own badge wall showed no star — a disagreement visible only on
+    // the filtered page, which is the kind that survives review.
+    //
+    // This is the third of the three places that have to filter; the other
+    // two are in RiderBadges and are covered by U-BADGEPICK.
+    const droppedTokyo = CHLOE.races.map((race, index) =>
+      index === 1 ? { ...race, result: "dnf" as const } : race,
+    );
+    expect(riderMatchesBadge(CHLOE.races, SIX_MAJORS_ID)).toBe(true);
+    expect(riderMatchesBadge(droppedTokyo, SIX_MAJORS_ID)).toBe(false);
+  });
+
+  test("U-RIDERFILTER-12: a DNF still matches that race's own chip", () => {
+    // Deliberately NOT symmetrical with the rule above, and the asymmetry is
+    // the point. The per-race chips ask "is this race on their wall", and a
+    // DNF is on the wall — greyed, but there. Filtering it out here would
+    // hide a rider whose visible badge says they ran it.
+    const dropped = [record("utmb-mont-blanc", "utmb", 2024, "dnf")];
+    expect(riderMatchesBadge(dropped, "utmb-mont-blanc")).toBe(true);
   });
 
   test("U-RIDERFILTER-4: shortcut ids can never collide with an event key", () => {

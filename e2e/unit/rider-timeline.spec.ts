@@ -45,7 +45,9 @@ function post(
 }
 
 function race(id: number, year: number, eventId = `event-${id}`): SiteRaceRecord {
-  return { distanceId: "100k", eventId, id, year };
+  // A finish, said explicitly: this timeline places races on a calendar and
+  // never asks whether one was finished.
+  return { distanceId: "100k", eventId, id, result: "finished", year };
 }
 
 test("U-TIMELINE-T1: newest year first, and newest day first inside a year", async () => {

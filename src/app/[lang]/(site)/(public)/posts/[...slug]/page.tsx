@@ -2,6 +2,7 @@ import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cn, formatDate } from "@/lib/utils";
+import { formatFinishTime } from "@/lib/races/finish-time";
 import "@/styles/mdx.css";
 
 import Image from "next/image";
@@ -240,6 +241,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
                 blog.race.eventId,
                 blog.race.distanceId,
               )}
+              result={blog.race.result}
               size={56}
               year={blog.race.year}
             />
@@ -257,6 +259,20 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
                     blog.race.distanceId,
                   ).label
                 }
+                {/* The report is about this race either way — a DNF is a
+                    story, often a better one. What it must not do is read as
+                    a finish, and the greyed badge beside it is a colour cue
+                    that says nothing to a screen reader. */}
+                {blog.race.result === "dnf" && (
+                  <span data-testid="post-race-dnf">{" · 未完賽"}</span>
+                )}
+                {blog.race.result === "finished" &&
+                  typeof blog.race.finishSeconds === "number" && (
+                    <span data-testid="post-race-time">
+                      {" · "}
+                      {formatFinishTime(blog.race.finishSeconds)}
+                    </span>
+                  )}
               </p>
             </div>
           </div>
