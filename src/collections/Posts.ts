@@ -9,6 +9,7 @@ import { revalidatePosts } from './hooks/revalidate'
 import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
 import { youTubeVideoId } from '../lib/youtube'
+import { recordPostViewEndpoint } from '../endpoints/recordPostView'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -32,6 +33,11 @@ export const Posts: CollectionConfig = {
   versions: {
     drafts: true,
   },
+  // Payload strips the collection slug and matches against THIS list, never
+  // the config-level one, for any path whose first segment names a collection
+  // — so `/api/posts/:id/view` can only be registered here. See that file's
+  // header for the vendor source.
+  endpoints: [recordPostViewEndpoint],
   access: {
     read: ownedOnly,
     create: isAuthenticated,
