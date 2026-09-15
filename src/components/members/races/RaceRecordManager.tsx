@@ -8,6 +8,7 @@ import {
   emptyRaceClaim,
   raceClaimComplete,
 } from "@/components/members/races/RaceClaimFields";
+import { UNLINK_FLAG } from "@/lib/members/race-record-unlink";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   formatFinishTime,
@@ -16,6 +17,24 @@ import {
 import { resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap } from "@/lib/races/catalogue-shape";
 import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
+
+/**
+ * What the finish-time box currently means.
+ *
+ * `null` from an empty box is "no time given", which is a legitimate finish.
+ * `null` from a non-empty box is text that is not a time, and the member has
+ * to be told rather than have it silently dropped. Shared by the add form and
+ * the per-row editor, because those are the same two sentences and a second
+ * copy is where they would stop agreeing.
+ */
+function deriveFinish(finishTime: string): {
+  invalid: boolean;
+  seconds: number | null;
+} {
+  const blank = finishTime.trim() === "";
+  const seconds = blank ? null : parseFinishTime(finishTime);
+  return { invalid: !blank && seconds === null, seconds };
+}
 
 export type MemberRaceRecord = {
   distanceId: string;
@@ -27,6 +46,79 @@ export type MemberRaceRecord = {
   result?: "finished" | "dnf" | null;
   year: number;
 };
+
+/**
+ * 完賽狀態 and 完賽時間, for whichever form is asking.
+ *
+ * `idPrefix` exists because both forms are on screen at once when a row is
+ * being edited, and two elements sharing a `data-testid` is a strict-mode
+ * violation in every spec that reaches for one.
+ */
+function ResultFields({
+  busy,
+  finishTime,
+  idPrefix,
+  invalid,
+  onFinishTime,
+  onResult,
+  result,
+}: {
+  busy: boolean;
+  finishTime: string;
+  idPrefix: string;
+  invalid: boolean;
+  onFinishTime: (value: string) => void;
+  onResult: (value: "finished" | "dnf") => void;
+  result: "finished" | "dnf";
+}) {
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-1">
+          <span className="text-sm">完賽狀態</span>
+          <select
+            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            data-testid={`${idPrefix}-result`}
+            disabled={busy}
+            onChange={(e) => onResult(e.target.value as "finished" | "dnf")}
+            value={result}
+          >
+            <option value="finished">完賽</option>
+            <option value="dnf">未完賽</option>
+          </select>
+        </label>
+
+        {/* Only for a finish. A DNF has no finishing time, so the box is
+            not disabled but absent — a greyed-out field invites a member to
+            wonder what would fill it. */}
+        {result === "finished" && (
+          <label className="block space-y-1">
+            <span className="text-sm">完賽時間（可留空）</span>
+            <input
+              aria-invalid={invalid}
+              className="block w-full border border-input bg-background px-3 py-2 text-sm"
+              data-testid={`${idPrefix}-finish-time`}
+              disabled={busy}
+              inputMode="numeric"
+              onChange={(e) => onFinishTime(e.target.value)}
+              placeholder="38:42:15"
+              value={finishTime}
+            />
+          </label>
+        )}
+      </div>
+
+      {invalid && (
+        <p
+          className="text-sm text-destructive"
+          data-testid={`${idPrefix}-finish-time-error`}
+        >
+          完賽時間請填 時:分:秒，例如 38:42:15
+        </p>
+      )}
+    </>
+  );
+}
 
 export function RaceRecordManager({
   catalogueEvents,
@@ -49,14 +141,27 @@ export function RaceRecordManager({
   const [finishTime, setFinishTime] = useState("");
   const { distanceId, eventId, year } = claim;
 
-  // `null` from an empty box means "no time given", which is a legitimate
-  // finish. `null` from a non-empty box means the text is not a time, and the
-  // member has to be told rather than have it silently dropped.
-  const parsedFinish =
-    finishTime.trim() === "" ? null : parseFinishTime(finishTime);
-  const finishTimeInvalid = finishTime.trim() !== "" && parsedFinish === null;
+  const { invalid: finishTimeInvalid, seconds: parsedFinish } =
+    deriveFinish(finishTime);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The record whose deletion the member has been warned about but not yet
+  // confirmed. Held per row rather than as a single page-level banner so the
+  // warning sits next to the record it is about — the list is a two-column
+  // grid and a message at the top would not say which one.
+  const [confirming, setConfirming] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
+  // The row being edited, and its own copy of the four answers. Separate
+  // state from the add form on purpose: sharing it would mean opening an
+  // editor wipes a claim the member was halfway through typing above.
+  const [editing, setEditing] = useState<number | null>(null);
+  const [editClaim, setEditClaim] = useState(() => emptyRaceClaim(new Date()));
+  const [editResult, setEditResult] = useState<"finished" | "dnf">("finished");
+  const [editFinishTime, setEditFinishTime] = useState("");
+  const { invalid: editFinishInvalid, seconds: editParsedFinish } =
+    deriveFinish(editFinishTime);
 
   const catalogue = useMemo(
     () => catalogueMap(catalogueEvents),
@@ -106,23 +211,119 @@ export function RaceRecordManager({
     }
   }
 
-  async function remove(id: number) {
+  /**
+   * Delete, in two steps when articles cite the record.
+   *
+   * The first press asks with no flag. The server refuses with a 409 that
+   * counts the articles whose badge would disappear, and that count is what
+   * the member is shown — a deletion that silently changes what readers see
+   * on a published article is not theirs to assume. Pressing again sends
+   * `unlinkArticles=true`, which is the server's cue to clear those
+   * references and let the delete through.
+   *
+   * Asking the server rather than counting here: the count has to come from
+   * the same query that will do the unlinking, or it can be stale by the
+   * time the member reads it.
+   */
+  /**
+   * Load a record into its own editor.
+   *
+   * `series` is not stored on the record — it is a property of the event in
+   * the catalogue — but `RaceClaimFields` filters the event list by it, so
+   * seeding it wrongly would open an editor whose 賽事 select cannot show
+   * the race the member is editing. Resolved here rather than defaulted.
+   */
+  function beginEdit(record: MemberRaceRecord) {
+    setEditing(record.id);
+    setEditClaim({
+      distanceId: record.distanceId,
+      eventId: record.eventId,
+      series: catalogue.get(record.eventId)?.series ?? "utmb",
+      year: record.year,
+    });
+    setEditResult(record.result === "dnf" ? "dnf" : "finished");
+    setEditFinishTime(
+      record.result !== "dnf" && typeof record.finishSeconds === "number"
+        ? formatFinishTime(record.finishSeconds)
+        : "",
+    );
+    setError(null);
+    setConfirming(null);
+  }
+
+  /**
+   * Write the edited record back.
+   *
+   * A PATCH, not delete-and-recreate: the id is what `posts.race_record_id`
+   * points at, so keeping it is what lets an article that cites this record
+   * survive the correction with its badge intact — now showing the race the
+   * member meant. `populateRaceRecordRefs` re-derives `edition` and
+   * `category` on the way through, and `uniqueRaceRecord` still refuses an
+   * edit that collides with another of the member's records, excluding this
+   * one.
+   */
+  async function save(id: number) {
+    if (!raceClaimComplete(editClaim) || editFinishInvalid) return;
     setBusy(true);
     setError(null);
     try {
       const response = await fetch(`/api/race-records/${id}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          distanceId: editClaim.distanceId,
+          eventId: editClaim.eventId,
+          // Same rule as `add()`: a DNF has no finishing time, and sending
+          // one from a box filled in before the select was switched would
+          // store a time against a race they did not finish.
+          finishSeconds: editResult === "finished" ? editParsedFinish : null,
+          result: editResult,
+          year: editClaim.year,
+        }),
+      });
+
+      if (!response.ok) {
+        setError(await readError(response, "修改失敗"));
+        return;
+      }
+
+      const body = (await response.json()) as { doc: MemberRaceRecord };
+      setRecords((current) =>
+        current
+          .map((record) => (record.id === id ? body.doc : record))
+          .sort((a, b) => b.year - a.year),
+      );
+      setEditing(null);
+    } catch {
+      setError("修改失敗，請再試一次");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: number, confirmed = false) {
+    setBusy(true);
+    setError(null);
+    try {
+      const query = confirmed ? `?${UNLINK_FLAG}=true` : "";
+      const response = await fetch(`/api/race-records/${id}${query}`, {
         method: "DELETE",
         credentials: "same-origin",
       });
+      if (response.status === 409 && !confirmed) {
+        setConfirming({ id, message: await readError(response, "刪除失敗") });
+        return;
+      }
       if (!response.ok) {
-        // The server's sentence, not ours. A refused delete now carries a
-        // reason — the record is cited by N articles — and the hardcoded
-        // message that used to stand here replaced it with advice to retry,
-        // which for a foreign key is advice that can never work. The
-        // fallback keeps that shape only for a refusal that says nothing.
+        // The server's sentence, not ours. The hardcoded message that used
+        // to stand here replaced it with advice to retry, which for a
+        // foreign key is advice that can never work. The fallback keeps that
+        // shape only for a refusal that says nothing.
         setError(await readError(response, "刪除失敗"));
         return;
       }
+      setConfirming(null);
       setRecords((current) => current.filter((record) => record.id !== id));
     } catch {
       // `add()` has always had this and `remove()` never did — found while
@@ -157,49 +358,15 @@ export function RaceRecordManager({
           value={claim}
         />
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="text-sm">完賽狀態</span>
-            <select
-              className="block w-full border border-input bg-background px-3 py-2 text-sm"
-              data-testid="race-record-result"
-              disabled={busy}
-              onChange={(e) => setResult(e.target.value as "finished" | "dnf")}
-              value={result}
-            >
-              <option value="finished">完賽</option>
-              <option value="dnf">未完賽</option>
-            </select>
-          </label>
-
-          {/* Only for a finish. A DNF has no finishing time, so the box is
-              not disabled but absent — a greyed-out field invites a member to
-              wonder what would fill it. */}
-          {result === "finished" && (
-            <label className="block space-y-1">
-              <span className="text-sm">完賽時間（可留空）</span>
-              <input
-                aria-invalid={finishTimeInvalid}
-                className="block w-full border border-input bg-background px-3 py-2 text-sm"
-                data-testid="race-record-finish-time"
-                disabled={busy}
-                inputMode="numeric"
-                onChange={(e) => setFinishTime(e.target.value)}
-                placeholder="38:42:15"
-                value={finishTime}
-              />
-            </label>
-          )}
-        </div>
-
-        {finishTimeInvalid && (
-          <p
-            className="text-sm text-destructive"
-            data-testid="race-record-finish-time-error"
-          >
-            完賽時間請填 時:分:秒，例如 38:42:15
-          </p>
-        )}
+        <ResultFields
+          busy={busy}
+          finishTime={finishTime}
+          idPrefix="race-record"
+          invalid={finishTimeInvalid}
+          onFinishTime={setFinishTime}
+          onResult={setResult}
+          result={result}
+        />
 
         {error && (
           <p className="text-sm text-destructive" data-testid="race-record-error">
@@ -235,7 +402,7 @@ export function RaceRecordManager({
               return (
                 <li
                   key={record.id}
-                  className="flex items-center gap-3 border border-border bg-secondary p-3"
+                  className="flex flex-wrap items-center gap-3 border border-border bg-secondary p-3"
                   data-record-id={record.id}
                   data-testid="race-record-row"
                 >
@@ -269,6 +436,17 @@ export function RaceRecordManager({
                     </p>
                   </div>
                   <button
+                    className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                    data-testid="race-record-edit"
+                    disabled={busy}
+                    onClick={() =>
+                      editing === record.id ? setEditing(null) : beginEdit(record)
+                    }
+                    type="button"
+                  >
+                    {editing === record.id ? "取消" : "修改"}
+                  </button>
+                  <button
                     className="px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
                     data-testid="race-record-delete"
                     disabled={busy}
@@ -277,6 +455,73 @@ export function RaceRecordManager({
                   >
                     刪除
                   </button>
+                  {editing === record.id && (
+                    <div
+                      className="basis-full space-y-3 border-t border-border pt-3"
+                      data-testid="race-record-editor"
+                    >
+                      <RaceClaimFields
+                        busy={busy}
+                        catalogueEvents={catalogueEvents}
+                        onChange={setEditClaim}
+                        value={editClaim}
+                      />
+                      <ResultFields
+                        busy={busy}
+                        finishTime={editFinishTime}
+                        idPrefix="race-record-edit"
+                        invalid={editFinishInvalid}
+                        onFinishTime={setEditFinishTime}
+                        onResult={setEditResult}
+                        result={editResult}
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          className="justify-center"
+                          data-testid="race-record-edit-save"
+                          disabled={
+                            busy ||
+                            !raceClaimComplete(editClaim) ||
+                            editFinishInvalid
+                          }
+                          onClick={() => save(record.id)}
+                          size="sm"
+                        >
+                          儲存
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {confirming?.id === record.id && (
+                    <div
+                      className="basis-full space-y-2 border-t border-border pt-2"
+                      data-testid="race-record-confirm"
+                    >
+                      <p className="text-xs text-destructive">
+                        {confirming.message}
+                      </p>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className="px-2 py-1 text-xs text-muted-foreground"
+                          data-testid="race-record-confirm-cancel"
+                          disabled={busy}
+                          onClick={() => setConfirming(null)}
+                          type="button"
+                        >
+                          取消
+                        </button>
+                        <button
+                          className="px-2 py-1 text-xs font-semibold text-destructive"
+                          data-testid="race-record-confirm-delete"
+                          disabled={busy}
+                          onClick={() => remove(record.id, true)}
+                          type="button"
+                        >
+                          確認刪除
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               );
             })}

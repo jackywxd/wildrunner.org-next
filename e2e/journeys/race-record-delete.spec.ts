@@ -1,5 +1,6 @@
 import { apiTest as test, expect } from "../helpers/api-test";
 import { TEST_ADMIN } from "../helpers/auth";
+import { UNLINK_FLAG } from "../../src/lib/members/race-record-unlink";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
 import { deleteCreatedRows } from "../helpers/teardown";
@@ -15,7 +16,10 @@ import { deleteCreatedRows } from "../helpers/teardown";
  * `REFERENCES race_records(id)` with no `ON DELETE` action, so D1 raises
  * `SQLITE_CONSTRAINT_FOREIGNKEY` and Payload returns a 500 reading
  * `Something went wrong.` `refuseRaceRecordInUse` turns that into a 409
- * naming how many articles cite it, and this is what watches it stay so.
+ * naming how many articles cite it, and a second request carrying the
+ * member's confirmation clears those references and lets the delete
+ * through — what `ON DELETE SET NULL` would do, without a rebuild of the
+ * site's content tables. This is what watches both halves stay so.
  *
  * WHY THE SUITE COULD NOT SEE IT. `member-races.spec.ts` deletes a record
  * too — one the spec created seconds earlier and never attached to anything,
@@ -29,12 +33,13 @@ import { deleteCreatedRows } from "../helpers/teardown";
  * 409 body does not. `member-races.spec.ts` already drives the real 刪除
  * button for the case that succeeds.
  *
- * T1 WALKS THE WHOLE PATH DELIBERATELY, including the last step. The refusal
- * tells the member to delete the article; a test that stopped at the refusal
- * would leave that advice unverified, and advice that does not work is worse
- * than the silence it replaced. The middle step is there for the same reason
- * in reverse: unlinking the race looks like it should help and does not, so
- * the test pins that it still refuses rather than half-succeeding.
+ * T1 WALKS THE WHOLE PATH DELIBERATELY, and the last assertion is the one
+ * that matters most: the article is still there afterwards, intact, with
+ * only its race link cleared. A delete that took the article with it, or
+ * left it half-written, is the failure this design is one raw UPDATE away
+ * from. The middle step pins the trap that made the original bug unreadable:
+ * unlinking the race in the editor looks like it should free the record and
+ * does not, because every draft already saved still cites it.
  */
 test.describe("M-RACEDEL deleting a race record an article cites", () => {
   /** Old enough that no seeded record or edition can collide with it. */
@@ -51,7 +56,7 @@ test.describe("M-RACEDEL deleting a race record an article cites", () => {
     await deleteCreatedRows(request, pending);
   });
 
-  test("M-RACEDEL-T1: the refusal says why, and the way out it names works", async ({
+  test("M-RACEDEL-T1: refused with a count, then confirmed, and the article survives", async ({
     request,
   }) => {
     test.setTimeout(budget(60_000));
@@ -100,12 +105,19 @@ test.describe("M-RACEDEL deleting a race record an article cites", () => {
     // that several articles use it.
     expect(await cited.text()).toContain("1 篇文章");
 
+    // The count is in `data` as well as the sentence, because the
+    // confirmation the UI builds from it is a number, not a string to parse.
+    const refusal = (await cited.json()) as {
+      errors: { data?: { articles?: number } }[];
+    };
+    expect(refusal.errors[0]?.data?.articles).toBe(1);
+
     // 2. The obvious fix is not one, and this is the half that made the
     //    original failure so hard to read. Clearing the link writes a new
     //    draft version holding null and leaves every version already saved
-    //    still pointing at the record, so the delete fails exactly as
+    //    still pointing at the record, so the delete is refused exactly as
     //    before — the member did the one thing that looks like it should
-    //    help and got the identical refusal.
+    //    help and got the identical answer.
     const unlink = await request.patch(`/api/posts/${postId}?draft=true`, {
       data: { raceRecord: null },
     });
@@ -113,19 +125,12 @@ test.describe("M-RACEDEL deleting a race record an article cites", () => {
 
     const unlinked = await request.delete(`/api/race-records/${recordId}`);
     expect(unlinked.status(), "unlinking does not free the record").toBe(409);
-    expect(await unlinked.text()).toContain("1 篇文章");
 
-    // 3. The way out the message names. Deleting the article takes its
-    //    versions with it, and only then does the record go.
-    const removePost = await request.delete(`/api/posts/${postId}`);
-    expect(removePost.ok(), await removePost.text()).toBeTruthy();
-    created.splice(
-      created.findIndex((row) => row.collection === "posts"),
-      1,
+    // 3. Confirmed: the references go, and so does the record.
+    const confirmed = await request.delete(
+      `/api/race-records/${recordId}?${UNLINK_FLAG}=true`,
     );
-
-    const freed = await request.delete(`/api/race-records/${recordId}`);
-    expect(freed.ok(), await freed.text()).toBeTruthy();
+    expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
     created.splice(
       created.findIndex((row) => row.collection === "race-records"),
       1,
@@ -135,5 +140,21 @@ test.describe("M-RACEDEL deleting a race record an article cites", () => {
     // and left the row is the shape this file is about.
     const gone = await request.get(`/api/race-records/${recordId}?depth=0`);
     expect(gone.status(), "the record is still there after a 200").toBe(404);
+
+    // 4. THE ASSERTION THAT MATTERS MOST. The article keeps everything
+    //    except the race link — a delete that reached into `posts` with raw
+    //    SQL and damaged the row would pass every assertion above.
+    const article = await request.get(`/api/posts/${postId}?draft=true&depth=0`);
+    expect(article.ok(), await article.text()).toBeTruthy();
+    const body = (await article.json()) as {
+      description: string;
+      raceRecord: unknown;
+      slug: string;
+      title: string;
+    };
+    expect(body.raceRecord, "the badge link should be cleared").toBeNull();
+    expect(body.title).toBe(`M-RACEDEL ${stamp}`);
+    expect(body.slug).toBe(`m-racedel-${stamp}`);
+    expect(body.description).toBe("比賽紀錄刪除");
   });
 });
