@@ -9,10 +9,19 @@
  *   pnpm preflight:prod
  *
  * Queries D1 by shelling out to `wrangler d1 execute --remote` rather than
- * through getPlatformProxy: the top-level (production) bindings are not
- * marked `remote: true`, so a proxy silently reads the *local* emulated
- * database instead — this script's first version did exactly that and
- * cheerfully reported on the wrong database.
+ * through getPlatformProxy. This script's first version used a proxy and
+ * cheerfully reported on the wrong database, because the top-level
+ * (production) bindings were not marked `remote: true` and it silently read
+ * the local emulated one.
+ *
+ * They ARE marked `remote: true` today — it was added for `build:prod`,
+ * which has to prerender against real content — so that particular trap is
+ * closed, and it is also what lets deploy.yml's `migrate-production` job
+ * reach production at all. Shelling out stays, for a reason that does not
+ * depend on the flag: a proxy is a binding the config decides, and this
+ * file's job is to check production rather than to trust whatever the
+ * config resolved. `wrangler d1 execute --remote` names the database on the
+ * command line, where it can be read.
  */
 import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
