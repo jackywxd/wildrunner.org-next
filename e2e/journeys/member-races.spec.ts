@@ -398,4 +398,103 @@ test.describe("M what a member does with race records", () => {
     }
     expect(edition.registrationType).toBe("first-come");
   });
+
+  /**
+   * M-RACEEDIT — a member corrects a race they recorded wrongly.
+   *
+   * THE FAILURE THIS EXISTS FOR: the editor opens on a race the member did
+   * not record. `RaceClaim` carries a `series` that the record itself does
+   * not store — it belongs to the event in the catalogue — and
+   * `RaceClaimFields` filters its 賽事 list by it. Seed it wrongly and the
+   * form opens showing a different series, so the select cannot offer the
+   * race being edited and the member is looking at somebody else's list.
+   * Nothing throws; the row is simply wrong before they touch it.
+   *
+   * WHY THIS IS A BROWSER TEST WHEN THE SERVER HALF IS NOT. Updating a
+   * record is `PATCH /api/race-records/:id` — Payload's own operation, with
+   * `populateRaceRecordRefs` and `uniqueRaceRecord` already covered where
+   * they live. What is ours, and new, is the form: which values it opens
+   * with and whether the row it belongs to catches up afterwards. Neither is
+   * visible to a request.
+   */
+  test("M-RACEEDIT: the editor opens on the recorded race, and the row catches up", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(60_000));
+
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    // Hardrock rather than a UTMB race precisely because the add form opens
+    // on `utmb`: a record whose series is the default would pass this test
+    // with the seeding removed entirely.
+    const created = await request.post("/api/race-records", {
+      data: { distanceId: "100m", eventId: "other-hardrock", year: 2014 },
+    });
+    expect(created.ok(), await created.text()).toBeTruthy();
+    const recordId = ((await created.json()) as { doc: { id: number } }).doc.id;
+    recordCreated({
+      collection: "race-records",
+      id: recordId,
+      note: "M-RACEEDIT probe record",
+    });
+    // Handed to the describe's `afterEach` rather than deleted at the end of
+    // this test. A cleanup that only runs on success leaves the record
+    // behind when the test fails, and the next run is then refused by
+    // `uniqueRaceRecord` — a fixture failure that reads like a product bug.
+    // Learned here: that is exactly how this test failed its second run.
+    createdRecordId = String(recordId);
+
+    // The browser needs its own session. `request` and `page` keep separate
+    // cookie jars, so the API sign-in above leaves the browser anonymous and
+    // /members/races redirects it to the login form — which reads as "the
+    // record is not on the page", not as "nobody is signed in".
+    await page.goto("/members/login", { waitUntil: "domcontentloaded" });
+    // The login form is a Client Component whose <form> has no `action`:
+    // submitted before React attaches, nothing is sent at all.
+    await waitForHydration(page);
+    await page.getByTestId("member-login-email").fill(TEST_ADMIN.email);
+    await page.getByTestId("member-login-password").fill(TEST_ADMIN.password);
+    await page.getByTestId("member-login-submit").click();
+    await expect(page).toHaveURL(/\/members$/, { timeout: budget(15_000) });
+
+    await page.goto("/members/races", { waitUntil: "domcontentloaded" });
+    // `load`, not `domcontentloaded`: the rows are server-rendered, so 修改
+    // exists long before React attaches its onClick — the same dropped-click
+    // window M-RACES documents at its delete.
+    await page.waitForLoadState("load");
+
+    const row = page.locator(`[data-record-id="${recordId}"]`);
+    await expect(row).toHaveCount(1);
+    await row.getByTestId("race-record-edit").click();
+    await expect(row.getByTestId("race-record-editor")).toBeVisible({
+      timeout: budget(10_000),
+    });
+
+    // The assertion this test is for.
+    await expect(row.getByTestId("race-event-select")).toHaveValue(
+      "other-hardrock",
+    );
+    await expect(row.getByTestId("race-distance-select")).toHaveValue("100m");
+    await expect(row.getByTestId("race-year-select")).toHaveValue("2014");
+
+    await row.getByTestId("race-series-select").selectOption("utmb");
+    await row.getByTestId("race-event-select").selectOption("utmb-mont-blanc");
+    await row.getByTestId("race-distance-select").selectOption("ccc");
+    await row.getByTestId("race-year-select").selectOption("2019");
+    await row.getByTestId("race-record-edit-finish-time").fill("20:10:00");
+    await row.getByTestId("race-record-edit-save").click();
+
+    // The row, not the request: what the member is looking at has to change,
+    // and it is rendered from state this component updates by hand.
+    await expect(row).toContainText("UTMB Mont-Blanc", {
+      timeout: budget(15_000),
+    });
+    await expect(row).toContainText("2019");
+    await expect(row.getByTestId("race-record-time")).toContainText("20:10:00");
+    await expect(page.getByTestId("race-record-error")).toHaveCount(0);
+  });
 });

@@ -194,6 +194,22 @@ const CONSTRUCTED = {
     "UploadPreview.tsx: data-testid={`editor-upload-width-${width}`} over IMAGE_WIDTHS",
   "editor-upload-width-small":
     "UploadPreview.tsx: data-testid={`editor-upload-width-${width}`} over IMAGE_WIDTHS",
+  // 完賽狀態 and 完賽時間 are rendered by one `ResultFields` component that
+  // the add form and the per-row editor both use, so its testids carry the
+  // caller's prefix — two elements sharing one testid would be a
+  // strict-mode violation the moment a row is open.
+  "race-record-result":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-result`} in ResultFields",
+  "race-record-finish-time":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time`} in ResultFields",
+  "race-record-finish-time-error":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time-error`} in ResultFields",
+  "race-record-edit-result":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-result`} in ResultFields",
+  "race-record-edit-finish-time":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time`} in ResultFields",
+  "race-record-edit-finish-time-error":
+    "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time-error`} in ResultFields",
 };
 
 function checkTestIds() {
