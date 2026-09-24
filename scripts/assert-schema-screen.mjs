@@ -210,6 +210,11 @@ const CONSTRUCTED = {
     "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time`} in ResultFields",
   "race-record-edit-finish-time-error":
     "RaceRecordManager.tsx: data-testid={`${idPrefix}-finish-time-error`} in ResultFields",
+  // One per published row of /members/posts. M-VIEWS reads it out of the
+  // server-rendered HTML with a RegExp, so the spec holds the template itself
+  // rather than a concrete id.
+  "post-views-${postId}":
+    "PostsList.tsx: data-testid={`post-views-${post.id}`}, published rows only",
 };
 
 function checkTestIds() {
