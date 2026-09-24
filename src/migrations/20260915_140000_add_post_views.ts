@@ -21,7 +21,10 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-d1-sqlite'
  *
  * NO FOREIGN KEY TO `posts`, and no cascade. A deleted post leaves its row
  * behind, which is a few bytes and no reader: `/members/posts` looks counts up
- * *by* the posts it already has, so an orphan is never joined to anything. The
+ * *by* the posts it already has, so an orphan is never joined to anything —
+ * WRONG as first written: SQLite reuses a deleted newest post's id, so the
+ * next post inherited the orphan's count. `resetPostViews` in
+ * `src/lib/posts/views.ts` now clears it when a post is created. The
  * cost of the alternative is real — SQLite enforces foreign keys only when
  * `PRAGMA foreign_keys` is on, so a constraint here would be a rule that binds
  * in some connections and not others, which is worse than no rule.

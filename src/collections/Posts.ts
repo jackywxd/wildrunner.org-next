@@ -6,6 +6,7 @@ import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
 import { stampPublishDates } from './hooks/publish-dates'
 import { revalidatePosts } from './hooks/revalidate'
+import { resetPostViewsOnCreate } from './hooks/reset-post-views'
 import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
 import { youTubeVideoId } from '../lib/youtube'
@@ -28,7 +29,7 @@ export const Posts: CollectionConfig = {
     // and then have the save refused for a missing required value anyway.
     beforeValidate: [guardPostContent, derivePostSlug, uniquePostSlug],
     beforeChange: [setOwner, stampPublishDates],
-    afterChange: [revalidatePosts],
+    afterChange: [resetPostViewsOnCreate, revalidatePosts],
   },
   versions: {
     drafts: true,

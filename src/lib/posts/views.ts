@@ -1,3 +1,5 @@
+import { sql } from "@payloadcms/db-d1-sqlite";
+
 /**
  * Recording and reading how many times an article has been read.
  *
@@ -47,25 +49,74 @@
  * `null` from `.first()` therefore means "refused", and the caller answers the
  * same 204 either way: telling an anonymous caller which ids exist is a
  * question this endpoint has no reason to answer.
+ *
+ * AN AUTHOR READING THEIR OWN ARTICLE IS NOT A READ. The count is shown only
+ * to the owner, on `/members/posts`, as the answer to "how many people read
+ * this" — and the owner is the one reader guaranteed to open it, to check it
+ * after publishing and again after every edit. So `readerId` is the signed-in
+ * user, when there is one, and a post they own matches nothing, exactly like a
+ * draft. It is `owner_id` and not the `author` byline because owner is whose
+ * list the number appears in.
+ *
+ * `?2 IS NULL` is not redundant with `IS NOT`. Without it an anonymous reader
+ * binds NULL and the test becomes `owner_id IS NOT NULL`, which happens to be
+ * true today for every post and would silently stop counting anonymous reads
+ * of any post whose owner is ever cleared. Written out, anonymous reads never
+ * depend on the owner column at all.
  */
 export async function recordPostView(
   db: D1Database,
   postId: number,
+  readerId: number | null,
 ): Promise<boolean> {
   const row = await db
     .prepare(
       `INSERT INTO post_views (post_id, count)
        SELECT ?1, 1
        WHERE EXISTS (
-         SELECT 1 FROM posts WHERE id = ?1 AND _status = 'published'
+         SELECT 1 FROM posts
+         WHERE id = ?1
+           AND _status = 'published'
+           AND (?2 IS NULL OR owner_id IS NOT ?2)
        )
        ON CONFLICT(post_id) DO UPDATE SET count = post_views.count + 1
        RETURNING count`,
     )
-    .bind(postId)
+    .bind(postId, readerId)
     .first<{ count: number }>();
 
   return row !== null;
+}
+
+/**
+ * Start a newly created post at zero reads, whatever `post_views` already says
+ * about its id.
+ *
+ * WHY A NEW POST CAN ALREADY HAVE READS. `posts.id` is `integer PRIMARY KEY`
+ * without `AUTOINCREMENT`, so SQLite hands out `MAX(id) + 1` — and when the
+ * newest post is deleted, the next one created gets its id back. `post_views`
+ * has no foreign key (the migration explains why), so the deleted post's row
+ * survives and the new article is born carrying its reads. The migration's
+ * header called that orphan harmless because nothing joins to it; id reuse is
+ * exactly how something does. Found by M-VIEWSELF-T1, whose second local run
+ * created post 16 again and read 1 before anyone had opened it.
+ *
+ * ON CREATE RATHER THAN ON DELETE, deliberately. A delete hook only covers
+ * deletes that go through Payload; a row left behind any other way — a script
+ * writing raw SQL, a delete from before this existed — would still be
+ * inherited. Clearing at birth is right however the row got there, and it is
+ * the moment the claim "this article has had no readers" is true by
+ * definition, since it cannot have been published before it existed.
+ *
+ * By id, one row, never a pattern. Takes Payload's own connection rather than
+ * `env.D1` because collection hooks also run from CLI scripts, where there is
+ * no Worker context to ask.
+ */
+export async function resetPostViews(
+  db: { run: (query: ReturnType<typeof sql>) => Promise<unknown> },
+  postId: number,
+): Promise<void> {
+  await db.run(sql`DELETE FROM post_views WHERE post_id = ${postId}`);
 }
 
 /**

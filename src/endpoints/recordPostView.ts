@@ -16,7 +16,8 @@ import { recordPostView } from "@/lib/posts/views";
  *
  * DELIBERATELY ANONYMOUS. Readers are not signed in; requiring a session would
  * count only the club's own members reading each other, which is the opposite
- * of the question being asked. What keeps that safe is in
+ * of the question being asked. A session, when there is one, is read only to
+ * leave out the owner's own reads (`recordPostView`). What keeps that safe is in
  * `recordPostView`: the id is checked against `posts` inside the same
  * statement, so an id that is not a published article writes nothing and the
  * table cannot be grown from outside.
@@ -65,8 +66,15 @@ export const recordPostViewEndpoint: Endpoint = {
       throw new APIError("Invalid post id", 400);
     }
 
+    // The beacon is a same-origin fetch, so a signed-in reader's session
+    // cookie comes with it and Payload has already resolved `req.user` before
+    // this runs (`createPayloadRequest` → `executeAuthStrategies`). It is
+    // used for one thing only: an owner reading their own article is not
+    // counted. Nothing about the reader is stored.
+    const readerId = typeof req.user?.id === "number" ? req.user.id : null;
+
     const { env } = await getCloudflareContext({ async: true });
-    await recordPostView(env.D1, id);
+    await recordPostView(env.D1, id, readerId);
 
     return new Response(null, { status: 204 });
   },
