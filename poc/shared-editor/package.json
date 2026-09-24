@@ -1,0 +1,25 @@
+{
+  "name": "shared-editor-poc",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@lexical/headless": "0.41.0",
+    "@lexical/list": "0.41.0",
+    "@lexical/markdown": "0.41.0",
+    "@lexical/react": "0.41.0",
+    "@lexical/rich-text": "0.41.0",
+    "@lexical/selection": "0.41.0",
+    "@lexical/table": "0.41.0",
+    "@lexical/utils": "0.41.0",
+    "esbuild": "0.25.10",
+    "lexical": "0.41.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
+    "unified": "11.0.5"
+  }
+}
