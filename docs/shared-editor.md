@@ -160,6 +160,17 @@ Lexical 的圖片是區塊，不能夾在文字行內，所以變成兩段。產
 **兩個宿主各加一條測試：** 建置出來的 CSS 必須含有套件裡的一個哨兵 class——漏掉掃描路徑的症狀是
 dev 正常、production 樣式被清掉，沒有測試不會有人發現。
 
+**套件的測試是野馬營 CI 裡一個獨立的快速 job**，跟 e2e 平行，不需要 Next dev server、D1、Payload、seed：
+POC 步驟 5 在純瀏覽器裡掛載整個編輯器只要幾秒。一個只改 `packages/editor` 的 PR 要在一分鐘內看到套件測試的結果，
+e2e 照跑——快的訊號和整合的訊號在同一個 PR 上。
+
+搬走編輯器的測試**不會**讓野馬營的 e2e 變快，先把這個期待放下。`e2e.yml` 的量測記錄：一個 shard 約 14 分鐘，
+其中約 4 分鐘是與測試數量無關的固定成本（容器、安裝、migrate + seed、預熱 29 條路由），測試本身 7 分鐘裡
+X-I18N 與 X-OG 兩個 sweep 佔 44%。編輯器相關的 11 個 journey 檔案裡，能搬進套件的只有 `editor-undo` 與
+`editor-image-width` 兩三條（各 3–16 秒）；其餘測的是編輯器接上 Payload 之後的行為——自動存檔後從伺服器讀回、
+匯入後建文章、賽記、Stream——那是整合測試，Payload 在哪它就得在哪。48 條單元測試會搬走，但它們今天跑在 6 秒的
+unit lane 裡，本來就不是瓶頸。
+
 **單一副本守衛**：把 `assert-lexical-single-copy.mjs` 的檢查從 `@lexical/table` 擴大成
 「套件的 peer 版本 == `@payloadcms/richtext-lexical` 釘的版本」，兩個宿主的 CI 都跑。
 升 Payload 時這支檢查會強迫套件同步升級——那正是 §9 風險 1 要擋的事。
@@ -500,8 +511,8 @@ jackywu.ca 本來就不把 GPX 放進 repo：`pnpm gpx` 從 `~/Downloads` 讀、
 | 里程碑 | 內容 | 驗收 | 估計 |
 |---|---|---|---|
 | **M0** ✅ | 本 POC | `poc/shared-editor/run-all.sh` | — |
-| **M1** 建立套件 | 野馬營轉 workspace；`packages/editor` 收下 §4.2 左欄；import 改成 `lexical`；定義四個 Port 與 `BlockRegistry`；單一副本檢查擴大；發佈流程 | 新佈局下單一副本檢查通過（先弄紅一次）；POC 步驟 1、3、5 轉成套件測試；用替身 `MediaPort` 走完一次圖片插入 | 4–6 天 |
-| **M2** 野馬營改用套件 | `PayloadMedia`、`PayloadAi`、`PayloadSave`；Code / HtmlEmbed 變成可見區塊；哨兵 class 測試；刪掉被搬走的原檔 | `pnpm typecheck`、`pnpm test:unit`、§9 風險 2 的全部 journey 綠燈；staging 上實際走一次 `docs/member-publish-flow.md` | 3–4 天 |
+| **M1** 建立套件 | 野馬營轉 workspace；`packages/editor` 收下 §4.2 左欄；import 改成 `lexical`；定義四個 Port 與 `BlockRegistry`；單一副本檢查擴大；套件測試 job；發佈流程 | 新佈局下單一副本檢查通過（先弄紅一次）；POC 步驟 1、3、5 轉成套件測試；用替身 `MediaPort` 走完一次圖片插入；只改 `packages/editor` 的 PR 一分鐘內看到套件測試結果 | 4–6 天 |
+| **M2** 野馬營改用套件 | `PayloadMedia`、`PayloadAi`、`PayloadSave`；Code / HtmlEmbed 變成可見區塊；哨兵 class 測試；`editor-undo`、`editor-image-width` 與 48 條單元測試搬進套件；刪掉被搬走的原檔 | `pnpm typecheck`、`pnpm test:unit`、§9 風險 2 的全部 journey 綠燈；staging 上實際走一次 `docs/member-publish-flow.md` | 3–4 天 |
 | **M3** MDX adapter 正式化 | §4.4 六個區塊的表單、import 管理、軟換行規則、解析失敗退路、存檔自檢；jackywu.ca 抽出 `content.schema.ts` | 語料 31 篇：未編輯存檔逐位元組相同；`build-diff.sh` 108 頁；每個區塊一條「改屬性 → build → 頁面反映」；一個含 `<!-- -->` 的檔案能開、能存 | 5–7 天 |
 | **M4** 後台骨架 | `admin/` workspace、Worker、Access + JWT 驗證、PAT；列表／開啟／編輯／`GitMedia`／本機自動存檔／存草稿 | 改一篇草稿 → 分支上**一個** commit、diff 只有改的那幾行；上傳一張圖 → 同一個 commit；直接打 Worker 網址被 401；並發衝突被擋 | 5–7 天 |
 | **M5** 發佈 | PR + auto-merge + 狀態顯示；三項 repo 設定 | 故意存 `excerpt` 太短的 → 後台先擋；繞過後台推同樣內容 → PR 紅、線上不變；正常的一篇 → 自動上線、smoke 綠；關掉一項設定 → 後台說出卡在哪 | 2–3 天 |
@@ -516,8 +527,10 @@ M1–M5 做完就有一個能用的後台，M6、M7 是各自獨立的增量。
 
 ## 十一、需要你決定的事
 
-1. **套件放野馬營 repo 的 `packages/editor`，由野馬營 CI 發佈到 npm**（v2 的建議，理由在 §4.1）。
-   替代方案是獨立 repo，兩邊都釘版本——乾淨，但野馬營每修一個編輯器 bug 都要多一次發佈與升版。
+1. **套件放野馬營 repo 的 `packages/editor`，由野馬營 CI 發佈到 npm**（理由與量測在 §4.1）。
+   獨立 repo 的好處是「編輯器的 PR 只跑編輯器的測試」，而這在 workspace 裡用一個獨立的快速 job 一樣拿得到，
+   還多了同一個 PR 上的整合訊號；獨立 repo 則要到升版本那個 PR 才知道接不接得上，中間野馬營的 CI 綠的是舊版本。
+   兩者都不會讓野馬營的 e2e 變快。選獨立 repo 的唯一理由是不想把野馬營轉成 workspace（風險 3）。
    不建議把兩站合併成 monorepo：CI、部署、地雷清單都完全不同。
 2. **圖片先進 git，R2 排在 M7**（§8.1）。R6 仍是目標；只是順序。如果你希望從第一天就是 R2，
    M7 提前到 M4 之後，代價是後台能用的時間往後推一週。
