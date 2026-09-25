@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
 
 import LanguageSwitcher from "@/components/i18n/language-switcher";
@@ -8,6 +8,7 @@ import Link from "@/components/i18n/locale-link";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 import { navIcon } from "@/components/nav-icons";
 import ThemeToggle from "@/components/theme-toggle";
+import { useDialogLock } from "@/components/use-dialog-lock";
 import { localeHref } from "@/lib/i18n/locale-href";
 import type { NavItemData } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -40,21 +41,7 @@ export default function MobileNav({ id, items, onOpenChange }: MobileNavProps) {
   const t = useDictionary();
   const pathname = usePathname();
 
-  // The page underneath must not scroll while the menu covers it; on iOS a
-  // swipe on the backdrop would otherwise scroll the article behind.
-  useEffect(() => {
-    const root = document.documentElement;
-    const previous = root.style.overflow;
-    root.style.overflow = "hidden";
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onOpenChange();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      root.style.overflow = previous;
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [onOpenChange]);
+  useDialogLock(onOpenChange);
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-16 z-50 md:hidden" id={id}>

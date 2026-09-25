@@ -64,3 +64,25 @@ export function isFinished(entry: RaceDates, now: Date): boolean {
 export function isOngoing(entry: RaceDates, now: Date): boolean {
   return raceState(entry, now).kind === "ongoing";
 }
+
+/**
+ * Which of one month's races the list shows, and which go behind the
+ * 「已結束」 fold (RaceList.tsx says why the fold exists).
+ *
+ * Folds only when asked to — the default window, never one addressed with
+ * `?from=` — and only when the month still has something to come: a month
+ * made entirely of finished races folded to nothing would be a heading over
+ * a single disclosure, which is a worse way to show exactly the same rows.
+ * Order is kept within both halves.
+ */
+export function foldFinished<T extends RaceDates>(
+  entries: T[],
+  now: Date,
+  collapse: boolean,
+): { shown: T[]; folded: T[] } {
+  const folded = entries.filter((entry) => isFinished(entry, now));
+  if (!collapse || folded.length === 0 || folded.length === entries.length) {
+    return { shown: entries, folded: [] };
+  }
+  return { shown: entries.filter((entry) => !isFinished(entry, now)), folded };
+}

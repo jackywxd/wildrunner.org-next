@@ -72,9 +72,10 @@ export async function RegistrationStatus({
 
       {actionable && href && (
         <a
-          // The one action on the row, so a step above the tags beside it
-          // and a 44px target (`hit-area`) around its one line of text.
-          className="hit-area text-sm font-medium text-primary underline underline-offset-2 hover:no-underline"
+          // A button, not an underlined 11px word: it is the one action on
+          // the row and the reason most visitors open this page. Full 44px
+          // tall on a phone.
+          className="inline-flex min-h-11 items-center border border-primary px-3 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground md:min-h-9"
           data-testid="race-registration-link"
           href={href}
           rel="noopener noreferrer"

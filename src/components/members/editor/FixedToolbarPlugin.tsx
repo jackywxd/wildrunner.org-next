@@ -168,12 +168,16 @@ export function FixedToolbarPlugin() {
   }
 
   const button =
-    "whitespace-nowrap px-2 py-1 text-xs hover:bg-secondary disabled:opacity-40";
+    "min-h-11 shrink-0 whitespace-nowrap px-3 text-sm hover:bg-secondary disabled:opacity-40 md:min-h-0 md:px-2 md:py-1 md:text-xs";
 
+  // Sticky, because on a phone the keyboard takes half the screen and the
+  // first scroll put undo and every format out of reach. One row that
+  // scrolls sideways there rather than three wrapped rows of 24px buttons:
+  // 44px targets in three rows would be a third of what the keyboard left.
   return (
     <div
       data-testid="editor-fixed-toolbar"
-      className="flex flex-wrap items-center gap-1 border border-border bg-background px-1 py-1"
+      className="sticky top-0 z-30 flex items-center gap-1 overflow-x-auto border border-border bg-background px-1 py-1 md:flex-wrap md:overflow-visible"
       onMouseDown={(event) => {
         // Buttons: prevent, so pressing one doesn't take focus and collapse
         // the selection it was about to act on — the same trick the other
@@ -215,13 +219,13 @@ export function FixedToolbarPlugin() {
         重做
       </button>
 
-      <span className="mx-1 h-4 w-px bg-border" />
+      <span className="mx-1 h-4 w-px shrink-0 bg-border" />
 
       <select
         data-testid="editor-block-type"
         value={block}
         onChange={(event) => applyBlock(event.target.value as BlockKind)}
-        className="border border-input bg-background px-2 py-1 text-base md:text-xs"
+        className="min-h-11 shrink-0 border border-input bg-background px-2 py-1 text-base md:min-h-0 md:text-xs"
         aria-label="區塊型別"
       >
         {(Object.keys(BLOCK_LABELS) as BlockKind[]).map((kind) => (
@@ -231,7 +235,7 @@ export function FixedToolbarPlugin() {
         ))}
       </select>
 
-      <span className="mx-1 h-4 w-px bg-border" />
+      <span className="mx-1 h-4 w-px shrink-0 bg-border" />
 
       {(
         [
@@ -251,7 +255,7 @@ export function FixedToolbarPlugin() {
         </button>
       ))}
 
-      <span className="mx-1 h-4 w-px bg-border" />
+      <span className="mx-1 h-4 w-px shrink-0 bg-border" />
 
       <button
         type="button"

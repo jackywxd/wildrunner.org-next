@@ -178,7 +178,9 @@ async function Entry({
 
   return (
     <article
-      className="flex gap-4 border border-border bg-secondary p-4 print:break-inside-avoid"
+      // The badge sits above the text on a phone: beside it, a 64px badge
+      // and the rail's indent left the race name about 130px at 320.
+      className="flex flex-col gap-3 border border-border bg-secondary p-4 sm:flex-row sm:gap-4 print:break-inside-avoid"
       data-kind={kind}
       data-testid="rider-timeline-entry"
       data-year={year}

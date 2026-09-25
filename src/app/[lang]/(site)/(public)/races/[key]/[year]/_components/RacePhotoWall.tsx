@@ -15,6 +15,7 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 import PhotoAlbum from "react-photo-album";
 import type { SiteRaceEditionPhoto } from "@/lib/content-types";
 import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
+import { responsiveRowHeight } from "@/app/[lang]/(site)/(public)/gallery/_components/row-height";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
@@ -71,7 +72,7 @@ export function RacePhotoWall({ photos }: { photos: SiteRaceEditionPhoto[] }) {
     <div data-testid="race-photo-wall">
       <PhotoAlbum
         layout="rows"
-        targetRowHeight={280}
+        targetRowHeight={responsiveRowHeight(280)}
         photos={photos}
         render={{ image: NextJsImage }}
         defaultContainerWidth={1280}

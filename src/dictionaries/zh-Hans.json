@@ -134,7 +134,8 @@
     "yearMonth": "{year} 年 {month} 月",
     "logRace": "纪录比赛",
     "uploadPhotos": "上传相片",
-    "register": "前往报名 →"
+    "register": "前往报名 →",
+    "finishedCollapsed": "显示本月已结束的 {count} 场"
   },
   "riders": {
     "title": "野马",
@@ -189,15 +190,16 @@
     "zoom": "放大 (单击图片)",
     "prev": "上一张 (左方向键)",
     "next": "下一张 (右方向键)",
-    "error": "发生错误：无法载入图片",
-    "info": "显示照片资讯"
+    "error": "发生错误：无法载入图片"
   },
   "raceFilters": {
     "list": "列表",
     "calendar": "月历",
     "remind": "预约提醒",
     "allSeries": "全部系列",
-    "openOnly": "只看报名中"
+    "openOnly": "只看报名中",
+    "filter": "筛选",
+    "filterCount": "筛选（{count}）"
   },
   "rider": {
     "bioFallback": "{name} 在野马营的文章",

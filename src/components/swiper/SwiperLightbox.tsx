@@ -12,9 +12,6 @@ import { Autoplay, Pagination } from "swiper/modules";
 import PhotoCard from "@/components/PhotoCard";
 import type { SitePhoto } from "@/lib/content-types";
 import min from "lodash/min";
-import { motion, AnimatePresence } from "framer-motion";
-import { transitionApple } from "@/styles/framer-motion";
-import { Icon } from "@iconify-icon/react";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 // import { cn } from "@/lib/cn";
 // import dayjs from "dayjs";
@@ -96,16 +93,20 @@ const SwiperLightbox: React.FC<{
   const [maxWidth, setMaxWidth] = useState<number>(0);
   const [maxH, setMaxH] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(true);
-  const [lightboxActive, setLightboxActive] = useState<boolean>(false);
   // const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [showExif, setShowExif] = useState<boolean>(false);
 
   useEffect(() => {
     if (!swiperRef.current) return;
     setMaxWidth(swiperRef.current.swiper.width - 64);
     setMaxH(min([(maxWidth / 3) * 2, maxHeight])!);
     setIsMobile(swiperRef.current.swiper.width <= 768);
-    setSwiperAutoplay(autoplay);
+    // A carousel that moves on its own every five seconds is motion the
+    // visitor did not start, and on a phone nothing pauses it short of a
+    // swipe (`pauseOnMouseEnter` needs a mouse). WCAG 2.2.2 asks for a way to
+    // stop it; honouring the system setting is the one that needs no control.
+    setSwiperAutoplay(
+      autoplay && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
   }, [autoplay, maxHeight, maxWidth]);
 
   useEffect(() => {
@@ -134,7 +135,6 @@ const SwiperLightbox: React.FC<{
       pswpModule: () => import("photoswipe"),
     });
     lightbox.on("contentActivate", ({ content }) => {
-      setLightboxActive(true);
       // setActiveIndex(content.index);
       // swiperRef.current!.swiper.slideToLoop(content.index, 300);
       swiperRef.current!.swiper.slideTo(content.index, 300);
@@ -144,8 +144,6 @@ const SwiperLightbox: React.FC<{
       // console.log("contentResize", content, width, height);
     });
     lightbox.on("close", () => {
-      setLightboxActive(false);
-      setShowExif(false);
     });
     lightbox.on("destroy", () => {
       setSwiperAutoplay(autoplay);
@@ -173,37 +171,6 @@ const SwiperLightbox: React.FC<{
 
   return (
     <>
-      <AnimatePresence>
-        {lightboxActive && (
-          <motion.button
-            data-theme="dark"
-            aria-label={t.lightbox.info}
-            onTap={() => {
-              setShowExif(!showExif);
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.8 }}
-            whileHover={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={transitionApple}
-            style={{
-              position: "fixed",
-              top: 0,
-              right: "106px",
-              width: "50px",
-              height: "60px",
-              zIndex: 999999,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "transparent",
-            }}
-          >
-            <Icon icon="entypo:info-with-circle" width="18" height="18" />
-          </motion.button>
-        )}
-      </AnimatePresence>
       {/* <ExifPanel
         showExif={showExif}
         rdPhoto={images[(activeIndex + 1) % images.length]}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { formatBytes } from "@/lib/direct-upload";
 import { mediaImageSrc } from "@/lib/cf-image";
 import { Button } from "@/components/ui/button";
+import { useDialogLock } from "@/components/use-dialog-lock";
 import { StreamVideoPlayer } from "@/components/stream-video-player";
 import type { Media } from "@/payload-types";
 import { transcodeNote } from "@/lib/media/transcode-copy";
@@ -34,6 +35,9 @@ export function MediaDetailDialog({
   onDeleted: () => void;
   onUpdated: () => void;
 }) {
+  // Escape and a still page behind it — this dialog had neither, and the only
+  // way out was the 關閉 at the foot of a form taller than a phone.
+  useDialogLock(onClose);
   const [alt, setAlt] = useState(item.alt);
   const [title, setTitle] = useState(item.title ?? "");
   const [description, setDescription] = useState(item.description ?? "");
@@ -265,7 +269,11 @@ export function MediaDetailDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      // `!m-0`: rendered inside a `space-y-*` list, which gives every later
+      // sibling a top margin — and a margin moves a `fixed inset-0` box too.
+      // Centred on a desktop that never showed; full-screen on a phone it
+      // left a 24px strip of the page above the dialog.
+      className="fixed inset-0 z-50 !m-0 flex items-stretch justify-center bg-black/60 md:items-center md:p-4"
       onClick={onClose}
     >
       {/*
@@ -278,10 +286,16 @@ export function MediaDetailDialog({
         Caught by V-MEDIARACE-T1, whose click timed out on an element that
         was rendered, enabled and off-screen.
       */}
+      {/*
+        The whole screen on a phone, where the centred box inside `p-4` left
+        about 240px for a form of five fields.
+      */}
       <div
+        aria-modal="true"
         data-testid="media-detail-dialog"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90dvh] w-full max-w-lg space-y-4 overflow-y-auto border border-border bg-background p-6"
+        role="dialog"
+        className="h-full w-full max-w-lg space-y-4 overflow-y-auto border border-border bg-background p-4 md:h-auto md:max-h-[90dvh] md:p-6"
       >
         <div className="relative aspect-video bg-secondary">
           {video ? (
@@ -438,10 +452,12 @@ export function MediaDetailDialog({
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="flex items-center justify-between gap-3">
+        {/* Wraps: in the delete-confirm state the two groups are five or six
+            buttons, wider than a phone. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             {confirmingDelete ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm">確定刪除？</span>
                 <Button
                   data-testid="media-detail-delete-confirm"

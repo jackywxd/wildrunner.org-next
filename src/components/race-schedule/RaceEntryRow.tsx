@@ -1,3 +1,5 @@
+import { ArrowUpRight } from "lucide-react";
+
 import Link from "@/components/i18n/locale-link";
 
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
@@ -37,7 +39,8 @@ function formatDay(date: string, template: string): string {
   return template.replace("{month}", String(Number(month))).replace("{day}", String(Number(day)));
 }
 
-function formatRange(
+/** Also used by the calendar's phone agenda, so the two read the same. */
+export function formatRange(
   entry: SiteRaceScheduleEntry,
   monthDay: string,
   dayOnly: string,
@@ -115,10 +118,12 @@ export async function RaceEntryRow({
         "flex flex-col gap-2 border border-border bg-secondary p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6",
         open && "border-l-4 border-l-primary bg-primary/5",
         ongoing && "border-l-4 border-l-foreground bg-foreground/5",
-        // Dimmed, not hidden. Past races are the reason this window pages
-        // backwards at all, so they have to stay readable — this only stops
-        // them competing with what is still to come.
-        finished && "opacity-60",
+        // Receded, not dimmed. Past races are the reason this window pages
+        // backwards at all, so they have to stay readable: this used to be
+        // `opacity-60` over the whole row, which put 13px muted text at
+        // well under AA contrast. Now the card loses its fill and the name
+        // its weight of colour, and every line keeps full contrast.
+        finished && "bg-background",
       )}
       data-race-id={entry.id}
       data-race-state={state.kind}
@@ -163,7 +168,12 @@ export async function RaceEntryRow({
           )}
         </div>
 
-        <h3 className="font-heading text-lg font-semibold leading-snug">
+        <h3
+          className={cn(
+            "font-heading text-lg font-semibold leading-snug",
+            finished && "text-foreground/70",
+          )}
+        >
           {site ? (
             <a
               className="hit-area hover:text-primary"
@@ -172,6 +182,13 @@ export async function RaceEntryRow({
               target="_blank"
             >
               {entry.nameZh || entry.name}
+              {/* On a phone `hover:` never fires, so without a mark the name
+                  reads as plain text and nobody learns it opens the
+                  organiser's site. */}
+              <ArrowUpRight
+                aria-hidden
+                className="ml-0.5 inline size-4 align-[-2px] text-muted-foreground"
+              />
             </a>
           ) : (
             (entry.nameZh || entry.name)

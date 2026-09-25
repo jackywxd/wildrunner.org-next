@@ -48,7 +48,10 @@ export function DraggableBlockPlugin({
           // absolute + opacity rather than mounting on hover: the plugin
           // positions this element directly, and an element that appears
           // only once hovered can never be under the pointer to begin with.
-          className={`absolute left-0 top-0 flex cursor-grab items-center justify-center px-1 py-0.5 text-foreground/30 transition-opacity hover:bg-secondary hover:text-foreground/70 active:cursor-grabbing ${
+          // `touch:hidden`: HTML5 drag and `onMouseEnter` have no touch
+          // equivalent, so on a phone this was an invisible control that
+          // could never be operated — and it still took the 24px gutter.
+          className={`absolute left-0 top-0 flex cursor-grab touch:hidden items-center justify-center px-1 py-0.5 text-foreground/30 transition-opacity hover:bg-secondary hover:text-foreground/70 active:cursor-grabbing ${
             draggable ? "opacity-100" : "opacity-0"
           }`}
           draggable

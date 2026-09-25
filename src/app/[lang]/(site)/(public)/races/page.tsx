@@ -149,6 +149,7 @@ export default async function RacesPage({
           <RaceList
             canWriteReport={Boolean(user)}
             catalogue={catalogue}
+            collapseFinished={!anchor}
             entries={entries}
             now={now}
           />

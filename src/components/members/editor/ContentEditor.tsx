@@ -116,11 +116,12 @@ export function ContentEditor({
       {/* relative: the selection toolbar and the drag handle both position
           themselves against this box. pl-6 is the gutter the handle lives
           in — without it the handle sits on top of the first character of
-          every block it is offered for. The type size and line height are
+          every block it is offered for; a touch screen has no handle
+          (DraggableBlockPlugin) and so no gutter. The type size and line height are
           `.article-body`'s (globals.css), so a paragraph wraps here where it
           will wrap once published. */}
       <div
-        className="relative pl-6 text-[17px] leading-[1.85] md:text-[18px]"
+        className="relative pl-6 text-[17px] leading-[1.85] touch:pl-0 md:text-[18px]"
         ref={setAnchor}
       >
         <RichTextPlugin
@@ -132,7 +133,7 @@ export function ContentEditor({
             />
           }
           placeholder={
-            <div className="pointer-events-none absolute left-6 top-0 text-foreground/30">
+            <div className="pointer-events-none absolute left-6 top-0 text-foreground/30 touch:left-0">
               開始書寫，或輸入「/」插入區塊…
             </div>
           }

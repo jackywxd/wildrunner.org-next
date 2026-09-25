@@ -404,11 +404,15 @@ export function UploadPanel({
           }`}
         >
           <ImageUp className="size-8 text-muted-foreground" aria-hidden="true" />
-          <span className="text-base font-medium">把照片或影片拖進來</span>
-          <span className="text-sm text-muted-foreground">
+          {/* A phone cannot drag, so it is told what it can do: the whole
+              box is the file picker. */}
+          <span className="text-base font-medium touch:hidden">把照片或影片拖進來</span>
+          <span className="hidden text-base font-medium touch:inline">選擇照片或影片</span>
+          <span className="text-sm text-muted-foreground touch:hidden">
             可以一次拖很多個，或<span className="ml-1 text-primary underline">選擇檔案</span>
           </span>
-          <span className="mt-1 text-xs text-muted-foreground">
+          <span className="hidden text-sm text-muted-foreground touch:inline">可以一次選很多個</span>
+          <span className="mt-1 text-sm text-muted-foreground md:text-xs">
             圖片和影片　單檔最大 {MAX_UPLOAD_LABEL}
           </span>
         </label>
