@@ -315,7 +315,7 @@ export function MediaDetailDialog({
 
         {isVideo && (
           <p
-            className={`text-xs ${
+            className={`text-sm ${
               item.transcodeStatus === "failed" ? "text-destructive" : "text-foreground/50"
             }`}
             data-testid="media-detail-transcode"
@@ -350,7 +350,7 @@ export function MediaDetailDialog({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={item.filename ?? ""}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
           <span className="block text-xs text-muted-foreground">
             {isVideo
@@ -367,7 +367,7 @@ export function MediaDetailDialog({
             maxLength={500}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
           <span className="block text-xs text-muted-foreground">
             這張照片在講什麼。會顯示在燈箱和分享頁。和替代文字不一樣 —— 替代文字是給
@@ -382,7 +382,7 @@ export function MediaDetailDialog({
             type="text"
             value={alt}
             onChange={(e) => setAlt(e.target.value)}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
         </label>
 

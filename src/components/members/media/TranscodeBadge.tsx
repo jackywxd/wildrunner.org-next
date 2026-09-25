@@ -47,7 +47,7 @@ export function TranscodeBadge({ item }: { item: TranscodeRow }) {
     <span
       data-testid="transcode-badge"
       data-tone={badge.tone}
-      className={`absolute left-1 top-1 px-1.5 py-0.5 text-[10px] leading-none ${
+      className={`absolute left-1 top-1 px-1.5 py-0.5 text-tag leading-none ${
         badge.tone === "failed"
           ? "bg-destructive text-destructive-foreground"
           : "bg-foreground/70 text-background"

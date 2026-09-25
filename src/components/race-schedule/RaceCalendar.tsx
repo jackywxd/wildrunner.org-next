@@ -54,7 +54,7 @@ export async function RaceCalendar({
             <div className="mt-3 grid grid-cols-7 border-l border-t border-border">
               {t.raceSchedule.weekdays.map((label) => (
                 <div
-                  className="border-b border-r border-border bg-secondary px-1 py-1 text-center text-[11px] text-muted-foreground"
+                  className="border-b border-r border-border bg-secondary px-1 py-1 text-center text-tag text-muted-foreground"
                   key={label}
                 >
                   {label}
@@ -92,7 +92,7 @@ export async function RaceCalendar({
                   >
                     <span
                       className={cn(
-                        "block text-[11px] tabular-nums",
+                        "block text-tag tabular-nums",
                         cell.date === today && "font-bold text-primary",
                       )}
                     >
@@ -143,7 +143,7 @@ export async function RaceCalendar({
                             return (
                               <span
                                 className={cn(
-                                  "block truncate border-l-2 px-1 text-[10px] leading-tight",
+                                  "block truncate border-l-2 px-1 text-tag leading-tight",
                                   isRegistrationOpen(entry, now) && !done
                                     ? "border-l-primary bg-primary text-primary-foreground"
                                     : "border-l-muted-foreground/40 bg-muted-foreground/15 text-foreground",

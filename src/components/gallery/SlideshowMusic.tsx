@@ -194,7 +194,7 @@ export function SlideshowMusic({
         type="button"
         onClick={() => setCollapsed((was) => !was)}
         data-testid="slideshow-music-collapse"
-        className="flex w-full items-center justify-center gap-1 px-2 py-1.5 text-[11px] leading-tight text-white/70"
+        className="flex w-full items-center justify-center gap-1 px-2 py-1.5 text-tag leading-tight text-white/70"
       >
         {collapsed ? (
           <>
@@ -220,7 +220,7 @@ export function SlideshowMusic({
       {!collapsed && (
         <p
           data-testid="slideshow-music-hint"
-          className="hidden px-2 pb-1.5 text-center text-[11px] leading-tight text-white/70 touch:block"
+          className="hidden px-2 pb-1.5 text-center text-tag leading-tight text-white/70 touch:block"
         >
           {t.slideshowMusic.touchHint}
         </p>

@@ -77,7 +77,7 @@ function ResultFields({
         <label className="block space-y-1">
           <span className="text-sm">完賽狀態</span>
           <select
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2 text-base md:text-sm"
             data-testid={`${idPrefix}-result`}
             disabled={busy}
             onChange={(e) => onResult(e.target.value as "finished" | "dnf")}
@@ -96,7 +96,7 @@ function ResultFields({
             <span className="text-sm">完賽時間（可留空）</span>
             <input
               aria-invalid={invalid}
-              className="block w-full border border-input bg-background px-3 py-2 text-sm"
+              className="block w-full border border-input bg-background px-3 py-2 text-base md:text-sm"
               data-testid={`${idPrefix}-finish-time`}
               disabled={busy}
               inputMode="numeric"
@@ -436,7 +436,7 @@ export function RaceRecordManager({
                     </p>
                   </div>
                   <button
-                    className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                    className="min-h-11 px-2 py-1 text-sm text-muted-foreground hover:text-foreground md:min-h-0 md:text-xs"
                     data-testid="race-record-edit"
                     disabled={busy}
                     onClick={() =>
@@ -447,7 +447,7 @@ export function RaceRecordManager({
                     {editing === record.id ? "取消" : "修改"}
                   </button>
                   <button
-                    className="px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+                    className="min-h-11 px-2 py-1 text-sm text-muted-foreground hover:text-destructive md:min-h-0 md:text-xs"
                     data-testid="race-record-delete"
                     disabled={busy}
                     onClick={() => remove(record.id)}
@@ -497,12 +497,12 @@ export function RaceRecordManager({
                       className="basis-full space-y-2 border-t border-border pt-2"
                       data-testid="race-record-confirm"
                     >
-                      <p className="text-xs text-destructive">
+                      <p className="text-sm text-destructive">
                         {confirming.message}
                       </p>
                       <div className="flex justify-end gap-2">
                         <button
-                          className="px-2 py-1 text-xs text-muted-foreground"
+                          className="min-h-11 px-2 py-1 text-sm text-muted-foreground md:min-h-0 md:text-xs"
                           data-testid="race-record-confirm-cancel"
                           disabled={busy}
                           onClick={() => setConfirming(null)}
@@ -511,7 +511,7 @@ export function RaceRecordManager({
                           取消
                         </button>
                         <button
-                          className="px-2 py-1 text-xs font-semibold text-destructive"
+                          className="min-h-11 px-2 py-1 text-sm font-semibold text-destructive md:min-h-0 md:text-xs"
                           data-testid="race-record-confirm-delete"
                           disabled={busy}
                           onClick={() => remove(record.id, true)}

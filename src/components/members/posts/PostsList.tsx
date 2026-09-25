@@ -144,13 +144,13 @@ export function PostsList({
                     <span className="flex items-center gap-2">
                       <button
                         data-testid={`post-delete-confirm-${post.id}`}
-                        className="text-destructive hover:underline"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 text-destructive hover:underline"
                         onClick={() => remove(post.id)}
                       >
                         確定刪除
                       </button>
                       <button
-                        className="hover:underline"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 hover:underline"
                         onClick={() => setConfirmingDelete(null)}
                       >
                         取消
@@ -160,7 +160,7 @@ export function PostsList({
                     <button
                       data-testid={`post-delete-${post.id}`}
                       aria-label="刪除"
-                      className="text-foreground/40 hover:text-destructive"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 text-foreground/40 hover:text-destructive"
                       onClick={() => setConfirmingDelete(post.id)}
                     >
                       ✕

@@ -1,8 +1,4 @@
-import type { ClassValue } from "clsx";
-
-import clsx from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// The one `cn`, re-exported. A second `twMerge` here would not know the
+// `text-tag` size `tailwind.config.ts` adds, and would drop it whenever it met
+// a `text-<colour>` — see the note on `cn` in `utils.ts`.
+export { cn } from "@/lib/utils";

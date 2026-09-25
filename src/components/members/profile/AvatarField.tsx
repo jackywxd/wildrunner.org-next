@@ -212,7 +212,7 @@ export function AvatarField({
         </div>
 
         {error && (
-          <span className="text-xs text-destructive" data-testid="profile-avatar-error">
+          <span className="text-sm text-destructive" data-testid="profile-avatar-error">
             {error}
           </span>
         )}

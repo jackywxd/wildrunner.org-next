@@ -350,10 +350,10 @@ export function PostEditor({
               setDirty(true);
               lastEditAt.current = Date.now();
             }}
-            className="border border-input bg-background px-3 py-2 text-sm"
+            className="border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
           {fieldErrors.slug && (
-            <span data-testid="post-slug-error" className="text-xs text-destructive">
+            <span data-testid="post-slug-error" className="text-sm text-destructive">
               {fieldErrors.slug}
             </span>
           )}
@@ -370,7 +370,7 @@ export function PostEditor({
                 setDirty(true);
                 lastEditAt.current = Date.now();
               }}
-              className="border border-input bg-background px-3 py-2 text-sm"
+              className="border border-input bg-background px-3 py-2 text-base md:text-sm"
             />
           </label>
           {/*

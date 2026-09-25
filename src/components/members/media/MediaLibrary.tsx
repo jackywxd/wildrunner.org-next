@@ -296,7 +296,7 @@ export function MediaLibrary({
             data-testid="media-pager-prev"
             disabled={page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+            className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
           >
             上一頁
           </button>
@@ -307,7 +307,7 @@ export function MediaLibrary({
             onClick={() =>
               setPage((current) => Math.min(totalPages, current + 1))
             }
-            className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+            className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
           >
             下一頁
           </button>

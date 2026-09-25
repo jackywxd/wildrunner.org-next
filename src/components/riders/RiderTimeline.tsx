@@ -321,7 +321,7 @@ export async function RiderTimeline({
                 <h2 className="font-heading text-4xl font-extrabold tabular-nums tracking-tight sm:text-5xl">
                   {yearGroup.year}
                 </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {countsLabel(races, posts, t.riderTimeline.raceCount, t.riderTimeline.postCount)}
                 </p>
               </TimelineReveal>

@@ -146,7 +146,7 @@ export function ProfileForm({
           </span>
         )}
         {status === "error" && (
-          <span className="text-xs text-destructive">儲存失敗，請再試一次</span>
+          <span className="text-sm text-destructive">儲存失敗，請再試一次</span>
         )}
         <Button
           data-testid="profile-save"

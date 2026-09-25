@@ -179,7 +179,7 @@ export function CoverImageField({
       </div>
 
       {error && (
-        <span data-testid="post-cover-error" className="text-xs text-destructive">
+        <span data-testid="post-cover-error" className="text-sm text-destructive">
           {error}
         </span>
       )}

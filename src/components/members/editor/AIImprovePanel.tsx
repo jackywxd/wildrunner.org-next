@@ -122,7 +122,7 @@ export function AIImprovePanel({
           <span
             data-testid="ai-improve-error"
             role="alert"
-            className="text-xs text-destructive"
+            className="text-sm text-destructive"
           >
             {error}
           </span>

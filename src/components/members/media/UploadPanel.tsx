@@ -507,7 +507,7 @@ export function UploadPanel({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1 text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1 text-tag text-muted-foreground">
                     <span className="min-w-0 truncate">{item.file.name}</span>
                     <span className="shrink-0 tabular-nums">{formatBytes(item.file.size)}</span>
                   </div>
@@ -515,7 +515,7 @@ export function UploadPanel({
                   {item.status === "done" && (
                     <span
                       data-testid="media-upload-done"
-                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-emerald-600/90 px-2 py-0.5 text-[11px] text-white"
+                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-emerald-600/90 px-2 py-0.5 text-tag text-white"
                     >
                       <Check className="size-3" /> 完成
                     </span>
@@ -524,7 +524,7 @@ export function UploadPanel({
                     <span
                       data-testid="media-upload-duplicate"
                       title={item.message}
-                      className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-0.5 text-[11px] text-white"
+                      className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-0.5 text-tag text-white"
                     >
                       已上傳過
                     </span>
@@ -533,7 +533,10 @@ export function UploadPanel({
                     <span
                       data-testid="media-upload-error"
                       title={item.message}
-                      className="absolute inset-x-0 bottom-0 truncate bg-destructive/90 px-2 py-0.5 text-[11px] text-white"
+                      // Wrapped, not truncated: the full text was only in
+                      // `title`, which a phone never shows, so a member
+                      // uploading from one could not read why it failed.
+                      className="absolute inset-x-0 bottom-0 break-words bg-destructive/90 px-2 py-0.5 text-tag text-white"
                     >
                       {item.message}
                     </span>

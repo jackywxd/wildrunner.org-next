@@ -123,7 +123,7 @@ export default async function Home() {
       {filteredPosts?.length > 0 && (
         <>
           <h2 className="text-xl font-bold sm:text-2xl md:text-3xl">
-            Latest Posts
+            {t.posts.latest}
           </h2>
           <section>
             <Races

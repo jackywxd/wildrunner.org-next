@@ -19,12 +19,16 @@ import { cn } from "@/lib/utils";
  * explicit rather than inherited, matching `buttonVariants` — the whole
  * members area is square-cornered on purpose and a default radius would show
  * up as one control quietly out of family.
+ *
+ * `text-base md:text-sm`: iOS Safari zooms the whole page when a control
+ * under 16px takes focus, and leaves it zoomed. Every hand-written control in
+ * the members area carries the same pair for the same reason.
  */
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, ...props }, ref) => (
     <input
       className={cn(
-        "block w-full rounded-none border border-input bg-background px-3 py-2 text-sm",
+        "block w-full rounded-none border border-input bg-background px-3 py-2.5 text-base md:py-2 md:text-sm",
         "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
@@ -42,7 +46,7 @@ const Textarea = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <textarea
     className={cn(
-      "block w-full rounded-none border border-input bg-background px-3 py-2 text-sm",
+      "block w-full rounded-none border border-input bg-background px-3 py-2.5 text-base md:py-2 md:text-sm",
       "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       "disabled:cursor-not-allowed disabled:opacity-50",
       className,

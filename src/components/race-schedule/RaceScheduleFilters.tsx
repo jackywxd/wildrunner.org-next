@@ -47,7 +47,7 @@ function Chip({
     <Link
       aria-current={active ? "true" : undefined}
       className={cn(
-        "border px-3 py-1 text-xs leading-tight transition-colors",
+        "border hit-area inline-flex min-h-9 items-center px-3 text-tag transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",
@@ -85,7 +85,7 @@ export async function RaceScheduleFilters({
         </div>
 
         <a
-          className="border border-primary bg-primary px-3 py-1 text-xs font-medium leading-tight text-primary-foreground transition-colors hover:bg-primary/90"
+          className="border border-primary bg-primary hit-area inline-flex min-h-9 items-center px-3 text-tag font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           data-testid="race-reminder-link"
           href="https://racereminder.run/"
           rel="noopener noreferrer"

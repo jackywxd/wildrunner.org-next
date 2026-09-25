@@ -4,13 +4,19 @@
     "gallery": "相册",
     "riders": "成员",
     "about": "关于",
-    "signIn": "登入"
+    "signIn": "登入",
+    "menu": "选单",
+    "closeMenu": "关闭选单"
   },
   "posts": {
     "title": "文章",
     "subtitle": "野马营的比赛纪录与山野书写",
     "publishedOn": "发表于",
-    "revisedOn": "更新于"
+    "revisedOn": "更新于",
+    "latest": "最新文章",
+    "seeAll": "所有文章",
+    "empty": "还没有文章。",
+    "read": "阅读文章"
   },
   "reader": {
     "speedSlow": "慢",
@@ -230,7 +236,8 @@
     "print": "列印",
     "printPdf": "列印 / PDF",
     "all": "全部",
-    "coverImage": "封面图片"
+    "coverImage": "封面图片",
+    "createdBy": "网站制作"
   },
   "video": {
     "youtubeTitle": "YouTube 影片",

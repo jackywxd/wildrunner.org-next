@@ -91,10 +91,11 @@ export default function MemberLoginPage() {
           <input
             type="email"
             required
+            autoComplete="email"
             data-testid="member-login-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2.5 text-base md:py-2 md:text-sm"
           />
         </label>
         <label className="block space-y-1">
@@ -102,10 +103,11 @@ export default function MemberLoginPage() {
           <input
             type="password"
             required
+            autoComplete="current-password"
             data-testid="member-login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="block w-full border border-input bg-background px-3 py-2 text-sm"
+            className="block w-full border border-input bg-background px-3 py-2.5 text-base md:py-2 md:text-sm"
           />
         </label>
         {error && (
@@ -122,7 +124,7 @@ export default function MemberLoginPage() {
           登入
         </Button>
         <Link
-          className="block text-sm text-primary hover:underline"
+          className="hit-area block text-sm text-primary hover:underline"
           data-testid="member-login-forgot"
           href="/members/forgot"
         >

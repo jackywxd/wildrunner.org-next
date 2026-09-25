@@ -86,7 +86,7 @@ export function MediaPickerDialog({
             type="button"
             data-testid="media-picker-close"
             onClick={onClose}
-            className="text-xs text-foreground/50 hover:text-foreground"
+            className="min-h-11 px-2 text-sm text-foreground/50 hover:text-foreground md:min-h-0 md:px-0 md:text-xs"
           >
             關閉
           </button>
@@ -127,7 +127,7 @@ export function MediaPickerDialog({
               onClick={() =>
                 browse.setPage((current) => Math.max(1, current - 1))
               }
-              className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+              className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
             >
               上一頁
             </button>
@@ -140,7 +140,7 @@ export function MediaPickerDialog({
                   Math.min(browse.totalPages, current + 1),
                 )
               }
-              className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+              className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
             >
               下一頁
             </button>

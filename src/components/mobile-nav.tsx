@@ -1,86 +1,114 @@
 "use client";
 
-import React, { ComponentProps, ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 import LanguageSwitcher from "@/components/i18n/language-switcher";
 import Link from "@/components/i18n/locale-link";
+import { useDictionary } from "@/components/i18n/dictionary-provider";
 import { navIcon } from "@/components/nav-icons";
+import ThemeToggle from "@/components/theme-toggle";
 import { localeHref } from "@/lib/i18n/locale-href";
 import type { NavItemData } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 interface MobileNavProps {
+  id: string;
   items: NavItemData[];
   onOpenChange: () => void;
 }
 
-export default function MobileNav({ items, onOpenChange }: MobileNavProps) {
+/**
+ * The phone's whole navigation, and on a phone the only place the language
+ * and theme controls live — the header keeps just the sign-in and this
+ * menu's button, each a full 44px target.
+ *
+ * WHAT IT FIXED, measured at 375px before the rewrite: rows 27px tall with
+ * 24px of dead space between them, no backdrop (the page stayed visible and
+ * scrollable underneath), a height of `100vh`, which on iOS includes the
+ * strip under the browser's toolbar, and a language control 31px tall at
+ * the very bottom.
+ *
+ * `top-16 bottom-0` rather than any `vh`: a fixed box pinned to both edges is
+ * exactly the visible viewport, whatever the browser's chrome is doing.
+ *
+ * Each row is an ordinary `Link`. It used to also call `router.push` by hand
+ * in its `onClick`, which navigated a second time on top of the one `Link`
+ * already starts.
+ */
+export default function MobileNav({ id, items, onOpenChange }: MobileNavProps) {
+  const t = useDictionary();
+  const pathname = usePathname();
+
+  // The page underneath must not scroll while the menu covers it; on iOS a
+  // swipe on the backdrop would otherwise scroll the article behind.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onOpenChange();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      root.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onOpenChange]);
+
   return (
-    <div className="fixed inset-0 top-16 z-50 grid h-[calc(100vh-4rem)] grid-flow-row auto-rows-max overflow-auto py-6 pb-32 animate-in slide-in-from-bottom-80 md:hidden">
-      <div className="relative z-20 grid gap-6 border border-border bg-secondary p-4 text-popover-foreground shadow-none">
-        {items.map((item) => {
-          const Icon = navIcon(item.icon);
-          return (
-            <MobileLink
-              key={item.label + item.path}
-              href={item.path}
-              className="flex items-center"
-              onOpenChange={onOpenChange}
-            >
-              <Icon className="mr-2 size-4" />
-              <span>{item.label}</span>
-            </MobileLink>
-          );
-        })}
-        {/* The header's copy is hidden below `sm`, so without this a phone
-            has no way to change language at all — and a phone is how most of
-            this site is read. */}
-        {/* The rule belongs to the menu, not to the control: the switcher is
-            a menu of its own now and shrinks to its trigger, so a border on
-            it would draw a 60px line across a 356px panel. */}
-        <div className="border-t border-border pt-4">
-          <LanguageSwitcher />
+    <div className="fixed inset-x-0 bottom-0 top-16 z-50 md:hidden" id={id}>
+      <button
+        aria-label={t.nav.closeMenu}
+        className="absolute inset-0 bg-foreground/40 motion-safe:animate-in motion-safe:fade-in"
+        onClick={onOpenChange}
+        tabIndex={-1}
+        type="button"
+      />
+      <div className="relative max-h-full overflow-y-auto border-b border-border bg-background pb-[env(safe-area-inset-bottom)] motion-safe:animate-in motion-safe:slide-in-from-top-2">
+        <nav className="flex flex-col">
+          {items.map((item) => {
+            const Icon = navIcon(item.icon);
+            // `Link` rewrites the address it renders, and the highlight
+            // compares against the address bar — so it needs the same answer
+            // `Link` reached, not the bare path the item carries.
+            const active = pathname === localeHref(item.path, pathname);
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-14 items-center gap-3 border-b border-l-4 border-b-border px-4 text-[17px] transition-colors",
+                  active
+                    ? "border-l-primary text-primary"
+                    : "border-l-transparent text-foreground hover:text-primary",
+                )}
+                href={item.path}
+                key={item.label + item.path}
+                onClick={onOpenChange}
+              >
+                <Icon className="size-5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Choosing a language navigates, and the menu has to go with it —
+            delegated here because the links are the switcher's, not ours. */}
+        <div
+          className="space-y-3 px-4 py-4"
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest("a")) onOpenChange();
+          }}
+        >
+          <p className="text-sm text-muted-foreground">{t.language.choose}</p>
+          <LanguageSwitcher variant="menu" />
+        </div>
+
+        <div className="border-t border-border px-2 py-2">
+          <ThemeToggle className="min-h-14 text-[17px]" withLabel />
         </div>
       </div>
     </div>
   );
 }
-
-interface MobileLinkProps extends ComponentProps<typeof Link> {
-  children: ReactNode;
-  onOpenChange?: () => void;
-  className?: string;
-}
-
-const MobileLink = ({
-  children,
-  onOpenChange,
-  className,
-  href,
-  ...props
-}: MobileLinkProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  // `Link` rewrites the address it renders, but this handler navigates by
-  // hand and the highlight compares against the address bar — so both need
-  // the same answer `Link` reached, not the bare `href` the caller passed.
-  const target = localeHref(href.toString(), pathname);
-  return (
-    <Link
-      href={href}
-      onClick={() => {
-        router.push(target);
-        onOpenChange?.();
-      }}
-      className={cn(
-        "transition-colors hover:text-primary",
-        pathname === target ? "text-primary" : "text-muted-foreground",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </Link>
-  );
-};

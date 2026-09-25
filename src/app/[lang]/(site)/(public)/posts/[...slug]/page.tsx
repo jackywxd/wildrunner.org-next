@@ -196,7 +196,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           </time>
         )}
 
-        <h1 className="mt-2 inline-block text-4xl font-extrabold capitalize leading-tight text-foreground lg:text-5xl">
+        <h1 className="mt-2 inline-block text-3xl font-extrabold capitalize leading-tight text-foreground md:text-4xl lg:text-5xl">
           {blog.title}
         </h1>
 
@@ -226,7 +226,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             )}
             <div className="flex-1 text-left leading-tight">
               <p className="font-medium">{blog.author}</p>
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 @{blog.author}
               </p>
             </div>
@@ -257,7 +257,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               <p className="truncate font-semibold">
                 {resolveBadgeEvent(catalogue, blog.race.eventId).name}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {blog.race.year}
                 {" · "}
                 {
@@ -286,8 +286,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           </div>
         )}
 
+        {/* Full width on a phone. `w-1/2` at every size left a 155px picture
+            on a 375px screen, while `sizes` below fetched it at 90vw — twice
+            the pixels it showed. */}
         {blog.image && (
-          <div className="mx-auto my-8 w-1/2 max-w-[720px]">
+          <div className="mx-auto my-8 w-full max-w-[720px] md:w-1/2">
             <Image
               src={blog.image.src}
               alt={blog.title}
@@ -319,7 +322,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             className={cn(buttonVariants({ variant: "ghost" }))}
           >
             <ChevronLeft className="mr-2 size-4" />
-            See all Posts
+            {t.posts.seeAll}
           </Link>
 
           {/* A plain link, not a button that calls `window.print()`: the

@@ -147,7 +147,7 @@ export async function RaceEntryRow({
           })}
           {ongoing && (
             <span
-              className="border border-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-foreground"
+              className="border border-foreground px-1.5 py-0.5 text-tag font-semibold leading-tight text-foreground"
               data-testid="race-state-tag"
             >
               {t.raceSchedule.inProgress}
@@ -155,7 +155,7 @@ export async function RaceEntryRow({
           )}
           {finished && (
             <span
-              className="border border-border px-1.5 py-0.5 text-[10px] leading-tight text-muted-foreground"
+              className="border border-border px-1.5 py-0.5 text-tag leading-tight text-muted-foreground"
               data-testid="race-state-tag"
             >
               {t.raceSchedule.finished}
@@ -166,7 +166,7 @@ export async function RaceEntryRow({
         <h3 className="font-heading text-lg font-semibold leading-snug">
           {site ? (
             <a
-              className="hover:text-primary"
+              className="hit-area hover:text-primary"
               href={site}
               rel="noopener noreferrer"
               target="_blank"
@@ -181,7 +181,7 @@ export async function RaceEntryRow({
         {/* The English name is kept alongside a Chinese one: entry lists,
             results and every search a runner does use the original. */}
         {entry.nameZh && (
-          <p className="text-xs text-muted-foreground">{entry.name}</p>
+          <p className="text-sm text-muted-foreground">{entry.name}</p>
         )}
 
         <p className="text-sm text-muted-foreground">
@@ -189,7 +189,7 @@ export async function RaceEntryRow({
         </p>
 
         {entry.notes && (
-          <p className="text-xs text-muted-foreground">{entry.notes}</p>
+          <p className="text-sm text-muted-foreground">{entry.notes}</p>
         )}
 
         {/* `eventId` is the string key `race-events` uses (RaceEvents.ts);
@@ -200,7 +200,7 @@ export async function RaceEntryRow({
             catalogue now, so it offers races this link never will. */}
         {entry.eventId && (finished || ongoing) && (
           <Link
-            className="text-xs text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-sm text-primary hover:underline"
             data-testid="race-photo-wall-link"
             href={`/races/${entry.eventId}/${entry.startDate.slice(0, 4)}`}
           >
@@ -226,7 +226,7 @@ export async function RaceEntryRow({
         <div className="flex shrink-0 gap-2 self-start">
           {reportable && (
             <Link
-              className="border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+              className="inline-flex min-h-11 items-center border border-border px-3 text-tag font-semibold md:min-h-9 hover:border-primary hover:text-primary"
               data-testid="race-write-report"
               // `eventId` + year, not `entry.id`. `entry` here comes from
               // getUpcomingRaces (race-editions), but the report picker's
@@ -244,7 +244,7 @@ export async function RaceEntryRow({
           )}
           {uploadable && (
             <Link
-              className="border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+              className="inline-flex min-h-11 items-center border border-border px-3 text-tag font-semibold md:min-h-9 hover:border-primary hover:text-primary"
               data-testid="race-upload-photo"
               // Same eventId + year contract as 紀錄比賽 above, resolved
               // against race-editions instead of race-schedule server-side

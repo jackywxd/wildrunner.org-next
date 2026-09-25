@@ -46,7 +46,7 @@ export function FilterChip({
       data-testid={testId}
       onClick={onClick}
       className={cn(
-        "border px-3 py-1 text-xs leading-tight transition-colors",
+        "border hit-area inline-flex min-h-9 items-center px-3 text-tag transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",
@@ -125,13 +125,13 @@ export function FilterSelect<T extends string>({
   "data-testid": string;
 }) {
   return (
-    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <span>{label}</span>
       <select
         data-testid={testId}
         value={value}
         onChange={(event) => onChange(event.target.value as T)}
-        className="border border-border bg-background px-2 py-1 text-xs text-foreground"
+        className="min-h-11 border border-border bg-background px-2 py-1 text-base text-foreground md:min-h-0 md:text-xs"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

@@ -164,7 +164,7 @@ function PostLine({ compact, post }: { compact: boolean; post: ClubPost }) {
           </p>
         )}
         {post.author && (
-          <p className="mt-1 text-xs text-muted-foreground">{post.author.name}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{post.author.name}</p>
         )}
       </div>
     </Link>
@@ -386,7 +386,7 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
           {cursor ? t.clubTimeline.more : ""}
         </p>
         <button
-          className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground print:hidden"
+          className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground print:hidden"
           data-testid="club-timeline-print"
           disabled={printing}
           onClick={() => void printAll()}

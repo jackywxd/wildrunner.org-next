@@ -127,7 +127,7 @@ async function SixMajorsProgressLine({
 
   return (
     <p
-      className="mt-1 text-xs text-muted-foreground"
+      className="mt-1 text-sm text-muted-foreground"
       data-testid="six-majors-progress"
     >
       {SIX_MAJORS_LABEL_ZH} {sets > 0 ? t.badges.round.replace("{n}", String(sets + 1)) : ""}

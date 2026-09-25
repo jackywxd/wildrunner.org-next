@@ -221,7 +221,7 @@ export function FixedToolbarPlugin() {
         data-testid="editor-block-type"
         value={block}
         onChange={(event) => applyBlock(event.target.value as BlockKind)}
-        className="border border-input bg-background px-2 py-1 text-xs"
+        className="border border-input bg-background px-2 py-1 text-base md:text-xs"
         aria-label="區塊型別"
       >
         {(Object.keys(BLOCK_LABELS) as BlockKind[]).map((kind) => (

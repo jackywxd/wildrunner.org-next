@@ -116,8 +116,13 @@ export function ContentEditor({
       {/* relative: the selection toolbar and the drag handle both position
           themselves against this box. pl-6 is the gutter the handle lives
           in — without it the handle sits on top of the first character of
-          every block it is offered for. */}
-      <div className="relative pl-6" ref={setAnchor}>
+          every block it is offered for. The type size and line height are
+          `.article-body`'s (globals.css), so a paragraph wraps here where it
+          will wrap once published. */}
+      <div
+        className="relative pl-6 text-[17px] leading-[1.85] md:text-[18px]"
+        ref={setAnchor}
+      >
         <RichTextPlugin
           contentEditable={
             <ContentEditable

@@ -42,7 +42,7 @@ import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
  */
 
 const selectClass =
-  "block w-full border border-input bg-background px-3 py-2 text-sm";
+  "block w-full border border-input bg-background px-3 py-2 text-base md:text-sm";
 
 export type RaceClaim = {
   distanceId: string;

@@ -145,7 +145,7 @@ export function TimelineDownloadButton({ slug }: { slug: string }) {
   return (
     <>
       <button
-        className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 print:hidden"
+        className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 print:hidden"
         data-testid="rider-timeline-download"
         disabled={pdf.downloading}
         onClick={pdf.download}
@@ -155,7 +155,7 @@ export function TimelineDownloadButton({ slug }: { slug: string }) {
       </button>
       {pdf.error && (
         <span
-          className="w-full text-xs text-destructive print:hidden"
+          className="w-full text-sm text-destructive print:hidden"
           data-testid="rider-timeline-download-error"
         >
           {pdf.error}
@@ -176,7 +176,7 @@ export function TimelineDownloadButton({ slug }: { slug: string }) {
 export function TimelinePrintButton({ label }: { label: string }) {
   return (
     <button
-      className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground print:hidden"
+      className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground print:hidden"
       data-testid="rider-timeline-print"
       onClick={() => window.print()}
       type="button"

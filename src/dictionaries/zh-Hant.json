@@ -4,13 +4,19 @@
     "gallery": "相冊",
     "riders": "成員",
     "about": "關於",
-    "signIn": "登入"
+    "signIn": "登入",
+    "menu": "選單",
+    "closeMenu": "關閉選單"
   },
   "posts": {
     "title": "文章",
     "subtitle": "野馬營的比賽紀錄與山野書寫",
     "publishedOn": "發表於",
-    "revisedOn": "更新於"
+    "revisedOn": "更新於",
+    "latest": "最新文章",
+    "seeAll": "所有文章",
+    "empty": "還沒有文章。",
+    "read": "閱讀文章"
   },
   "reader": {
     "speedSlow": "慢",
@@ -230,7 +236,8 @@
     "print": "列印",
     "printPdf": "列印 / PDF",
     "all": "全部",
-    "coverImage": "封面圖片"
+    "coverImage": "封面圖片",
+    "createdBy": "網站製作"
   },
   "video": {
     "youtubeTitle": "YouTube 影片",

@@ -76,11 +76,44 @@
   * {
     @apply border-border;
   }
+  /* 16px, up from 15. On a phone 15px CJK is legible but tiring, and it is
+     the floor iOS uses to decide whether to zoom into a form control — a
+     site whose body sits under it has already told every hand-written input
+     to sit under it too. */
   body {
     @apply bg-background text-foreground;
-    font-size: 15px;
-    line-height: 1.8;
+    font-size: 16px;
+    line-height: 1.75;
     font-weight: 400;
+  }
+}
+
+/*
+ * `hit-area` — a 44x44 touch target around a control drawn smaller.
+ *
+ * A filter chip, a tag-sized link or a pager arrow can look 32px tall and
+ * still take a thumb: the pseudo-element is centred on the control and never
+ * smaller than 44px either way, and a tap on a pseudo-element is a tap on its
+ * element. Measured before this existed, 97 of the 106 controls on /races at
+ * 375px were smaller than that.
+ *
+ * Two things to keep true where it is used. Neighbours need 8px or more
+ * between their drawn edges when the drawn size is 36px, or the areas
+ * overlap and the later one wins the tap. And the control must not clip its
+ * overflow — `overflow: hidden` cuts the area back to the drawn box.
+ */
+@layer components {
+  .hit-area {
+    position: relative;
+  }
+  .hit-area::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 }
 
@@ -163,7 +196,24 @@ h6 {
  * which is what the editing surface uses and cannot use this (Lexical hangs
  * classes on nodes it creates). Two definitions of one scale is a drift
  * risk, so M-TYPO-T2 measures both and fails if they disagree.
+ *
+ * THE BODY IS ONE STEP UP FROM THE SITE'S. 17px on a phone and 18px from
+ * `md`, at 1.85: long-form Chinese read on a phone at 15px and 1.625 — which
+ * is what this block used to inherit and set — packs the strokes of adjacent
+ * lines close enough to make every paragraph work. Paragraphs are a full
+ * line apart for the same reason; 12px under 27px lines did not separate
+ * them. Headings are in rem, so they keep their size and stay above the body
+ * (h3 is 20px against 18px at the widest).
  */
+.article-body {
+  font-size: 17px;
+  line-height: 1.85;
+}
+@media (min-width: 768px) {
+  .article-body {
+    font-size: 18px;
+  }
+}
 .article-body h1 {
   @apply mb-3 mt-8 text-3xl font-semibold;
 }
@@ -183,16 +233,13 @@ h6 {
   @apply mb-1 mt-3 text-sm font-semibold;
 }
 .article-body p {
-  @apply mb-3 leading-relaxed;
+  @apply mb-[1em];
 }
 .article-body ul {
   @apply mb-3 list-disc space-y-1 pl-6;
 }
 .article-body ol {
   @apply mb-3 list-decimal space-y-1 pl-6;
-}
-.article-body li {
-  @apply leading-relaxed;
 }
 /* Lexical nests a sublist inside its parent `<li>`, so that item is a
    container rather than a line of its own — a marker beside it reads as an
@@ -221,9 +268,11 @@ h6 {
 .article-body table {
   @apply my-4 w-full border-collapse;
 }
+/* The editor's cells are `text-sm` (`theme.ts`); at the body's 17px a table
+   on a phone is wider than the screen far sooner. */
 .article-body th,
 .article-body td {
-  @apply border border-border px-3 py-2 align-top;
+  @apply border border-border px-3 py-2 align-top text-sm;
 }
 .article-body th {
   @apply bg-secondary font-semibold;
