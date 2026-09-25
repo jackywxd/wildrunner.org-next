@@ -55,7 +55,7 @@ export async function RegistrationStatus({
     >
       <span
         className={cn(
-          "inline-block border px-2 py-0.5 text-[11px] leading-tight",
+          "inline-block border px-2 py-0.5 text-tag leading-tight",
           TONE_CLASS[label.tone],
         )}
       >
@@ -65,14 +65,17 @@ export async function RegistrationStatus({
       {/* A lottery that says only "報名中" misleads — the entrant has to
           enter a draw, not pay a fee. Shown for every non-default type. */}
       {entry.registrationType !== "first-come" && (
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-tag text-muted-foreground">
           {REGISTRATION_TYPE_LABELS[entry.registrationType]}
         </span>
       )}
 
       {actionable && href && (
         <a
-          className="text-[11px] font-medium text-primary underline underline-offset-2 hover:no-underline"
+          // A button, not an underlined 11px word: it is the one action on
+          // the row and the reason most visitors open this page. Full 44px
+          // tall on a phone.
+          className="inline-flex min-h-11 items-center border border-primary px-3 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground md:min-h-9"
           data-testid="race-registration-link"
           href={href}
           rel="noopener noreferrer"

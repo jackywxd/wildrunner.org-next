@@ -44,7 +44,7 @@ function Chip({
     <Link
       aria-current={active ? "true" : undefined}
       className={cn(
-        "border px-3 py-1 text-xs leading-tight transition-colors",
+        "border hit-area inline-flex min-h-9 items-center px-3 text-tag transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-muted-foreground hover:text-foreground",

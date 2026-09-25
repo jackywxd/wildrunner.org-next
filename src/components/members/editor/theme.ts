@@ -14,7 +14,9 @@ import type { EditorThemeClasses } from "@payloadcms/richtext-lexical/lexical";
  * headings and the published page did not.
  */
 export const editorTheme: EditorThemeClasses = {
-  paragraph: "mb-3 leading-relaxed",
+  // Size and line height come from the editing surface (ContentEditor), as
+  // they come from `.article-body` on the page; only the spacing is per node.
+  paragraph: "mb-[1em]",
   quote: "border-l-2 border-primary pl-4 my-4 text-foreground/70",
   heading: {
     h1: "font-heading text-3xl font-semibold mt-8 mb-3",
@@ -27,7 +29,6 @@ export const editorTheme: EditorThemeClasses = {
   list: {
     ul: "list-disc pl-6 mb-3 space-y-1",
     ol: "list-decimal pl-6 mb-3 space-y-1",
-    listitem: "leading-relaxed",
     nested: {
       listitem: "list-none",
     },

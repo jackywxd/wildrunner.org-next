@@ -24,6 +24,7 @@ export async function generateMetadata() {
 }
 
 export default async function BlogPage() {
+  const t = await getDictionary();
   const blogs = (await getPublishedPosts(await currentLocale())).sort(
     (a, b) =>
       new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
@@ -31,7 +32,7 @@ export default async function BlogPage() {
 
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
-      <PageHeader title="Posts" description="" />
+      <PageHeader title={t.posts.title} description="" />
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       {blogs.length ? (
@@ -49,7 +50,13 @@ export default async function BlogPage() {
                     width={blog.image.width}
                     height={blog.image.height}
                     sizes="(max-width: 640px) 100vw, 400px"
-                    className="transition-colors grayscale"
+                    // Filling the frame, not the image's own pixel width.
+                    // Without `w-full` the `<img width>` — the original's,
+                    // ~2000px — is the card's min-content width, and a grid
+                    // item does not shrink below that: at 375px the whole
+                    // page scrolled sideways by 1654px and every title was
+                    // cut in half.
+                    className="h-full w-full object-cover transition-colors grayscale"
                     priority={index < 2}
                     loading={index < 2 ? undefined : "lazy"}
                     placeholder={blog.image.blurDataURL ? "blur" : undefined}
@@ -72,13 +79,13 @@ export default async function BlogPage() {
               )}
 
               <Link href={postPublicPath(blog.slug)} className="absolute inset-0">
-                <span className="sr-only">View Article</span>
+                <span className="sr-only">{t.posts.read}</span>
               </Link>
             </article>
           ))}
         </div>
       ) : (
-        <p>No Posts found</p>
+        <p>{t.posts.empty}</p>
       )}
     </div>
   );

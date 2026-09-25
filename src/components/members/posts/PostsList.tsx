@@ -68,7 +68,7 @@ export function PostsList({
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-2xl font-semibold">文章</h1>
         <div className="flex gap-2">
           <Button
@@ -112,15 +112,19 @@ export function PostsList({
                 key={post.id}
                 data-testid={`post-row-${post.id}`}
                 data-status={post._status ?? "draft"}
-                className="flex items-center justify-between gap-3 p-4 text-sm"
+                // Two lines on a phone: the title on its own, the status,
+                // date, reads and delete under it. In one line the meta
+                // cluster did not shrink, so a `truncate` title was squeezed
+                // to nothing at 320px.
+                className="flex flex-col gap-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
               >
                 <Link
                   href={`/members/posts/${post.id}`}
-                  className="flex-1 truncate hover:text-primary"
+                  className="min-w-0 flex-1 hover:text-primary sm:truncate"
                 >
                   {post.title}
                 </Link>
-                <span className="flex items-center gap-3 text-xs text-foreground/50">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground/50 sm:text-xs">
                   <span
                     className={
                       published
@@ -144,13 +148,13 @@ export function PostsList({
                     <span className="flex items-center gap-2">
                       <button
                         data-testid={`post-delete-confirm-${post.id}`}
-                        className="text-destructive hover:underline"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 text-destructive hover:underline"
                         onClick={() => remove(post.id)}
                       >
                         確定刪除
                       </button>
                       <button
-                        className="hover:underline"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 hover:underline"
                         onClick={() => setConfirmingDelete(null)}
                       >
                         取消
@@ -160,7 +164,7 @@ export function PostsList({
                     <button
                       data-testid={`post-delete-${post.id}`}
                       aria-label="刪除"
-                      className="text-foreground/40 hover:text-destructive"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center md:min-h-0 md:min-w-0 text-foreground/40 hover:text-destructive"
                       onClick={() => setConfirmingDelete(post.id)}
                     >
                       ✕

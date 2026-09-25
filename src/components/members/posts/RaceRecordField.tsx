@@ -25,7 +25,7 @@ export type LinkedRace = {
 };
 
 const selectClass =
-  "block w-full border border-input bg-background px-3 py-2 text-sm";
+  "block w-full border border-input bg-background px-3 py-2 text-base md:text-sm";
 
 /**
  * The second entry point: attaching a race to a post already being written.

@@ -145,7 +145,7 @@ export function ImportPost() {
               clearParsed();
             }}
             placeholder="貼上文件內容，或選擇檔案…"
-            className="border border-input bg-background px-3 py-2 font-mono text-sm"
+            className="border border-input bg-background px-3 py-2 font-mono text-base md:text-sm"
           />
         </label>
 
@@ -194,7 +194,7 @@ export function ImportPost() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="無標題"
-                className="border border-input bg-background px-3 py-2 text-sm"
+                className="border border-input bg-background px-3 py-2 text-base md:text-sm"
               />
             </label>
             <label className="grid gap-1">
@@ -204,7 +204,7 @@ export function ImportPost() {
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="留空由系統自動產生"
-                className="border border-input bg-background px-3 py-2 text-sm"
+                className="border border-input bg-background px-3 py-2 text-base md:text-sm"
               />
             </label>
             <label className="grid gap-1">
@@ -214,7 +214,7 @@ export function ImportPost() {
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="border border-input bg-background px-3 py-2 text-sm"
+                className="border border-input bg-background px-3 py-2 text-base md:text-sm"
               />
             </label>
           </div>

@@ -149,6 +149,7 @@ export default async function RacesPage({
           <RaceList
             canWriteReport={Boolean(user)}
             catalogue={catalogue}
+            collapseFinished={!anchor}
             entries={entries}
             now={now}
           />
@@ -165,7 +166,7 @@ export default async function RacesPage({
       >
         {pager.older ? (
           <Link
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
             data-testid="race-pager-older"
             href={pageHref(filters, pager.older)}
           >
@@ -175,13 +176,13 @@ export default async function RacesPage({
           <span />
         )}
 
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="text-tag tabular-nums text-muted-foreground">
           {formatWindow(windowAnchor, t.races.monthRange)}
         </span>
 
         {pager.newer ? (
           <Link
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
             data-testid="race-pager-newer"
             href={pageHref(filters, pager.newer)}
           >
@@ -204,10 +205,10 @@ export default async function RacesPage({
           about a race that has since dropped off the list. Stating which
           document wins is the difference between a useful filter and a
           claim that sends somebody to a race that will not count. */}
-      <p className="mt-12 border-t-2 border-border pt-4 text-xs text-muted-foreground">
+      <p className="mt-12 border-t-2 border-border pt-4 text-tag text-muted-foreground">
         {t.races.disclaimerDates}
       </p>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-tag text-muted-foreground">
         {t.races.disclaimerQualifiers}
       </p>
     </div>

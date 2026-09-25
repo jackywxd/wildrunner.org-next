@@ -48,8 +48,19 @@ import { cn } from "@/lib/utils";
  * The script below is only about *closing*: `<details>` has no notion of
  * clicking away from it or of Escape, and a soft navigation leaves `open` set
  * because that is DOM state this component never rewrites.
+ *
+ * THE MENU VARIANT DROPS THE DISCLOSURE. Inside the mobile menu the languages
+ * are laid out as one row of full-height links: the menu is already the
+ * thing that was opened, and a second disclosure inside it — a 12px trigger
+ * with 2px of padding — was two taps on a target a thumb could barely find.
  */
-export default function LanguageSwitcher({ className }: { className?: string }) {
+export default function LanguageSwitcher({
+  className,
+  variant = "header",
+}: {
+  className?: string;
+  variant?: "header" | "menu";
+}) {
   const t = useDictionary();
   const pathname = usePathname();
   const menu = useRef<HTMLDetailsElement>(null);
@@ -80,6 +91,57 @@ export default function LanguageSwitcher({ className }: { className?: string }) 
       document.removeEventListener("keydown", close);
     };
   }, []);
+
+  const links = LOCALES.map(({ segment, tag, label }) => {
+    const active = segment === current;
+    return (
+      <Link
+        // `"page"` and not `"true"`: this link points at the page the
+        // reader is already on, which is the token's specific meaning
+        // and the one `RiderViewTabs` already uses for the same
+        // situation. `"true"` is the generic fallback, and in this
+        // codebase it is spoken for — `RiderFilters` and
+        // `RaceScheduleFilters` mark a selected filter chip with it, and
+        // `RF-T3` asserts page-wide that no chip is selected. A nav
+        // control wearing the chip token put a second meaning on one
+        // attribute value and broke that assertion on every page at once.
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "px-3 py-2 text-left transition-colors",
+          variant === "menu" &&
+            "flex min-h-11 items-center border border-border px-4 text-base",
+          active
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+        )}
+        data-testid={`language-${segment}`}
+        href={localizedPath(segment, bare === "" ? "/" : bare)}
+        // The IETF tag, not the URL segment: `hreflang` is read by
+        // crawlers and assistive tech, and `zh-hant` is not a language
+        // tag — `zh-Hant` is. `locales.ts` keeps the two apart because
+        // a path is typed by people and a tag is parsed by machines.
+        hrefLang={tag}
+        key={segment}
+      >
+        {/* The full name, not the one-character short form: a menu has
+            the room the header did not, and `label` is written in its
+            own language so the reader who needs it can recognise it. */}
+        {label}
+      </Link>
+    );
+  });
+
+  if (variant === "menu") {
+    return (
+      <nav
+        aria-label="Language"
+        className={cn("flex flex-wrap gap-2", className)}
+        data-testid="language-menu"
+      >
+        {links}
+      </nav>
+    );
+  }
 
   return (
     <details
@@ -113,42 +175,7 @@ export default function LanguageSwitcher({ className }: { className?: string }) 
           if (menu.current) menu.current.open = false;
         }}
       >
-        {LOCALES.map(({ segment, tag, label }) => {
-          const active = segment === current;
-          return (
-            <Link
-              // `"page"` and not `"true"`: this link points at the page the
-              // reader is already on, which is the token's specific meaning
-              // and the one `RiderViewTabs` already uses for the same
-              // situation. `"true"` is the generic fallback, and in this
-              // codebase it is spoken for — `RiderFilters` and
-              // `RaceScheduleFilters` mark a selected filter chip with it, and
-              // `RF-T3` asserts page-wide that no chip is selected. A nav
-              // control wearing the chip token put a second meaning on one
-              // attribute value and broke that assertion on every page at once.
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "px-3 py-2 text-left transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-              data-testid={`language-${segment}`}
-              href={localizedPath(segment, bare === "" ? "/" : bare)}
-              // The IETF tag, not the URL segment: `hreflang` is read by
-              // crawlers and assistive tech, and `zh-hant` is not a language
-              // tag — `zh-Hant` is. `locales.ts` keeps the two apart because
-              // a path is typed by people and a tag is parsed by machines.
-              hrefLang={tag}
-              key={segment}
-            >
-              {/* The full name, not the one-character short form: a menu has
-                  the room the header did not, and `label` is written in its
-                  own language so the reader who needs it can recognise it. */}
-              {label}
-            </Link>
-          );
-        })}
+        {links}
       </nav>
     </details>
   );

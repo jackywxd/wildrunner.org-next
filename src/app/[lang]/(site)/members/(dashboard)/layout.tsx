@@ -17,9 +17,9 @@ export default async function MemberDashboardLayout({
   const user = await requireMember();
 
   return (
-    <div className="flex min-h-[100vh] flex-col lg:flex-row">
+    <div className="flex min-h-dvh flex-col lg:flex-row">
       <MemberNav user={user} />
-      <main className="flex-1 p-6">{children}</main>
+      <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
     </div>
   );
 }

@@ -4,13 +4,19 @@
     "gallery": "相冊",
     "riders": "成員",
     "about": "關於",
-    "signIn": "登入"
+    "signIn": "登入",
+    "menu": "選單",
+    "closeMenu": "關閉選單"
   },
   "posts": {
     "title": "文章",
     "subtitle": "野馬營的比賽紀錄與山野書寫",
     "publishedOn": "發表於",
-    "revisedOn": "更新於"
+    "revisedOn": "更新於",
+    "latest": "最新文章",
+    "seeAll": "所有文章",
+    "empty": "還沒有文章。",
+    "read": "閱讀文章"
   },
   "reader": {
     "speedSlow": "慢",
@@ -128,7 +134,8 @@
     "yearMonth": "{year} 年 {month} 月",
     "logRace": "紀錄比賽",
     "uploadPhotos": "上傳相片",
-    "register": "前往報名 →"
+    "register": "前往報名 →",
+    "finishedCollapsed": "顯示本月已結束的 {count} 場"
   },
   "riders": {
     "title": "野馬",
@@ -183,15 +190,16 @@
     "zoom": "放大 (單擊圖片)",
     "prev": "上一張 (左方向鍵)",
     "next": "下一張 (右方向鍵)",
-    "error": "發生錯誤：無法載入圖片",
-    "info": "顯示照片資訊"
+    "error": "發生錯誤：無法載入圖片"
   },
   "raceFilters": {
     "list": "列表",
     "calendar": "月曆",
     "remind": "預約提醒",
     "allSeries": "全部系列",
-    "openOnly": "只看報名中"
+    "openOnly": "只看報名中",
+    "filter": "篩選",
+    "filterCount": "篩選（{count}）"
   },
   "rider": {
     "bioFallback": "{name} 在野馬營的文章",
@@ -230,7 +238,8 @@
     "print": "列印",
     "printPdf": "列印 / PDF",
     "all": "全部",
-    "coverImage": "封面圖片"
+    "coverImage": "封面圖片",
+    "createdBy": "網站製作"
   },
   "video": {
     "youtubeTitle": "YouTube 影片",

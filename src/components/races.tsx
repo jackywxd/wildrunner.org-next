@@ -5,8 +5,10 @@ import Link from "@/components/i18n/locale-link";
 import { formatDate } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { postPublicPath } from "@/lib/content-paths";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export default function Races({ allRaces }: { allRaces: SitePost[] }) {
+export default async function Races({ allRaces }: { allRaces: SitePost[] }) {
+  const t = await getDictionary();
   const rs = allRaces.sort(
     (a, b) =>
       new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
@@ -34,7 +36,7 @@ export default function Races({ allRaces }: { allRaces: SitePost[] }) {
                   href={postPublicPath(race.slug)}
                   className="absolute inset-0"
                 >
-                  <span className="sr-only">View Article</span>
+                  <span className="sr-only">{t.posts.read}</span>
                 </Link>
               )}
               {race.image && (
@@ -68,7 +70,7 @@ export default function Races({ allRaces }: { allRaces: SitePost[] }) {
           ))}
         </div>
       ) : (
-        <p>No Posts found</p>
+        <p>{t.posts.empty}</p>
       )}
     </div>
   );

@@ -80,7 +80,7 @@ export function AlbumCards({
             <h2 className="truncate text-sm font-extrabold text-foreground">
               {album.name}
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {album.photoCount > 0 ? countLabel(t.albums.photoCount, album.photoCount) : null}
               {album.photoCount > 0 && album.videoCount > 0 ? " · " : null}
               {album.videoCount > 0 ? countLabel(t.albums.videoCount, album.videoCount) : null}

@@ -72,11 +72,11 @@ export function GalleryVideos({
                   : "flex items-center justify-between gap-2 px-3 py-2"
               }
             >
-              <p className="truncate text-xs opacity-70">{label}</p>
+              <p className="truncate text-sm opacity-70">{label}</p>
               {shareHref && (
                 <Link
                   href={shareHref}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
+                  className="hit-area inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-white/80 transition-opacity hover:bg-white/10 hover:text-white"
                   aria-label={t.gallery.shareAria.replace("{label}", label)}
                   title={t.gallery.shareVideo}
                 >

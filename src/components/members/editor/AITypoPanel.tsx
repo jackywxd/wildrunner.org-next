@@ -156,7 +156,7 @@ export function AITypoPanel({
           <span
             data-testid="ai-typos-error"
             role="alert"
-            className="text-xs text-destructive"
+            className="text-sm text-destructive"
           >
             {error}
           </span>

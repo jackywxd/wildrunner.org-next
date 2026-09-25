@@ -178,7 +178,9 @@ async function Entry({
 
   return (
     <article
-      className="flex gap-4 border border-border bg-secondary p-4 print:break-inside-avoid"
+      // The badge sits above the text on a phone: beside it, a 64px badge
+      // and the rail's indent left the race name about 130px at 320.
+      className="flex flex-col gap-3 border border-border bg-secondary p-4 sm:flex-row sm:gap-4 print:break-inside-avoid"
       data-kind={kind}
       data-testid="rider-timeline-entry"
       data-year={year}
@@ -321,7 +323,7 @@ export async function RiderTimeline({
                 <h2 className="font-heading text-4xl font-extrabold tabular-nums tracking-tight sm:text-5xl">
                   {yearGroup.year}
                 </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {countsLabel(races, posts, t.riderTimeline.raceCount, t.riderTimeline.postCount)}
                 </p>
               </TimelineReveal>

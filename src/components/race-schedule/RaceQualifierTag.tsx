@@ -38,7 +38,7 @@ export function RaceQualifierTag({
     <span
       className={cn(
         "inline-block border border-dashed border-foreground/30 px-2 py-0.5",
-        "text-[11px] font-medium leading-tight text-muted-foreground",
+        "text-tag font-medium leading-tight text-muted-foreground",
         className,
       )}
       data-qualifier={qualifier}

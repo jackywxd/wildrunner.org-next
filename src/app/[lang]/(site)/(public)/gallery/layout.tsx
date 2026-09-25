@@ -19,9 +19,9 @@ export default function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="container relative max-w-7xl py-6 lg:py-10">{children}</div>
-  );
+  // Every gallery page draws its own `container`; wrapping it in a second
+  // one here doubled the gutter and the vertical padding both.
+  return children;
 }
 
 

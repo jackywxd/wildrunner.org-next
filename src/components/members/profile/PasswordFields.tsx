@@ -135,7 +135,7 @@ export function PasswordFields() {
       </label>
 
       {error && (
-        <p className="text-xs text-destructive" data-testid="profile-password-error">
+        <p className="text-sm text-destructive" data-testid="profile-password-error">
           {error}
         </p>
       )}

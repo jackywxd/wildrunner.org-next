@@ -64,7 +64,7 @@ export default async function RidersPage({
             it". Styled as its own control, not a chip, because it navigates
             instead of narrowing. */}
         <Link
-          className="border border-border bg-background px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground"
+          className="border border-border bg-background hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
           data-testid="club-timeline-link"
           href="/riders/timeline"
         >
@@ -119,7 +119,7 @@ export default async function RidersPage({
                       </p>
                     )}
                     <p
-                      className="mt-1 text-xs text-muted-foreground"
+                      className="mt-1 text-sm text-muted-foreground"
                       data-post-count={rider.postCount}
                       data-testid="rider-post-count"
                     >

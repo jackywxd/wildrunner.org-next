@@ -73,8 +73,18 @@ export function SelectionToolbarPlugin() {
       const origin = parent
         ? parent.getBoundingClientRect()
         : ({ left: 0, top: 0 } as DOMRect);
-      toolbar.style.top = `${rect.top - origin.top - toolbar.offsetHeight - 8}px`;
-      toolbar.style.left = `${rect.left - origin.left}px`;
+      // Below the selection on a touch screen, above it otherwise. iOS and
+      // Android draw their own copy/paste callout *above* a selection, and
+      // this toolbar sat exactly underneath it. It also goes below when there
+      // is no room above — a first-line selection used to put it outside the
+      // editor. And it is kept inside the editor's width: `w-max` from the
+      // selection's left edge ran off the right side of a phone.
+      const above = rect.top - origin.top - toolbar.offsetHeight - 8;
+      const below = rect.bottom - origin.top + 8;
+      const touch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+      toolbar.style.top = `${touch || above < 0 ? below : above}px`;
+      const room = (parent?.clientWidth ?? window.innerWidth) - toolbar.offsetWidth;
+      toolbar.style.left = `${Math.max(0, Math.min(rect.left - origin.left, room))}px`;
     }
     setVisible(true);
   }, [editor]);

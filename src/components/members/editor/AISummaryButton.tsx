@@ -94,7 +94,7 @@ export function AISummaryButton({
           <span
             data-testid="ai-summary-error"
             role="alert"
-            className="text-xs text-destructive"
+            className="text-sm text-destructive"
           >
             {error}
           </span>

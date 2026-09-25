@@ -62,7 +62,7 @@ export function VideoPosterTile({
       )}
       <div className="relative flex flex-col items-center gap-2 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
         <PlayGlyph />
-        <p className="max-w-[85%] truncate px-2 text-center text-xs">{label}</p>
+        <p className="max-w-[85%] truncate px-2 text-center text-sm">{label}</p>
       </div>
     </div>
   );

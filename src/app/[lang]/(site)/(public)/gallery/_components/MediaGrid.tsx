@@ -38,6 +38,7 @@ import { VideoPosterTile } from "@/components/media/VideoPosterTile";
 import { SlideshowMusic } from "@/components/gallery/SlideshowMusic";
 import { readMusicMuted, writeMusicMuted } from "@/lib/media/music-mute";
 import { NextJsImage } from "@/app/[lang]/(site)/(public)/gallery/_components/NextJsImage";
+import { responsiveRowHeight } from "@/app/[lang]/(site)/(public)/gallery/_components/row-height";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 
 /**
@@ -337,6 +338,20 @@ export function MediaGrid({
   const t = useDictionary();
   const [index, setIndex] = useState(-1);
   const paginated = nextCursor !== undefined;
+  /**
+   * A touch screen gets a shorter lightbox toolbar. With music, share,
+   * captions, thumbnails, slideshow, fullscreen, zoom in, zoom out and close
+   * there are up to eleven buttons, which do not fit across 375px. Zoom is
+   * a pinch on a phone and fullscreen is a no-op on iOS, so those two go.
+   *
+   * Read lazily, like SlideshowMusic's: the lightbox renders nothing until a
+   * tap opens it, so a server/client difference here never reaches the DOM.
+   */
+  const [touch] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches,
+  );
 
   /**
    * Whether the visitor has silenced the music. Read from `sessionStorage`
@@ -730,7 +745,7 @@ export function MediaGrid({
       ) : (
         <PhotoAlbum
           layout="rows"
-          targetRowHeight={targetRowHeight}
+          targetRowHeight={responsiveRowHeight(targetRowHeight)}
           photos={photos}
           render={{
             image: (props, context: RenderImageContext<GridPhoto>) =>
@@ -879,6 +894,7 @@ export function MediaGrid({
          * the first place say so.
          */
         thumbnails={{ ref: thumbnailsRef, showToggle: true }}
+        render={touch ? { buttonZoom: () => null, buttonFullscreen: () => null } : undefined}
         plugins={[Captions, Fullscreen, Slideshow, Thumbnails, Video, Zoom]}
       />
 

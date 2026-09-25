@@ -7,8 +7,17 @@ import {
 } from "@/lib/races/calendar";
 import { isFinished } from "@/lib/races/race-state";
 import { isRegistrationOpen } from "@/lib/races/registration";
+import { externalHref } from "@/lib/races/registration";
 import { cn } from "@/lib/utils";
 import { getDictionary } from "@/lib/i18n/dictionary";
+
+import { formatRange } from "./RaceEntryRow";
+import { RegistrationStatus } from "./RegistrationStatus";
+
+/** One id per race per month block: a race spanning two months appears in
+ *  both agendas, and each month's cells must land on their own copy. */
+const agendaId = (monthKey: string, entry: SiteRaceScheduleEntry) =>
+  `agenda-${monthKey}-${entry.id}`;
 
 /**
  * Twelve month blocks, built from Tailwind and the pure helpers in
@@ -19,8 +28,11 @@ import { getDictionary } from "@/lib/i18n/dictionary";
  *
  * MOBILE. Seven columns on a phone leaves each cell about 45px wide, which
  * fits no race name at a legible size. Below `sm` the cells show a count
- * dot instead; the list view is the real answer on a small screen and the
- * toggle is right above.
+ * dot instead — and a day with a race is a link to that race in an agenda
+ * printed under the month, phone only. Before the agenda the dots were all
+ * there was: a visitor could see that something was on the 12th and had no
+ * way at all to find out what. An anchor and `:target` rather than a
+ * popover, so it stays a server component with nothing to hydrate.
  */
 
 
@@ -44,6 +56,15 @@ export async function RaceCalendar({
     <div className="space-y-10" data-testid="race-calendar">
       {monthsInWindow(now, months, anchor).map((month) => {
         const cells = monthGrid(month);
+        // Every race on any day of this month, once, in the order its first
+        // day falls — a race already running on the 1st leads the list.
+        const agenda = new Map<SiteRaceScheduleEntry["id"], SiteRaceScheduleEntry>();
+        for (const cell of cells) {
+          if (!cell.inMonth) continue;
+          for (const entry of byDate.get(cell.date) ?? []) {
+            if (!agenda.has(entry.id)) agenda.set(entry.id, entry);
+          }
+        }
 
         return (
           <section data-month={month.key} data-testid="race-calendar-month" key={month.key}>
@@ -54,7 +75,7 @@ export async function RaceCalendar({
             <div className="mt-3 grid grid-cols-7 border-l border-t border-border">
               {t.raceSchedule.weekdays.map((label) => (
                 <div
-                  className="border-b border-r border-border bg-secondary px-1 py-1 text-center text-[11px] text-muted-foreground"
+                  className="border-b border-r border-border bg-secondary px-1 py-1 text-center text-tag text-muted-foreground"
                   key={label}
                 >
                   {label}
@@ -79,7 +100,7 @@ export async function RaceCalendar({
                 return (
                   <div
                     className={cn(
-                      "min-h-[64px] border-b border-r border-border p-1 align-top sm:min-h-[84px]",
+                      "relative min-h-[64px] border-b border-r border-border p-1 align-top sm:min-h-[84px]",
                       !cell.inMonth && "bg-muted/30 text-muted-foreground/50",
                       cell.date === today && "bg-primary/10",
                       hasOpen && "ring-1 ring-inset ring-primary/40",
@@ -92,7 +113,7 @@ export async function RaceCalendar({
                   >
                     <span
                       className={cn(
-                        "block text-[11px] tabular-nums",
+                        "block text-tag tabular-nums",
                         cell.date === today && "font-bold text-primary",
                       )}
                     >
@@ -101,6 +122,16 @@ export async function RaceCalendar({
 
                     {dayEntries.length > 0 && (
                       <>
+                        {/* The whole cell, on a phone, is the way to find out
+                            what the dots are. */}
+                        <a
+                          aria-label={`${Number(cell.date.slice(8, 10))}：${dayEntries
+                            .map((entry) => entry.nameZh || entry.name)
+                            .join("、")}`}
+                          className="absolute inset-0 sm:hidden"
+                          data-testid="race-calendar-day-link"
+                          href={`#${agendaId(month.key, dayEntries[0])}`}
+                        />
                         {/* Phone: a dot per race, filled when entry is open.
                             A continuation day is hollow for the same reason
                             the desktop chip recedes — so a run of dots does
@@ -143,7 +174,7 @@ export async function RaceCalendar({
                             return (
                               <span
                                 className={cn(
-                                  "block truncate border-l-2 px-1 text-[10px] leading-tight",
+                                  "block truncate border-l-2 px-1 text-tag leading-tight",
                                   isRegistrationOpen(entry, now) && !done
                                     ? "border-l-primary bg-primary text-primary-foreground"
                                     : "border-l-muted-foreground/40 bg-muted-foreground/15 text-foreground",
@@ -172,6 +203,40 @@ export async function RaceCalendar({
                 );
               })}
             </div>
+
+            {agenda.size > 0 && (
+              <ol className="mt-3 space-y-2 sm:hidden" data-testid="race-calendar-agenda">
+                {Array.from(agenda.values()).map((entry) => {
+                  const done = isFinished(entry, now);
+                  const site = externalHref(entry.url);
+                  const name = entry.nameZh || entry.name;
+                  return (
+                    <li
+                      className="flex scroll-mt-24 flex-col gap-1 border border-border bg-secondary p-3 target:ring-2 target:ring-primary"
+                      id={agendaId(month.key, entry)}
+                      key={entry.id}
+                    >
+                      <span className="text-sm font-semibold tabular-nums text-foreground/70">
+                        {formatRange(entry, t.raceSchedule.monthDay, t.raceSchedule.dayOnly)}
+                      </span>
+                      <span className={cn("font-heading font-semibold", done && "text-foreground/70")}>
+                        {site ? (
+                          <a className="hit-area hover:text-primary" href={site} rel="noopener noreferrer" target="_blank">
+                            {name}
+                          </a>
+                        ) : (
+                          name
+                        )}
+                      </span>
+                      {entry.distanceSummary && (
+                        <span className="text-sm text-muted-foreground">{entry.distanceSummary}</span>
+                      )}
+                      {!done && <RegistrationStatus entry={entry} now={now} />}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </section>
         );
       })}

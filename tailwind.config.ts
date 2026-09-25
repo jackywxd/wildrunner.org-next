@@ -48,6 +48,20 @@ const config = {
       screens: {
         touch: { raw: "(hover: none) and (pointer: coarse)" },
       },
+      /**
+       * `text-tag` — 13px, the floor for anything a visitor has to read:
+       * series and qualifier tags, registration status, filter chips.
+       *
+       * It replaces the 10px and 11px that those were set in. Measured at
+       * 375px, 41% of the characters on /races were under 14px, and the
+       * smallest of them was the one that mattered most — the 「前往報名」
+       * link, at 11px. `U-TEXTFLOOR` fails a `text-[10px]` or `text-[11px]`
+       * anywhere under src/, so the floor cannot erode one call site at a
+       * time.
+       */
+      fontSize: {
+        tag: ["0.8125rem", { lineHeight: "1.125rem" }],
+      },
       fontFamily: {
         lexend: ["var(--font-body)", ...fontFamily.sans],
         code: ["var(--font-code)", ...fontFamily.sans],

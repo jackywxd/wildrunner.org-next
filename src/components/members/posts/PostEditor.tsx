@@ -323,7 +323,8 @@ export function PostEditor({
     // the writing column too long to read on a desktop, which is the state
     // the editor is in almost all of the time.
     <div
-      className={`mx-auto space-y-6 ${previewing ? "max-w-6xl" : "max-w-2xl"}`}
+      // `pb-40` below `md` is the room the fixed action bar covers.
+      className={`mx-auto space-y-6 pb-40 md:pb-0 ${previewing ? "max-w-6xl" : "max-w-2xl"}`}
       data-testid="post-editor-root"
       data-previewing={previewing ? "true" : "false"}
     >
@@ -350,10 +351,10 @@ export function PostEditor({
               setDirty(true);
               lastEditAt.current = Date.now();
             }}
-            className="border border-input bg-background px-3 py-2 text-sm"
+            className="border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
           {fieldErrors.slug && (
-            <span data-testid="post-slug-error" className="text-xs text-destructive">
+            <span data-testid="post-slug-error" className="text-sm text-destructive">
               {fieldErrors.slug}
             </span>
           )}
@@ -370,7 +371,7 @@ export function PostEditor({
                 setDirty(true);
                 lastEditAt.current = Date.now();
               }}
-              className="border border-input bg-background px-3 py-2 text-sm"
+              className="border border-input bg-background px-3 py-2 text-base md:text-sm"
             />
           </label>
           {/*
@@ -389,7 +390,13 @@ export function PostEditor({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/50">
+      {/*
+        Pinned to the bottom of a phone's screen. It sat above the cover and
+        the body, so a member writing on a phone scrolled it away within a
+        paragraph — and with it 「儲存草稿」, 「發布」 and the only line that
+        says whether the last save worked. From `md` it is back in the flow.
+      */}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-sm text-foreground/50 md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:text-xs">
         <span data-testid="post-status" data-status={status}>
           {status === "published" ? "已發布" : "草稿"}
         </span>

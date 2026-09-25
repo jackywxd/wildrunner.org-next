@@ -247,7 +247,7 @@ export function ArticleReader({
         disabled={noVoice || segments.length === 0}
         data-testid="article-reader-toggle"
         aria-label={status === "speaking" ? t.reader.pauseAria : t.reader.readAria}
-        className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-40"
+        className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm min-h-11 md:min-h-9 disabled:opacity-40"
       >
         {status === "speaking" ? (
           <Pause className="size-4" />
@@ -273,7 +273,7 @@ export function ArticleReader({
           onClick={stop}
           data-testid="article-reader-stop"
           aria-label={t.reader.stopAria}
-          className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm"
+          className="flex items-center gap-2 border border-border bg-background px-3 py-1.5 text-sm min-h-11 md:min-h-9"
         >
           <Square className="size-4" />
           <span>{t.reader.stop}</span>
@@ -287,14 +287,14 @@ export function ArticleReader({
            device's, and some have no Chinese voice at all — a visitor who
            presses a silent control has no way to learn that. */
         <p
-          className="text-xs text-muted-foreground"
+          className="text-sm text-muted-foreground"
           data-testid="article-reader-no-voice"
         >
           {t.reader.noVoice}
         </p>
       ) : (
         <>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <span>{t.reader.voice}</span>
             <select
               data-testid="article-reader-voice"
@@ -311,7 +311,7 @@ export function ArticleReader({
                   speakFrom(cursor.current, { voiceName });
                 }
               }}
-              className="border border-border bg-background px-2 py-1 text-xs text-foreground"
+              className="min-h-11 border border-border bg-background px-2 py-1 text-base text-foreground md:min-h-0 md:text-xs"
             >
               {chineseVoices.map((voice) => (
                 <option key={voice.name} value={voice.name}>
@@ -321,7 +321,7 @@ export function ArticleReader({
             </select>
           </label>
 
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <span>{t.reader.speed}</span>
             <select
               data-testid="article-reader-rate"
@@ -336,7 +336,7 @@ export function ArticleReader({
                   speakFrom(cursor.current, { rate: next });
                 }
               }}
-              className="border border-border bg-background px-2 py-1 text-xs text-foreground"
+              className="min-h-11 border border-border bg-background px-2 py-1 text-base text-foreground md:min-h-0 md:text-xs"
             >
               {RATES.map((option) => (
                 <option key={option.value} value={option.value}>

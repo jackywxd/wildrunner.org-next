@@ -82,7 +82,7 @@ export function ShareSheet({
   return (
     <>
       <button
-        className="border border-border px-3 py-1 text-xs leading-tight text-muted-foreground transition-colors hover:text-foreground print:hidden"
+        className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground print:hidden"
         data-testid="share-open"
         onClick={open}
         type="button"
@@ -121,7 +121,7 @@ export function ShareSheet({
             width={1080}
           />
 
-          <p className="text-xs text-muted-foreground" data-testid="share-hint">
+          <p className="text-sm text-muted-foreground" data-testid="share-hint">
             {t.share.hint}
           </p>
 

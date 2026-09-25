@@ -51,11 +51,16 @@ export default async function RiderPage({ params }: Params) {
 
   return (
     <div className="container max-w-6xl py-6 lg:py-10">
-      <div className="flex items-start gap-5" data-testid="rider-profile">
+      {/* Stacked on a phone. Beside an 88px avatar a 36px name and the bio
+          shared what was left — 148px at 320px, about six characters a line. */}
+      <div
+        className="flex flex-col items-start gap-4 sm:flex-row sm:gap-5"
+        data-testid="rider-profile"
+      >
         <RiderAvatar rider={rider} size={88} />
         <div className="min-w-0 flex-1">
           <h1
-            className="font-heading text-4xl font-extrabold tracking-tight lg:text-5xl"
+            className="font-heading text-3xl font-extrabold leading-tight tracking-tight md:text-4xl lg:text-5xl"
             data-testid="rider-name"
           >
             {rider.name}

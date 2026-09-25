@@ -404,11 +404,15 @@ export function UploadPanel({
           }`}
         >
           <ImageUp className="size-8 text-muted-foreground" aria-hidden="true" />
-          <span className="text-base font-medium">把照片或影片拖進來</span>
-          <span className="text-sm text-muted-foreground">
+          {/* A phone cannot drag, so it is told what it can do: the whole
+              box is the file picker. */}
+          <span className="text-base font-medium touch:hidden">把照片或影片拖進來</span>
+          <span className="hidden text-base font-medium touch:inline">選擇照片或影片</span>
+          <span className="text-sm text-muted-foreground touch:hidden">
             可以一次拖很多個，或<span className="ml-1 text-primary underline">選擇檔案</span>
           </span>
-          <span className="mt-1 text-xs text-muted-foreground">
+          <span className="hidden text-sm text-muted-foreground touch:inline">可以一次選很多個</span>
+          <span className="mt-1 text-sm text-muted-foreground md:text-xs">
             圖片和影片　單檔最大 {MAX_UPLOAD_LABEL}
           </span>
         </label>
@@ -507,7 +511,7 @@ export function UploadPanel({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1 text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1 text-tag text-muted-foreground">
                     <span className="min-w-0 truncate">{item.file.name}</span>
                     <span className="shrink-0 tabular-nums">{formatBytes(item.file.size)}</span>
                   </div>
@@ -515,7 +519,7 @@ export function UploadPanel({
                   {item.status === "done" && (
                     <span
                       data-testid="media-upload-done"
-                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-emerald-600/90 px-2 py-0.5 text-[11px] text-white"
+                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-emerald-600/90 px-2 py-0.5 text-tag text-white"
                     >
                       <Check className="size-3" /> 完成
                     </span>
@@ -524,7 +528,7 @@ export function UploadPanel({
                     <span
                       data-testid="media-upload-duplicate"
                       title={item.message}
-                      className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-0.5 text-[11px] text-white"
+                      className="absolute inset-x-0 bottom-0 bg-amber-500/90 px-2 py-0.5 text-tag text-white"
                     >
                       已上傳過
                     </span>
@@ -533,7 +537,10 @@ export function UploadPanel({
                     <span
                       data-testid="media-upload-error"
                       title={item.message}
-                      className="absolute inset-x-0 bottom-0 truncate bg-destructive/90 px-2 py-0.5 text-[11px] text-white"
+                      // Wrapped, not truncated: the full text was only in
+                      // `title`, which a phone never shows, so a member
+                      // uploading from one could not read why it failed.
+                      className="absolute inset-x-0 bottom-0 break-words bg-destructive/90 px-2 py-0.5 text-tag text-white"
                     >
                       {item.message}
                     </span>

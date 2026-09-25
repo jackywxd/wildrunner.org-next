@@ -153,7 +153,7 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
 
       {site && (
         <a
-          className="mt-2 inline-block text-sm text-primary hover:underline"
+          className="hit-area mt-2 inline-block text-sm text-primary hover:underline"
           href={site}
           rel="noopener noreferrer"
           target="_blank"
@@ -165,7 +165,7 @@ export default async function RaceEditionPage({ params }: RaceEditionPageProps) 
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       <h2 className="font-heading text-lg font-semibold">{t.raceEdition.photoWall}</h2>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-sm text-muted-foreground">
         {t.raceEdition.photoWallHint}
       </p>
 

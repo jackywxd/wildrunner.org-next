@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useDialogLock } from "@/components/use-dialog-lock";
 
 import { MediaGrid } from "./MediaGrid";
 import { FilterSelect } from "@/components/media/filters";
@@ -61,24 +61,27 @@ export function MediaPickerDialog({
 
   // Escape closes it. A dialog that can only be dismissed by finding the right
   // pixel is one a member gets stuck in, and this one covers the editor they
-  // were part-way through writing in.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // were part-way through writing in. The page behind stays put.
+  useDialogLock(onClose);
 
+  // The whole screen on a phone: centred with `p-4` and `p-6` inside it, a
+  // grid of thumbnails had about 270px of a 375px screen and scrolled inside
+  // a box inside a page.
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      // `!m-0`: rendered inside a `space-y-*` list, which gives every later
+      // sibling a top margin — and a margin moves a `fixed inset-0` box too.
+      // Centred on a desktop that never showed; full-screen on a phone it
+      // left a 24px strip of the page above the dialog.
+      className="fixed inset-0 z-50 !m-0 flex items-stretch justify-center bg-black/60 md:items-center md:p-4"
       onClick={onClose}
     >
       <div
+        aria-modal="true"
         data-testid="media-picker"
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-4 overflow-y-auto border border-border bg-background p-6"
+        role="dialog"
+        className="flex h-full w-full max-w-3xl flex-col gap-4 overflow-y-auto border border-border bg-background p-4 md:h-auto md:max-h-[85dvh] md:p-6"
       >
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium">{TITLES[kind]}</span>
@@ -86,7 +89,7 @@ export function MediaPickerDialog({
             type="button"
             data-testid="media-picker-close"
             onClick={onClose}
-            className="text-xs text-foreground/50 hover:text-foreground"
+            className="min-h-11 px-2 text-sm text-foreground/50 hover:text-foreground md:min-h-0 md:px-0 md:text-xs"
           >
             關閉
           </button>
@@ -127,7 +130,7 @@ export function MediaPickerDialog({
               onClick={() =>
                 browse.setPage((current) => Math.max(1, current - 1))
               }
-              className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+              className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
             >
               上一頁
             </button>
@@ -140,7 +143,7 @@ export function MediaPickerDialog({
                   Math.min(browse.totalPages, current + 1),
                 )
               }
-              className="border border-border px-3 py-1 text-foreground disabled:opacity-40"
+              className="min-h-11 border border-border px-3 py-1 text-foreground disabled:opacity-40 md:min-h-0"
             >
               下一頁
             </button>

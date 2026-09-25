@@ -33,15 +33,19 @@ export default async function App({ children }: PropsWithChildren) {
   return (
     <div className="flex min-h-dvh flex-col space-y-6">
       <SiteHeader member={member} navItems={navItems} />
-      <main className="container flex-1">{children}</main>
+      {/* No `container` here: every page carries its own, with the
+          `max-w-*` that suits it, and the two stacked doubled the gutter —
+          32px a side on a phone instead of 16, 48 under the gallery's layout,
+          which is five or six characters of every line on a 375px screen. */}
+      <main className="flex-1">{children}</main>
       <footer className="container border-t-2 border-t-border py-3">
-        <p className="text-xs text-muted-foreground text-left">
-          &copy; {new Date().getFullYear()} Created by{" "}
+        <p className="text-sm text-muted-foreground text-left">
+          &copy; {new Date().getFullYear()} {t.common.createdBy}{" "}
           <Link
             target="_blank"
             rel="noreferrer"
             href={globals.social.github || siteConfig.social.github}
-            className="text-primary"
+            className="hit-area text-primary"
           >
             {siteConfig.author}
           </Link>{" "}
