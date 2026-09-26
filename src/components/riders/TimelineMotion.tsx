@@ -24,12 +24,20 @@
  * identical either way.
  */
 
-import { MotionConfig, motion, useScroll, useSpring } from "framer-motion";
-import { useRef } from "react";
+import {
+  MotionConfig,
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { transitionApple } from "@/styles/framer-motion";
 import { usePdfDownload } from "@/lib/print/use-pdf-download";
+import { useTimelineDrift } from "@/components/riders/TimelineDrift";
 import { cn } from "@/lib/utils";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 
@@ -102,11 +110,55 @@ export function TimelineReveal({
   className?: string;
   delay?: number;
 }) {
+  const { drifting } = useTimelineDrift();
+  const ref = useRef<HTMLDivElement>(null);
+  // Once shown, a row stays shown, however it got there.
+  const [shown, setShown] = useState(false);
+
+  /*
+   * WHILE 播放 DRIFTS THE PAGE, a row that has not appeared yet fades in with
+   * its own position rather than on a timer: invisible as its top crosses
+   * the bottom of the window, whole by the time it is a fifth of the way up.
+   * The page moves at 16px a second, so a fade that took 0.3s would pop in
+   * long before the eye got there; tied to the scroll, it arrives exactly as
+   * fast as the page does. `TimelineDrift` says whether the page is
+   * drifting; everywhere else this is the timed reveal it has always been.
+   */
+  const { scrollYProgress } = useScroll({ offset: ["start end", "start 80%"], target: ref });
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [24, 0]);
+  // A row already on screen when the drift starts is left as it is: tied to
+  // its position it would dim at once, in plain sight.
+  useLayoutEffect(() => {
+    const top = ref.current?.getBoundingClientRect().top;
+    if (drifting && top !== undefined && top < window.innerHeight) setShown(true);
+  }, [drifting]);
+  const linked = drifting && !shown;
+  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+    if (linked && progress >= 1) setShown(true);
+  });
+
+  if (linked) {
+    return (
+      <motion.div
+        className={cn("relative", className)}
+        data-timeline-reveal=""
+        ref={ref}
+        style={{ opacity, y }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
+      animate={shown ? { opacity: 1, y: 0 } : undefined}
       className={cn("relative", className)}
       data-timeline-reveal=""
       initial={{ opacity: 0, y: 24 }}
+      onViewportEnter={() => setShown(true)}
+      ref={ref}
       transition={{ ...transitionApple, delay }}
       viewport={{ amount: 0.2, margin: "0px 0px -8% 0px", once: true }}
       whileInView={{ opacity: 1, y: 0 }}

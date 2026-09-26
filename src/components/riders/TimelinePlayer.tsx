@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 import { useSiteMusic } from "@/components/music/SiteMusic";
+import { useTimelineDrift } from "@/components/riders/TimelineDrift";
 
 /**
  * 播放 — the club rail as something to sit back and watch: the site's music
  * starts (`SiteMusic`, which plays on from page to page and with the screen
  * locked) and this page drifts slowly down through the years.
  *
- * THE MUSIC IS THE SITE'S, THE DRIFT IS THIS PAGE'S. Leaving the timeline
- * stops the drift — there is nothing of it to scroll anywhere else — and the
- * music carries on, with its own button in the corner. Pausing the music,
- * from here, from that button or from the lock screen, stops the drift too:
- * the two start together, and moving without the music is not what anyone
- * asked for.
+ * THE MUSIC IS THE SITE'S, THE DRIFT IS THIS PAGE'S. The button here is only
+ * the way in: its first press starts both and flies it to the corner, where
+ * `SiteMusic`'s button takes over on every page. Leaving the timeline stops
+ * the drift — there is nothing of it to scroll anywhere else — and the music
+ * carries on. Pausing the music, from the corner or the lock screen, stops
+ * the drift; playing it again from the corner while here starts it again.
  *
  * THE DRIFT IS haijieliu.com's, for the iOS reasons its comments measure:
  *   - the position is accumulated here and written to `scrollTop`, never read
@@ -94,10 +95,7 @@ function drift(onEnd: () => void): () => void {
 export function TimelinePlayer() {
   const t = useDictionary();
   const music = useSiteMusic();
-  // Whether this page should be drifting. Only this button starts it: arriving
-  // here with the music already on from another page does not move the page
-  // out from under the reader.
-  const [drifting, setDrifting] = useState(false);
+  const { drifting, setDrifting } = useTimelineDrift();
 
   // Stopped when somebody pauses the music — from anywhere — and when leaving
   // the page. Counted pauses, not `!playing`: a browser that cannot play the
@@ -107,43 +105,46 @@ export function TimelinePlayer() {
     if (music.pauses === pauses.current) return;
     pauses.current = music.pauses;
     setDrifting(false);
-  }, [music.pauses]);
+  }, [music.pauses, setDrifting]);
+
+  // Started again from the corner button while on this page: drift again.
+  // Arriving here with the music already on does not move the page out from
+  // under the reader — only a press does.
+  const wasPlaying = useRef(music.playing);
+  useEffect(() => {
+    if (music.playing && !wasPlaying.current) setDrifting(true);
+    wasPlaying.current = music.playing;
+  }, [music.playing, setDrifting]);
 
   useEffect(() => {
     if (!drifting) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     return drift(() => setDrifting(false));
-  }, [drifting]);
+  }, [drifting, setDrifting]);
 
-  // Either is "on": a browser that cannot play the file still drifts, and
-  // the button must still be the way to stop it.
-  const active = music.playing || drifting;
+  useEffect(() => () => setDrifting(false), [setDrifting]);
+
+  // As on haijieliu.com, the button is only ever the way in: the first press
+  // sends it flying to the corner (SiteMusic), and from then on the corner
+  // button is the control, on this page and every other. This component
+  // stays mounted without it, to run the drift.
+  if (music.started) return null;
 
   return (
     <button
-      aria-pressed={active}
-      className="border border-border bg-background hit-area inline-flex min-h-9 items-center gap-1.5 px-3 text-tag text-muted-foreground transition-colors hover:text-foreground aria-pressed:border-foreground aria-pressed:text-foreground"
+      className="border border-border bg-background hit-area inline-flex min-h-9 items-center gap-1.5 px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
       data-music-control=""
       data-testid="club-timeline-play"
-      onClick={() => {
-        if (active) {
-          music.pause();
-          setDrifting(false);
-        } else {
-          music.play();
-          setDrifting(true);
-        }
+      onClick={(event) => {
+        music.play(event.currentTarget);
+        setDrifting(true);
       }}
       type="button"
     >
       <svg aria-hidden className="h-3 w-3" viewBox="0 0 12 12">
-        {active ? (
-          <path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor" />
-        ) : (
-          <path d="M2 1l9 5-9 5z" fill="currentColor" />
-        )}
+        <path d="M2 1l9 5-9 5z" fill="currentColor" />
       </svg>
-      {active ? t.clubTimeline.stop : t.clubTimeline.play}
+      {t.clubTimeline.play}
     </button>
   );
 }

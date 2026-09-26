@@ -6,6 +6,7 @@ import {
   parseClubTimelineView,
 } from "@/components/riders/ClubTimelineViewTabs";
 import PageHeader from "@/components/page-header";
+import { TimelineDriftProvider } from "@/components/riders/TimelineDrift";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
@@ -71,26 +72,30 @@ export default async function ClubTimelinePage({
   const braid = view === "braid" ? assignLanes(rows) : undefined;
 
   return (
-    <div className="container max-w-4xl py-6 lg:py-10">
-      <PageHeader
-        title={t.clubTimeline.title}
-        description={t.clubTimeline.pageDescription}
-      />
+    // 播放 in the header drifts the rail below it; this is how the rows
+    // know (TimelineDrift.tsx).
+    <TimelineDriftProvider>
+      <div className="container max-w-4xl py-6 lg:py-10">
+        <PageHeader
+          title={t.clubTimeline.title}
+          description={t.clubTimeline.pageDescription}
+        />
 
-      <ClubTimelineViewTabs active={view} />
+        <ClubTimelineViewTabs active={view} />
 
-      <hr className="my-8 h-0 border-t-2 border-border" />
+        <hr className="my-8 h-0 border-t-2 border-border" />
 
-      <ClubTimelineFeed
-        braid={braid}
-        first={{ ...page, events: catalogueForRows(page.rows, events) }}
-      />
+        <ClubTimelineFeed
+          braid={braid}
+          first={{ ...page, events: catalogueForRows(page.rows, events) }}
+        />
 
-      <div className="mt-10 print:hidden">
-        <Link className="text-sm text-muted-foreground hover:text-primary" href="/riders">
-          {t.clubTimeline.allMembers}
-        </Link>
+        <div className="mt-10 print:hidden">
+          <Link className="text-sm text-muted-foreground hover:text-primary" href="/riders">
+            {t.clubTimeline.allMembers}
+          </Link>
+        </div>
       </div>
-    </div>
+    </TimelineDriftProvider>
   );
 }
