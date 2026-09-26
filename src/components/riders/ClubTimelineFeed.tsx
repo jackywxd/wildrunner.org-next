@@ -416,15 +416,19 @@ export function ClubTimelineFeed({
           {countLabel(t.clubTimeline.loadedPosts, postCount)}
           {cursor ? t.clubTimeline.more : ""}
         </p>
-        <button
-          className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground print:hidden"
-          data-testid="club-timeline-print"
-          disabled={printing}
-          onClick={() => void printAll()}
-          type="button"
-        >
-          {printing ? t.clubTimeline.printing : t.clubTimeline.printAll}
-        </button>
+        {/* The single rail only: 交會 and 對照 are for looking at, and a
+            printout of coloured lanes says nothing a printed list does not. */}
+        {!braid && (
+          <button
+            className="border border-border hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground print:hidden"
+            data-testid="club-timeline-print"
+            disabled={printing}
+            onClick={() => void printAll()}
+            type="button"
+          >
+            {printing ? t.clubTimeline.printing : t.clubTimeline.printAll}
+          </button>
+        )}
       </div>
 
       {braid && <BraidLegend club={braid} palette={compare?.palette} />}

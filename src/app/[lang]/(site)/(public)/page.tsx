@@ -109,17 +109,21 @@ export default async function Home() {
               {globals.metadata.description || siteConfig.description}
             </p>
           )}
+        </div>
 
-          {/* The club's history as a picture, above the buttons that lead into
-              it. Only once somebody has run with somebody: without a meeting
-              it is four straight lines. */}
-          {trail && trail.meetings.length > 0 && (
-            <div className="mt-4 w-full max-w-3xl">
-              <TrailMap data={trail} eventNames={eventNames} />
-            </div>
-          )}
+        {/* The club's history as a picture, above the buttons that lead into
+            it. Only once somebody has run with somebody: without a meeting
+            it is four straight lines. Centred on the page, outside the
+            left-aligned text column above — inside it, `mx-auto` would only
+            centre it in that narrower column. */}
+        {trail && trail.meetings.length > 0 && (
+          <div className="mx-auto w-full max-w-3xl">
+            <TrailMap data={trail} eventNames={eventNames} />
+          </div>
+        )}
 
-          <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row">
+        <div className="flex max-w-5xl flex-col items-start">
+          <div className="flex flex-col items-start gap-3 sm:flex-row">
             {/* The highlighted call to action, ahead of the other two.
                 Everything else on this page is a slice — the latest eight
                 articles, four races, twenty photos — and each answers "what

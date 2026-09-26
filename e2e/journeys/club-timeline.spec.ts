@@ -268,6 +268,8 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
         timeout: budget(15_000),
       });
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
+      // 列印全部 is the single rail's; the braid is for looking at.
+      await expect(page.getByTestId("club-timeline-print")).toHaveCount(0);
 
       // Both distance rows are one meeting, and both members have a lane.
       const squamish = page
@@ -289,6 +291,7 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       });
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
+      await expect(page.getByTestId("club-timeline-print")).toBeVisible();
 
       // And 對照, beside the two drawings, leaves for 成員對照 — T8 walks the
       // compare page itself, entering from a member's page instead.
@@ -315,8 +318,12 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     try {
       const { year } = await twoMembersAt(admin, baseURL, "utmb-whistler", ["50k", "25k"], created);
 
+      await page.setViewportSize({ height: 800, width: 1280 });
       await open(page, "/");
       await expect(page.getByTestId("home-trail-map")).toBeVisible({ timeout: budget(15_000) });
+      // Centred on the page, not left under the hero's text column.
+      const map = await page.getByTestId("home-trail-map").boundingBox();
+      expect(map && Math.abs(map.x + map.width / 2 - 640), "the map is not centred").toBeLessThan(4);
 
       // The caption names a meeting only while the runners are there, so wait
       // for the loop to reach this one — it is this year's, the last on the map.
@@ -412,6 +419,7 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       await expect(race.getByTestId("club-row-meeting")).toHaveCount(2);
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "compare");
+      await expect(page.getByTestId("club-timeline-print")).toHaveCount(0);
       // Drawn as a zip — teeth, not the club rail's interchange. They close as
       // the race scrolls into view, and on this page the rail starts below
       // the picker, so scroll to it as a reader would.
@@ -497,7 +505,15 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
 
     const before = await page.evaluate(() => window.scrollY);
     await page.getByTestId("club-timeline-play").click();
-    await expect(page.getByTestId("club-timeline-play")).toHaveAttribute("aria-pressed", "true");
+
+    // As on haijieliu.com, the button is only the way in: it gives way to the
+    // corner control, which flies out from where it was.
+    await expect(page.getByTestId("club-timeline-play")).toHaveCount(0);
+    await expect(page.getByTestId("site-music-toggle")).toBeVisible();
+    expect(
+      await page.locator("[data-music-dock]").evaluate((dock) => dock.getAnimations().length),
+      "the corner control arrived without flying",
+    ).toBeGreaterThan(0);
 
     // It plays, the page drifts, and the band along the bottom moves with it.
     await expect
@@ -520,7 +536,24 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
         { timeout: budget(10_000) },
       )
       .toBeGreaterThan(0);
-    await expect(page.getByTestId("site-music-toggle")).toBeVisible();
+
+    // While it drifts, a row entering at the bottom fades in with its own
+    // position, so one in the lower part of the window is caught half-faded
+    // for seconds at a time. Without that, rows below the fold are already
+    // whole before they are reached, and none ever is.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() =>
+            [...document.querySelectorAll("[data-timeline-reveal]")].some((node) => {
+              const top = node.getBoundingClientRect().top / window.innerHeight;
+              const opacity = Number(getComputedStyle(node).opacity);
+              return top > 0.8 && top < 1 && opacity > 0.1 && opacity < 0.9;
+            }),
+          ),
+        { message: "rows popped in rather than fading in with the drift", timeout: budget(20_000) },
+      )
+      .toBe(true);
 
     // To another page by clicking, as a reader would — a soft navigation —
     // and the same element is still there, still playing.
@@ -530,8 +563,11 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     expect(await element?.evaluate((node) => node.isConnected), "the music element was replaced").toBe(true);
     expect(await audio.evaluate((node: HTMLAudioElement) => node.paused)).toBe(false);
 
-    // And the corner button pauses it there.
+    // And the corner button pauses it there — faded out first, not cut, which
+    // on a phone's speaker was a pop: still playing just after the press,
+    // paused a moment later.
     await page.getByTestId("site-music-toggle").click();
+    expect(await audio.evaluate((node: HTMLAudioElement) => node.paused), "cut off, not faded").toBe(false);
     await expect.poll(() => audio.evaluate((node: HTMLAudioElement) => node.paused)).toBe(true);
   });
 
