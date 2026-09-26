@@ -160,7 +160,12 @@
     "title": "野馬營穿越時光",
     "subtitle": "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
     "pageDescription": "所有成員的比賽和文章，接在同一條時間軸上。",
-    "allMembers": "← 所有成員"
+    "allMembers": "← 所有成員",
+    "viewAria": "時間軸樣式",
+    "viewSingle": "單線",
+    "viewBraid": "交會",
+    "meeting": "交會",
+    "otherMembers": "其他成員"
   },
   "riderTimeline": {
     "raceCount": "{count} 場比賽",

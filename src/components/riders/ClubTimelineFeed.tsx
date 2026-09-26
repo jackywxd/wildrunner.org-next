@@ -10,6 +10,7 @@ import {
   TimelineRail,
   TimelineReveal,
 } from "@/components/riders/TimelineMotion";
+import { BraidLegend, BraidRail } from "@/components/riders/TimelineBraid";
 import { postPublicPath } from "@/lib/content-paths";
 import { raceGallerySlug } from "@/lib/race-gallery";
 import {
@@ -20,6 +21,7 @@ import { RaceBadge } from "@/lib/races/badge";
 import { resolveBadge } from "@/lib/races/badge-source";
 import { catalogueMap } from "@/lib/races/catalogue-shape";
 import type { CatalogueEvent, RaceCatalogueMap } from "@/lib/races/catalogue-shape";
+import type { ClubLanes } from "@/lib/riders/club-lanes";
 import type {
   ClubCursor,
   ClubPost,
@@ -173,9 +175,12 @@ function PostLine({ compact, post }: { compact: boolean; post: ClubPost }) {
 
 function Row({
   catalogue,
+  meeting = false,
   row,
 }: {
   catalogue: RaceCatalogueMap;
+  /** Drawn by the braided view only: this race is where members' lanes meet. */
+  meeting?: boolean;
   row: ClubTimelineRow;
 }) {
   const t = useDictionary();
@@ -216,6 +221,14 @@ function Row({
                 >
                   {eventName(catalogue, race.eventId)}
                 </Link>
+                {meeting && (
+                  <span
+                    className="ml-2 inline-block bg-foreground px-1.5 align-middle text-tag font-bold text-background"
+                    data-testid="club-row-meeting"
+                  >
+                    {t.clubTimeline.meeting}
+                  </span>
+                )}
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {badge?.distance.label}
@@ -255,7 +268,17 @@ function Row({
   );
 }
 
-export function ClubTimelineFeed({ first }: { first: Page }) {
+export function ClubTimelineFeed({
+  braid,
+  first,
+}: {
+  /**
+   * Present only on `?view=braid`: who has a lane, decided by the page over
+   * the whole club so that loading more rows never reshuffles the colours.
+   */
+  braid?: ClubLanes;
+  first: Page;
+}) {
   const t = useDictionary();
   const [rows, setRows] = useState<ClubTimelineRow[]>(first.rows);
   const [events, setEvents] = useState<CatalogueEvent[]>(first.events);
@@ -371,7 +394,7 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
       <noscript
         dangerouslySetInnerHTML={{
           __html:
-            "<style>[data-timeline-reveal]{opacity:1!important;transform:none!important}</style>",
+            "<style>[data-timeline-reveal]{opacity:1!important;transform:none!important}[data-braid-draw]{stroke-dasharray:none!important;stroke-dashoffset:0!important}</style>",
         }}
       />
 
@@ -398,50 +421,77 @@ export function ClubTimelineFeed({ first }: { first: Page }) {
         </button>
       </div>
 
-      <div className="rider-timeline relative mt-8" data-testid="club-timeline">
-        <TimelineRail className={RAIL} />
+      {braid && <BraidLegend club={braid} />}
 
-        <ol className="space-y-5">
-          {rows.map((row, index) => {
-            const startsYear = row.year !== lastYear;
-            lastYear = row.year;
+      <div
+        className="rider-timeline relative mt-8"
+        data-testid="club-timeline"
+        data-view={braid ? "braid" : "single"}
+      >
+        {braid ? (
+          <BraidRail
+            club={braid}
+            renderRow={(row, meeting) => (
+              <Row catalogue={catalogue} meeting={meeting} row={row} />
+            )}
+            renderYear={(year) => (
+              <h2
+                className="font-heading text-4xl font-extrabold tabular-nums tracking-tight sm:text-5xl"
+                data-testid="club-timeline-year"
+                data-year={year}
+              >
+                {year}
+              </h2>
+            )}
+            rows={rows}
+          />
+        ) : (
+          <>
+            <TimelineRail className={RAIL} />
 
-            return (
-              <li key={row.key}>
-                {startsYear && (
-                  <TimelineReveal className={cn(CONTENT, "pb-1 pt-6 first:pt-0")}>
-                    <span
-                      aria-hidden
-                      className={cn(
-                        NODE,
-                        "left-[8px] top-[30px] h-[15px] w-[15px] border-2 border-primary bg-background sm:left-[12px]",
-                      )}
-                    />
-                    <h2
-                      className="font-heading text-4xl font-extrabold tabular-nums tracking-tight sm:text-5xl"
-                      data-testid="club-timeline-year"
-                      data-year={row.year}
+            <ol className="space-y-5">
+              {rows.map((row, index) => {
+                const startsYear = row.year !== lastYear;
+                lastYear = row.year;
+
+                return (
+                  <li key={row.key}>
+                    {startsYear && (
+                      <TimelineReveal className={cn(CONTENT, "pb-1 pt-6 first:pt-0")}>
+                        <span
+                          aria-hidden
+                          className={cn(
+                            NODE,
+                            "left-[8px] top-[30px] h-[15px] w-[15px] border-2 border-primary bg-background sm:left-[12px]",
+                          )}
+                        />
+                        <h2
+                          className="font-heading text-4xl font-extrabold tabular-nums tracking-tight sm:text-5xl"
+                          data-testid="club-timeline-year"
+                          data-year={row.year}
+                        >
+                          {row.year}
+                        </h2>
+                      </TimelineReveal>
+                    )}
+                    <TimelineReveal
+                      className={cn(CONTENT, startsYear && "mt-5")}
+                      // Staggered, capped: a year with twelve races must not make
+                      // the last one wait half a second after it is on screen.
+                      delay={Math.min(index % 6, 4) * 0.05}
                     >
-                      {row.year}
-                    </h2>
-                  </TimelineReveal>
-                )}
-                <TimelineReveal
-                  className={cn(CONTENT, startsYear && "mt-5")}
-                  // Staggered, capped: a year with twelve races must not make
-                  // the last one wait half a second after it is on screen.
-                  delay={Math.min(index % 6, 4) * 0.05}
-                >
-                  <span
-                    aria-hidden
-                    className={cn(NODE, "top-[20px] border border-border bg-background")}
-                  />
-                  <Row catalogue={catalogue} row={row} />
-                </TimelineReveal>
-              </li>
-            );
-          })}
-        </ol>
+                      <span
+                        aria-hidden
+                        className={cn(NODE, "top-[20px] border border-border bg-background")}
+                      />
+                      <Row catalogue={catalogue} row={row} />
+                    </TimelineReveal>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )}
 
         {/* Only present while there is somewhere to scroll to, so the observer
             effect above never re-arms against a node that has gone. */}

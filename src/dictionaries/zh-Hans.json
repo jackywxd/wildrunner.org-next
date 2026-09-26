@@ -160,7 +160,12 @@
     "title": "野马营穿越时光",
     "subtitle": "野马营全体成员跑过的比赛与写过的文章，依时间排列。",
     "pageDescription": "所有成员的比赛和文章，接在同一条时间轴上。",
-    "allMembers": "← 所有成员"
+    "allMembers": "← 所有成员",
+    "viewAria": "时间轴样式",
+    "viewSingle": "单线",
+    "viewBraid": "交会",
+    "meeting": "交会",
+    "otherMembers": "其他成员"
   },
   "riderTimeline": {
     "raceCount": "{count} 场比赛",

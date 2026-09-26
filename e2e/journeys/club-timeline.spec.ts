@@ -1,6 +1,7 @@
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
-import { adminContext } from "../helpers/members";
+import { waitForHydration } from "../helpers/hydration";
+import { TEST_MEMBER, TEST_MEMBER_TWO, adminContext, loginContext } from "../helpers/members";
 
 /**
  * V-CLUB — 野馬營穿越時光 (/riders/timeline), the club's whole rail.
@@ -154,6 +155,80 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       // By id, and the value it had: this album was untagged, and every album
       // in the corpus is. Never a pattern, never "clear the column".
       await admin.patch(`/api/galleries/${album.id}`, { data: { raceEdition: null } });
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T6: the 交會 view pulls two members at one edition into one meeting", async ({
+    baseURL,
+    page,
+  }) => {
+    // Signs in and writes, like T5, and pays for it the same way.
+    test.setTimeout(budget(60_000));
+
+    // THE TEST OWNS THIS FIXTURE: the seeded corpus has no race two members
+    // ran together, so without one the view has nothing to draw and a green
+    // run would mean nothing. Two distances of one edition, on purpose — the
+    // rows stay split by distance and the meeting has to span them anyway
+    // (U-BRAID-T1 pins the logic; this pins that the page draws it).
+    const admin = await adminContext(baseURL);
+    const members = [];
+    for (const credentials of [TEST_MEMBER, TEST_MEMBER_TWO]) {
+      // Each member's own `me`: an admin may not filter accounts by email.
+      const self = await loginContext(baseURL, credentials);
+      const me = await self.get("/api/users/me?depth=1");
+      expect(me.ok(), await me.text()).toBeTruthy();
+      const body = await me.text();
+      const user = (JSON.parse(body) as { user?: { author?: { slug: string }; id: number } }).user;
+      await self.dispose();
+      expect(user?.author?.slug, `${credentials.email} has no byline to draw a lane for: ${body.slice(0, 300)}`).toBeTruthy();
+      members.push(user as { author?: { slug: string }; id: number });
+    }
+
+    // This year, so the rows sort to the top of page one; an event no seeded
+    // record uses, so nothing else lands in the same meeting.
+    const year = new Date().getUTCFullYear();
+    const created: number[] = [];
+    try {
+      for (const [member, distanceId] of [
+        [members[0], "50k"],
+        [members[1], "23k"],
+      ] as const) {
+        const made = await admin.post("/api/race-records", {
+          data: { distanceId, eventId: "other-squamish-50", owner: member.id, result: "finished", year },
+        });
+        expect(made.ok(), await made.text()).toBeTruthy();
+        created.push(((await made.json()) as { doc: { id: number } }).doc.id);
+      }
+
+      // By clicking the tab — a soft navigation, which is where this suite
+      // has shipped a bug before (docs/testing-incidents.md).
+      await open(page, "/riders/timeline");
+      await waitForHydration(page);
+      await page.locator('[data-testid="club-timeline-view"][data-view="braid"]').click();
+      await expect(page).toHaveURL(/\/riders\/timeline\?view=braid$/, { timeout: budget(15_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "braid");
+
+      // Both distance rows are one meeting, and both members have a lane.
+      const squamish = page
+        .locator(`[data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Squamish 50" });
+      await expect(squamish).toHaveCount(2);
+      await expect(squamish.getByTestId("club-row-meeting")).toHaveCount(2);
+      const legend = page.getByTestId("braid-legend");
+      for (const member of members) {
+        await expect(legend.locator(`[data-lane-slug="${member.author?.slug}"]`)).toBeAttached();
+      }
+      await expect(page.locator("[data-braid-meeting]:visible").first()).toBeVisible();
+
+      // And the default view is untouched by any of it.
+      await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+      await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "single");
+      await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
+    } finally {
+      // By the ids captured when they were created — never a pattern.
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
       await admin.dispose();
     }
   });

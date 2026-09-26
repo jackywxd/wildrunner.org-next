@@ -341,6 +341,13 @@ h6 {
     transform: none !important;
   }
 
+  /* The braided view draws each bend in from nothing; on paper it is simply
+     there (TimelineBraid.tsx). */
+  .rider-timeline [data-braid-draw] {
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
   body:has(.rider-timeline) header,
   body:has(.rider-timeline) footer,
   body:has(.rider-timeline) #nprogress {

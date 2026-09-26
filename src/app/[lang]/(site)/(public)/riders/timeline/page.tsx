@@ -1,11 +1,16 @@
 import Link from "@/components/i18n/locale-link";
 
 import { ClubTimelineFeed } from "@/components/riders/ClubTimelineFeed";
+import {
+  ClubTimelineViewTabs,
+  parseClubTimelineView,
+} from "@/components/riders/ClubTimelineViewTabs";
 import PageHeader from "@/components/page-header";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { assignLanes } from "@/lib/riders/club-lanes";
 import {
   CLUB_PAGE_SIZE,
   catalogueForRows,
@@ -41,14 +46,22 @@ export async function generateMetadata() {
   });
 }
 
-export default async function ClubTimelinePage() {
+export default async function ClubTimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const t = await getDictionary();
+  const view = parseClubTimelineView(await searchParams);
   const [rows, events] = await Promise.all([
     getClubTimelineRows(),
     getRaceCatalogueEvents(),
   ]);
 
   const page = clubTimelinePage(rows, null, CLUB_PAGE_SIZE);
+  // Over every row, not the first page: see `assignLanes` for why the lanes
+  // are the club's and not the screen's.
+  const braid = view === "braid" ? assignLanes(rows) : undefined;
 
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
@@ -57,9 +70,12 @@ export default async function ClubTimelinePage() {
         description={t.clubTimeline.pageDescription}
       />
 
+      <ClubTimelineViewTabs active={view} />
+
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       <ClubTimelineFeed
+        braid={braid}
         first={{ ...page, events: catalogueForRows(page.rows, events) }}
       />
 
