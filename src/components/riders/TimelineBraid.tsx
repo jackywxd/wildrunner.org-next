@@ -19,6 +19,7 @@ import {
   type StripGeometry,
 } from "@/lib/riders/club-lanes";
 import type { ClubTimelineRow } from "@/lib/riders/club-timeline";
+import { pairSide, type PairSide } from "@/lib/riders/compare";
 import { rowAnchor } from "@/lib/riders/trail-map";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +79,51 @@ const CONTENT: Record<BraidVariant, string> = {
   compare: "pl-[64px] sm:pl-[72px]",
 };
 
-function viewsFor(variant: BraidVariant, club: ClubLanes) {
+/**
+ * EXACTLY TWO MEMBERS, ON A WIDE SCREEN: the two lanes run down the middle of
+ * the page, each member's own rows keep to their side of it, and a race they
+ * ran together sits across the middle with the zip showing above and below it.
+ * Two sides are what a comparison of two people looks like; three have no
+ * third side, so three stay on the left-hand rail at every width, as a phone
+ * does for two.
+ *
+ * The same rows and the same cards in both layouts — only classes change at
+ * the breakpoint — so nothing is rendered twice and nothing counts twice.
+ */
+const PAIR: StripGeometry = { first: 11, gap: 80, bundle: 6 };
+/** The strip is centred on the page, so its width is fixed around the two lanes. */
+const PAIR_WIDTH = 102;
+/** The lanes travel 37px sideways to meet; a taller bend keeps that gentle. */
+const PAIR_BEND = 48;
+
+const PAIR_CONTENT = "pl-[64px] sm:pl-[72px] md:pl-0";
+const PAIR_SIDE: Record<PairSide, string> = {
+  centre: "md:mx-auto md:w-[72%]",
+  left: "md:w-[calc(50%-64px)]",
+  right: "md:ml-[calc(50%+64px)]",
+};
+
+type View = {
+  bend?: number;
+  /** Centred on the page rather than against its left edge. */
+  centred?: boolean;
+  className: string;
+  geometry: StripGeometry;
+  limit: number;
+  width?: number;
+};
+
+function isPair(variant: BraidVariant, club: ClubLanes) {
+  return variant === "compare" && club.lanes.length === 2;
+}
+
+function viewsFor(variant: BraidVariant, club: ClubLanes): readonly View[] {
+  if (isPair(variant, club)) {
+    return [
+      { className: "flex md:hidden", geometry: COMPARE, limit: 2 },
+      { bend: PAIR_BEND, centred: true, className: "flex", geometry: PAIR, limit: 2, width: PAIR_WIDTH },
+    ];
+  }
   return variant === "compare"
     ? [{ className: "flex", geometry: COMPARE, limit: club.lanes.length }]
     : VIEWS;
@@ -115,21 +160,23 @@ function Bend({
   colors,
   delay,
   from,
+  height,
   to,
   width,
 }: {
   colors: string[];
   delay: number;
   from: number[];
+  height: number;
   to: number[];
   width: number;
 }) {
   const path = (i: number) =>
-    `M${from[i]} 0 C${from[i]} ${BEND / 2} ${to[i]} ${BEND / 2} ${to[i]} ${BEND}`;
+    `M${from[i]} 0 C${from[i]} ${height / 2} ${to[i]} ${height / 2} ${to[i]} ${height}`;
   const moving = from.map((x, i) => x !== to[i]);
 
   return (
-    <svg className="block shrink-0 overflow-visible" height={BEND} width={width}>
+    <svg className="block shrink-0 overflow-visible" height={height} width={width}>
       {from.map((_, i) =>
         moving[i] ? null : (
           <path d={path(i)} fill="none" key={i} stroke={colors[i]} strokeWidth={2.5} />
@@ -168,20 +215,24 @@ function Bend({
 }
 
 function StripView({
+  bend = BEND,
   bundle,
   className,
   colors,
   strip,
+  width: fixedWidth,
   zipped,
 }: {
+  bend?: number;
   bundle: number;
   className: string;
   colors: string[];
   strip: Strip;
+  width?: number;
   /** 成員對照: a bundle is drawn as a closed zip instead of an interchange. */
   zipped: boolean;
 }) {
-  const width = Math.max(...strip.top, ...strip.mid, ...strip.bottom) + 12;
+  const width = fixedWidth ?? Math.max(...strip.top, ...strip.mid, ...strip.bottom) + 12;
   const capsule = zipped ? undefined : strip.capsule;
   const teeth = zipped ? (strip.bundle ?? []) : [];
   const capsuleWidth = capsule ? (capsule.lanes - 1) * bundle + 14 : 0;
@@ -196,7 +247,7 @@ function StripView({
       viewport={{ amount: 0.3, once: true }}
       whileInView="shown"
     >
-      <Bend colors={colors} delay={0} from={strip.top} to={strip.mid} width={width} />
+      <Bend colors={colors} delay={0} from={strip.top} height={bend} to={strip.mid} width={width} />
       <div className="relative flex-1">
         {strip.mid.map((x, i) =>
           teeth.includes(i) ? null : (
@@ -267,7 +318,14 @@ function StripView({
           />
         )}
       </div>
-      <Bend colors={colors} delay={0.55} from={strip.mid} to={strip.bottom} width={width} />
+      <Bend
+        colors={colors}
+        delay={0.55}
+        from={strip.mid}
+        height={bend}
+        to={strip.bottom}
+        width={width}
+      />
     </motion.div>
   );
 }
@@ -295,7 +353,7 @@ function Strips({
 }) {
   return (
     <>
-      {viewsFor(variant, club).map(({ className, geometry, limit }) => {
+      {viewsFor(variant, club).map(({ bend, centred, className, geometry, limit, width }) => {
         const count = laneCount(club, limit);
         const own = Math.min(club.lanes.length, limit);
         const colors = Array.from({ length: count }, (_, lane) => (lane < own ? palette[lane] : GREY));
@@ -309,15 +367,30 @@ function Strips({
           meeting,
           participants,
         });
-        return (
+        const view = (
           <StripView
+            bend={bend}
             bundle={geometry.bundle}
             className={className}
             colors={colors}
             key={limit}
             strip={strip}
+            width={width}
             zipped={variant === "compare"}
           />
+        );
+        // Centred by a wrapper, not by a transform on the strip itself:
+        // framer-motion owns that element's inline transform.
+        return centred ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 md:block"
+            key={`centred-${limit}`}
+            style={{ width }}
+          >
+            {view}
+          </div>
+        ) : (
+          view
         );
       })}
     </>
@@ -375,6 +448,47 @@ export function BraidLegend({
   );
 }
 
+function pairSideOf(club: ClubLanes, row: ClubTimelineRow, meeting: RowMeeting | undefined) {
+  return pairSide(participantsOf(row, meeting).map((slug) => laneOf(club.lanes, 2, slug)));
+}
+
+/**
+ * A card in the two-member layout, on its member's side of the lanes or across
+ * them.
+ *
+ * A race they ran together gets room above its first card and below its last:
+ * the card sits across the lanes, and without that room it would cover the
+ * very bends where the two lanes come together and part — the one thing this
+ * layout is for. Padding, not margin: a top margin collapses through the
+ * block and out of the strip drawn over it, leaving the room with no lanes.
+ */
+function PairRow({
+  children,
+  delay,
+  meeting,
+  side,
+}: {
+  children: ReactNode;
+  delay: number;
+  meeting?: RowMeeting;
+  side: PairSide;
+}) {
+  const room = side === "centre" && meeting;
+  return (
+    <TimelineReveal
+      className={cn(
+        PAIR_CONTENT,
+        PAIR_SIDE[side],
+        room && meeting.first && "md:pt-20",
+        room && meeting.last && "md:pb-20",
+      )}
+      delay={delay}
+    >
+      <div data-compare-side={side}>{children}</div>
+    </TimelineReveal>
+  );
+}
+
 /**
  * The rail itself. Rows are rendered by the caller — the same `Row` the single
  * rail uses — so a card looks the same in both views and only the space to its
@@ -397,6 +511,7 @@ export function BraidRail({
   variant?: BraidVariant;
 }) {
   const meetings = useMemo(() => rowMeetings(rows), [rows]);
+  const pair = isPair(variant, club);
   let lastYear: number | null = null;
 
   return (
@@ -412,7 +527,15 @@ export function BraidRail({
             {startsYear && (
               <div className={cn("relative pb-5", index > 0 && "pt-6")}>
                 <Strips club={club} palette={palette} variant={variant} />
-                <TimelineReveal className={CONTENT[variant]}>{renderYear(row.year)}</TimelineReveal>
+                {pair ? (
+                  // Centred over the two lanes, on the page's own background so
+                  // they pass behind the year rather than through it.
+                  <TimelineReveal className={cn(PAIR_CONTENT, "md:flex md:justify-center")}>
+                    <div className="md:bg-background md:px-4">{renderYear(row.year)}</div>
+                  </TimelineReveal>
+                ) : (
+                  <TimelineReveal className={CONTENT[variant]}>{renderYear(row.year)}</TimelineReveal>
+                )}
               </div>
             )}
             <div className="relative pb-5">
@@ -423,12 +546,22 @@ export function BraidRail({
                 row={row}
                 variant={variant}
               />
-              <TimelineReveal
-                className={CONTENT[variant]}
-                delay={Math.min(index % 6, 4) * 0.05}
-              >
-                {renderRow(row, Boolean(meeting))}
-              </TimelineReveal>
+              {pair ? (
+                <PairRow
+                  delay={Math.min(index % 6, 4) * 0.05}
+                  meeting={meeting}
+                  side={pairSideOf(club, row, meeting)}
+                >
+                  {renderRow(row, Boolean(meeting))}
+                </PairRow>
+              ) : (
+                <TimelineReveal
+                  className={CONTENT[variant]}
+                  delay={Math.min(index % 6, 4) * 0.05}
+                >
+                  {renderRow(row, Boolean(meeting))}
+                </TimelineReveal>
+              )}
             </div>
           </li>
         );

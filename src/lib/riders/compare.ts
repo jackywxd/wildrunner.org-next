@@ -133,3 +133,18 @@ export function compareColors(club: ClubLanes, members: LaneMember[]): string[] 
   const free = LANE_COLORS.filter((color) => !own.includes(color));
   return own.map((color) => color ?? free.shift() ?? LANE_COLORS[0]);
 }
+
+/** Where a row sits when exactly two members are compared on a wide screen. */
+export type PairSide = "centre" | "left" | "right";
+
+/**
+ * The first member's rows on the left, the second's on the right, and a race
+ * they ran together across the middle, over the zip. Given the lanes of the
+ * row's people (0 and 1 are the two compared members): one lane is one side,
+ * both — or nobody's, which a narrowed rail should not contain — is the middle.
+ */
+export function pairSide(lanes: number[]): PairSide {
+  const own = new Set(lanes.filter((lane) => lane === 0 || lane === 1));
+  if (own.size !== 1) return "centre";
+  return own.has(0) ? "left" : "right";
+}

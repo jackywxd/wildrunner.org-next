@@ -2,6 +2,7 @@ import Link from "@/components/i18n/locale-link";
 
 import { cn } from "@/lib/utils";
 import { getDictionary } from "@/lib/i18n/dictionary";
+import { compareHref } from "@/lib/riders/compare";
 
 /**
  * The switch between a member's two views: their articles, and their timeline.
@@ -54,6 +55,16 @@ export async function RiderViewTabs({
           {tab.label}
         </Link>
       ))}
+      {/* Not a third view of this member but a way out to 成員對照, with this
+          member already picked — so it sits apart from the two tabs, the way
+          the club rail's 對照 sits apart from its own. */}
+      <Link
+        className="border border-border bg-background hit-area ml-auto inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
+        data-testid="rider-compare-link"
+        href={compareHref([slug])}
+      >
+        {t.rider.compareWith}
+      </Link>
     </nav>
   );
 }

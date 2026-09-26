@@ -257,6 +257,11 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       });
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
+
+      // And 對照, beside the two drawings, leaves for 成員對照 — T8 walks the
+      // compare page itself, entering from a member's page instead.
+      await page.getByTestId("club-timeline-compare").click();
+      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
     } finally {
       // By the ids captured when they were created — never a pattern.
       for (const id of created) await admin.delete(`/api/race-records/${id}`);
@@ -311,7 +316,7 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     }
   });
 
-  test("V-CLUB-T8: 對照 zips two members together where they raced, and unpicking one ends it", async ({
+  test("V-CLUB-T8: 對照 from a member's page zips two members together, side by side when there is room", async ({
     baseURL,
     page,
   }) => {
@@ -332,6 +337,15 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       // differs from the one in the bar and the assertion on it can fail.
       const [first, second] = members.map((member) => member.author?.slug as string).sort().reverse();
 
+      // And one race of the first member's alone, so the two-member layout
+      // has a row that belongs on one side.
+      const firstId = members.find((member) => member.author?.slug === first)?.id;
+      const solo = await admin.post("/api/race-records", {
+        data: { distanceId: "120m", eventId: "other-fat-dog", owner: firstId, result: "finished", year },
+      });
+      expect(solo.ok(), await solo.text()).toBeTruthy();
+      created.push(((await solo.json()) as { doc: { id: number } }).doc.id);
+
       // In from the timeline and through the picker by clicking, as a reader
       // would. The site's page transition keeps the outgoing page mounted for
       // a moment — and the address changes before the new page arrives — so
@@ -342,12 +356,16 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
           (picker, slug) => picker.filter({ has: page.locator(`[data-compare-selected="${slug}"]`) }),
           page.getByTestId("compare-picker"),
         );
-      await open(page, "/riders/timeline");
+      // In from the first member's own page, which arrives with them picked.
+      await page.setViewportSize({ height: 900, width: 1280 });
+      await open(page, `/riders/${first}`);
       await waitForHydration(page);
-      await page.getByTestId("club-timeline-compare").click();
-      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
-      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
-      await page.getByTestId("compare-picker").locator(`[data-compare-add="${first}"]`).click();
+      await page.getByTestId("rider-compare-link").click();
+      await expect(page).toHaveURL(new RegExp(`/riders/compare\\?with=${first}$`), {
+        timeout: budget(15_000),
+      });
+      // The transition can hold two copies of the arriving page for a moment.
+      await expect(pickerWith(first)).toHaveCount(1, { timeout: budget(10_000) });
       await pickerWith(first).locator(`[data-compare-add="${second}"]`).click();
       await expect(page).toHaveURL(new RegExp(`with=${first},${second}$`), {
         timeout: budget(15_000),
@@ -371,6 +389,33 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       });
       const pair = page.locator(`[data-testid="compare-pairs"] [data-pair="${first},${second}"]`);
       await expect(pair).toHaveAttribute("data-count", /^[1-9]/);
+
+      // Two members on a wide screen: each one's own race on their side, the
+      // race they ran together across the middle — measured, not only
+      // labelled, because the label is set whatever the CSS then does.
+      const own = page
+        .locator(`[data-compare-side] [data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Fat Dog" });
+      const together = race.first();
+      await expect(own).toHaveCount(1);
+      const middle = 1280 / 2;
+      const ownBox = await own.boundingBox();
+      const togetherBox = await together.boundingBox();
+      expect(ownBox && ownBox.x + ownBox.width, "the first member's own race sits left of the lanes").toBeLessThan(middle);
+      expect(
+        togetherBox && Math.abs(togetherBox.x + togetherBox.width / 2 - middle),
+        "the race they ran together sits across the lanes",
+      ).toBeLessThan(4);
+
+      // On a phone there is no room for sides: one column again.
+      await page.setViewportSize({ height: 844, width: 390 });
+      await expect
+        .poll(async () => {
+          const [a, b] = await Promise.all([own.boundingBox(), together.boundingBox()]);
+          return a && b ? Math.round(a.x - b.x) : null;
+        })
+        .toBe(0);
+      await page.setViewportSize({ height: 900, width: 1280 });
 
       // Known to search engines by one address, whichever order they were picked in.
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
