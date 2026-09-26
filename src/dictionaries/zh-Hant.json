@@ -175,8 +175,6 @@
     "subtitle": "選 2–3 位成員，看他們在哪些比賽交會。",
     "description": "{names} 的比賽和文章，在同一場比賽咬合在一起。",
     "pickAria": "選擇對照的成員",
-    "selected": "已選",
-    "add": "加入",
     "remove": "移除 {name}",
     "pickPrompt": "再選 {count} 位成員就能對照。",
     "full": "已選 3 位，移除一位才能換人。",
