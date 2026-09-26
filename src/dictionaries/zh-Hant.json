@@ -77,7 +77,9 @@
     "toAlbums": "前往相冊",
     "tagline": "一群野馬，一個家。",
     "seePhotos": "看照片",
-    "meetMembers": "認識成員"
+    "meetMembers": "認識成員",
+    "trailSummary": "{members} 位成員 · {meetings} 次交會 · {from}–{to}",
+    "trailHint": "每條線是一位成員，亮點是他們在同一場比賽相遇。"
   },
   "races": {
     "title": "賽事日程",
@@ -160,7 +162,26 @@
     "title": "野馬營穿越時光",
     "subtitle": "野馬營全體成員跑過的比賽與寫過的文章，依時間排列。",
     "pageDescription": "所有成員的比賽和文章，接在同一條時間軸上。",
-    "allMembers": "← 所有成員"
+    "allMembers": "← 所有成員",
+    "viewAria": "時間軸樣式",
+    "viewSingle": "單線",
+    "viewBraid": "交會",
+    "meeting": "交會",
+    "otherMembers": "其他成員",
+    "compare": "對照"
+  },
+  "compare": {
+    "title": "成員對照",
+    "subtitle": "選 2–3 位成員，看他們在哪些比賽交會。",
+    "description": "{names} 的比賽和文章，在同一場比賽咬合在一起。",
+    "pickAria": "選擇對照的成員",
+    "remove": "移除 {name}",
+    "pickPrompt": "再選 {count} 位成員就能對照。",
+    "full": "已選 3 位，移除一位才能換人。",
+    "together": "同場次數",
+    "times": "{count} 場",
+    "never": "還沒有",
+    "all": "三人同場"
   },
   "riderTimeline": {
     "raceCount": "{count} 場比賽",

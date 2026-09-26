@@ -1,6 +1,9 @@
+import type { APIRequestContext } from "@playwright/test";
+
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
-import { adminContext } from "../helpers/members";
+import { waitForHydration } from "../helpers/hydration";
+import { TEST_MEMBER, TEST_MEMBER_TWO, adminContext, loginContext } from "../helpers/members";
 
 /**
  * V-CLUB — 野馬營穿越時光 (/riders/timeline), the club's whole rail.
@@ -25,6 +28,46 @@ const open = (page: import("@playwright/test").Page, path: string) =>
 
 const rows = (page: import("@playwright/test").Page) =>
   page.getByTestId("club-timeline-row");
+
+/**
+ * Two members at one race this year, over the distances given — the one thing
+ * the seeded corpus never has. Records are created by an admin on each
+ * member's behalf; their ids come back so the caller deletes exactly those.
+ *
+ * This year, so the rows sort to the top of the rail and land on the
+ * homepage map; the caller picks an event no seeded record uses, and no other
+ * test here, so nothing else joins the meeting.
+ */
+async function twoMembersAt(
+  admin: APIRequestContext,
+  baseURL: string | undefined,
+  eventId: string,
+  distances: [string, string],
+  /** Filled as records are made, so the caller's `finally` sees a half-made fixture too. */
+  created: number[],
+) {
+  const members: { author?: { slug: string }; id: number }[] = [];
+  for (const credentials of [TEST_MEMBER, TEST_MEMBER_TWO]) {
+    // Each member's own `me`: an admin may not filter accounts by email.
+    const self = await loginContext(baseURL, credentials);
+    const me = await self.get("/api/users/me?depth=1");
+    const body = await me.text();
+    await self.dispose();
+    const user = (JSON.parse(body) as { user?: { author?: { slug: string }; id: number } }).user;
+    expect(user?.author?.slug, `${credentials.email} has no byline: ${body.slice(0, 300)}`).toBeTruthy();
+    members.push(user as { author?: { slug: string }; id: number });
+  }
+
+  const year = new Date().getUTCFullYear();
+  for (const [i, distanceId] of distances.entries()) {
+    const made = await admin.post("/api/race-records", {
+      data: { distanceId, eventId, owner: members[i].id, result: "finished", year },
+    });
+    expect(made.ok(), await made.text()).toBeTruthy();
+    created.push(((await made.json()) as { doc: { id: number } }).doc.id);
+  }
+  return { members, year };
+}
 
 test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T1: scrolling to the end brings the next page, once each", async ({
@@ -154,6 +197,194 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       // By id, and the value it had: this album was untagged, and every album
       // in the corpus is. Never a pattern, never "clear the column".
       await admin.patch(`/api/galleries/${album.id}`, { data: { raceEdition: null } });
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T6: the 交會 view pulls two members at one edition into one meeting", async ({
+    baseURL,
+    page,
+  }) => {
+    // Signs in and writes, like T5, and pays for it the same way.
+    test.setTimeout(budget(60_000));
+
+    // THE TEST OWNS THIS FIXTURE: the seeded corpus has no race two members
+    // ran together, so without one the view has nothing to draw and a green
+    // run would mean nothing. Two distances of one edition, on purpose — the
+    // rows stay split by distance and the meeting has to span them anyway
+    // (U-BRAID-T1 pins the logic; this pins that the page draws it).
+    const admin = await adminContext(baseURL);
+    const created: number[] = [];
+    try {
+      const { members, year } = await twoMembersAt(
+        admin,
+        baseURL,
+        "other-squamish-50",
+        ["50k", "23k"],
+        created,
+      );
+      // By clicking the tab — a soft navigation, which is where this suite
+      // has shipped a bug before (docs/testing-incidents.md).
+      await open(page, "/riders/timeline");
+      await waitForHydration(page);
+      await page.locator('[data-testid="club-timeline-view"][data-view="braid"]').click();
+      await expect(page).toHaveURL(/\/riders\/timeline\?view=braid$/, { timeout: budget(15_000) });
+      // The site's page transition keeps the outgoing view mounted while the
+      // new one arrives, so wait for the braid and then for it to be alone —
+      // otherwise every locator below may be reading the view being left.
+      await expect(page.locator('[data-testid="club-timeline"][data-view="braid"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
+
+      // Both distance rows are one meeting, and both members have a lane.
+      const squamish = page
+        .locator(`[data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Squamish 50" });
+      await expect(squamish).toHaveCount(2);
+      await expect(squamish.getByTestId("club-row-meeting")).toHaveCount(2);
+      const legend = page.getByTestId("braid-legend");
+      for (const member of members) {
+        await expect(legend.locator(`[data-lane-slug="${member.author?.slug}"]`)).toBeAttached();
+      }
+      await expect(page.locator("[data-braid-meeting]:visible").first()).toBeVisible();
+
+      // And the default view is untouched by any of it.
+      await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+      await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
+      await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
+      await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
+    } finally {
+      // By the ids captured when they were created — never a pattern.
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T7: a meeting on the homepage map opens that race on the braided rail", async ({
+    baseURL,
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // The map only exists once somebody has run with somebody, and the seeded
+    // corpus has nobody — so, as in T6, the test brings its own meeting. A
+    // different event from T6's, so neither sees the other's rows.
+    const admin = await adminContext(baseURL);
+    const created: number[] = [];
+    try {
+      const { year } = await twoMembersAt(admin, baseURL, "utmb-whistler", ["50k", "25k"], created);
+
+      await open(page, "/");
+      await expect(page.getByTestId("home-trail-map")).toBeVisible({ timeout: budget(15_000) });
+
+      // The caption names a meeting only while the runners are there, so wait
+      // for the loop to reach this one — it is this year's, the last on the map.
+      const meeting = page
+        .getByTestId("home-trail-meeting")
+        .filter({ hasText: `${year} · ` });
+      await expect(meeting).toBeVisible({ timeout: budget(30_000) });
+      await meeting.click();
+
+      await expect(page).toHaveURL(/\/riders\/timeline\?view=braid&at=.+#row-/, {
+        timeout: budget(15_000),
+      });
+      // The fragment names the element that holds this race. Not "the row is
+      // in the viewport": this year's race is the first on the rail, so it
+      // would be on screen whether or not the link pointed anywhere — an
+      // assertion that could not fail here. Whether the browser scrolls to an
+      // id is the browser's business; that the id is the right one is ours.
+      const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+      const target = page.locator(`[id="${anchor}"]`);
+      await expect(target).toHaveCount(1);
+      await expect(target.getByTestId("club-timeline-row").first()).toHaveAttribute(
+        "data-year",
+        String(year),
+      );
+      await expect(target).toContainText(/Whistler|威士拿/);
+    } finally {
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T8: 對照 zips two members together where they raced, and unpicking one ends it", async ({
+    baseURL,
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // Their own meeting, as in T6 and T7, on an event neither of those uses.
+    const admin = await adminContext(baseURL);
+    const created: number[] = [];
+    try {
+      const { members, year } = await twoMembersAt(
+        admin,
+        baseURL,
+        "other-canadian-death-race",
+        ["118k", "42k"],
+        created,
+      );
+      // Picked in reverse-sorted order, so the canonical address — sorted —
+      // differs from the one in the bar and the assertion on it can fail.
+      const [first, second] = members.map((member) => member.author?.slug as string).sort().reverse();
+
+      // In from the timeline and through the picker by clicking, as a reader
+      // would. The site's page transition keeps the outgoing page mounted for
+      // a moment — and the address changes before the new page arrives — so
+      // each click is made in the picker that shows the selection so far,
+      // never in whichever picker happens to be first in the DOM.
+      const pickerWith = (...slugs: string[]) =>
+        slugs.reduce(
+          (picker, slug) => picker.filter({ has: page.locator(`[data-compare-selected="${slug}"]`) }),
+          page.getByTestId("compare-picker"),
+        );
+      await open(page, "/riders/timeline");
+      await waitForHydration(page);
+      await page.getByTestId("club-timeline-compare").click();
+      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+      await page.getByTestId("compare-picker").locator(`[data-compare-add="${first}"]`).click();
+      await pickerWith(first).locator(`[data-compare-add="${second}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`with=${first},${second}$`), {
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+
+      // Both distance rows are the one race they ran together, zipped.
+      const race = page
+        .locator(`[data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Canadian Death Race" });
+      await expect(race).toHaveCount(2);
+      await expect(race.getByTestId("club-row-meeting")).toHaveCount(2);
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "compare");
+      // Drawn as a zip — teeth, not the club rail's interchange. They close as
+      // the race scrolls into view, and on this page the rail starts below
+      // the picker, so scroll to it as a reader would.
+      await race.first().scrollIntoViewIfNeeded();
+      await expect(page.locator("[data-braid-zip]:visible").first()).toBeVisible({
+        timeout: budget(5_000),
+      });
+      const pair = page.locator(`[data-testid="compare-pairs"] [data-pair="${first},${second}"]`);
+      await expect(pair).toHaveAttribute("data-count", /^[1-9]/);
+
+      // Known to search engines by one address, whichever order they were picked in.
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        new RegExp(`/riders/compare\\?with=${[first, second].sort().join(",")}$`),
+      );
+
+      // Unpicking one leaves a single member: the picker, and no rail.
+      await pickerWith(first, second).locator(`[data-compare-selected="${first}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`with=${second}$`), { timeout: budget(15_000) });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(0);
+    } finally {
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
       await admin.dispose();
     }
   });

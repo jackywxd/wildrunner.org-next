@@ -77,7 +77,9 @@
     "toAlbums": "前往相册",
     "tagline": "一群野马，一个家。",
     "seePhotos": "看照片",
-    "meetMembers": "认识成员"
+    "meetMembers": "认识成员",
+    "trailSummary": "{members} 位成员 · {meetings} 次交会 · {from}–{to}",
+    "trailHint": "每条线是一位成员，亮点是他们在同一场比赛相遇。"
   },
   "races": {
     "title": "赛事日程",
@@ -160,7 +162,26 @@
     "title": "野马营穿越时光",
     "subtitle": "野马营全体成员跑过的比赛与写过的文章，依时间排列。",
     "pageDescription": "所有成员的比赛和文章，接在同一条时间轴上。",
-    "allMembers": "← 所有成员"
+    "allMembers": "← 所有成员",
+    "viewAria": "时间轴样式",
+    "viewSingle": "单线",
+    "viewBraid": "交会",
+    "meeting": "交会",
+    "otherMembers": "其他成员",
+    "compare": "对照"
+  },
+  "compare": {
+    "title": "成员对照",
+    "subtitle": "选 2–3 位成员，看他们在哪些比赛交会。",
+    "description": "{names} 的比赛和文章，在同一场比赛咬合在一起。",
+    "pickAria": "选择对照的成员",
+    "remove": "移除 {name}",
+    "pickPrompt": "再选 {count} 位成员就能对照。",
+    "full": "已选 3 位，移除一位才能换人。",
+    "together": "同场次数",
+    "times": "{count} 场",
+    "never": "还没有",
+    "all": "三人同场"
   },
   "riderTimeline": {
     "raceCount": "{count} 场比赛",

@@ -70,6 +70,7 @@ const ROUTES = [
   "/races/warmup-not-a-real-event/2026",
   "/riders",
   "/riders/timeline",
+  "/riders/compare",
   "/riders/warmup-not-a-real-rider",
   "/riders/warmup-not-a-real-rider/timeline",
   "/members",

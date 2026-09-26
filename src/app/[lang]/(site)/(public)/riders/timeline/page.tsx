@@ -1,11 +1,16 @@
 import Link from "@/components/i18n/locale-link";
 
 import { ClubTimelineFeed } from "@/components/riders/ClubTimelineFeed";
+import {
+  ClubTimelineViewTabs,
+  parseClubTimelineView,
+} from "@/components/riders/ClubTimelineViewTabs";
 import PageHeader from "@/components/page-header";
 import { getClubTimelineRows } from "@/lib/content";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
+import { assignLanes } from "@/lib/riders/club-lanes";
 import {
   CLUB_PAGE_SIZE,
   catalogueForRows,
@@ -41,14 +46,29 @@ export async function generateMetadata() {
   });
 }
 
-export default async function ClubTimelinePage() {
+export default async function ClubTimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const t = await getDictionary();
+  const params = await searchParams;
+  const view = parseClubTimelineView(params);
   const [rows, events] = await Promise.all([
     getClubTimelineRows(),
     getRaceCatalogueEvents(),
   ]);
 
-  const page = clubTimelinePage(rows, null, CLUB_PAGE_SIZE);
+  // `?at=<row key>` — the homepage map links to one race. That row may be
+  // several pages down an infinite scroll, so the first page is stretched to
+  // reach it (and a few rows past, so it is not the last thing on screen);
+  // the fragment in the same link then scrolls to it. An unknown key is
+  // ignored, never an error.
+  const at = typeof params.at === "string" ? rows.findIndex((row) => row.key === params.at) : -1;
+  const page = clubTimelinePage(rows, null, Math.max(CLUB_PAGE_SIZE, at + 4));
+  // Over every row, not the first page: see `assignLanes` for why the lanes
+  // are the club's and not the screen's.
+  const braid = view === "braid" ? assignLanes(rows) : undefined;
 
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
@@ -57,9 +77,12 @@ export default async function ClubTimelinePage() {
         description={t.clubTimeline.pageDescription}
       />
 
+      <ClubTimelineViewTabs active={view} />
+
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       <ClubTimelineFeed
+        braid={braid}
         first={{ ...page, events: catalogueForRows(page.rows, events) }}
       />
 
