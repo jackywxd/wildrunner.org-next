@@ -6,3 +6,8 @@
 # OG font and other static fonts (Workers Assets)
 /fonts/*
   Cache-Control: public,max-age=31536000,immutable
+
+# Timeline music (src/components/riders/TimelinePlayer.tsx). Not immutable:
+# the name carries no hash, so a replaced file must still reach readers.
+/audio/*
+  Cache-Control: public,max-age=86400

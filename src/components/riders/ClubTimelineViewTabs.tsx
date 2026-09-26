@@ -1,5 +1,6 @@
 import Link from "@/components/i18n/locale-link";
 
+import { TimelinePlayer } from "@/components/riders/TimelinePlayer";
 import { cn } from "@/lib/utils";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
@@ -54,15 +55,20 @@ export async function ClubTimelineViewTabs({ active }: { active: ClubTimelineVie
           {tab.label}
         </Link>
       ))}
-      {/* Beside the two drawings rather than one of them: it leaves this page
-          for 成員對照, the same rail narrowed to two or three people. */}
-      <Link
-        className="border border-border bg-background hit-area ml-auto inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
-        data-testid="club-timeline-compare"
-        href="/riders/compare"
-      >
-        {t.clubTimeline.compare}
-      </Link>
+      <div className="ml-auto flex items-center gap-2">
+        {/* 播放 watches this page scroll by, with music; it works on either
+            drawing, so it sits with 對照 rather than among the two tabs. */}
+        <TimelinePlayer />
+        {/* Beside the two drawings rather than one of them: it leaves this
+            page for 成員對照, the same rail narrowed to two or three people. */}
+        <Link
+          className="border border-border bg-background hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
+          data-testid="club-timeline-compare"
+          href="/riders/compare"
+        >
+          {t.clubTimeline.compare}
+        </Link>
+      </div>
     </nav>
   );
 }

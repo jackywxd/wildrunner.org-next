@@ -168,7 +168,14 @@
     "viewBraid": "交会",
     "meeting": "交会",
     "otherMembers": "其他成员",
-    "compare": "对照"
+    "compare": "对照",
+    "play": "播放",
+    "stop": "停止"
+  },
+  "music": {
+    "play": "播放音乐",
+    "pause": "暂停音乐",
+    "artist": "野马营"
   },
   "compare": {
     "title": "成员对照",
@@ -230,7 +237,8 @@
     "allMembers": "← 所有成员",
     "tabPosts": "文章",
     "tabTimeline": "穿越时光",
-    "tabsAria": "检视方式"
+    "tabsAria": "检视方式",
+    "compareWith": "与其他成员对照"
   },
   "slideshowMusic": {
     "defaultTitle": "相册背景音乐",

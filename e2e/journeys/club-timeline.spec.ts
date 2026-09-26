@@ -30,6 +30,38 @@ const rows = (page: import("@playwright/test").Page) =>
   page.getByTestId("club-timeline-row");
 
 /**
+ * Twenty seconds of tones as a WAV — something this lane's Chromium can
+ * decode, standing in for the site's AAC music in V-CLUB-T9. Several
+ * frequencies, each swelling at its own rate, so the spectrum has a shape.
+ */
+function toneWav(seconds = 20, rate = 22050): Buffer {
+  const samples = seconds * rate;
+  const buffer = Buffer.alloc(44 + samples * 2);
+  buffer.write("RIFF", 0);
+  buffer.writeUInt32LE(36 + samples * 2, 4);
+  buffer.write("WAVEfmt ", 8);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(rate, 24);
+  buffer.writeUInt32LE(rate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36);
+  buffer.writeUInt32LE(samples * 2, 40);
+  const tones = [110, 220, 440, 880, 1760, 3520];
+  for (let i = 0; i < samples; i += 1) {
+    const t = i / rate;
+    let value = 0;
+    tones.forEach((frequency, k) => {
+      value += Math.sin(2 * Math.PI * frequency * t) * (0.5 + 0.5 * Math.sin(2 * Math.PI * (0.3 + k * 0.2) * t));
+    });
+    buffer.writeInt16LE(Math.round((value / tones.length) * 30000), 44 + i * 2);
+  }
+  return buffer;
+}
+
+/**
  * Two members at one race this year, over the distances given — the one thing
  * the seeded corpus never has. Records are created by an admin on each
  * member's behalf; their ids come back so the caller deletes exactly those.
@@ -257,6 +289,11 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       });
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
+
+      // And 對照, beside the two drawings, leaves for 成員對照 — T8 walks the
+      // compare page itself, entering from a member's page instead.
+      await page.getByTestId("club-timeline-compare").click();
+      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
     } finally {
       // By the ids captured when they were created — never a pattern.
       for (const id of created) await admin.delete(`/api/race-records/${id}`);
@@ -311,7 +348,7 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     }
   });
 
-  test("V-CLUB-T8: 對照 zips two members together where they raced, and unpicking one ends it", async ({
+  test("V-CLUB-T8: 對照 from a member's page zips two members together, side by side when there is room", async ({
     baseURL,
     page,
   }) => {
@@ -332,6 +369,15 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       // differs from the one in the bar and the assertion on it can fail.
       const [first, second] = members.map((member) => member.author?.slug as string).sort().reverse();
 
+      // And one race of the first member's alone, so the two-member layout
+      // has a row that belongs on one side.
+      const firstId = members.find((member) => member.author?.slug === first)?.id;
+      const solo = await admin.post("/api/race-records", {
+        data: { distanceId: "120m", eventId: "other-fat-dog", owner: firstId, result: "finished", year },
+      });
+      expect(solo.ok(), await solo.text()).toBeTruthy();
+      created.push(((await solo.json()) as { doc: { id: number } }).doc.id);
+
       // In from the timeline and through the picker by clicking, as a reader
       // would. The site's page transition keeps the outgoing page mounted for
       // a moment — and the address changes before the new page arrives — so
@@ -342,12 +388,16 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
           (picker, slug) => picker.filter({ has: page.locator(`[data-compare-selected="${slug}"]`) }),
           page.getByTestId("compare-picker"),
         );
-      await open(page, "/riders/timeline");
+      // In from the first member's own page, which arrives with them picked.
+      await page.setViewportSize({ height: 900, width: 1280 });
+      await open(page, `/riders/${first}`);
       await waitForHydration(page);
-      await page.getByTestId("club-timeline-compare").click();
-      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
-      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
-      await page.getByTestId("compare-picker").locator(`[data-compare-add="${first}"]`).click();
+      await page.getByTestId("rider-compare-link").click();
+      await expect(page).toHaveURL(new RegExp(`/riders/compare\\?with=${first}$`), {
+        timeout: budget(15_000),
+      });
+      // The transition can hold two copies of the arriving page for a moment.
+      await expect(pickerWith(first)).toHaveCount(1, { timeout: budget(10_000) });
       await pickerWith(first).locator(`[data-compare-add="${second}"]`).click();
       await expect(page).toHaveURL(new RegExp(`with=${first},${second}$`), {
         timeout: budget(15_000),
@@ -372,6 +422,33 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       const pair = page.locator(`[data-testid="compare-pairs"] [data-pair="${first},${second}"]`);
       await expect(pair).toHaveAttribute("data-count", /^[1-9]/);
 
+      // Two members on a wide screen: each one's own race on their side, the
+      // race they ran together across the middle — measured, not only
+      // labelled, because the label is set whatever the CSS then does.
+      const own = page
+        .locator(`[data-compare-side] [data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Fat Dog" });
+      const together = race.first();
+      await expect(own).toHaveCount(1);
+      const middle = 1280 / 2;
+      const ownBox = await own.boundingBox();
+      const togetherBox = await together.boundingBox();
+      expect(ownBox && ownBox.x + ownBox.width, "the first member's own race sits left of the lanes").toBeLessThan(middle);
+      expect(
+        togetherBox && Math.abs(togetherBox.x + togetherBox.width / 2 - middle),
+        "the race they ran together sits across the lanes",
+      ).toBeLessThan(4);
+
+      // On a phone there is no room for sides: one column again.
+      await page.setViewportSize({ height: 844, width: 390 });
+      await expect
+        .poll(async () => {
+          const [a, b] = await Promise.all([own.boundingBox(), together.boundingBox()]);
+          return a && b ? Math.round(a.x - b.x) : null;
+        })
+        .toBe(0);
+      await page.setViewportSize({ height: 900, width: 1280 });
+
       // Known to search engines by one address, whichever order they were picked in.
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         "href",
@@ -387,6 +464,75 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       for (const id of created) await admin.delete(`/api/race-records/${id}`);
       await admin.dispose();
     }
+  });
+
+  test("V-CLUB-T9: 播放 drifts down the rail with the site's music, drawn along the bottom and playing on to the next page", async ({
+    page,
+  }) => {
+    test.setTimeout(budget(60_000));
+
+    // The real file is served, as an audio type...
+    const served = await page.request.get("/audio/life-long-love.m4a");
+    expect(served.status(), "the music file is not served").toBe(200);
+    expect(served.headers()["content-type"]).toMatch(/^audio\//);
+
+    // ...but this lane's Chromium ships without an AAC decoder, so the page
+    // is given a tone it can decode in its place. Without that the music
+    // could never be heard to play here, and the spectrum would have nothing
+    // to draw — every assertion below about them would be unable to fail.
+    // Whether the real song is audible, and survives a locked iPhone, is
+    // checked on a device, not in this lane.
+    await page.route("**/audio/life-long-love.m4a", (route) =>
+      route.fulfill({ body: toneWav(), contentType: "audio/wav", status: 200 }),
+    );
+
+    await page.setViewportSize({ height: 720, width: 1280 });
+    await open(page, "/riders/timeline");
+    await waitForHydration(page);
+
+    const audio = page.getByTestId("site-music-audio");
+    // Held across the navigation below: the same element still connected
+    // afterwards is what "plays on to the next page" means.
+    const element = await audio.elementHandle();
+
+    const before = await page.evaluate(() => window.scrollY);
+    await page.getByTestId("club-timeline-play").click();
+    await expect(page.getByTestId("club-timeline-play")).toHaveAttribute("aria-pressed", "true");
+
+    // It plays, the page drifts, and the band along the bottom moves with it.
+    await expect
+      .poll(() => audio.evaluate((node: HTMLAudioElement) => node.currentTime), {
+        timeout: budget(10_000),
+      })
+      .toBeGreaterThan(1);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), { timeout: budget(10_000) })
+      .toBeGreaterThan(before + 20);
+    await expect
+      .poll(
+        () =>
+          page.getByTestId("site-music-spectrum").evaluate((canvas: HTMLCanvasElement) => {
+            const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+            let lit = 0;
+            for (let i = 3; pixels && i < pixels.length; i += 4) if (pixels[i] > 0) lit += 1;
+            return lit;
+          }),
+        { timeout: budget(10_000) },
+      )
+      .toBeGreaterThan(0);
+    await expect(page.getByTestId("site-music-toggle")).toBeVisible();
+
+    // To another page by clicking, as a reader would — a soft navigation —
+    // and the same element is still there, still playing.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator("header").getByRole("link", { name: /關於/ }).first().click();
+    await expect(page).toHaveURL(/\/about$/, { timeout: budget(15_000) });
+    expect(await element?.evaluate((node) => node.isConnected), "the music element was replaced").toBe(true);
+    expect(await audio.evaluate((node: HTMLAudioElement) => node.paused)).toBe(false);
+
+    // And the corner button pauses it there.
+    await page.getByTestId("site-music-toggle").click();
+    await expect.poll(() => audio.evaluate((node: HTMLAudioElement) => node.paused)).toBe(true);
   });
 
   test("V-CLUB-T2: 列印全部 loads the rest of the rail before opening the dialog", async ({

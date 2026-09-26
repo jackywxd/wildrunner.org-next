@@ -5,6 +5,7 @@ import PageTransitionEffect from "@/components/transition/PageTransitionEffect";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { CloudflareWebAnalytics } from "@/components/cloudflare-web-analytics";
 import { DictionaryProvider } from "@/components/i18n/dictionary-provider";
+import { SiteMusicProvider } from "@/components/music/SiteMusic";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
@@ -33,12 +34,16 @@ export default async function PublicLayout({ children }: { children: ReactNode }
 
   return (
     <DictionaryProvider dictionary={dictionary}>
-      <App>
-        <NextTopLoader showSpinner={false} />
-        <PageTransitionEffect>{children}</PageTransitionEffect>
-        <TailwindIndicator />
-        <CloudflareWebAnalytics />
-      </App>
+      {/* Around the whole public site, not a page, so the music started on
+          one page plays on through the next (SiteMusic.tsx). */}
+      <SiteMusicProvider>
+        <App>
+          <NextTopLoader showSpinner={false} />
+          <PageTransitionEffect>{children}</PageTransitionEffect>
+          <TailwindIndicator />
+          <CloudflareWebAnalytics />
+        </App>
+      </SiteMusicProvider>
     </DictionaryProvider>
   );
 }

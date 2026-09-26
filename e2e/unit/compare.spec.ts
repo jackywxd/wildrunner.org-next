@@ -10,6 +10,7 @@ import {
   compareRows,
   meetingPairs,
   pairCounts,
+  pairSide,
   parseCompare,
 } from "@/lib/riders/compare";
 
@@ -137,4 +138,13 @@ test("U-COMPARE-T5: a member keeps their club colour here, and nobody shares one
   // Cy has no lane on the club rail: the first colour not already in use.
   expect(colors[0]).toBe(LANE_COLORS[2]);
   expect(new Set(colors).size).toBe(3);
+});
+
+test("U-COMPARE-T6: with two members, each one's rows keep to their own side", async () => {
+  expect(pairSide([0])).toBe("left");
+  expect(pairSide([1])).toBe("right");
+  expect(pairSide([1, 1])).toBe("right");
+  // Together — across the middle, over the zip.
+  expect(pairSide([0, 1])).toBe("centre");
+  expect(pairSide([])).toBe("centre");
 });
