@@ -95,3 +95,30 @@ export const getRaceCatalogueEvents = cache(
     }));
   },
 );
+
+/**
+ * Display names for a handful of events, by key — the homepage map's six
+ * meetings at most.
+ *
+ * Not `getRaceCatalogueEvents()` filtered: that reads all 100 events and 394
+ * categories to name six races, which measured as most of what the map added
+ * to the homepage. Same fallback as everywhere else: `nameZh`, then `name`.
+ */
+export async function getRaceEventNames(keys: string[]): Promise<Record<string, string>> {
+  if (keys.length === 0) return {};
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "race-events",
+    depth: 0,
+    limit: keys.length,
+    pagination: false,
+    select: { key: true, name: true, nameZh: true },
+    where: { key: { in: keys } },
+  });
+  return Object.fromEntries(
+    (result.docs as Pick<RaceEventDoc, "key" | "name" | "nameZh">[]).map((event) => [
+      event.key,
+      event.nameZh ?? event.name,
+    ]),
+  );
+}

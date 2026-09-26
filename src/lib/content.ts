@@ -1401,19 +1401,30 @@ export async function getRiderTimeline(
  * `authors` with RIDER_SELECT (no `owner`), never from walking
  * `posts.author` to depth 2, which would populate the author's own `users`
  * row behind every card. `users` is read for ids only.
+ *
+ * `posts` and `media` can be left out by a caller that only needs the races —
+ * the homepage's map, which would otherwise pay for five hundred articles and
+ * every public picture to draw who ran with whom. Leaving them out changes no
+ * race row and no row order: articles and pictures only ever add rows of their
+ * own, and never sort between two distance rows of one edition.
  */
-export async function getClubTimelineRows(): Promise<ClubTimelineRow[]> {
+export async function getClubTimelineRows({
+  media: withMedia = true,
+  posts: withPosts = true,
+}: { media?: boolean; posts?: boolean } = {}): Promise<ClubTimelineRow[]> {
   const payload = await getPayloadClient();
 
   const [postsResult, authorsResult, accounts, recordsResult] = await Promise.all([
-    payload.find({
-      collection: "posts",
-      depth: 1,
-      limit: 500,
-      sort: "-publishedAt",
-      where: { _status: { equals: "published" } },
-      select: POST_TIMELINE_SELECT,
-    }),
+    withPosts
+      ? payload.find({
+          collection: "posts",
+          depth: 1,
+          limit: 500,
+          sort: "-publishedAt",
+          where: { _status: { equals: "published" } },
+          select: POST_TIMELINE_SELECT,
+        })
+      : { docs: [] },
     payload.find({
       collection: "authors",
       depth: 1,
@@ -1489,7 +1500,7 @@ export async function getClubTimelineRows(): Promise<ClubTimelineRow[]> {
     return { author, post };
   });
 
-  const media = await timelineMedia();
+  const media = withMedia ? await timelineMedia() : [];
 
   return buildClubTimeline({ editionFacts, media, posts, races });
 }

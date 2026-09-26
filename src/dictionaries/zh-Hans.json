@@ -77,7 +77,9 @@
     "toAlbums": "前往相册",
     "tagline": "一群野马，一个家。",
     "seePhotos": "看照片",
-    "meetMembers": "认识成员"
+    "meetMembers": "认识成员",
+    "trailSummary": "{members} 位成员 · {meetings} 次交会 · {from}–{to}",
+    "trailHint": "每条线是一位成员，亮点是他们在同一场比赛相遇。"
   },
   "races": {
     "title": "赛事日程",

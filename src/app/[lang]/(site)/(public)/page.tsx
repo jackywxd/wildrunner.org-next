@@ -6,11 +6,16 @@ import { RaceEntryRow } from "@/components/race-schedule/RaceEntryRow";
 import { siteConfig } from "@/config/site";
 import type { SitePhoto } from "@/lib/content-types";
 import {
+  getClubTimelineRows,
   getPublishedGalleries,
   getPublishedPosts,
   getSiteGlobals,
   getUpcomingRaces,
 } from "@/lib/content";
+import { TrailMap } from "@/components/riders/TrailMap";
+import { getRaceEventNames } from "@/lib/races/catalogue-db";
+import { assignLanes } from "@/lib/riders/club-lanes";
+import { buildTrailMap } from "@/lib/riders/trail-map";
 import { photosOf } from "@/lib/media/gallery-items";
 import { isRegistrationOpen } from "@/lib/races/registration";
 import Races from "@/components/races";
@@ -41,12 +46,26 @@ export default async function Home() {
   // two different days within the same page.
   const now = new Date();
 
-  const [globals, galleries, posts, upcomingRaces] = await Promise.all([
+  const [globals, galleries, posts, upcomingRaces, clubRows] = await Promise.all([
     getSiteGlobals(),
     getPublishedGalleries(),
     getPublishedPosts(await currentLocale()),
     getUpcomingRaces({ now }),
+    // Races only: the map draws who ran with whom, and articles and pictures
+    // would cost two more queries to change nothing on it.
+    getClubTimelineRows({ media: false, posts: false }),
   ]);
+
+  // The club's own lanes, so each trail is the colour that member's lane is
+  // on the braided timeline this map links to.
+  const trail = buildTrailMap({
+    club: assignLanes(clubRows),
+    rows: clubRows,
+    thisYear: now.getUTCFullYear(),
+  });
+  const eventNames = await getRaceEventNames(
+    [...new Set(trail?.meetings.map((meeting) => meeting.eventId) ?? [])],
+  );
 
   // Open entries first, then the nearest races to fill the row. The
   // homepage question is "what can I still sign up for", and a strict date
@@ -89,6 +108,15 @@ export default async function Home() {
             <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
               {globals.metadata.description || siteConfig.description}
             </p>
+          )}
+
+          {/* The club's history as a picture, above the buttons that lead into
+              it. Only once somebody has run with somebody: without a meeting
+              it is four straight lines. */}
+          {trail && trail.meetings.length > 0 && (
+            <div className="mt-4 w-full max-w-3xl">
+              <TrailMap data={trail} eventNames={eventNames} />
+            </div>
           )}
 
           <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row">

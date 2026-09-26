@@ -37,6 +37,13 @@ export const LANE_LIMITS = { narrow: 4, wide: 6 } as const;
 
 export type LaneMember = { name: string; slug: string };
 
+/**
+ * One colour per lane, shared by every drawing of the club — the braided rail
+ * and the homepage map — so a member is the same colour wherever they appear.
+ * Six are the most that stay apart at 2.5px; everyone else is grey.
+ */
+export const LANE_COLORS = ["#8A3FFA", "#E8590C", "#0C8599", "#D6336C", "#2F9E44", "#1971C2"];
+
 export type ClubLanes = {
   /** Members with a lane of their own, in lane order. At most `LANE_LIMITS.wide`. */
   lanes: LaneMember[];
@@ -94,12 +101,17 @@ export function rowMeetings(rows: ClubTimelineRow[]): Map<string, RowMeeting> {
 }
 
 /**
- * Who gets a lane: the members who meet others most, then the most active.
+ * Who gets a lane: the members who meet others most, then who raced most.
  *
  * Ranked by meetings first because a lane that never bends is only a coloured
  * line — the point of the view is the bundles, so the people who make them are
  * the ones worth a colour. Name and slug break the remaining ties so the
  * assignment, and therefore every colour, is the same on every render.
+ *
+ * RACES ONLY, NOT ARTICLES. The homepage's map colours its trails from this
+ * same ranking and loads no articles to do it (`getClubTimelineRows` with
+ * `posts: false`); counting articles here would give one member two colours
+ * depending on which page drew them.
  */
 export function assignLanes(
   rows: ClubTimelineRow[],
@@ -117,7 +129,8 @@ export function assignLanes(
 
   for (const row of rows) {
     for (const runner of row.race?.runners ?? []) touch(runner).entries += 1;
-    for (const post of row.posts) if (post.author) touch(post.author).entries += 1;
+    // Named, so an author with no races still has a place in the grey lane.
+    for (const post of row.posts) if (post.author) touch(post.author);
   }
 
   // Once per meeting, not once per row of it: a run over two distances is

@@ -52,13 +52,20 @@ export default async function ClubTimelinePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const t = await getDictionary();
-  const view = parseClubTimelineView(await searchParams);
+  const params = await searchParams;
+  const view = parseClubTimelineView(params);
   const [rows, events] = await Promise.all([
     getClubTimelineRows(),
     getRaceCatalogueEvents(),
   ]);
 
-  const page = clubTimelinePage(rows, null, CLUB_PAGE_SIZE);
+  // `?at=<row key>` — the homepage map links to one race. That row may be
+  // several pages down an infinite scroll, so the first page is stretched to
+  // reach it (and a few rows past, so it is not the last thing on screen);
+  // the fragment in the same link then scrolls to it. An unknown key is
+  // ignored, never an error.
+  const at = typeof params.at === "string" ? rows.findIndex((row) => row.key === params.at) : -1;
+  const page = clubTimelinePage(rows, null, Math.max(CLUB_PAGE_SIZE, at + 4));
   // Over every row, not the first page: see `assignLanes` for why the lanes
   // are the club's and not the screen's.
   const braid = view === "braid" ? assignLanes(rows) : undefined;

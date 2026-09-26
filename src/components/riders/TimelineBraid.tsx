@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { TimelineReveal } from "@/components/riders/TimelineMotion";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 import {
+  LANE_COLORS,
   LANE_LIMITS,
   braidStrip,
   laneCount,
@@ -18,6 +19,7 @@ import {
   type StripGeometry,
 } from "@/lib/riders/club-lanes";
 import type { ClubTimelineRow } from "@/lib/riders/club-timeline";
+import { rowAnchor } from "@/lib/riders/trail-map";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,8 +51,6 @@ import { cn } from "@/lib/utils";
  * end state, the same way they already do for the single rail's rows.
  */
 
-/** Seven colours would not be told apart at 2.5px; six plus grey are the limit. */
-const LANE_COLORS = ["#8A3FFA", "#E8590C", "#0C8599", "#D6336C", "#2F9E44", "#1971C2"];
 const GREY = "hsl(var(--muted-foreground))";
 
 const NARROW: StripGeometry = { first: 8, gap: 12, bundle: 5 };
@@ -348,7 +348,8 @@ export function BraidRail({
         const meeting = meetings.get(row.key);
 
         return (
-          <li key={row.key}>
+          // An anchor for the homepage map's links, clear of the sticky header.
+          <li className="scroll-mt-24" id={rowAnchor(row.key)} key={row.key}>
             {startsYear && (
               <div className={cn("relative pb-5", index > 0 && "pt-6")}>
                 <Strips club={club} />

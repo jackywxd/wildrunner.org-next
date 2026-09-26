@@ -1,3 +1,5 @@
+import type { APIRequestContext } from "@playwright/test";
+
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
 import { waitForHydration } from "../helpers/hydration";
@@ -26,6 +28,46 @@ const open = (page: import("@playwright/test").Page, path: string) =>
 
 const rows = (page: import("@playwright/test").Page) =>
   page.getByTestId("club-timeline-row");
+
+/**
+ * Two members at one race this year, over the distances given — the one thing
+ * the seeded corpus never has. Records are created by an admin on each
+ * member's behalf; their ids come back so the caller deletes exactly those.
+ *
+ * This year, so the rows sort to the top of the rail and land on the
+ * homepage map; the caller picks an event no seeded record uses, and no other
+ * test here, so nothing else joins the meeting.
+ */
+async function twoMembersAt(
+  admin: APIRequestContext,
+  baseURL: string | undefined,
+  eventId: string,
+  distances: [string, string],
+  /** Filled as records are made, so the caller's `finally` sees a half-made fixture too. */
+  created: number[],
+) {
+  const members: { author?: { slug: string }; id: number }[] = [];
+  for (const credentials of [TEST_MEMBER, TEST_MEMBER_TWO]) {
+    // Each member's own `me`: an admin may not filter accounts by email.
+    const self = await loginContext(baseURL, credentials);
+    const me = await self.get("/api/users/me?depth=1");
+    const body = await me.text();
+    await self.dispose();
+    const user = (JSON.parse(body) as { user?: { author?: { slug: string }; id: number } }).user;
+    expect(user?.author?.slug, `${credentials.email} has no byline: ${body.slice(0, 300)}`).toBeTruthy();
+    members.push(user as { author?: { slug: string }; id: number });
+  }
+
+  const year = new Date().getUTCFullYear();
+  for (const [i, distanceId] of distances.entries()) {
+    const made = await admin.post("/api/race-records", {
+      data: { distanceId, eventId, owner: members[i].id, result: "finished", year },
+    });
+    expect(made.ok(), await made.text()).toBeTruthy();
+    created.push(((await made.json()) as { doc: { id: number } }).doc.id);
+  }
+  return { members, year };
+}
 
 test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T1: scrolling to the end brings the next page, once each", async ({
@@ -172,35 +214,15 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     // rows stay split by distance and the meeting has to span them anyway
     // (U-BRAID-T1 pins the logic; this pins that the page draws it).
     const admin = await adminContext(baseURL);
-    const members = [];
-    for (const credentials of [TEST_MEMBER, TEST_MEMBER_TWO]) {
-      // Each member's own `me`: an admin may not filter accounts by email.
-      const self = await loginContext(baseURL, credentials);
-      const me = await self.get("/api/users/me?depth=1");
-      expect(me.ok(), await me.text()).toBeTruthy();
-      const body = await me.text();
-      const user = (JSON.parse(body) as { user?: { author?: { slug: string }; id: number } }).user;
-      await self.dispose();
-      expect(user?.author?.slug, `${credentials.email} has no byline to draw a lane for: ${body.slice(0, 300)}`).toBeTruthy();
-      members.push(user as { author?: { slug: string }; id: number });
-    }
-
-    // This year, so the rows sort to the top of page one; an event no seeded
-    // record uses, so nothing else lands in the same meeting.
-    const year = new Date().getUTCFullYear();
     const created: number[] = [];
     try {
-      for (const [member, distanceId] of [
-        [members[0], "50k"],
-        [members[1], "23k"],
-      ] as const) {
-        const made = await admin.post("/api/race-records", {
-          data: { distanceId, eventId: "other-squamish-50", owner: member.id, result: "finished", year },
-        });
-        expect(made.ok(), await made.text()).toBeTruthy();
-        created.push(((await made.json()) as { doc: { id: number } }).doc.id);
-      }
-
+      const { members, year } = await twoMembersAt(
+        admin,
+        baseURL,
+        "other-squamish-50",
+        ["50k", "23k"],
+        created,
+      );
       // By clicking the tab — a soft navigation, which is where this suite
       // has shipped a bug before (docs/testing-incidents.md).
       await open(page, "/riders/timeline");
@@ -228,6 +250,53 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
     } finally {
       // By the ids captured when they were created — never a pattern.
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T7: a meeting on the homepage map opens that race on the braided rail", async ({
+    baseURL,
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // The map only exists once somebody has run with somebody, and the seeded
+    // corpus has nobody — so, as in T6, the test brings its own meeting. A
+    // different event from T6's, so neither sees the other's rows.
+    const admin = await adminContext(baseURL);
+    const created: number[] = [];
+    try {
+      const { year } = await twoMembersAt(admin, baseURL, "utmb-whistler", ["50k", "25k"], created);
+
+      await open(page, "/");
+      await expect(page.getByTestId("home-trail-map")).toBeVisible({ timeout: budget(15_000) });
+
+      // The caption names a meeting only while the runners are there, so wait
+      // for the loop to reach this one — it is this year's, the last on the map.
+      const meeting = page
+        .getByTestId("home-trail-meeting")
+        .filter({ hasText: `${year} · ` });
+      await expect(meeting).toBeVisible({ timeout: budget(30_000) });
+      await meeting.click();
+
+      await expect(page).toHaveURL(/\/riders\/timeline\?view=braid&at=.+#row-/, {
+        timeout: budget(15_000),
+      });
+      // The fragment names the element that holds this race. Not "the row is
+      // in the viewport": this year's race is the first on the rail, so it
+      // would be on screen whether or not the link pointed anywhere — an
+      // assertion that could not fail here. Whether the browser scrolls to an
+      // id is the browser's business; that the id is the right one is ours.
+      const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+      const target = page.locator(`[id="${anchor}"]`);
+      await expect(target).toHaveCount(1);
+      await expect(target.getByTestId("club-timeline-row").first()).toHaveAttribute(
+        "data-year",
+        String(year),
+      );
+      await expect(target).toContainText(/Whistler|威士拿/);
+    } finally {
       for (const id of created) await admin.delete(`/api/race-records/${id}`);
       await admin.dispose();
     }
