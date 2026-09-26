@@ -229,7 +229,13 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       await waitForHydration(page);
       await page.locator('[data-testid="club-timeline-view"][data-view="braid"]').click();
       await expect(page).toHaveURL(/\/riders\/timeline\?view=braid$/, { timeout: budget(15_000) });
-      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "braid");
+      // The site's page transition keeps the outgoing view mounted while the
+      // new one arrives, so wait for the braid and then for it to be alone —
+      // otherwise every locator below may be reading the view being left.
+      await expect(page.locator('[data-testid="club-timeline"][data-view="braid"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
 
       // Both distance rows are one meeting, and both members have a lane.
       const squamish = page
@@ -246,7 +252,10 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       // And the default view is untouched by any of it.
       await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
       await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
-      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "single");
+      await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await expect(page.getByTestId("club-row-meeting")).toHaveCount(0);
     } finally {
       // By the ids captured when they were created — never a pattern.
@@ -296,6 +305,84 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
         String(year),
       );
       await expect(target).toContainText(/Whistler|威士拿/);
+    } finally {
+      for (const id of created) await admin.delete(`/api/race-records/${id}`);
+      await admin.dispose();
+    }
+  });
+
+  test("V-CLUB-T8: 對照 zips two members together where they raced, and unpicking one ends it", async ({
+    baseURL,
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // Their own meeting, as in T6 and T7, on an event neither of those uses.
+    const admin = await adminContext(baseURL);
+    const created: number[] = [];
+    try {
+      const { members, year } = await twoMembersAt(
+        admin,
+        baseURL,
+        "other-canadian-death-race",
+        ["118k", "42k"],
+        created,
+      );
+      // Picked in reverse-sorted order, so the canonical address — sorted —
+      // differs from the one in the bar and the assertion on it can fail.
+      const [first, second] = members.map((member) => member.author?.slug as string).sort().reverse();
+
+      // In from the timeline and through the picker by clicking, as a reader
+      // would. The site's page transition keeps the outgoing page mounted for
+      // a moment — and the address changes before the new page arrives — so
+      // each click is made in the picker that shows the selection so far,
+      // never in whichever picker happens to be first in the DOM.
+      const pickerWith = (...slugs: string[]) =>
+        slugs.reduce(
+          (picker, slug) => picker.filter({ has: page.locator(`[data-compare-selected="${slug}"]`) }),
+          page.getByTestId("compare-picker"),
+        );
+      await open(page, "/riders/timeline");
+      await waitForHydration(page);
+      await page.getByTestId("club-timeline-compare").click();
+      await expect(page).toHaveURL(/\/riders\/compare$/, { timeout: budget(15_000) });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+      await page.getByTestId("compare-picker").locator(`[data-compare-add="${first}"]`).click();
+      await pickerWith(first).locator(`[data-compare-add="${second}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`with=${first},${second}$`), {
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+
+      // Both distance rows are the one race they ran together, zipped.
+      const race = page
+        .locator(`[data-testid="club-timeline-row"][data-year="${year}"]`)
+        .filter({ hasText: "Canadian Death Race" });
+      await expect(race).toHaveCount(2);
+      await expect(race.getByTestId("club-row-meeting")).toHaveCount(2);
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveAttribute("data-view", "compare");
+      // Drawn as a zip — teeth, not the club rail's interchange. They close as
+      // the race scrolls into view, and on this page the rail starts below
+      // the picker, so scroll to it as a reader would.
+      await race.first().scrollIntoViewIfNeeded();
+      await expect(page.locator("[data-braid-zip]:visible").first()).toBeVisible({
+        timeout: budget(5_000),
+      });
+      const pair = page.locator(`[data-testid="compare-pairs"] [data-pair="${first},${second}"]`);
+      await expect(pair).toHaveAttribute("data-count", /^[1-9]/);
+
+      // Known to search engines by one address, whichever order they were picked in.
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        new RegExp(`/riders/compare\\?with=${[first, second].sort().join(",")}$`),
+      );
+
+      // Unpicking one leaves a single member: the picker, and no rail.
+      await pickerWith(first, second).locator(`[data-compare-selected="${first}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`with=${second}$`), { timeout: budget(15_000) });
+      await expect(page.getByTestId("compare-picker")).toHaveCount(1, { timeout: budget(10_000) });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(0);
     } finally {
       for (const id of created) await admin.delete(`/api/race-records/${id}`);
       await admin.dispose();

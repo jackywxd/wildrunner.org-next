@@ -167,7 +167,23 @@
     "viewSingle": "单线",
     "viewBraid": "交会",
     "meeting": "交会",
-    "otherMembers": "其他成员"
+    "otherMembers": "其他成员",
+    "compare": "对照"
+  },
+  "compare": {
+    "title": "成员对照",
+    "subtitle": "选 2–3 位成员，看他们在哪些比赛交会。",
+    "description": "{names} 的比赛和文章，在同一场比赛咬合在一起。",
+    "pickAria": "选择对照的成员",
+    "selected": "已选",
+    "add": "加入",
+    "remove": "移除 {name}",
+    "pickPrompt": "再选 {count} 位成员就能对照。",
+    "full": "已选 3 位，移除一位才能换人。",
+    "together": "同场次数",
+    "times": "{count} 场",
+    "never": "还没有",
+    "all": "三人同场"
   },
   "riderTimeline": {
     "raceCount": "{count} 场比赛",

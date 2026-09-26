@@ -54,6 +54,15 @@ export async function ClubTimelineViewTabs({ active }: { active: ClubTimelineVie
           {tab.label}
         </Link>
       ))}
+      {/* Beside the two drawings rather than one of them: it leaves this page
+          for 成員對照, the same rail narrowed to two or three people. */}
+      <Link
+        className="border border-border bg-background hit-area ml-auto inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
+        data-testid="club-timeline-compare"
+        href="/riders/compare"
+      >
+        {t.clubTimeline.compare}
+      </Link>
     </nav>
   );
 }

@@ -270,6 +270,7 @@ function Row({
 
 export function ClubTimelineFeed({
   braid,
+  compare,
   first,
 }: {
   /**
@@ -277,6 +278,11 @@ export function ClubTimelineFeed({
    * the whole club so that loading more rows never reshuffles the colours.
    */
   braid?: ClubLanes;
+  /**
+   * 成員對照: the braid is those members only, in these colours, and a
+   * meeting closes like a zip. `first` then carries every row, with no cursor.
+   */
+  compare?: { palette: string[] };
   first: Page;
 }) {
   const t = useDictionary();
@@ -421,16 +427,17 @@ export function ClubTimelineFeed({
         </button>
       </div>
 
-      {braid && <BraidLegend club={braid} />}
+      {braid && <BraidLegend club={braid} palette={compare?.palette} />}
 
       <div
         className="rider-timeline relative mt-8"
         data-testid="club-timeline"
-        data-view={braid ? "braid" : "single"}
+        data-view={compare ? "compare" : braid ? "braid" : "single"}
       >
         {braid ? (
           <BraidRail
             club={braid}
+            palette={compare?.palette}
             renderRow={(row, meeting) => (
               <Row catalogue={catalogue} meeting={meeting} row={row} />
             )}
@@ -444,6 +451,7 @@ export function ClubTimelineFeed({
               </h2>
             )}
             rows={rows}
+            variant={compare ? "compare" : "club"}
           />
         ) : (
           <>

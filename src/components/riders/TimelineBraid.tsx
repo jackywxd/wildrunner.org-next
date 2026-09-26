@@ -56,9 +56,6 @@ const GREY = "hsl(var(--muted-foreground))";
 const NARROW: StripGeometry = { first: 8, gap: 12, bundle: 5 };
 const WIDE: StripGeometry = { first: 12, gap: 18, bundle: 6 };
 
-/** Where the card starts, clear of the widest set of lanes each screen draws. */
-export const BRAID_CONTENT = "pl-[76px] sm:pl-[140px]";
-
 /** Height of the bend at the top and bottom of every block. */
 const BEND = 28;
 
@@ -67,9 +64,30 @@ const VIEWS = [
   { geometry: WIDE, limit: LANE_LIMITS.wide, className: "hidden sm:flex" },
 ] as const;
 
-function colorOf(lane: number, own: number): string {
-  return lane < own ? LANE_COLORS[lane] : GREY;
+/**
+ * 成員對照 draws two or three lanes, the same on every screen, and wider apart
+ * — each is a person the reader chose, not one of a crowd.
+ */
+const COMPARE: StripGeometry = { first: 10, gap: 16, bundle: 6 };
+
+/** The two drawings the rail knows: the whole club, or a few members compared. */
+export type BraidVariant = "club" | "compare";
+
+const CONTENT: Record<BraidVariant, string> = {
+  club: "pl-[76px] sm:pl-[140px]",
+  compare: "pl-[64px] sm:pl-[72px]",
+};
+
+function viewsFor(variant: BraidVariant, club: ClubLanes) {
+  return variant === "compare"
+    ? [{ className: "flex", geometry: COMPARE, limit: club.lanes.length }]
+    : VIEWS;
 }
+
+const zip: Variants = {
+  hidden: { scaleY: 0 },
+  shown: { scaleY: 1, transition: { delay: 0.2, duration: 0.6, ease: "easeInOut" } },
+};
 
 const draw: Variants = {
   hidden: { pathLength: 0 },
@@ -154,14 +172,18 @@ function StripView({
   className,
   colors,
   strip,
+  zipped,
 }: {
   bundle: number;
   className: string;
   colors: string[];
   strip: Strip;
+  /** 成員對照: a bundle is drawn as a closed zip instead of an interchange. */
+  zipped: boolean;
 }) {
   const width = Math.max(...strip.top, ...strip.mid, ...strip.bottom) + 12;
-  const capsule = strip.capsule;
+  const capsule = zipped ? undefined : strip.capsule;
+  const teeth = zipped ? (strip.bundle ?? []) : [];
   const capsuleWidth = capsule ? (capsule.lanes - 1) * bundle + 14 : 0;
 
   return (
@@ -176,11 +198,32 @@ function StripView({
     >
       <Bend colors={colors} delay={0} from={strip.top} to={strip.mid} width={width} />
       <div className="relative flex-1">
-        {strip.mid.map((x, i) => (
-          <span
-            className="absolute inset-y-0"
-            key={i}
-            style={{ background: colors[i], left: x - 1.25, width: 2.5 }}
+        {strip.mid.map((x, i) =>
+          teeth.includes(i) ? null : (
+            <span
+              className="absolute inset-y-0"
+              key={i}
+              style={{ background: colors[i], left: x - 1.25, width: 2.5 }}
+            />
+          ),
+        )}
+        {/* A zip: each lane in the bundle becomes a row of teeth, every
+            other one offset by half a tooth so neighbours interlock. It closes
+            from the top as the row comes into view. */}
+        {teeth.map((lane, position) => (
+          <motion.span
+            className="absolute inset-y-0 origin-top"
+            data-braid-meeting=""
+            data-braid-zip=""
+            data-timeline-reveal=""
+            key={`zip-${lane}`}
+            style={{
+              background: `repeating-linear-gradient(to bottom, ${colors[lane]} 0 4px, transparent 4px 8px)`,
+              backgroundPosition: position % 2 ? "0 4px" : "0 0",
+              left: strip.mid[lane] - bundle / 2,
+              width: bundle,
+            }}
+            variants={zip}
           />
         ))}
         {capsule && (
@@ -240,18 +283,22 @@ function participantsOf(row: ClubTimelineRow, meeting: RowMeeting | undefined): 
 function Strips({
   club,
   meeting,
+  palette,
   row,
+  variant,
 }: {
   club: ClubLanes;
   meeting?: RowMeeting;
+  palette: string[];
   row?: ClubTimelineRow;
+  variant: BraidVariant;
 }) {
   return (
     <>
-      {VIEWS.map(({ className, geometry, limit }) => {
+      {viewsFor(variant, club).map(({ className, geometry, limit }) => {
         const count = laneCount(club, limit);
         const own = Math.min(club.lanes.length, limit);
-        const colors = Array.from({ length: count }, (_, lane) => colorOf(lane, own));
+        const colors = Array.from({ length: count }, (_, lane) => (lane < own ? palette[lane] : GREY));
         const participants = row
           ? participantsOf(row, meeting).map((slug) => laneOf(club.lanes, limit, slug))
           : [];
@@ -269,6 +316,7 @@ function Strips({
             colors={colors}
             key={limit}
             strip={strip}
+            zipped={variant === "compare"}
           />
         );
       })}
@@ -283,7 +331,13 @@ function Strips({
  * screen, so their entries — and the grey entry, when only they would be in
  * it — follow the same breakpoint as the strips.
  */
-export function BraidLegend({ club }: { club: ClubLanes }) {
+export function BraidLegend({
+  club,
+  palette = LANE_COLORS,
+}: {
+  club: ClubLanes;
+  palette?: string[];
+}) {
   const t = useDictionary();
   const greyNarrow = laneCount(club, LANE_LIMITS.narrow) > Math.min(club.lanes.length, LANE_LIMITS.narrow);
   const greyWide = club.others;
@@ -302,7 +356,7 @@ export function BraidLegend({ club }: { club: ClubLanes }) {
           data-lane-slug={lane.slug}
           key={lane.slug}
         >
-          <span aria-hidden className="h-[3px] w-4" style={{ background: LANE_COLORS[index] }} />
+          <span aria-hidden className="h-[3px] w-4" style={{ background: palette[index] }} />
           {lane.name}
         </li>
       ))}
@@ -328,14 +382,19 @@ export function BraidLegend({ club }: { club: ClubLanes }) {
  */
 export function BraidRail({
   club,
+  palette = LANE_COLORS,
   renderRow,
   renderYear,
   rows,
+  variant = "club",
 }: {
   club: ClubLanes;
+  /** A colour per lane. The club's own by default; 成員對照 passes its own. */
+  palette?: string[];
   renderRow: (row: ClubTimelineRow, meeting: boolean) => ReactNode;
   renderYear: (year: number) => ReactNode;
   rows: ClubTimelineRow[];
+  variant?: BraidVariant;
 }) {
   const meetings = useMemo(() => rowMeetings(rows), [rows]);
   let lastYear: number | null = null;
@@ -352,14 +411,20 @@ export function BraidRail({
           <li className="scroll-mt-24" id={rowAnchor(row.key)} key={row.key}>
             {startsYear && (
               <div className={cn("relative pb-5", index > 0 && "pt-6")}>
-                <Strips club={club} />
-                <TimelineReveal className={BRAID_CONTENT}>{renderYear(row.year)}</TimelineReveal>
+                <Strips club={club} palette={palette} variant={variant} />
+                <TimelineReveal className={CONTENT[variant]}>{renderYear(row.year)}</TimelineReveal>
               </div>
             )}
             <div className="relative pb-5">
-              <Strips club={club} meeting={meeting} row={row} />
+              <Strips
+                club={club}
+                meeting={meeting}
+                palette={palette}
+                row={row}
+                variant={variant}
+              />
               <TimelineReveal
-                className={BRAID_CONTENT}
+                className={CONTENT[variant]}
                 delay={Math.min(index % 6, 4) * 0.05}
               >
                 {renderRow(row, Boolean(meeting))}

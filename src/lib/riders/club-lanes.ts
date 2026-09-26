@@ -191,6 +191,8 @@ export type Strip = {
   bottom: number[];
   /** The interchange drawn over a meeting's bundle — only on its first row. */
   capsule?: { lanes: number; x: number };
+  /** The lanes held together through this block, left to right. */
+  bundle?: number[];
   /** A single member's race or article, on their own lane. */
   node?: { kind: "post" | "race"; x: number; lane: number };
 };
@@ -221,7 +223,19 @@ export function braidStrip({
   const lanes = [...new Set(participants)].filter((lane) => lane < count).sort((a, b) => a - b);
 
   if (lanes.length >= 2) {
-    const centre = lanes.reduce((sum, lane) => sum + home[lane], 0) / lanes.length;
+    // Around the members' mean position — unless somebody who was NOT there
+    // runs through that spot. A bundle drawn over a bystander's lane reads as
+    // them being part of it, so the bundle moves to the nearest gap between
+    // two lanes that is clear, and whoever has further to go crosses over.
+    // Nothing clear (three meeting around a bystander on a phone): the mean.
+    const mean = lanes.reduce((sum, lane) => sum + home[lane], 0) / lanes.length;
+    const reach = ((lanes.length - 1) * geometry.bundle) / 2 + 2;
+    const bystanders = home.filter((_, lane) => !lanes.includes(lane));
+    const clear = (x: number) => bystanders.every((other) => Math.abs(other - x) > reach + 1.25);
+    const centre =
+      [mean, ...home.slice(0, -1).map((x) => x + geometry.gap / 2)]
+        .filter((x) => x - reach >= 0 && clear(x))
+        .sort((a, b) => Math.abs(a - mean) - Math.abs(b - mean) || a - b)[0] ?? mean;
     const merged = [...home];
     lanes.forEach((lane, position) => {
       merged[lane] = centre + (position - (lanes.length - 1) / 2) * geometry.bundle;
@@ -232,6 +246,7 @@ export function braidStrip({
       mid: merged,
       bottom: held(meeting?.last ?? true),
       capsule: !meeting || meeting.first ? { lanes: lanes.length, x: centre } : undefined,
+      bundle: lanes,
     };
   }
 

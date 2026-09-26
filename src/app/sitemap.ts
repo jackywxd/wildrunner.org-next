@@ -3,10 +3,12 @@ import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
 import { LOCALES, localizedPath } from "@/lib/i18n/locales";
 import {
+  getClubTimelineRows,
   getPublishedGalleries,
   getPublishedPostSlugs,
   getRiderSlugs,
 } from "@/lib/content";
+import { compareCanonical, meetingPairs } from "@/lib/riders/compare";
 
 /**
  * `/sitemap.xml` — every page, in every language it exists in.
@@ -36,10 +38,11 @@ import {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseURL = siteConfig.baseURL.replace(/\/$/, "");
 
-  const [postSlugs, riderSlugs, galleries] = await Promise.all([
+  const [postSlugs, riderSlugs, galleries, clubRows] = await Promise.all([
     getPublishedPostSlugs(),
     getRiderSlugs(),
     getPublishedGalleries(),
+    getClubTimelineRows({ media: false, posts: false }),
   ]);
 
   const paths = [
@@ -53,6 +56,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...postSlugs.map((slug) => `/posts/${slug}`),
     ...riderSlugs.flatMap((slug) => [`/riders/${slug}`, `/riders/${slug}/timeline`]),
     ...galleries.map((gallery) => `/gallery/${gallery.slug}`),
+    // 成員對照 for every pair who have run a race together — each in its
+    // canonical, sorted form. A pair who never met has a page too, but
+    // nothing on it is about the two of them.
+    "/riders/compare",
+    ...meetingPairs(clubRows).map(compareCanonical),
   ];
 
   return paths.map((path) => ({

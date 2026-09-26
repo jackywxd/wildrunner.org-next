@@ -144,6 +144,18 @@ test("U-BRAID-T4: lanes go to whoever meets most, and the grey lane takes the re
 });
 
 test("U-BRAID-T5: a meeting pulls its lanes together and leaves the others where they are", async () => {
+  const neighbours = braidStrip({
+    count: 4,
+    geometry,
+    kind: "race",
+    meeting: { first: true, last: true },
+    participants: [1, 2],
+  });
+  // Lanes at rest: 10, 22, 34, 46. Lanes 1 and 2 meet around their mean, 28,
+  // 5px apart; 0 and 3 do not move.
+  expect(neighbours.mid).toEqual([10, 25.5, 30.5, 46]);
+  expect(neighbours.capsule).toEqual({ lanes: 2, x: 28 });
+
   const strip = braidStrip({
     count: 4,
     geometry,
@@ -152,11 +164,16 @@ test("U-BRAID-T5: a meeting pulls its lanes together and leaves the others where
     participants: [0, 2],
   });
 
-  // Lanes at rest: 10, 22, 34, 46. Lanes 0 and 2 meet around 22, 5px apart.
+  // Lanes 0 and 2 have lane 1 between them, and their mean (22) is lane 1's
+  // own line: a bundle there would draw lane 1 into a meeting it was not at.
+  // So they meet in the nearest clear gap — between 0 and 1, at 16 — and
+  // lane 2 crosses lane 1 to get there. Lane 1 stays where it is.
   expect(strip.top).toEqual([10, 22, 34, 46]);
-  expect(strip.mid).toEqual([19.5, 22, 24.5, 46]);
+  expect(strip.mid).toEqual([13.5, 22, 18.5, 46]);
   expect(strip.bottom).toEqual([10, 22, 34, 46]);
-  expect(strip.capsule).toEqual({ lanes: 2, x: 22 });
+  expect(strip.capsule).toEqual({ lanes: 2, x: 16 });
+  expect(strip.bundle).toEqual([0, 2]);
+  expect(Math.abs(strip.mid[2] - strip.mid[1])).toBeGreaterThan(3);
   expect(strip.node).toBeUndefined();
 });
 
