@@ -69,6 +69,14 @@ export type PageMetadataInput = {
   /** `article` for a post, `profile` for a member; everything else is a `website`. */
   type?: "article" | "profile" | "website";
   /**
+   * Who wrote it, for a post. Signs the SHARED title — 「標題｜作者」 in
+   * `og:title` — and nothing else: the tab title stays the subject alone,
+   * because the layout's template already appends 「｜野馬營」 there, and a
+   * third segment would be the four-part tab this module was written to end.
+   * The full-width bar is the same one that template uses.
+   */
+  author?: string;
+  /**
    * Which language this render is in, for the canonical URL and `hreflang`.
    *
    * A PARAMETER RATHER THAN A LOOKUP INSIDE. `next/root-params` is only
@@ -94,6 +102,7 @@ export function pageMetadata({
   card,
   locale,
   type = "website",
+  author,
 }: PageMetadataInput): Metadata {
   /**
    * EVERY STRING THAT REACHES THIS FUNCTION IS CONVERTED FOR `locale`, rather
@@ -116,6 +125,7 @@ export function pageMetadata({
    */
   const title = localiseText(storedTitle, locale ?? "");
   const subtitle = localiseText(storedSubtitle, locale ?? "");
+  const sharedTitle = author ? `${title}｜${localiseText(author, locale ?? "")}` : title;
 
   const baseURL = siteConfig.baseURL.replace(/\/$/, "");
   const url =
@@ -176,7 +186,7 @@ export function pageMetadata({
         : title,
     description: subtitle,
     openGraph: {
-      title,
+      title: sharedTitle,
       description: subtitle,
       // Named once here rather than folded into every title: a crawler that
       // knows the site name shows it separately, and one that does not is no
@@ -190,7 +200,7 @@ export function pageMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: sharedTitle,
       description: subtitle,
       images: [image],
     },
@@ -221,6 +231,7 @@ function cardUrl(
   if (card.kind === "rainbow") {
     params.set("variant", "rainbow");
     params.set("seed", card.seed);
+    if (card.avatar) params.set("avatar", absoluteImageUrl(card.avatar, context.baseURL));
   }
 
   if (card.kind === "photo-card") {
@@ -231,5 +242,6 @@ function cardUrl(
     params.set("image", absoluteImageUrl(card.src, context.baseURL));
   }
 
-  return `${context.baseURL}/og?${params.toString()}`;
+  const route = card.kind === "trail-map" ? "/og/timeline" : "/og";
+  return `${context.baseURL}${route}?${params.toString()}`;
 }

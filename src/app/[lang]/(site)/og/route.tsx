@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
 import { resolveBackgroundImage } from "@/lib/ogPhoto";
 import { markDataUri } from "@/lib/brand-mark";
+import { bufferOgImage, loadOgFont } from "@/lib/og-render";
 
 /**
  * Share cards, in three treatments that share one layout.
@@ -17,23 +18,6 @@ import { markDataUri } from "@/lib/brand-mark";
  * strong left edge to scan down and a headline big enough to survive the
  * downscale.
  */
-
-async function loadFont(request: Request): Promise<ArrayBuffer | null> {
-  try {
-    // Serve from public/ so the font is available via Workers Assets in production
-    // and via Next static files in local `next dev`.
-    const fontUrl = new URL("/fonts/Inter-Regular.ttf", request.url);
-    const res = await fetch(fontUrl);
-    if (!res.ok) {
-      console.warn(`OG font fetch failed: ${res.status} ${fontUrl.href}`);
-      return null;
-    }
-    return res.arrayBuffer();
-  } catch (error) {
-    console.warn("OG font load error:", error);
-    return null;
-  }
-}
 
 /** FNV-1a, the same hash `races/design-tokens.ts` uses, for the same reason. */
 function hash(value: string): number {
@@ -71,6 +55,15 @@ function rainbowStops(seed: string): string[] {
   );
 }
 
+/**
+ * The side of a member's avatar on their card: the headline's height and more,
+ * so the face is what the eye lands on at feed size, and still leaving the
+ * name a column of its own beside it.
+ */
+const AVATAR = 640;
+/** What is left of the card's width for type once the avatar has its column. */
+const TEXT_BESIDE_AVATAR = 1920 - 104 * 2 - AVATAR - 80;
+
 // OpenNext Cloudflare does not support the Edge runtime; use the default Node/workerd runtime.
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -106,8 +99,13 @@ export async function GET(request: Request) {
     ? decodeURIComponent(subtitleParam)
     : author || siteConfig.description;
 
-  const fontData = await loadFont(request);
+  const fontData = await loadOgFont(request);
   const backgroundImage = resolveBackgroundImage(url.searchParams.get("image"));
+  // A member's picture, asked for at exactly the square it is drawn in.
+  const avatar = resolveBackgroundImage(url.searchParams.get("avatar"), {
+    height: AVATAR,
+    width: AVATAR,
+  });
 
   // Gated on an explicit param rather than on "no image was passed", because
   // every other caller (/, /posts, /riders, /races, /gallery) relies on that
@@ -210,6 +208,22 @@ export async function GET(request: Request) {
           </div>
         ) : null}
 
+        {/* The avatar, square like everything else on this site, beside the
+            headline rather than behind it: a few hundred pixels of portrait
+            stretched across 1920 would be mush, and a face under a scrim is
+            not a face. */}
+        {avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element -- ImageResponse requires img
+          <img
+            src={avatar}
+            alt=""
+            width={AVATAR}
+            height={AVATAR}
+            tw="absolute"
+            style={{ objectFit: "cover", right: 104, top: (1080 - AVATAR) / 2 }}
+          />
+        ) : null}
+
         <div
           tw="flex flex-col justify-between relative w-full h-full"
           style={{ padding: "96px 104px 88px" }}
@@ -234,7 +248,7 @@ export async function GET(request: Request) {
           </div>
 
           <div tw="flex flex-col">
-            <div tw="flex" style={{ maxWidth: 1500 }}>
+            <div tw="flex" style={{ maxWidth: avatar ? TEXT_BESIDE_AVATAR : 1500 }}>
               <span
                 style={{
                   color: ink,
@@ -260,7 +274,12 @@ export async function GET(request: Request) {
               ))}
             </div>
 
-            <div tw="flex" style={{ marginTop: 28 }}>
+            {/* The key only when there is a width to set: satori `.trim()`s
+                every style value, and an `undefined` one throws. */}
+            <div
+              tw="flex"
+              style={{ marginTop: 28, ...(avatar ? { maxWidth: TEXT_BESIDE_AVATAR } : {}) }}
+            >
               <span style={{ color: muted, fontSize: 34, letterSpacing: "0.01em" }}>
                 {subtitle}
               </span>
@@ -288,31 +307,5 @@ export async function GET(request: Request) {
     },
   );
 
-  // Buffered rather than returned straight through.
-  //
-  // `ImageResponse` is a streaming Response and it renders lazily: satori
-  // builds an SVG, then a rasteriser turns it into PNG. Anything that throws
-  // in there throws *after* the headers are on the wire, so Next logs
-  // `failed to pipe response` and the client sees a reset connection — no
-  // status, no body, nothing to act on. That is how `/og` presented for this
-  // entire investigation: an error whose only description was a rasteriser
-  // complaining about an input we could not see, intermittent, and invisible
-  // to every guard added upstream of it. Reading the body here moves the
-  // failure somewhere it can be caught, named in the log with its cause, and
-  // answered with a real HTTP status.
-  try {
-    const body = await image.arrayBuffer();
-    return new Response(body, { headers: image.headers });
-  } catch (error) {
-    const cause = (error as { cause?: unknown })?.cause;
-    console.error(
-      `OG render failed: ${error instanceof Error ? error.message : String(error)}` +
-        `${cause ? ` | cause: ${cause instanceof Error ? cause.message : String(cause)}` : ""}` +
-        `${error instanceof Error && error.stack ? `\n${error.stack}` : ""}`,
-    );
-    return new Response("OG image unavailable", {
-      status: 500,
-      headers: { "content-type": "text/plain", "cache-control": "no-store" },
-    });
-  }
+  return bufferOgImage(image);
 }

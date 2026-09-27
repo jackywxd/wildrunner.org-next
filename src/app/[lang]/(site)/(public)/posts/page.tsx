@@ -2,7 +2,7 @@ import React from "react";
 import PageHeader from "@/components/page-header";
 import Image from "next/image";
 import Link from "@/components/i18n/locale-link";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { getPublishedPosts } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
 import { pageMetadata } from "@/lib/site-metadata";
@@ -40,10 +40,16 @@ export default async function BlogPage() {
           {blogs.map((blog, index) => (
             <article
               key={blog.slug}
-              className="group relative flex flex-col space-y-2 border border-border bg-secondary p-4"
+              // ONE HEIGHT FOR EVERY CARD, so the grid's rows line up however
+              // much each author wrote. The title and summary are clamped to fit
+              // it, and the date and byline sit at the foot. Without a cover the
+              // summary gets the picture's room — a card that is mostly empty
+              // would line up and still read as broken.
+              className="group relative flex h-[440px] flex-col space-y-2 overflow-hidden border border-border bg-secondary p-4"
+              data-post-slug={blog.slug}
             >
               {blog.image && (
-                <div className="flex w-full h-[200px] overflow-hidden justify-center items-center">
+                <div className="flex w-full h-[200px] shrink-0 overflow-hidden justify-center items-center">
                   <Image
                     src={blog.image.src}
                     alt={blog.title}
@@ -65,18 +71,31 @@ export default async function BlogPage() {
                 </div>
               )}
 
-              <h2 className="text-2xl font-extrabold text-foreground group-hover:text-primary">
+              <h2 className="line-clamp-2 shrink-0 text-2xl font-extrabold text-foreground group-hover:text-primary">
                 {blog.title}
               </h2>
-              <p className="text-muted-foreground">{blog.author}</p>
               {blog.description && (
-                <p className="text-muted-foreground">{blog.description}</p>
-              )}
-              {blog.date && (
-                <p className="text-sm text-muted-foreground">
-                  {formatDate(blog.date)}
+                <p
+                  className={cn(
+                    "text-muted-foreground",
+                    blog.image ? "line-clamp-3" : "line-clamp-[10]",
+                  )}
+                >
+                  {blog.description}
                 </p>
               )}
+              <div className="!mt-auto shrink-0 space-y-1 pt-2">
+                {blog.date && (
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(blog.date)}
+                  </p>
+                )}
+                {blog.author && (
+                  <p className="font-bold text-muted-foreground" data-testid="post-card-author">
+                    {blog.author}
+                  </p>
+                )}
+              </div>
 
               <Link href={postPublicPath(blog.slug)} className="absolute inset-0">
                 <span className="sr-only">{t.posts.read}</span>

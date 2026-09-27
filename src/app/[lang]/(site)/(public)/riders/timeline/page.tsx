@@ -43,7 +43,9 @@ export async function generateMetadata() {
     path: "/riders/timeline",
     title: t.clubTimeline.title,
     subtitle: t.clubTimeline.subtitle,
-    card: { kind: "plain" },
+    // The homepage's 交會地圖, still: the club's trails meeting is what this
+    // page is about, and the one picture of it that needs no JavaScript.
+    card: { kind: "trail-map" },
   });
 }
 
