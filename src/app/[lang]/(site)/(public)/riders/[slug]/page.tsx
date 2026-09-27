@@ -7,7 +7,7 @@ import { RiderBadgeWall } from "@/components/riders/RiderBadges";
 import { RiderViewTabs } from "@/components/riders/RiderViewTabs";
 import { getRiderBySlug } from "@/lib/content";
 import { postPublicPath } from "@/lib/content-paths";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/site-metadata";
 import { currentLocale, getDictionary } from "@/lib/i18n/dictionary";
 import { countLabel } from "@/lib/i18n/count";
@@ -33,11 +33,11 @@ export async function generateMetadata({ params }: Params) {
     // site's furniture card. Seeded on the slug, which means their profile and
     // their 穿越時光 carry the same card — the subject of both pages is them.
     //
-    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
-    // is a small square and a card is 1920×1080, so using it as the image
-    // means a platform crops it badly, and using it as a card background means
-    // upscaling a few hundred pixels across the whole width.
-    card: { kind: "rainbow", seed: rider.slug },
+    // Their avatar, when they have set one, drawn large ON the card rather
+    // than handed over AS it: an avatar is a small square and a card is
+    // 1920×1080, so as the image a platform crops it badly, and as a
+    // background it is a few hundred pixels upscaled across the whole width.
+    card: { kind: "rainbow", seed: rider.slug, avatar: rider.avatar?.src },
   });
 }
 
@@ -102,12 +102,14 @@ export default async function RiderPage({ params }: Params) {
           {posts.map((post, index) => (
             <article
               key={post.slug}
-              className="group relative flex flex-col space-y-2 border border-border bg-secondary p-4"
+              // One height for every card — see `posts/page.tsx`. No byline:
+              // every article here is this member's.
+              className="group relative flex h-[440px] flex-col space-y-2 overflow-hidden border border-border bg-secondary p-4"
               data-post-slug={post.slug}
               data-testid="rider-post"
             >
               {post.image && (
-                <div className="flex h-[200px] w-full items-center justify-center overflow-hidden">
+                <div className="flex h-[200px] w-full shrink-0 items-center justify-center overflow-hidden">
                   <Image
                     alt={post.title}
                     blurDataURL={post.image.blurDataURL}
@@ -123,14 +125,21 @@ export default async function RiderPage({ params }: Params) {
                 </div>
               )}
 
-              <h2 className="text-2xl font-extrabold text-foreground group-hover:text-primary">
+              <h2 className="line-clamp-2 shrink-0 text-2xl font-extrabold text-foreground group-hover:text-primary">
                 {post.title}
               </h2>
               {post.description && (
-                <p className="text-muted-foreground">{post.description}</p>
+                <p
+                  className={cn(
+                    "text-muted-foreground",
+                    post.image ? "line-clamp-4" : "line-clamp-[11]",
+                  )}
+                >
+                  {post.description}
+                </p>
               )}
               {post.date && (
-                <p className="text-sm text-muted-foreground">
+                <p className="!mt-auto shrink-0 pt-2 text-sm text-muted-foreground">
                   {formatDate(post.date)}
                 </p>
               )}

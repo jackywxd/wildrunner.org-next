@@ -25,14 +25,18 @@
  * serves media from `images.wildrunner.org` and is covered; staging uploads
  * land on a `*.r2.dev` bucket that sits on no zone of ours.
  *
- * The dimensions match the card canvas, so Cloudflare does the crop that
- * `objectFit: "cover"` would otherwise do on a full-size decode.
+ * The dimensions match the box the picture fills — the whole card for a
+ * background, a square for a member's avatar — so Cloudflare does the crop
+ * that `objectFit: "cover"` would otherwise do on a full-size decode.
  */
 
 /** Our own Cloudflare zone — the only place `/cdn-cgi/image/` will serve us. */
 const OWN_ZONE = /(^|\.)wildrunner\.org$/i;
 
-export function resolveBackgroundImage(imageParam: string | null): string | null {
+export function resolveBackgroundImage(
+  imageParam: string | null,
+  size: { height: number; width: number } = { height: 1080, width: 1920 },
+): string | null {
   if (!imageParam) return null;
   try {
     const imageUrl = decodeURIComponent(imageParam);
@@ -43,7 +47,7 @@ export function resolveBackgroundImage(imageParam: string | null): string | null
     // Already a rendition — prefixing twice yields a 404 from the resizer.
     if (pathname.startsWith("/cdn-cgi/")) return imageUrl;
     return (
-      `${origin}/cdn-cgi/image/format=jpeg,width=1920,height=1080,` +
+      `${origin}/cdn-cgi/image/format=jpeg,width=${size.width},height=${size.height},` +
       `fit=cover,quality=85/${imageUrl}`
     );
   } catch {

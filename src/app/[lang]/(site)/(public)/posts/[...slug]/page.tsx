@@ -55,6 +55,7 @@ export async function generateMetadata({
     // while the crawler still gets what the piece is about.
     subtitle: post.description || (post.author ?? siteConfig.author),
     type: "article",
+    author: post.author,
     // Cover image, else the first picture in the body, else a card seeded on
     // the slug. The middle rung matters because nothing in the members area
     // sets the cover field — see src/lib/postOg.ts.

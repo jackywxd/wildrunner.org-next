@@ -29,7 +29,23 @@ export type OgCard =
    * `races/design-tokens.ts` hashes for the badge colour: the card and the
    * badge on the page therefore always agree.
    */
-  | { kind: "rainbow"; seed: string }
+  | {
+      kind: "rainbow";
+      seed: string;
+      /**
+       * A member's own picture, drawn large on the card beside their name.
+       * On the card rather than as it: an avatar is a small square, and handed
+       * over as `og:image` a platform crops it to a 1.91:1 strip across the
+       * middle of the face.
+       */
+      avatar?: string;
+    }
+  /**
+   * The homepage's 交會地圖, drawn on a card of its own (`/og/timeline`). Only
+   * 穿越時光 uses it: the map is that page's subject, and the card is the one
+   * picture of it that does not need JavaScript to play.
+   */
+  | { kind: "trail-map" }
   /** The photograph itself is the card. Posts and albums with a picture. */
   | { kind: "photo"; src: string }
   /** A generated card laid over the photograph. Media and video shares. */

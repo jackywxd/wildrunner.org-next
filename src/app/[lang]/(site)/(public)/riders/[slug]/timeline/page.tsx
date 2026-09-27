@@ -31,11 +31,11 @@ export async function generateMetadata({ params }: Params) {
     // site's furniture card. Seeded on the slug, which means their profile and
     // their 穿越時光 carry the same card — the subject of both pages is them.
     //
-    // NOT their avatar, although `getBylineAvatar` could supply one: an avatar
-    // is a small square and a card is 1920×1080, so using it as the image
-    // means a platform crops it badly, and using it as a card background means
-    // upscaling a few hundred pixels across the whole width.
-    card: { kind: "rainbow", seed: rider.slug },
+    // Their avatar, when they have set one, drawn large ON the card rather
+    // than handed over AS it: an avatar is a small square and a card is
+    // 1920×1080, so as the image a platform crops it badly, and as a
+    // background it is a few hundred pixels upscaled across the whole width.
+    card: { kind: "rainbow", seed: rider.slug, avatar: rider.avatar?.src },
   });
 }
 
