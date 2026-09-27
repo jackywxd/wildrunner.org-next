@@ -6,6 +6,8 @@ import {
   articleScript,
   orphanAudioKeys,
 } from "@/lib/reader/article-audio";
+import { localisePost } from "@/lib/i18n/zh-post";
+import type { SitePost } from "@/lib/content-types";
 
 /**
  * U-AUDIOKEY — the key that stands in for a database column.
@@ -94,6 +96,34 @@ test.describe("U-AUDIOKEY the key R2 is indexed by", () => {
     );
     // The same post, however its narration might have come out.
     expect(articleAudioKeyForPost(post)).toBe(articleAudioKeyForPost({ ...post }));
+  });
+
+  test("U-AUDIOKEY-11: the Simplified page asks for the key the narration was made under", () => {
+    // The second way the page and the generator came apart, and the same
+    // silence: on /zh-hans the page held a converted copy of the article and
+    // hashed that, so a Traditional article's narration — generated from the
+    // words as stored — was never found there, while the Traditional page
+    // played it. The key is now worked out from the stored post and carried
+    // through the conversion on `narrationKey`.
+    const stored = { id: 28, title: "越野跑的邊界", content: doc("歐洲山的尺度比北美大很多。") };
+    const generated = articleAudioKeyForPost(stored);
+
+    const post = {
+      ...stored,
+      description: "",
+      slug: "posts/x",
+      slugAsParams: "x",
+      published: true,
+      featured: false,
+      narrationKey: generated,
+    } as unknown as SitePost;
+    const simplified = localisePost(post, "zh-hans");
+
+    // The conversion really does change the words — without that this test
+    // could not tell the two keys apart.
+    expect(simplified.title).toBe("越野跑的边界");
+    expect(articleAudioKeyForPost(simplified)).not.toBe(generated);
+    expect(simplified.narrationKey).toBe(generated);
   });
 
   test("U-AUDIOKEY-7: a missing title or body is still a key, not a crash", () => {

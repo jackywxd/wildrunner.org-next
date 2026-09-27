@@ -3,8 +3,6 @@ import "server-only";
 import { publicMediaUrl } from "@/lib/media-url";
 import { getR2Bucket } from "@/lib/r2-bucket";
 
-import { articleAudioKeyForPost } from "./article-audio";
-
 /**
  * Whether this article has narration, and where.
  *
@@ -23,13 +21,14 @@ import { articleAudioKeyForPost } from "./article-audio";
  * back to `ArticleReader` and the device's own voice, which is what every
  * visitor had before any of this existed.
  */
-export async function narrationUrl(
-  postId: number | string,
-  title: string,
-  content: unknown,
-): Promise<string | null> {
+/**
+ * Takes the KEY, not the article: the page holds the article as the reader
+ * reads it, which on the Simplified site is not the text the narration was
+ * made from. `getPostBySlugParam` works the key out from the stored words
+ * before converting anything — see `SitePost.narrationKey`.
+ */
+export async function narrationUrl(key: string): Promise<string | null> {
   try {
-    const key = articleAudioKeyForPost({ id: postId, title, content });
     const bucket = await getR2Bucket();
     return (await bucket.head(key)) ? publicMediaUrl(key) : null;
   } catch {
