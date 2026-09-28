@@ -126,8 +126,8 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
    * without bindings; both fall through to `ArticleReader` and the device's
    * own voice, which is what this page did before any of it existed.
    */
-  const narration = blog.content
-    ? await narrationUrl(blog.id, blog.title, blog.content)
+  const narration = blog.narrationKey
+    ? await narrationUrl(blog.id, blog.narrationKey)
     : null;
 
   /**

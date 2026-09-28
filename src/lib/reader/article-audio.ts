@@ -95,6 +95,53 @@ export function articleAudioKeyForPost(post: {
 }
 
 /**
+ * Which narration to play for a post: the one for its words as they stand,
+ * or — until that exists — the newest one it ever had.
+ *
+ * WHY AN OLDER NARRATION BEATS THE DEVICE'S VOICE. Nothing regenerates audio
+ * when an article is edited; the key changes with the words, and until an
+ * admin runs the generator the page used to find nothing and fall back to
+ * `speechSynthesis`. Measured on production 2026-09-27: post 28 lost its
+ * narration the morning its author re-published it four times in ten minutes
+ * to add one clause. The previous MP3 was still in R2 — narration is never
+ * deleted — and differs from the article by a sentence or two, which a
+ * listener is far better served by than by a different, robotic voice.
+ *
+ * `stale` says which one this is, because the two are not interchangeable
+ * everywhere: the current file never changes under its key and may be cached
+ * forever, an older one is replaced the moment the new one is written.
+ *
+ * NEWEST BY `uploaded`, not by key: the hash in a key says nothing about
+ * order. The prefix carries the dash (`article-audio/2-`), so post 2 never
+ * picks up post 28's files. `.txt` beside each MP3 is the script, not audio.
+ *
+ * Takes the bucket as an argument, with only the two calls it makes, so this
+ * file stays free of bindings and the choice can be asserted without R2.
+ */
+export async function findNarration(
+  bucket: Pick<R2Bucket, "head" | "list">,
+  postId: number | string,
+  key: string,
+): Promise<{ key: string; stale: boolean } | null> {
+  if (await bucket.head(key)) return { key, stale: false };
+
+  const prefix = `article-audio/${postId}-`;
+  let newest: { key: string; uploaded: number } | null = null;
+  let cursor: string | undefined;
+  do {
+    const listed = await bucket.list({ prefix, cursor });
+    for (const object of listed.objects) {
+      if (!object.key.endsWith(".mp3")) continue;
+      const uploaded = new Date(object.uploaded).getTime();
+      if (!newest || uploaded > newest.uploaded) newest = { key: object.key, uploaded };
+    }
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+
+  return newest ? { key: newest.key, stale: true } : null;
+}
+
+/**
  * MiniMax's own ceiling — `text` is `maxLength: 10000`.
  *
  * The longest article in the corpus is 7,102 characters of script, so nothing

@@ -2,7 +2,7 @@ import type { Endpoint } from 'payload'
 
 import { getR2Bucket } from '@/lib/r2-bucket'
 import { audioFilename, contentDisposition } from '@/lib/print/filename'
-import { articleAudioKeyForPost } from '@/lib/reader/article-audio'
+import { articleAudioKeyForPost, findNarration } from '@/lib/reader/article-audio'
 
 /**
  * The narration, as a file with a name.
@@ -61,8 +61,11 @@ export const articleAudioDownloadEndpoint: Endpoint = {
     }
 
     const bucket = await getR2Bucket()
-    const object = await bucket.get(articleAudioKeyForPost(post))
-    if (!object) {
+    // The same choice the player makes, so the button saves what is playing —
+    // including an edited article's previous narration (`findNarration`).
+    const found = await findNarration(bucket, post.id, articleAudioKeyForPost(post))
+    const object = found ? await bucket.get(found.key) : null
+    if (!found || !object) {
       // Member-facing, because it is: an article can be edited between the
       // page rendering its player and somebody pressing save, and the edit
       // changes the key. Saying so is better than a bare 404 the button would

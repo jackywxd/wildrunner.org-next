@@ -266,6 +266,20 @@ export type SitePost = {
   authorSlug?: string;
   image?: SiteImage;
   /**
+   * Where this article's narration would be in R2 (`articleAudioKeyForPost`),
+   * worked out from the article AS STORED. Detail query only.
+   *
+   * Carried rather than recomputed on the page because the page only ever
+   * holds the article as the reader reads it — and on the Simplified site
+   * that is a converted copy. Its words hash differently from the ones the
+   * narration was generated from, so a page that hashed what it held asked
+   * R2 for a key nobody ever wrote, and every Traditional article was read
+   * by the device there however long ago its audio was made.
+   * `toSimplifiedPost` converts the fields it names and nothing else, so this
+   * one passes through untouched.
+   */
+  narrationKey?: string;
+  /**
    * Set when this post is a race report. Absent on an ordinary post.
    *
    * The relationship is one-way and optional in both directions: a member

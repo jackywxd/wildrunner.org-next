@@ -3,7 +3,7 @@ import "server-only";
 import { publicMediaUrl } from "@/lib/media-url";
 import { getR2Bucket } from "@/lib/r2-bucket";
 
-import { articleAudioKeyForPost } from "./article-audio";
+import { findNarration } from "./article-audio";
 
 /**
  * Whether this article has narration, and where.
@@ -23,15 +23,23 @@ import { articleAudioKeyForPost } from "./article-audio";
  * back to `ArticleReader` and the device's own voice, which is what every
  * visitor had before any of this existed.
  */
+/**
+ * Takes the KEY, not the article: the page holds the article as the reader
+ * reads it, which on the Simplified site is not the text the narration was
+ * made from. `getPostBySlugParam` works the key out from the stored words
+ * before converting anything — see `SitePost.narrationKey`.
+ *
+ * An edited article whose new narration has not been generated yet plays its
+ * previous one — see `findNarration`.
+ */
 export async function narrationUrl(
   postId: number | string,
-  title: string,
-  content: unknown,
+  key: string,
 ): Promise<string | null> {
   try {
-    const key = articleAudioKeyForPost({ id: postId, title, content });
     const bucket = await getR2Bucket();
-    return (await bucket.head(key)) ? publicMediaUrl(key) : null;
+    const found = await findNarration(bucket, postId, key);
+    return found ? publicMediaUrl(found.key) : null;
   } catch {
     // Deliberately silent. A missing binding is the ordinary case in a
     // prerender and would otherwise log once per post on every build.

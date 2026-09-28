@@ -52,6 +52,7 @@ import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
 import { qualifiersFor } from "@/lib/races/qualifiers";
 import { isFinished } from "@/lib/races/race-state";
+import { articleAudioKeyForPost } from "@/lib/reader/article-audio";
 import { cache } from "react";
 
 /**
@@ -324,6 +325,9 @@ export async function getPostBySlugParam(
       const { backgroundMusic } = await getSiteGlobals();
       return localisePost({
         ...mapPayloadPost(doc),
+        // Before `localisePost`, from the words as stored: those are what the
+        // narration was generated from. See `SitePost.narrationKey`.
+        narrationKey: doc.content ? articleAudioKeyForPost(doc) : undefined,
         // The same resolution an album gets, keyed on the post's slug: its
         // own link goes first, then the site list, rotated to start at this
         // post's own place in it. See `buildMusicPlaylist` for why the start
