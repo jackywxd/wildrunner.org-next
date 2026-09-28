@@ -127,7 +127,7 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
    * own voice, which is what this page did before any of it existed.
    */
   const narration = blog.narrationKey
-    ? await narrationUrl(blog.narrationKey)
+    ? await narrationUrl(blog.id, blog.narrationKey)
     : null;
 
   /**

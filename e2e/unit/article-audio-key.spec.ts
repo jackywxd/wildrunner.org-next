@@ -4,6 +4,7 @@ import {
   articleAudioKey,
   articleAudioKeyForPost,
   articleScript,
+  findNarration,
   orphanAudioKeys,
 } from "@/lib/reader/article-audio";
 import { localisePost } from "@/lib/i18n/zh-post";
@@ -124,6 +125,47 @@ test.describe("U-AUDIOKEY the key R2 is indexed by", () => {
     expect(simplified.title).toBe("越野跑的边界");
     expect(articleAudioKeyForPost(simplified)).not.toBe(generated);
     expect(simplified.narrationKey).toBe(generated);
+  });
+
+  test("U-AUDIOKEY-12: an edited article plays its newest earlier narration until the new one exists", async () => {
+    // Post 28 on production, 2026-09-27: re-published to add a clause, and the
+    // page fell back to the device's voice while the previous MP3 sat in R2.
+    // Post 2 is here because its prefix is post 28's without the dash, and a
+    // `.txt` because every narration has its script beside it.
+    const objects = [
+      { key: "article-audio/28-aaaaaaaa.mp3", uploaded: new Date("2026-09-25T08:00:00Z") },
+      { key: "article-audio/28-bbbbbbbb.mp3", uploaded: new Date("2026-09-26T01:00:00Z") },
+      { key: "article-audio/28-bbbbbbbb.mp3.txt", uploaded: new Date("2026-09-26T01:00:01Z") },
+      { key: "article-audio/2-cccccccc.mp3", uploaded: new Date("2026-09-24T09:00:00Z") },
+    ];
+    const bucket = (present: typeof objects) => ({
+      head: async (key: string) => (present.some((o) => o.key === key) ? ({} as R2Object) : null),
+      list: async (options?: R2ListOptions) =>
+        ({
+          objects: present.filter((o) => o.key.startsWith(options?.prefix ?? "")),
+          truncated: false,
+        }) as unknown as R2Objects,
+    });
+    const current = "article-audio/28-dddddddd.mp3";
+
+    expect(await findNarration(bucket(objects), 28, current)).toEqual({
+      key: "article-audio/28-bbbbbbbb.mp3",
+      stale: true,
+    });
+
+    // Once generated, the current one wins however new the others are.
+    const generated = [...objects, { key: current, uploaded: new Date("2026-09-20T00:00:00Z") }];
+    expect(await findNarration(bucket(generated), 28, current)).toEqual({ key: current, stale: false });
+
+    // The other direction is the dangerous one: post 2 must not take post
+    // 28's newer files for its own.
+    expect(await findNarration(bucket(objects), 2, "article-audio/2-ffffffff.mp3")).toEqual({
+      key: "article-audio/2-cccccccc.mp3",
+      stale: true,
+    });
+
+    // Never narrated: nothing to stand in, and the device reads it.
+    expect(await findNarration(bucket(objects), 3, "article-audio/3-eeeeeeee.mp3")).toBeNull();
   });
 
   test("U-AUDIOKEY-7: a missing title or body is still a key, not a crash", () => {

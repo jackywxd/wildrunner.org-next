@@ -207,6 +207,10 @@ export const articleAudioSweepEndpoint: Endpoint = {
  * beside the audio, so it is judged by the key it belongs to — otherwise every
  * healthy narration would report a companion orphan.
  *
+ * AN ORPHAN MAY STILL BE PLAYING. Until an edited article's new narration is
+ * generated, its previous one stands in for it (`findNarration`), and that
+ * file is on this list the whole time. Generate first; only then is it spare.
+ *
  * AN UNPUBLISHED ARTICLE'S NARRATION IS LISTED, and that is honest rather than
  * ideal: the scan above sees published posts only, so a draft that once had
  * audio shows up here. Nothing serves that audio while the post is a draft,
