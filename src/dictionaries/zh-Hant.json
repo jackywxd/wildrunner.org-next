@@ -10,7 +10,7 @@
   },
   "posts": {
     "title": "文章",
-    "subtitle": "野馬營的比賽紀錄與山野書寫",
+    "subtitle": "野馬們的比賽紀錄與山野書寫，寫給十年後的自己",
     "publishedOn": "發表於",
     "revisedOn": "更新於",
     "latest": "最新文章",
@@ -124,15 +124,7 @@
     "inProgress": "進行中",
     "finished": "已結束",
     "viewPhotos": "查看相片 →",
-    "weekdays": [
-      "日",
-      "一",
-      "二",
-      "三",
-      "四",
-      "五",
-      "六"
-    ],
+    "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
     "yearMonth": "{year} 年 {month} 月",
     "logRace": "紀錄比賽",
     "uploadPhotos": "上傳相片",

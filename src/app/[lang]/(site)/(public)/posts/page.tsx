@@ -26,13 +26,12 @@ export async function generateMetadata() {
 export default async function BlogPage() {
   const t = await getDictionary();
   const blogs = (await getPublishedPosts(await currentLocale())).sort(
-    (a, b) =>
-      new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
+    (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
   );
 
   return (
     <div className="container max-w-4xl py-6 lg:py-10">
-      <PageHeader title={t.posts.title} description="" />
+      <PageHeader title={t.posts.title} description={t.posts.subtitle} />
       <hr className="my-8 h-0 border-t-2 border-border" />
 
       {blogs.length ? (
@@ -91,13 +90,19 @@ export default async function BlogPage() {
                   </p>
                 )}
                 {blog.author && (
-                  <p className="font-bold text-muted-foreground" data-testid="post-card-author">
+                  <p
+                    className="font-bold text-muted-foreground"
+                    data-testid="post-card-author"
+                  >
                     {blog.author}
                   </p>
                 )}
               </div>
 
-              <Link href={postPublicPath(blog.slug)} className="absolute inset-0">
+              <Link
+                href={postPublicPath(blog.slug)}
+                className="absolute inset-0"
+              >
                 <span className="sr-only">{t.posts.read}</span>
               </Link>
             </article>
