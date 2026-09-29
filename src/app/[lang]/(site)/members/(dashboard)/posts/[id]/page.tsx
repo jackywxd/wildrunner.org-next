@@ -1,3 +1,5 @@
+import { livePostIds } from "@/lib/members/live-posts";
+import { hasUnpublishedChanges } from "@/lib/members/post-status";
 import { notFound } from "next/navigation";
 import { requireMember } from "@/lib/auth";
 import { memberFindByID } from "@/lib/members/data";
@@ -71,6 +73,13 @@ export default async function EditPostPage({
     notFound();
   }
 
+  // Live is a fact about the published version, not about `post._status`,
+  // which is the newest version's and reads "draft" for a live post once an
+  // autosave has written one (lib/members/live-posts.ts). Opening a live post
+  // and finding it a draft offered 發布, hid 取消發布, and said nothing about
+  // the changes that were not out yet.
+  const live = (await livePostIds([post.id])).has(post.id);
+
   const now = new Date();
   const [finishedRaces, catalogueEvents, raceRecord] = await Promise.all([
     getFinishedRaces(now),
@@ -98,7 +107,8 @@ export default async function EditPostPage({
         title: post.title ?? "",
         slug: post.slug ?? "",
         description: post.description ?? "",
-        status: post._status === "published" ? "published" : "draft",
+        status: live ? "published" : "draft",
+        unpublished: hasUnpublishedChanges(live, post._status),
         content: (post.content as unknown as PayloadContent) ?? emptyContent(),
         race: toLinkedRace(catalogue, raceRecord as RaceRecord | null),
       }}

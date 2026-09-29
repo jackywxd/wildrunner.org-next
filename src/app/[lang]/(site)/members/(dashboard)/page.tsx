@@ -4,6 +4,7 @@ import { RiderAvatar } from "@/components/riders/RiderAvatar";
 import { requireMember } from "@/lib/auth";
 import { getBylineAvatar } from "@/lib/content";
 import { memberFind } from "@/lib/members/data";
+import { livePostCount } from "@/lib/members/live-posts";
 import { getPayloadClient } from "@/lib/payload";
 import { quotaBytesFor, usedBytesFor } from "@/lib/quota";
 import type { Author } from "@/payload-types";
@@ -61,26 +62,24 @@ export default async function MembersOverviewPage() {
       })) as Author)
     : null;
 
-  const [avatar, postsTotal, draftsTotal, mediaTotal, racesTotal, usedBytes] =
+  const [avatar, postsTotal, publishedTotal, mediaTotal, racesTotal, usedBytes] =
     await Promise.all([
       author ? getBylineAvatar(author.slug) : Promise.resolve(undefined),
-      // `draft: true` on both, matching PostsList: without it a post whose
-      // newest version is a draft reports its older published state, and the
-      // two counts would then disagree with the list the member clicks into.
+      // Every post once, whatever state it is in.
       memberFind("posts", { depth: 0, draft: true, limit: 1 }),
-      memberFind("posts", {
-        depth: 0,
-        draft: true,
-        limit: 1,
-        where: { _status: { equals: "draft" } },
-      }),
+      // Live posts, counted the way the list decides a row is live. Counting
+      // `_status: "draft"` under `draft: true` — which this did — counts the
+      // newest *version*, so a published post that had been autosaved once
+      // was a draft here and the member saw 0 published, 1 draft for an
+      // article readers could open (lib/members/live-posts.ts).
+      livePostCount(),
       memberFind("media", { depth: 0, limit: 1 }),
       memberFind("race-records", { depth: 0, limit: 1 }),
       usedBytesFor(payload, user.id),
     ]);
 
-  const drafts = draftsTotal.totalDocs;
-  const published = postsTotal.totalDocs - drafts;
+  const published = publishedTotal;
+  const drafts = postsTotal.totalDocs - published;
   const quotaBytes = quotaBytesFor(user);
   const percent =
     quotaBytes > 0 ? Math.min(Math.round((usedBytes / quotaBytes) * 100), 100) : 0;

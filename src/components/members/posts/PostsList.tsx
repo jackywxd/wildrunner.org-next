@@ -5,6 +5,7 @@ import Link from "@/components/i18n/locale-link";
 import { usePathname, useRouter } from "next/navigation";
 import { localeHref } from "@/lib/i18n/locale-href";
 import { Button } from "@/components/ui/button";
+import { hasUnpublishedChanges } from "@/lib/members/post-status";
 import { createPost, deletePost } from "@/lib/members/posts";
 import { emptyContent } from "@/lib/editor/empty";
 import type { Post } from "@/payload-types";
@@ -20,6 +21,7 @@ function formatUpdated(iso: string | undefined) {
 
 export function PostsList({
   posts,
+  livePostIds = [],
   /**
    * Read counts by post id. A PLAIN OBJECT, not the Map the data layer
    * returns: this crosses the server/client boundary as a prop, and a Map is
@@ -31,6 +33,12 @@ export function PostsList({
   views = {},
 }: {
   posts: Post[];
+  /**
+   * The posts readers can read. Passed in because `post._status` cannot say:
+   * the list reads the newest version, and an autosave makes that a draft
+   * for a post that is live (lib/members/live-posts.ts).
+   */
+  livePostIds?: number[];
   views?: Record<number, number>;
 }) {
   const router = useRouter();
@@ -106,12 +114,15 @@ export function PostsList({
           data-testid="posts-list"
         >
           {posts.map((post) => {
-            const published = post._status === "published";
+            const published = livePostIds.includes(post.id);
+            // Live, with a newer draft on top: what the member sees here is
+            // not what readers see.
+            const unpublished = hasUnpublishedChanges(published, post._status);
             return (
               <div
                 key={post.id}
                 data-testid={`post-row-${post.id}`}
-                data-status={post._status ?? "draft"}
+                data-status={published ? "published" : "draft"}
                 // Two lines on a phone: the title on its own, the status,
                 // date, reads and delete under it. In one line the meta
                 // cluster did not shrink, so a `truncate` title was squeezed
@@ -134,6 +145,11 @@ export function PostsList({
                   >
                     {published ? "已發布" : "草稿"}
                   </span>
+                  {unpublished && (
+                    <span data-testid={`post-unpublished-${post.id}`}>
+                      有未發布的變更
+                    </span>
+                  )}
                   {formatUpdated(post.updatedAt)}
                   {/* Only on a published post. A draft has no public URL, so
                       its count is 0 by construction and printing it would
