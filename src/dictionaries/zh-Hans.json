@@ -124,7 +124,15 @@
     "inProgress": "进行中",
     "finished": "已结束",
     "viewPhotos": "查看相片 →",
-    "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
+    "weekdays": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ],
     "yearMonth": "{year} 年 {month} 月",
     "logRace": "纪录比赛",
     "uploadPhotos": "上传相片",
