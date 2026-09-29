@@ -15,6 +15,7 @@ const ITEMS = [
   { href: "/members/media", label: "媒體庫" },
   { href: "/members/posts", label: "文章" },
   { href: "/members/races", label: "比賽紀錄" },
+  { href: "/members/help", label: "使用說明" },
 ];
 
 function isActive(href: string, pathname: string | null): boolean {
