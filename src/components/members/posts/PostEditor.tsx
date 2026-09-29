@@ -41,6 +41,14 @@ export function PostEditor({
     race: LinkedRace | null;
     slug: string;
     status: Status;
+    /**
+     * Live, with a newer draft on top — read on the server, because it is the
+     * one thing the browser cannot work out: an autosave in a *previous*
+     * visit left the draft, and this visit starts with nothing saved in it.
+     * Without it a reload made the badge and the 更新已發布內容 button say
+     * everything was live, until the next keystroke.
+     */
+    unpublished: boolean;
     title: string;
   };
   ownerId: number;
@@ -71,7 +79,7 @@ export function PostEditor({
    * autosave — a draft write only happened when somebody pressed a button —
    * so nothing on screen ever had to describe it.
    */
-  const [unpublished, setUnpublished] = useState(false);
+  const [unpublished, setUnpublished] = useState(initial.unpublished);
   const [previewing, setPreviewing] = useState(false);
   /** The AI panel is showing its version beside the member's. */
   const [comparing, setComparing] = useState(false);

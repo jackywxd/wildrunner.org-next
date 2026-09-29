@@ -170,4 +170,76 @@ test.describe("M-AUTOSAVE a draft saves itself", () => {
       "published",
     );
   });
+
+  test("M-AUTOSAVE-T3: a published post that has been autosaved is still published everywhere a member looks", async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(budget(90_000));
+
+    // What went wrong on the site: a member published an article, edited it
+    // once more, and every screen of the members area then said it was a
+    // draft — 0 published and 1 draft on the dashboard, 草稿 in the list, and
+    // an editor that offered 發布 and hid 取消發布 — while the article was
+    // open to anyone. `?draft=true` reports the newest *version's* status, and
+    // an autosave is a draft version. T2 above cannot see it: it checks the
+    // badge in the same visit as the edit, and this is what a *later* visit
+    // finds, which is why the draft write is made over the API and the pages
+    // are then loaded fresh.
+    const login = await request.post("/api/users/login", {
+      data: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    });
+    expect(login.ok(), "fixture setup could not sign in").toBeTruthy();
+
+    const stamp = Date.now();
+    const post = await request.post("/api/posts", {
+      data: {
+        title: `M-AUTOSAVE live ${stamp}`,
+        slug: `m-autosave-live-${stamp}`,
+        description: "已發布之後又被自動儲存",
+        _status: "published",
+        content: withParagraph("已發布的段落"),
+      },
+    });
+    expect(post.ok(), `post create failed: ${post.status()}`).toBeTruthy();
+    const postId = (await post.json()).doc.id as number;
+    created.push({ collection: "posts", id: postId });
+    recordCreated({ collection: "posts", id: postId, note: "M-AUTOSAVE live probe" });
+
+    await signIn(page);
+    const count = async (id: "published" | "drafts") => {
+      await page.goto("/members", { waitUntil: "domcontentloaded" });
+      const text = await page.getByTestId(`member-count-${id}`).innerText();
+      return Number(text.match(/\d+/)?.[0]);
+    };
+    // fixture-scoped: only the difference between the two reads is asserted,
+    // so whatever else this account owns does not matter.
+    const publishedBefore = await count("published");
+    const draftsBefore = await count("drafts");
+
+    // The state an autosave leaves: a draft version above a published one.
+    const draftWrite = await request.patch(`/api/posts/${postId}?draft=true`, {
+      data: { description: "自動儲存之後的描述" },
+    });
+    expect(draftWrite.ok(), `draft write failed: ${draftWrite.status()}`).toBeTruthy();
+
+    // 1. The dashboard did not move a post from published to draft.
+    expect(await count("published"), "the dashboard lost a published post").toBe(publishedBefore);
+    expect(await count("drafts"), "the dashboard gained a draft").toBe(draftsBefore);
+
+    // 2. The list says published, and says there is more to publish.
+    await page.goto("/members/posts", { waitUntil: "domcontentloaded" });
+    const row = page.getByTestId(`post-row-${postId}`);
+    await expect(row).toHaveAttribute("data-status", "published", { timeout: budget(20_000) });
+    await expect(page.getByTestId(`post-unpublished-${postId}`)).toBeVisible();
+
+    // 3. A fresh visit to the editor knows the same, before anything is typed.
+    await page.goto(`/members/posts/${postId}`);
+    await expect(page.getByTestId("post-status")).toHaveAttribute("data-status", "published", {
+      timeout: budget(20_000),
+    });
+    await expect(page.getByTestId("post-unpublished")).toBeVisible();
+    await expect(page.getByTestId("post-publish")).toHaveText("更新已發布內容");
+    await expect(page.getByTestId("post-unpublish")).toBeVisible();
+  });
 });

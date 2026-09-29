@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import { requireMember } from "@/lib/auth";
 import { memberFind } from "@/lib/members/data";
+import { livePostIds } from "@/lib/members/live-posts";
 import { readPostViews } from "@/lib/posts/views";
 import { PostsList } from "@/components/members/posts/PostsList";
 import type { Post } from "@/payload-types";
@@ -20,6 +21,11 @@ export default async function MembersPostsPage() {
     sort: "-updatedAt",
   });
   const posts = result.docs as Post[];
+
+  // Which of them readers can actually read. `the `_status` on each post` is the newest
+  // *version's* status, and an autosave makes that "draft" for a post that is
+  // live — see lib/members/live-posts.ts.
+  const live = await livePostIds(posts.map((post) => post.id));
 
   /**
    * A SECOND, SEPARATE QUERY, because `post_views` is not a Payload
@@ -51,6 +57,7 @@ export default async function MembersPostsPage() {
   return (
     <div className="space-y-6">
       <PostsList
+        livePostIds={[...live]}
         posts={posts}
         views={Object.fromEntries(views)}
       />
