@@ -164,7 +164,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
         req,
       })
       try {
-        narrated.push({ id: candidate.id, ...(await narrateArticle(ai, bucket, post)) })
+        narrated.push({ id: candidate.id, ...(await narrateArticle(ai, req.payload, bucket, post)) })
       } catch (error) {
         // One article's failure must not end the run: the next one may be
         // fine, and a sweep that stops at the first bad row is a sweep that

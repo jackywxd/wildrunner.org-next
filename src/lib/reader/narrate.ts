@@ -1,3 +1,5 @@
+import type { Payload } from "payload";
+
 import { speakArticle } from "@/lib/ai/speak";
 import { spokenScript } from "@/lib/ai/spoken-script";
 
@@ -34,6 +36,9 @@ export type NarrationOutcome = {
 
 export async function narrateArticle(
   ai: Ai,
+  // Only to read which backend rewrites the script; the voice is always
+  // Workers AI — see `src/globals/AiSettings.ts`.
+  payload: Payload,
   bucket: R2Bucket,
   post: { id: number | string; title?: string | null; content?: unknown },
   options: { force?: boolean } = {},
@@ -51,7 +56,7 @@ export async function narrateArticle(
     return { key, chars: script.length, skipped: true, rewritten: false };
   }
 
-  const spoken = await spokenScript(ai, script);
+  const spoken = await spokenScript({ ai, payload }, script);
 
   const audio = await speakArticle(ai, spoken);
   await bucket.put(key, audio, {
