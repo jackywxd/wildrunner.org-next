@@ -2,8 +2,25 @@ import type { Endpoint } from "payload";
 import { APIError } from "payload";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import { callTextModel, realAIAvailable } from "@/lib/ai/call-model";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { lexicalParagraph, paragraphsToLexical } from "@/lib/lexical-helpers";
+
+const SYSTEM = [
+  "你是一位中文越野跑與馬拉松專欄作者，請根據使用者提供的資訊擴寫為完整文章草稿。",
+  "只輸出正文段落，不要標題，不要自動發布說明。",
+].join("\n");
+
+/**
+ * The reply allowance — sized for thinking, not for the draft.
+ *
+ * It was 1,200 when this called Llama, which does not reason. Both models it
+ * can reach now do, and spend their thinking out of this same allowance: the
+ * summary and typo endpoints each shipped a number sized to the answer and
+ * got `finish_reason=length` with nothing written (see `reply-text.ts`). So
+ * the 16,000 improve-post allows, for the same reason.
+ */
+const MAX_OUTPUT_TOKENS = 16_000;
 
 type ExpandBody = {
   title?: string;
@@ -41,11 +58,7 @@ export const aiExpandPostEndpoint: Endpoint = {
       throw new APIError("outline or partialContent is required", 400);
     }
 
-    const ai = env.AI;
-
-    const prompt = [
-      "你是一位中文越野跑與馬拉松專欄作者，請根據使用者提供的資訊擴寫為完整文章草稿。",
-      "只輸出正文段落，不要標題，不要自動發布說明。",
+    const material = [
       title ? `標題：${title}` : "",
       description ? `摘要：${description}` : "",
       outline ? `大綱或片段：\n${outline}` : "",
@@ -57,36 +70,24 @@ export const aiExpandPostEndpoint: Endpoint = {
 
     if (process.env.NEXTJS_ENV === "test") {
       expandedText = `${outline}\n\n這是根據大綱生成的中文測試擴寫段落，用於驗證草稿寫入，不會自動發布。`;
-    } else if (
-      process.env.NODE_ENV === "production" ||
-      process.env.AI_IN_DEV === "true"
-    ) {
+    } else if (realAIAvailable()) {
       try {
-        const response = await ai.run(
-          "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-          {
-            messages: [
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            max_tokens: 1200,
-          },
+        // Through `callTextModel` like every other AI endpoint, so it follows
+        // the backend chosen in /admin. It called Llama 3.3 directly before,
+        // and read the reply with `String(response)` — which, for the
+        // chat-completions shape the newer models answer in, is
+        // "[object Object]". `replyText` is why that cannot happen here now.
+        expandedText = await callTextModel(
+          { ai: env.AI, payload: req.payload },
+          { system: SYSTEM, text: material, maxTokens: MAX_OUTPUT_TOKENS },
         );
-        const text =
-          typeof response === "object" && response && "response" in response
-            ? String((response as { response?: string }).response ?? "")
-            : String(response);
-        if (text.trim()) {
-          expandedText = text.trim();
-        }
       } catch (error) {
+        // A backend nobody configured is not a model having a bad moment:
+        // falling back to the outline would make "Claude chosen, no key" look
+        // like an expansion that simply added nothing. Say so instead.
+        if (error instanceof APIError && error.status === 503) throw error;
         // Keep original outline on AI failure (P4-T7)
-        console.warn(
-          "Workers AI expand failed, falling back to outline",
-          error,
-        );
+        console.warn("AI expand failed, falling back to outline", error);
       }
     } else {
       expandedText = `${outline}\n\n（本地開發未綁定 Workers AI，回傳擴寫佔位段落。）`;

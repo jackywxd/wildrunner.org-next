@@ -27,6 +27,7 @@ import { RaceEvents } from './collections/RaceEvents'
 import { RaceRecords } from './collections/RaceRecords'
 import { RaceSchedule } from './collections/RaceSchedule'
 import { EDITOR_BLOCKS } from './lib/editor/blocks'
+import { AiSettings } from './globals/AiSettings'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
@@ -205,7 +206,7 @@ export default buildConfig({
     RaceRecords,
     RaceSchedule,
   ],
-  globals: [Site],
+  globals: [Site, AiSettings],
   endpoints: [
     aiExpandPostEndpoint,
     articleAudioEndpoint,

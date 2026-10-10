@@ -105,9 +105,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     site: Site;
+    'ai-settings': AiSetting;
   };
   globalsSelect: {
     site: SiteSelect<false> | SiteSelect<true>;
+    'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -1010,6 +1012,19 @@ export interface Site {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings".
+ */
+export interface AiSetting {
+  id: number;
+  /**
+   * Used by every member-facing AI feature. Claude needs the ANTHROPIC_API_KEY secret on this environment; without it every AI call fails with a message saying so. Narration voice always uses Workers AI.
+   */
+  provider: 'workers-ai' | 'claude';
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site_select".
  */
 export interface SiteSelect<T extends boolean = true> {
@@ -1043,6 +1058,16 @@ export interface SiteSelect<T extends boolean = true> {
         icon?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings_select".
+ */
+export interface AiSettingsSelect<T extends boolean = true> {
+  provider?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
