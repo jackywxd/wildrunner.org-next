@@ -58,6 +58,9 @@ function Chip({
       data-count={count}
       data-testid={testId}
       href={href}
+      // Every chip leads to another subset of the badges, so following them
+      // is an unbounded crawl. See generateMetadata on the riders page.
+      rel="nofollow"
     >
       {label}
       {/* The count is beside the label, not behind a click, and it is the
