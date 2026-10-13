@@ -17,15 +17,30 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata() {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const t = await getDictionary();
-  return pageMetadata({
+  const metadata = pageMetadata({
     locale: await currentLocale(),
     path: "/riders",
     title: t.riders.title,
     subtitle: t.riders.subtitle,
     card: { kind: "plain" },
   });
+  // A filtered directory is noindex, and its canonical stays `/riders`
+  // (`path` above carries no query). The chips toggle, so every subset of
+  // the badges is a distinct address — 2^17 of them per host and language —
+  // and from 2026-09 GPTBot, Applebot and Googlebot were rendering them at
+  // ~6 req/s, each a force-dynamic SSR of ~65ms CPU: the whole of that
+  // month's Workers bill. `follow` stays on so the riders behind it are
+  // still reached.
+  if (parseRiderBadges(await searchParams).length > 0) {
+    return { ...metadata, robots: { follow: true, index: false } };
+  }
+  return metadata;
 }
 
 export default async function RidersPage({
