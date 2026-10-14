@@ -215,6 +215,51 @@ const CONSTRUCTED = {
   // rather than a concrete id.
   "post-views-${postId}":
     "PostsList.tsx: data-testid={`post-views-${post.id}`}, published rows only",
+  // The UltraSignup list names each row by its `key`, which the journey's
+  // fixtures choose ("plain", "dup-drop", ...), and each person by the
+  // UltraSignup id the fixture gives them.
+  "ultrasignup-existing-already":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-fresh":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-no-time":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-plain":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-was-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-import-already":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dup-drop":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dup-keep":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-fresh":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-plain":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-unplaced":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-locked-dup-drop":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-locked-${row.key}`} in RowView",
+  "ultrasignup-new-distance-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-new-distance-${row.key}`} in RowView",
+  "ultrasignup-update-no-time":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
+  "ultrasignup-update-was-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
+  "ultrasignup-person-2304249":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-person-${item.id}`} on the person switcher",
+  "ultrasignup-person-2678040":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-person-${item.id}`} on the person switcher",
 };
 
 function checkTestIds() {
