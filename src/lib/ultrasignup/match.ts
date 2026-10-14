@@ -5,11 +5,14 @@ import { normalizeRaceName } from "./normalize";
  *
  * The event is the part before " - ". It matches a catalogue name or an
  * admin alias, after `normalizeRaceName`, and only when that string belongs
- * to one event. The distance is the part after. A category label that
- * appears as a whole token wins (`TDS`, `CCC`); otherwise the kilometres
- * parsed out of "100 Miler" or "50K" have to land on one category within
- * max(3 km, 5%). Two categories in range means the member picks. A distance
- * is never used to search the whole catalogue.
+ * to one event. The distance is the part after. A category label equal to
+ * it wins (`TDS`, `CCC`, `50/50`). A label inside longer text counts only
+ * when everything else in the text is a distance that agrees with that
+ * category (`TDS 145K`): "Half Marathon" contains the token `marathon` and
+ * is not the Marathon, so a bare token is never enough. Otherwise the
+ * kilometres parsed out of "100 Miler" or "50K" have to land on one
+ * category within max(3 km, 5%). Two categories in range means the member
+ * picks. A distance is never used to search the whole catalogue.
  *
  * A category with no `distanceKm` is read from its label. The catalogue
  * leaves the number empty rather than derive it (Squamish "50M" has none),
@@ -134,11 +137,33 @@ function indexEvents(events: MatchEvent[]): Map<string, Indexed[]> {
   return index;
 }
 
-function labelHit(distanceText: string, label: string): boolean {
-  const text = normalizeRaceName(distanceText);
+function labelEquals(text: string, label: string): boolean {
   const name = normalizeRaceName(label);
-  if (!text || !name) return false;
-  return text === name || text.split(" ").includes(name);
+  return text !== "" && name !== "" && text === name;
+}
+
+/**
+ * The label appears as a run of whole tokens and the rest of the text is a
+ * distance within range of this category's known length. A category of
+ * unknown length cannot be confirmed this way, so it is not a hit.
+ */
+function labelWithDistance(
+  text: string,
+  label: string,
+  lengthKm: number | null | undefined,
+): boolean {
+  const name = normalizeRaceName(label);
+  if (!text || !name || typeof lengthKm !== "number") return false;
+  const tokens = text.split(" ");
+  const wanted = name.split(" ");
+  for (let start = 0; start + wanted.length <= tokens.length; start += 1) {
+    if (!wanted.every((token, offset) => tokens[start + offset] === token)) continue;
+    const rest = [...tokens.slice(0, start), ...tokens.slice(start + wanted.length)].join(" ");
+    if (rest === "") return false;
+    const restKm = parseDistanceKm(rest);
+    return restKm !== null && within(restKm, lengthKm);
+  }
+  return false;
 }
 
 function within(actualKm: number, candidateKm: number): boolean {
@@ -154,9 +179,17 @@ export function matchRow(
   if (!found || found.length !== 1) return { kind: "unsupported", reason: "event" };
   const event = found[0];
 
-  const byLabel = event.distances.filter((distance) =>
-    labelHit(distanceText, distance.label),
+  const text = normalizeRaceName(distanceText);
+  const lengths = event.distances.map(
+    (distance) => distance.distanceKm ?? parseDistanceKm(distance.label),
   );
+  const exact = event.distances.filter((distance) => labelEquals(text, distance.label));
+  const byLabel =
+    exact.length > 0
+      ? exact
+      : event.distances.filter((distance, index) =>
+          labelWithDistance(text, distance.label, lengths[index]),
+        );
   if (byLabel.length === 1) {
     return {
       distanceId: byLabel[0].id,
@@ -168,9 +201,6 @@ export function matchRow(
   }
 
   const kilometres = parseDistanceKm(distanceText);
-  const lengths = event.distances.map(
-    (distance) => distance.distanceKm ?? parseDistanceKm(distance.label),
-  );
   const byDistance =
     kilometres === null
       ? []

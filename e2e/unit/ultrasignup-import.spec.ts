@@ -694,4 +694,92 @@ test.describe("U-ULTRA UltraSignup import", () => {
       "110k",
     ]);
   });
+
+  test("U-ULTRA-26: a trademark sign is dropped, not spelled out as TM", () => {
+    // NFKD rewrites ™ as the letters "TM"; stripping after it never matched.
+    expect(normalizeRaceName("Western States™")).toBe("western states");
+    expect(normalizeRaceName("Western States™ 100")).toBe(
+      normalizeRaceName("Western States 100"),
+    );
+    const wser: MatchEvent = {
+      aliases: [],
+      distances: [{ distanceKm: 161, id: "100m", label: "100M" }],
+      id: "wser",
+      name: "Western States 100",
+    };
+    expect(matchRow([wser], "Western States™ 100", "100 Miler")).toMatchObject({
+      distanceId: "100m",
+      kind: "ready",
+    });
+  });
+
+  test("U-ULTRA-27: a label inside longer text is that label only when the rest is its distance", () => {
+    const city: MatchEvent = {
+      aliases: [],
+      distances: [{ distanceKm: 42.195, id: "marathon", label: "Marathon" }],
+      id: "city",
+      name: "City Trail Festival",
+    };
+    // "Half" is not a distance: the token `marathon` alone is not the Marathon.
+    expect(matchRow([city], "City Trail Festival", "Half Marathon")).toEqual({
+      kind: "unsupported",
+      reason: "distance",
+    });
+
+    const utmb = CATALOGUE[0];
+    // The rest is a distance in range of TDS: that is TDS.
+    expect(matchRow([utmb], "UTMB Mont-Blanc", "TDS 145K")).toMatchObject({
+      distanceId: "tds",
+      kind: "ready",
+    });
+    // The rest contradicts TDS's length: not TDS, and a label that argues
+    // with itself is not evidence of a new distance either. Refused, rather
+    // than a public historical entry named "TDS 50K".
+    expect(matchRow([utmb], "UTMB Mont-Blanc", "TDS 50K")).toEqual({
+      kind: "unsupported",
+      reason: "distance",
+    });
+
+    // An exact label still beats a label-plus-distance on another entry.
+    const both: MatchEvent = {
+      aliases: [],
+      distances: [
+        { distanceKm: 21.1, id: "half", label: "Half Marathon" },
+        { distanceKm: 42.195, id: "marathon", label: "Marathon" },
+      ],
+      id: "city",
+      name: "City Trail Festival",
+    };
+    expect(matchRow([both], "City Trail Festival", "Half Marathon")).toMatchObject({
+      distanceId: "half",
+      kind: "ready",
+    });
+  });
+
+  test("U-ULTRA-28: two repeated finishes with the same time and place are two groups", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "Test",
+          Id: 1,
+          LastName: "Runner",
+          Results: [
+            row("Race A - 50K", "3/1/2024 12:00:00 AM", "5:00:00", 10, 1),
+            row("Race A Again - 50K", "3/5/2024 12:00:00 AM", "5:00:00", 10, 1),
+            row("Race B - 50K", "9/1/2024 12:00:00 AM", "5:00:00", 10, 1),
+            row("Race B Again - 50K", "9/4/2024 12:00:00 AM", "5:00:00", 10, 1),
+          ],
+        },
+      ],
+      { fname: "Test", lname: "Runner" },
+    );
+    const view = assemblePerson(person, [], [], NOW);
+    const id = (title: string) => view.rows.find((r) => r.rawName === title)?.groupId;
+    expect(id("Race A - 50K")).toBeTruthy();
+    expect(id("Race A - 50K")).toBe(id("Race A Again - 50K"));
+    expect(id("Race B - 50K")).toBe(id("Race B Again - 50K"));
+    // Six months apart: same time, place and year, and still two finishes.
+    expect(id("Race A - 50K")).not.toBe(id("Race B - 50K"));
+  });
 });

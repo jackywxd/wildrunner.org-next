@@ -84,12 +84,13 @@ export function dedupeResults(rows: ParsedResult[]): DedupedResult[] {
     members.set(root, list);
   }
 
+  // Named by the cluster's root, not by its time/place/year: two clusters
+  // more than 14 days apart can share all three, and one id would make the
+  // list lock them together as if they were one finish.
   return unique.map((row, index) => {
-    const list = members.get(find(index)) ?? [];
-    const groupId =
-      list.length > 1
-        ? `finish:${row.finishSeconds}:${row.place}:${row.year}`
-        : null;
+    const root = find(index);
+    const list = members.get(root) ?? [];
+    const groupId = list.length > 1 ? `finish:${root}` : null;
     return { ...row, groupId };
   });
 }

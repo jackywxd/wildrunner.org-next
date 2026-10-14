@@ -30,6 +30,18 @@ import { fetchOrFail, matchCatalogue, storedName } from './ultrasignupResults'
  * exactly as they do for a hand-entered record. If that write fails the
  * category stays: it is still a true statement that the entry ran.
  */
+
+/** Every message down the `cause` chain: Drizzle's `.message` is its own summary. */
+function causeChain(error: unknown): string {
+  const parts: string[] = []
+  let current: unknown = error
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    parts.push(current.message)
+    current = current.cause
+  }
+  return parts.length > 0 ? parts.join(' <- ') : String(error)
+}
+
 async function ensureHistoricalCategory(
   req: PayloadRequest,
   eventRowId: number,
@@ -71,8 +83,18 @@ async function ensureHistoricalCategory(
         overrideAccess: true,
         req,
       })) as RaceCategory
-    } catch {
+    } catch (error) {
+      // The expected failure is the (event, key) unique index: another
+      // member's import created it between our find and our create, and
+      // the re-find returns their row. Anything else re-finds nothing, and
+      // then the create's own error is the answer — not a bare 500.
       category = await find()
+      if (!category) {
+        req.payload.logger.error(
+          `ultrasignup: could not create category ${key} on event ${eventRowId}: ${causeChain(error)}`,
+        )
+        throw error
+      }
     }
   }
   if (!category) throw new APIError('Could not add this distance.', 500)
@@ -98,7 +120,7 @@ export const ultrasignupImportEndpoint: Endpoint = {
       throw new APIError('personId, rawName and date are required.', 400)
     }
 
-    const [catalogue, { people }] = await Promise.all([
+    const [catalogue, { failures, people }] = await Promise.all([
       matchCatalogue(req),
       fetchOrFail(req, name),
     ])
@@ -106,6 +128,11 @@ export const ultrasignupImportEndpoint: Endpoint = {
       .find((person) => person.id === personId)
       ?.results.find((row) => row.rawName === rawName && row.date === date)
     if (!result) {
+      // With a split unanswered, "not found" may only mean "not fetched":
+      // the person could live under exactly the split that failed.
+      if (failures.length > 0) {
+        throw new APIError('UltraSignup did not fully answer. Try again shortly.', 503)
+      }
       throw new APIError('That result is not on UltraSignup under your saved name.', 404)
     }
     if (result.status === 'other' || !isRaceYearClaimable(result.year, new Date())) {
