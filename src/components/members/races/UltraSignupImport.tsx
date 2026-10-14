@@ -6,26 +6,45 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Input } from "@/components/ui/input";
 import { formatFinishTime } from "@/lib/races/finish-time";
+import type { ImportPerson, ImportRow, RecordUpdate } from "@/lib/ultrasignup/assemble";
+import { MAX_NAME_WORDS } from "@/lib/ultrasignup/name";
 import {
-  recordUpdate,
-  type ImportPerson,
-  type ImportRow,
-  type RecordUpdate,
-} from "@/lib/ultrasignup/assemble";
+  displayItems,
+  existingRecord,
+  groupOf,
+  resolved,
+  rowState,
+  type Existing,
+  type LoggedRecord,
+  type RowState,
+} from "@/lib/ultrasignup/row-state";
 
 type Split = { fname: string; lname: string };
 
 const UNREADABLE =
   "目前無法讀取 UltraSignup，可能是對方網站暫時故障或改版。請稍後再試；如果持續發生，請告訴管理員。";
 
-type LoggedRecord = {
-  distanceId: string;
-  eventId: string;
-  finishSeconds?: number | null;
-  id: number;
-  result?: "finished" | "dnf" | null;
-  year: number;
-};
+const SIGNED_OUT = "登入已過期，請重新登入後再試。";
+
+/**
+ * What to tell the member about a refused request.
+ *
+ * Only the two UltraSignup endpoints write their messages for members; a
+ * Payload collection answers in English validation prose, so for those the
+ * caller's own sentence stands. A 5xx says nothing a member can act on
+ * except 503, which is the import endpoint's "try again shortly".
+ */
+async function refusal(response: Response, fallback: string, ours: boolean): Promise<string> {
+  if (response.status === 401) return SIGNED_OUT;
+  if (!ours || (response.status >= 500 && response.status !== 503)) return fallback;
+  try {
+    const body = (await response.json()) as { errors?: { message?: unknown }[] };
+    const message = body.errors?.[0]?.message;
+    return typeof message === "string" && message ? message : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 /**
  * Fetch every UltraSignup person a name splits into, then import one row
@@ -33,11 +52,7 @@ type LoggedRecord = {
  *
  * The switcher is the whole point of a repeated name. "Xu Dong Wu" is two
  * ids, and each id's finishes stay on their own list — picking one does not
- * merge the other in. A groupId means UltraSignup listed one finish twice:
- * the rows render as one card, and once any of them is in the member's
- * records the rest are locked — otherwise picking the other row after an
- * import logs the same finish under a second event, which the server's
- * (event, distance, year) uniqueness cannot see.
+ * merge the other in. Which rows are locked, and why, is `row-state.ts`.
  */
 export function UltraSignupImport({
   initialName,
@@ -52,6 +67,9 @@ export function UltraSignupImport({
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
+  // The name as last stored, so 讀取成績 only writes the account (and runs
+  // the Users hooks) when the member actually changed it.
+  const [savedName, setSavedName] = useState(initialName.trim());
   const [people, setPeople] = useState<ImportPerson[] | null>(null);
   const [personId, setPersonId] = useState<number | null>(null);
   const [chosen, setChosen] = useState<Record<string, string>>({});
@@ -67,15 +85,21 @@ export function UltraSignupImport({
     setError(null);
     setFailedSplits([]);
     try {
-      const saved = await fetch(`/api/users/${userId}`, {
-        method: "PATCH",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ultrasignupName: name.trim() }),
-      });
-      if (!saved.ok) {
-        setError("姓名沒有存下來。請用成績頁上的姓名，姓放在最後。");
-        return;
+      const wanted = name.trim();
+      if (wanted !== savedName) {
+        const saved = await fetch(`/api/users/${userId}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ultrasignupName: wanted }),
+        });
+        if (!saved.ok) {
+          setError(
+            await refusal(saved, `姓名沒有存下來。請用成績頁上的姓名，姓放在最後，2 到 ${MAX_NAME_WORDS} 個詞。`, false),
+          );
+          return;
+        }
+        setSavedName(wanted);
       }
       const response = await fetch("/api/members/ultrasignup-results", {
         method: "POST",
@@ -83,7 +107,7 @@ export function UltraSignupImport({
       });
       if (!response.ok) {
         setPeople(null);
-        setError(UNREADABLE);
+        setError(await refusal(response, UNREADABLE, true));
         return;
       }
       const body = (await response.json()) as {
@@ -103,11 +127,6 @@ export function UltraSignupImport({
     }
   }
 
-  function groupOf(row: ImportRow): ImportRow[] {
-    if (!row.groupId || !person) return [row];
-    return person.rows.filter((candidate) => candidate.groupId === row.groupId);
-  }
-
   /**
    * A distance the catalogue lists goes straight to the collection. One it
    * does not goes through the import endpoint, which re-reads UltraSignup
@@ -115,7 +134,7 @@ export function UltraSignupImport({
    * names the row and nothing about the distance.
    */
   async function importRow(row: ImportRow) {
-    if (!person || !rowState(groupOf(row), row, distanceId, records, chosen).canImport) return;
+    if (!person || !rowState(groupOf(person.rows, row), row, distanceId, records, chosen).canImport) return;
     const picked = resolved(row, distanceId[row.key]);
     const isNew = row.match.kind === "new-distance";
     setBusy(true);
@@ -141,7 +160,7 @@ export function UltraSignupImport({
             }),
           });
       if (!response.ok) {
-        setError("這筆沒有匯入。若已經登錄過，列表上會標出來。");
+        setError(await refusal(response, "這筆沒有匯入。若已經登錄過，列表上會標出來。", isNew));
         return;
       }
       const { doc } = (await response.json()) as { doc: LoggedRecord };
@@ -197,7 +216,7 @@ export function UltraSignupImport({
         body: JSON.stringify(update),
       });
       if (!response.ok) {
-        setError("這筆沒有更新，請再試一次。");
+        setError(await refusal(response, "這筆沒有更新，請再試一次。", false));
         return;
       }
       onImported(((await response.json()) as { doc: LoggedRecord }).doc);
@@ -241,7 +260,7 @@ export function UltraSignupImport({
       </Button>
 
       {error && (
-        <p className="text-sm text-destructive" data-testid="ultrasignup-error">
+        <p className="text-sm text-destructive" data-testid="ultrasignup-error" role="alert">
           {error}
         </p>
       )}
@@ -339,103 +358,6 @@ function personLabel(person: ImportPerson): string {
   return `${person.firstName} ${person.lastName}（名 ${person.firstName}、姓 ${person.lastName}）· ${age} · ${person.rows.length} 場`;
 }
 
-function resolved(
-  row: ImportRow,
-  selectedDistance: string | undefined,
-): { distanceId: string; eventId: string } | null {
-  if (row.match.kind === "ready") {
-    return { distanceId: row.match.distanceId, eventId: row.match.eventId };
-  }
-  if (row.match.kind === "choose-distance" && selectedDistance) {
-    const option = row.match.options.find((item) => item.id === selectedDistance);
-    if (!option) return null;
-    return { distanceId: option.id, eventId: row.match.eventId };
-  }
-  return null;
-}
-
-type Existing = { finishSeconds: number | null; id: number; result: "finished" | "dnf" };
-
-type RowState = {
-  canImport: boolean;
-  existing: Existing | null;
-  /** Shown instead of the import button on a row its group has locked. */
-  note: string | null;
-  /** Present only when more than one row of a group could be imported. */
-  radio: { checked: boolean } | null;
-  /** What the existing record should become to agree with UltraSignup. */
-  update: RecordUpdate | null;
-};
-
-/**
- * The member's record for this row, read from the live list rather than
- * the snapshot the server sent: an import, an update or a delete in the
- * list below has to show here without reloading UltraSignup.
- */
-function existingRecord(
-  row: ImportRow,
-  distanceIds: Record<string, string>,
-  records: LoggedRecord[],
-): Existing | null {
-  const picked = resolved(row, distanceIds[row.key]);
-  if (!picked) return null;
-  const record = records.find(
-    (item) =>
-      item.eventId === picked.eventId &&
-      item.distanceId === picked.distanceId &&
-      item.year === row.year,
-  );
-  if (!record) return null;
-  return {
-    finishSeconds: record.finishSeconds ?? null,
-    id: record.id,
-    result: record.result === "dnf" ? "dnf" : "finished",
-  };
-}
-
-function candidate(
-  row: ImportRow,
-  distanceIds: Record<string, string>,
-  records: LoggedRecord[],
-): boolean {
-  return (
-    row.status !== "other" &&
-    row.match.kind !== "unsupported" &&
-    !existingRecord(row, distanceIds, records)
-  );
-}
-
-/**
- * What one row may do, given the rest of its group.
- *
- * A row that is already logged locks its group. Otherwise the member picks
- * only between rows that could actually be imported: one such row needs no
- * choice, and a radio on a row the catalogue cannot place is a question
- * with one answer.
- */
-function rowState(
-  group: ImportRow[],
-  row: ImportRow,
-  distanceIds: Record<string, string>,
-  records: LoggedRecord[],
-  chosen: Record<string, string>,
-): RowState {
-  const existing = existingRecord(row, distanceIds, records);
-  const update = existing ? recordUpdate(row, existing) : null;
-  const placeable =
-    row.match.kind === "new-distance" || Boolean(resolved(row, distanceIds[row.key]));
-  const importable = placeable && candidate(row, distanceIds, records);
-  const base = { existing, note: null, radio: null, update };
-  if (group.length <= 1 || existing) return { ...base, canImport: existing ? false : importable };
-  if (group.some((other) => existingRecord(other, distanceIds, records))) {
-    return { ...base, canImport: false, note: "同一場已匯入，這筆不再匯入" };
-  }
-  const candidates = group.filter((other) => candidate(other, distanceIds, records));
-  if (candidates.length < 2 || !candidates.includes(row)) return { ...base, canImport: importable };
-  const checked = chosen[row.groupId ?? ""] === row.key;
-  return { ...base, canImport: importable && checked, radio: { checked } };
-}
-
 function groupTitle(rows: ImportRow[], locked: ImportRow | undefined): string {
   if (locked) {
     const label = locked.match.kind === "ready" ? locked.match.distanceLabel : locked.rawName;
@@ -446,25 +368,6 @@ function groupTitle(rows: ImportRow[], locked: ImportRow | undefined): string {
     return `疑似同一場完賽：${first.timeText ?? ""}，第 ${first.place ?? "?"} 名，只能匯入一筆`;
   }
   return "這幾筆對到同一筆紀錄，只能匯入一筆";
-}
-
-/** Rows in date order, with each group gathered where its first row falls. */
-function displayItems(rows: ImportRow[]): { groupId: string; rows: ImportRow[] }[] {
-  const items: { groupId: string; rows: ImportRow[] }[] = [];
-  const seen = new Set<string>();
-  for (const row of rows) {
-    if (!row.groupId) {
-      items.push({ groupId: row.key, rows: [row] });
-      continue;
-    }
-    if (seen.has(row.groupId)) continue;
-    seen.add(row.groupId);
-    items.push({
-      groupId: row.groupId,
-      rows: rows.filter((other) => other.groupId === row.groupId),
-    });
-  }
-  return items;
 }
 
 function outcome(value: { finishSeconds: number | null; result: "finished" | "dnf" }): string {

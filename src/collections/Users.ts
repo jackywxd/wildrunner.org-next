@@ -3,7 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminUser } from '../access'
 import { inviteEmailHTML, inviteLinkFor } from '../lib/invite'
 import { defaultQuotaMb } from '../lib/quota'
-import { nameSplits } from '../lib/ultrasignup/name'
+import { MAX_NAME_LENGTH, MAX_NAME_WORDS, nameSplits } from '../lib/ultrasignup/name'
 import { ensureAuthorIdentity } from './hooks/author-identity'
 import { clearInvitePending } from './hooks/clear-invite-pending'
 import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
@@ -103,6 +103,7 @@ export const Users: CollectionConfig = {
     {
       name: 'ultrasignupName',
       type: 'text',
+      maxLength: MAX_NAME_LENGTH,
       label: { en: 'UltraSignup name', 'zh-TW': 'UltraSignup 姓名' },
       admin: {
         description: {
@@ -114,7 +115,7 @@ export const Users: CollectionConfig = {
       validate: (value: unknown) => {
         if (value === undefined || value === null || value === '') return true
         if (typeof value !== 'string' || nameSplits(value) === null) {
-          return 'Enter the UltraSignup name with the family name last, at least two words.'
+          return `Enter the UltraSignup name with the family name last, 2 to ${MAX_NAME_WORDS} words.`
         }
         return true
       },

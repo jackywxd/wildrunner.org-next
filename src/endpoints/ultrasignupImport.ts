@@ -2,11 +2,10 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import { APIError } from 'payload'
 
 import { isRaceYearClaimable } from '@/lib/races/catalogue'
-import { historicalKey, matchRow } from '@/lib/ultrasignup/match'
+import { historicalKey, matchRow, parseDistanceKm } from '@/lib/ultrasignup/match'
 import type { ParsedResult } from '@/lib/ultrasignup/parse'
+import { fetchOrFail, matchCatalogue, storedName } from '@/lib/ultrasignup/server'
 import type { RaceCategory, RaceRecord } from '@/payload-types'
-
-import { fetchOrFail, matchCatalogue, storedName } from './ultrasignupResults'
 
 /**
  * Import one UltraSignup row whose distance the catalogue does not list.
@@ -31,6 +30,13 @@ import { fetchOrFail, matchCatalogue, storedName } from './ultrasignupResults'
  * category stays: it is still a true statement that the entry ran.
  */
 
+/**
+ * Where a historical entry sorts among the event's categories: after every
+ * reviewed one. The catalogue numbers its own from 1 upward; this only has
+ * to be larger than any of them.
+ */
+const HISTORICAL_ORDER = 999
+
 /** Every message down the `cause` chain: Drizzle's `.message` is its own summary. */
 function causeChain(error: unknown): string {
   const parts: string[] = []
@@ -49,7 +55,7 @@ async function ensureHistoricalCategory(
   result: ParsedResult,
 ): Promise<string> {
   const key = historicalKey(label)
-  if (!key) throw new APIError('This distance has no usable name.', 409)
+  if (!key) throw new APIError('這個分項沒有可用的名稱。', 409)
 
   const find = async () =>
     (
@@ -72,9 +78,12 @@ async function ensureHistoricalCategory(
         data: {
           event: eventRowId,
           historical: true,
+          // The matcher only calls a distance new when it parsed one, so
+          // this is never null; stored so nothing downstream re-parses it.
+          distanceKm: parseDistanceKm(label),
           key,
           label,
-          order: 999,
+          order: HISTORICAL_ORDER,
           // The title and day, not the member's results page: this
           // collection is publicly readable and that URL carries their name.
           source: `UltraSignup: ${result.rawName} (${result.date})`,
@@ -97,9 +106,9 @@ async function ensureHistoricalCategory(
       }
     }
   }
-  if (!category) throw new APIError('Could not add this distance.', 500)
+  if (!category) throw new APIError('無法新增這個分項。', 500)
   if (category.label !== label) {
-    throw new APIError(`${key} already names a different distance at this race.`, 409)
+    throw new APIError(`這場賽事的 ${key} 已經是另一個分項，沒有匯入。`, 409)
   }
   return category.key
 }
@@ -117,7 +126,7 @@ export const ultrasignupImportEndpoint: Endpoint = {
     const rawName = typeof body?.rawName === 'string' ? body.rawName : ''
     const date = typeof body?.date === 'string' ? body.date : ''
     if (!Number.isInteger(personId) || !rawName || !date) {
-      throw new APIError('personId, rawName and date are required.', 400)
+      throw new APIError('缺少要匯入的成績。', 400)
     }
 
     const [catalogue, { failures, people }] = await Promise.all([
@@ -131,12 +140,12 @@ export const ultrasignupImportEndpoint: Endpoint = {
       // With a split unanswered, "not found" may only mean "not fetched":
       // the person could live under exactly the split that failed.
       if (failures.length > 0) {
-        throw new APIError('UltraSignup did not fully answer. Try again shortly.', 503)
+        throw new APIError('UltraSignup 沒有完整回應，請稍後再試。', 503)
       }
-      throw new APIError('That result is not on UltraSignup under your saved name.', 404)
+      throw new APIError('你保存的姓名下找不到這筆成績。', 404)
     }
     if (result.status === 'other' || !isRaceYearClaimable(result.year, new Date())) {
-      throw new APIError('That result cannot be imported as a race record.', 400)
+      throw new APIError('這筆成績不能登錄為比賽紀錄。', 400)
     }
 
     const match = matchRow(catalogue.events, result.eventName, result.distanceText)
@@ -145,10 +154,10 @@ export const ultrasignupImportEndpoint: Endpoint = {
       distanceId = match.distanceId
     } else if (match.kind === 'new-distance') {
       const eventRowId = catalogue.eventRowIds.get(match.eventId)
-      if (eventRowId === undefined) throw new APIError('Unknown race event.', 409)
+      if (eventRowId === undefined) throw new APIError('目錄裡找不到這場賽事。', 409)
       distanceId = await ensureHistoricalCategory(req, eventRowId, match.distanceLabel, result)
     } else {
-      throw new APIError('That result does not resolve to one catalogue race.', 409)
+      throw new APIError('這筆成績對不到目錄裡的單一分項。', 409)
     }
 
     const doc = (await req.payload.create({
@@ -159,7 +168,7 @@ export const ultrasignupImportEndpoint: Endpoint = {
         finishSeconds: result.status === 'finished' ? result.finishSeconds : null,
         result: result.status,
         year: result.year,
-      } as Omit<RaceRecord, 'createdAt' | 'id' | 'owner' | 'updatedAt'> as RaceRecord,
+      },
       overrideAccess: false,
       req,
     })) as RaceRecord

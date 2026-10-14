@@ -23,15 +23,30 @@ export type NameSplit = {
 const TOKEN = /^[\p{L}][\p{L}'’.-]*$/u;
 
 /**
+ * n words are n−1 requests to an endpoint UltraSignup never published, and
+ * every load and every new-distance import repeats them. Five words — four
+ * requests — covers every real name we have seen; past that the name is
+ * refused rather than fanned out.
+ */
+export const MAX_NAME_WORDS = 5;
+export const MAX_NAME_LENGTH = 80;
+
+/**
  * Every fname/lname split of a name, surname-last first.
  *
  * `null` when the text cannot be a name we are willing to put in a URL:
- * fewer than two words, or a word that is not letters. A slash or a question
- * mark would change the request path, so those never get as far as encoding.
+ * fewer than two words, more than `MAX_NAME_WORDS`, or a word that is not
+ * letters. A slash or a question mark would change the request path, so
+ * those never get as far as encoding.
  */
 export function nameSplits(input: string): NameSplit[] | null {
+  if (input.length > MAX_NAME_LENGTH) return null;
   const tokens = input.trim().split(/\s+/).filter(Boolean);
-  if (tokens.length < 2 || tokens.some((token) => !TOKEN.test(token))) {
+  if (
+    tokens.length < 2 ||
+    tokens.length > MAX_NAME_WORDS ||
+    tokens.some((token) => !TOKEN.test(token))
+  ) {
     return null;
   }
   const splits: NameSplit[] = [];

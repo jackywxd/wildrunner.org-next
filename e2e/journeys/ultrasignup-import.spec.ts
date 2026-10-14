@@ -48,7 +48,6 @@ function resultRow(
     date: `${year}-08-01`,
     distanceText: race.distanceLabel,
     eventName: race.eventName,
-    existing: null,
     finishSeconds: status === "finished" ? 36_000 : null,
     groupId,
     key,

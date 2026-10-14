@@ -6,8 +6,8 @@ import { offeredDistances } from "@/lib/races/catalogue-shape";
 import { lineUpSummary } from "@/lib/races/line-up";
 import { SEED_CATEGORIES, SEED_EVENTS } from "@/lib/races/seed-data";
 import { assemblePeople, assemblePerson, recordUpdate } from "@/lib/ultrasignup/assemble";
-import { fetchPeople } from "@/lib/ultrasignup/fetch";
-import { historyUrl, nameSplits } from "@/lib/ultrasignup/name";
+import { CACHE_SECONDS, cachedFetch, fetchPeople, USER_AGENT } from "@/lib/ultrasignup/fetch";
+import { historyUrl, MAX_NAME_WORDS, nameSplits } from "@/lib/ultrasignup/name";
 import { normalizeRaceName } from "@/lib/ultrasignup/normalize";
 import {
   historicalKey,
@@ -16,6 +16,12 @@ import {
   type MatchEvent,
 } from "@/lib/ultrasignup/match";
 import { mergePeople, parseHistory } from "@/lib/ultrasignup/parse";
+import {
+  existingRecord,
+  groupOf,
+  rowState,
+  type LoggedRecord,
+} from "@/lib/ultrasignup/row-state";
 
 /**
  * U-ULTRA — what a member's UltraSignup name turns into, before any page.
@@ -176,7 +182,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
 
   test("U-ULTRA-6: one shared finish is a group; three times on one day are not", () => {
     const [person] = parseHistory(XU_DONG_WU, { fname: "Xu Dong", lname: "Wu" });
-    const view = assemblePerson(person, CATALOGUE, [], NOW);
+    const view = assemblePerson(person, CATALOGUE, NOW);
     const repeated = view.rows.filter((result) => result.place === 852);
     expect(repeated).toHaveLength(2);
     expect(repeated[0].groupId).toBeTruthy();
@@ -199,11 +205,11 @@ test.describe("U-ULTRA UltraSignup import", () => {
     const withoutAlias = CATALOGUE.map((event) =>
       event.id === "utmb-mont-blanc" ? { ...event, aliases: [] } : event,
     );
-    const unmatched = assemblePerson(person, withoutAlias, [], NOW);
+    const unmatched = assemblePerson(person, withoutAlias, NOW);
     const tds = unmatched.rows.find((result) => result.distanceText === "TDS");
     expect(tds?.match.kind).toBe("unsupported");
 
-    const matched = assemblePerson(person, CATALOGUE, [], NOW);
+    const matched = assemblePerson(person, CATALOGUE, NOW);
     expect(matched.rows.find((result) => result.distanceText === "TDS")?.match).toMatchObject({
       distanceId: "tds",
       eventId: "utmb-mont-blanc",
@@ -238,29 +244,26 @@ test.describe("U-ULTRA UltraSignup import", () => {
         name: "Twin Race",
       },
     ];
-    expect(assemblePerson(person, twins, [], NOW).rows[0].match.kind).toBe("unsupported");
+    expect(assemblePerson(person, twins, NOW).rows[0].match.kind).toBe("unsupported");
   });
 
-  test("U-ULTRA-9: a finish the member already logged is marked on that row", () => {
+  test("U-ULTRA-9: a finish the member already logged is marked on that row, from the live list", () => {
     const [person] = parseHistory(XU_DONG_WU, { fname: "Xu Dong", lname: "Wu" });
-    const view = assemblePerson(
-      person,
-      CATALOGUE,
-      [
-        {
-          distanceId: "330k",
-          eventId: "other-tor-des-geants",
-          finishSeconds: 460683,
-          id: 1,
-          result: "finished",
-          year: 2025,
-        },
-      ],
-      NOW,
-    );
-    expect(view.rows.find((result) => result.eventName === "Tor des Geants")?.existing).toMatchObject(
-      { eventId: "other-tor-des-geants", year: 2025, result: "finished" },
-    );
+    const view = assemblePerson(person, CATALOGUE, NOW);
+    const tor = view.rows.find((result) => result.eventName === "Tor des Geants")!;
+    const logged: LoggedRecord = {
+      distanceId: "330k",
+      eventId: "other-tor-des-geants",
+      finishSeconds: 460683,
+      id: 1,
+      result: "finished",
+      year: 2025,
+    };
+    expect(existingRecord(tor, {}, [logged])).toMatchObject({ id: 1, result: "finished" });
+    // Deleted from the list below: the same row is importable again, with
+    // no reload of UltraSignup.
+    expect(existingRecord(tor, {}, [])).toBeNull();
+    expect(rowState([tor], tor, {}, [], {}).canImport).toBe(true);
   });
 
   test("U-ULTRA-10: a year outside the claimable range is not importable", () => {
@@ -276,7 +279,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ],
       { fname: "A", lname: "B" },
     );
-    expect(assemblePerson(person, CATALOGUE, [], NOW).rows[0].match.kind).toBe("unsupported");
+    expect(assemblePerson(person, CATALOGUE, NOW).rows[0].match.kind).toBe("unsupported");
   });
 
   test("U-ULTRA-11: an identical row is kept once", () => {
@@ -293,7 +296,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ],
       { fname: "A", lname: "B" },
     );
-    expect(assemblePerson(person, CATALOGUE, [], NOW).rows).toHaveLength(1);
+    expect(assemblePerson(person, CATALOGUE, NOW).rows).toHaveLength(1);
   });
 
   test("U-ULTRA-12: two titles that resolve to the same record are one group", () => {
@@ -320,7 +323,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
         name: "Fat Dog 120",
       },
     ];
-    const matched = assemblePerson(person, events, [], NOW).rows;
+    const matched = assemblePerson(person, events, NOW).rows;
     expect(matched).toHaveLength(2);
     expect(matched[0].groupId).toBeTruthy();
     expect(matched[0].groupId).toBe(matched[1].groupId);
@@ -333,7 +336,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
     expect(parseDistanceKm("50/50")).toBeNull();
 
     const [person] = parseHistory(XU_DONG_WU, { fname: "Xu Dong", lname: "Wu" });
-    const view = assemblePerson(person, CATALOGUE, [], NOW);
+    const view = assemblePerson(person, CATALOGUE, NOW);
     expect(view.rows.find((result) => result.distanceText === "50 Miler")?.match).toMatchObject({
       distanceId: "50m",
       kind: "ready",
@@ -356,7 +359,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ],
       { fname: "A", lname: "B" },
     );
-    const match = assemblePerson(person, CATALOGUE, [], NOW).rows[0].match;
+    const match = assemblePerson(person, CATALOGUE, NOW).rows[0].match;
     expect(match.kind).toBe("choose-distance");
     if (match.kind !== "choose-distance") return;
     expect(match.options.map((option) => option.id).sort()).toEqual(["50k", "55k"]);
@@ -386,10 +389,9 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ],
       { fname: "Xu Dong", lname: "Wu" },
     );
-    const view = assemblePerson(person, CATALOGUE, [], NOW);
+    const view = assemblePerson(person, CATALOGUE, NOW);
     expect(view.rows).toHaveLength(1);
     expect(view.rows[0].groupId).toBeNull();
-    expect(view.rows[0].existing).toBeNull();
     expect(view.rows[0].match).toMatchObject({
       distanceId: "330k",
       eventId: "other-tor-des-geants",
@@ -447,7 +449,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
         name: "Québec Mega Trail",
       },
     ];
-    expect(assemblePerson(person, events, [], NOW).rows[0].match).toMatchObject({
+    expect(assemblePerson(person, events, NOW).rows[0].match).toMatchObject({
       distanceId: "110k",
       eventId: "other-quebec-mega-trail",
       kind: "ready",
@@ -481,7 +483,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
         name: "Squamish 50",
       },
     ];
-    expect(assemblePerson(person, events, [], NOW).rows[0].match).toMatchObject({
+    expect(assemblePerson(person, events, NOW).rows[0].match).toMatchObject({
       distanceId: "50m",
       kind: "ready",
     });
@@ -532,7 +534,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
         name: "Fat Dog 120",
       },
     ];
-    const groups = new Set(assemblePerson(person, events, [], NOW).rows.map((r) => r.groupId));
+    const groups = new Set(assemblePerson(person, events, NOW).rows.map((r) => r.groupId));
     expect(groups.size).toBe(1);
     expect(groups.has(null)).toBe(false);
   });
@@ -559,7 +561,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
       id: event.key,
       name: event.name,
     }));
-    const ready = assemblePeople(people, catalogue, [], NOW)
+    const ready = assemblePeople(people, catalogue, NOW)
       .flatMap((person) => person.rows)
       .filter((result) => result.match.kind === "ready")
       .map((result) =>
@@ -585,7 +587,7 @@ test.describe("U-ULTRA UltraSignup import", () => {
     // licence to pick the nearest distance — it is a new one, which the
     // member may import with UltraSignup's label.
     expect(ready.filter((entry) => entry.includes("quebec"))).toEqual([]);
-    const fresh = assemblePeople(people, catalogue, [], NOW)
+    const fresh = assemblePeople(people, catalogue, NOW)
       .flatMap((person) => person.rows)
       .flatMap((result) =>
         result.match.kind === "new-distance"
@@ -774,12 +776,161 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ],
       { fname: "Test", lname: "Runner" },
     );
-    const view = assemblePerson(person, [], [], NOW);
+    const view = assemblePerson(person, [], NOW);
     const id = (title: string) => view.rows.find((r) => r.rawName === title)?.groupId;
     expect(id("Race A - 50K")).toBeTruthy();
     expect(id("Race A - 50K")).toBe(id("Race A Again - 50K"));
     expect(id("Race B - 50K")).toBe(id("Race B Again - 50K"));
     // Six months apart: same time, place and year, and still two finishes.
     expect(id("Race A - 50K")).not.toBe(id("Race B - 50K"));
+  });
+
+  test("U-ULTRA-29: a name is at most five words, so one load is at most four requests", () => {
+    expect(nameSplits("A B C D E")).toHaveLength(MAX_NAME_WORDS - 1);
+    expect(nameSplits("A B C D E F")).toBeNull();
+    expect(nameSplits(`${"A".repeat(60)} ${"B".repeat(30)}`)).toBeNull();
+  });
+
+  test("U-ULTRA-30: an answer is reused for a while; a failed one is not", async () => {
+    const store = new Map<string, Response>();
+    const cache = {
+      match: async (key: RequestInfo | URL) =>
+        store.get(key instanceof Request ? key.url : String(key))?.clone(),
+      put: async (key: RequestInfo | URL, value: Response) => {
+        store.set(key instanceof Request ? key.url : String(key), value);
+      },
+    } as unknown as Pick<Cache, "match" | "put">;
+    const seen: { ua: string | null; url: string }[] = [];
+    let status = 503;
+    const network: typeof fetch = async (input, init) => {
+      seen.push({ ua: new Headers(init?.headers).get("user-agent"), url: String(input) });
+      return new Response("[]", { headers: { "set-cookie": "x=1" }, status });
+    };
+    const cached = cachedFetch(cache, network);
+
+    // A 503 reaches the member as a failure and is asked again next time.
+    await expect(fetchPeople("A B", cached)).rejects.toThrow("status");
+    status = 200;
+    await fetchPeople("A B", cached);
+    await fetchPeople("A B", cached);
+    expect(seen).toHaveLength(2);
+    expect(seen.every((sent) => sent.ua === USER_AGENT)).toBe(true);
+
+    const stored = store.get(historyUrl({ fname: "A", lname: "B" }))!;
+    expect(stored.headers.get("cache-control")).toBe(`max-age=${CACHE_SECONDS}`);
+    expect(stored.headers.get("set-cookie")).toBeNull();
+
+    // A cache that throws costs the optimisation, not the answer.
+    const broken = {
+      match: async () => {
+        throw new Error("cache down");
+      },
+      put: async () => {
+        throw new Error("cache down");
+      },
+    } as unknown as Pick<Cache, "match" | "put">;
+    await expect(fetchPeople("A B", cachedFetch(broken, network))).resolves.toMatchObject({
+      people: [],
+    });
+  });
+
+  test("U-ULTRA-31: two titles for one logged record stay one group, and lock again after a delete and re-import", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "A",
+          Id: 1,
+          LastName: "B",
+          Results: [
+            row("Fat Dog 120 - 120 Miler", "8/9/2024 12:00:00 AM", "45:44:50", 65, 1),
+            row("Fat Dog 120 Mile - 120 Miler", "8/9/2024 12:00:00 AM", "40:00:00", 10, 1),
+          ],
+        },
+      ],
+      { fname: "A", lname: "B" },
+    );
+    const events: MatchEvent[] = [
+      {
+        aliases: ["Fat Dog 120 Mile"],
+        distances: [{ distanceKm: 193, id: "120m", label: "120 Miler" }],
+        id: "other-fat-dog",
+        name: "Fat Dog 120",
+      },
+    ];
+    const rows = assemblePerson(person, events, NOW).rows;
+    const [first, second] = rows;
+    // Grouped regardless of what the member has logged: the server no
+    // longer knows, and the group is what makes the page ask once.
+    expect(first.groupId).toBeTruthy();
+    expect(first.groupId).toBe(second.groupId);
+    const group = groupOf(rows, first);
+
+    // Nothing logged: two importable rows, so the member picks one.
+    expect(rowState(group, first, {}, [], {})).toMatchObject({
+      canImport: false,
+      radio: { checked: false },
+    });
+    expect(rowState(group, first, {}, [], { [first.groupId!]: first.key })).toMatchObject({
+      canImport: true,
+      radio: { checked: true },
+    });
+
+    // Logged: every row of the group is that record, and none imports.
+    const logged: LoggedRecord = {
+      distanceId: "120m",
+      eventId: "other-fat-dog",
+      finishSeconds: 164690,
+      id: 7,
+      result: "finished",
+      year: 2024,
+    };
+    for (const candidate of group) {
+      expect(rowState(group, candidate, {}, [logged], {}).canImport).toBe(false);
+    }
+  });
+
+  test("U-ULTRA-32: one finish listed under two races locks the other once either is logged", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "A",
+          Id: 1,
+          LastName: "B",
+          Results: [
+            row("Race A - 50K", "3/1/2024 12:00:00 AM", "5:00:00", 10, 1),
+            row("Race B - 50K", "3/5/2024 12:00:00 AM", "5:00:00", 10, 1),
+          ],
+        },
+      ],
+      { fname: "A", lname: "B" },
+    );
+    const events: MatchEvent[] = ["A", "B"].map((letter) => ({
+      aliases: [],
+      distances: [{ distanceKm: 50, id: "50k", label: "50K" }],
+      id: `race-${letter.toLowerCase()}`,
+      name: `Race ${letter}`,
+    }));
+    const rows = assemblePerson(person, events, NOW).rows;
+    const a = rows.find((r) => r.rawName === "Race A - 50K")!;
+    const b = rows.find((r) => r.rawName === "Race B - 50K")!;
+    const group = groupOf(rows, a);
+    expect(group).toHaveLength(2);
+
+    const loggedA: LoggedRecord = {
+      distanceId: "50k",
+      eventId: "race-a",
+      finishSeconds: 18000,
+      id: 3,
+      result: "finished",
+      year: 2024,
+    };
+    // B is a different (event, distance) — the server would accept it, and
+    // the member would have the one finish twice.
+    expect(rowState(group, b, {}, [loggedA], {})).toMatchObject({
+      canImport: false,
+      note: "同一場已匯入，這筆不再匯入",
+    });
   });
 });

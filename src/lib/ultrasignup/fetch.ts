@@ -14,6 +14,14 @@ import { mergePeople, parseHistory, type ParsedPerson } from "./parse";
  * published API; `[]` is its answer for an unknown name, and anything else
  * that yields no person means the shape changed. Treating that as an empty
  * list would tell every member they have no results the day it happens.
+ *
+ * THE DEPENDENCY. `historybyname` is what UltraSignup's own results page
+ * calls; nothing promises it will keep its path, its shape or its welcome
+ * for a server that is not that page. So every request names us in its
+ * User-Agent — if it is unwelcome, they can tell whom to ask rather than
+ * blocking a Cloudflare egress range — and answers are cached for a few
+ * minutes, because a member pressing 讀取成績 and then importing a new
+ * distance asks the same question twice in a minute.
  */
 export type SplitFailure = {
   reason: "unreachable" | "status" | "format";
@@ -43,6 +51,41 @@ export async function fetchPeople(
   };
 }
 
+export const USER_AGENT = "wildrunner.org results import (+https://wildrunner.org)";
+
+/** Seconds an UltraSignup answer is reused for. Results change on race weekends, not by the minute. */
+export const CACHE_SECONDS = 300;
+
+/**
+ * `fetch`, answering from `cache` when it can.
+ *
+ * Only an `ok` answer is stored: a 5xx kept for five minutes would turn one
+ * bad moment into five minutes of "UltraSignup is down". The stored copy
+ * carries only its content type — UltraSignup's own headers (a Set-Cookie,
+ * a `no-store`) would decide whether the Cache API keeps it at all. A cache
+ * that throws is skipped, never surfaced: it is an optimisation.
+ */
+export function cachedFetch(
+  cache: Pick<Cache, "match" | "put"> | undefined,
+  fetchImpl: typeof fetch = fetch,
+): typeof fetch {
+  if (!cache) return fetchImpl;
+  return async (input, init) => {
+    const key = new Request(input instanceof Request ? input.url : String(input));
+    const hit = await cache.match(key).catch(() => undefined);
+    if (hit) return hit;
+    const response = await fetchImpl(input, init);
+    if (!response.ok) return response;
+    const body = await response.text();
+    const headers = {
+      "cache-control": `max-age=${CACHE_SECONDS}`,
+      "content-type": response.headers.get("content-type") ?? "application/json",
+    };
+    await cache.put(key, new Response(body, { headers })).catch(() => undefined);
+    return new Response(body, { headers, status: response.status });
+  };
+}
+
 async function loadSplit(
   split: NameSplit,
   fetchImpl: typeof fetch,
@@ -50,7 +93,7 @@ async function loadSplit(
   let response: Response;
   try {
     response = await fetchImpl(historyUrl(split), {
-      headers: { accept: "application/json" },
+      headers: { accept: "application/json", "user-agent": USER_AGENT },
       signal: AbortSignal.timeout(15_000),
     });
   } catch {

@@ -57,7 +57,6 @@ export type ImportRow = {
   status: "finished" | "dnf" | "other";
   timeText: string | null;
   year: number;
-  existing: ExistingRecord | null;
 };
 
 export type ImportPerson = {
@@ -68,31 +67,15 @@ export type ImportPerson = {
   rows: ImportRow[];
 };
 
-function existingFor(
-  records: ExistingRecord[],
-  match: RowMatch,
-  year: number,
-): ExistingRecord | null {
-  if (match.kind !== "ready") return null;
-  return (
-    records.find(
-      (record) =>
-        record.eventId === match.eventId &&
-        record.distanceId === match.distanceId &&
-        record.year === year,
-    ) ?? null
-  );
-}
-
 /**
- * One person's rows, deduped, matched, and marked when the member already
- * logged that finish. Years outside the race-record range stay in the list
- * and cannot be imported — `match` is forced to unsupported.
+ * One person's rows, deduped and matched. Years outside the race-record
+ * range stay in the list and cannot be imported — `match` is forced to
+ * unsupported. Whether the member already logged a row is the page's
+ * question, asked of its live list (`row-state.ts`).
  */
 export function assemblePerson(
   person: ParsedPerson,
   events: MatchEvent[],
-  records: ExistingRecord[],
   now: Date,
 ): ImportPerson {
   const deduped = dedupeResults(person.results);
@@ -107,7 +90,6 @@ export function assemblePerson(
       date: row.date,
       distanceText: row.distanceText,
       eventName: row.eventName,
-      existing: existingFor(records, match, row.year),
       finishSeconds: row.finishSeconds,
       groupId: row.groupId,
       key: `${person.id}:${index}`,
@@ -124,9 +106,11 @@ export function assemblePerson(
   // still one finish. Share a group so only one of them can be imported.
   // A row already in a repeated-finish group brings that whole group along:
   // overwriting its id alone would leave its partner in a group of one.
+  // Grouped whether or not the member has logged it yet: they can delete
+  // that record later, and the group is what stops the second row then.
   const byRecord = new Map<string, number[]>();
   rows.forEach((row, index) => {
-    if (row.match.kind !== "ready" || row.existing) return;
+    if (row.match.kind !== "ready") return;
     const id = `${row.match.eventId}\u0000${row.match.distanceId}\u0000${row.year}`;
     const list = byRecord.get(id) ?? [];
     list.push(index);
@@ -158,8 +142,7 @@ export function assemblePerson(
 export function assemblePeople(
   people: ParsedPerson[],
   events: MatchEvent[],
-  records: ExistingRecord[],
   now: Date,
 ): ImportPerson[] {
-  return people.map((person) => assemblePerson(person, events, records, now));
+  return people.map((person) => assemblePerson(person, events, now));
 }

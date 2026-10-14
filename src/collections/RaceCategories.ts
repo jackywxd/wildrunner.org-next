@@ -34,7 +34,7 @@ export const RaceCategories: CollectionConfig = {
   defaultSort: 'order',
   admin: {
     useAsTitle: 'label',
-    defaultColumns: ['label', 'event', 'distanceKm', 'elevationGainM', 'verified'],
+    defaultColumns: ['label', 'event', 'distanceKm', 'elevationGainM', 'verified', 'historical'],
     group: { en: 'Races', 'zh-TW': '賽事' },
   },
   access: {
