@@ -81,7 +81,11 @@ export const getRaceCatalogueEvents = cache(
       const eventId =
         typeof category.event === "number" ? category.event : category.event.id;
       const list = distancesByEventId.get(eventId) ?? [];
-      list.push({ id: category.key, label: category.label });
+      list.push(
+        category.historical
+          ? { historical: true, id: category.key, label: category.label }
+          : { id: category.key, label: category.label },
+      );
       distancesByEventId.set(eventId, list);
     }
 

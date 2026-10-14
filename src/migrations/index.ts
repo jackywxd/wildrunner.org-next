@@ -33,6 +33,8 @@ import * as migration_20260914_090000_add_post_revised_at from './20260914_09000
 import * as migration_20260915_090000_add_race_record_result from './20260915_090000_add_race_record_result';
 import * as migration_20260915_140000_add_post_views from './20260915_140000_add_post_views';
 import * as migration_20261009_090000_add_ai_settings from './20261009_090000_add_ai_settings';
+import * as migration_20261013_120000_add_ultrasignup_import from './20261013_120000_add_ultrasignup_import';
+import * as migration_20261014_070000_add_race_category_historical from './20261014_070000_add_race_category_historical';
 
 export const migrations = [
   {
@@ -209,5 +211,15 @@ export const migrations = [
     up: migration_20261009_090000_add_ai_settings.up,
     down: migration_20261009_090000_add_ai_settings.down,
     name: '20261009_090000_add_ai_settings',
+  },
+  {
+    up: migration_20261013_120000_add_ultrasignup_import.up,
+    down: migration_20261013_120000_add_ultrasignup_import.down,
+    name: '20261013_120000_add_ultrasignup_import',
+  },
+  {
+    up: migration_20261014_070000_add_race_category_historical.up,
+    down: migration_20261014_070000_add_race_category_historical.down,
+    name: '20261014_070000_add_race_category_historical',
   },
 ];

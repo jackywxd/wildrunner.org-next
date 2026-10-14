@@ -9,6 +9,7 @@ import {
   raceClaimComplete,
 } from "@/components/members/races/RaceClaimFields";
 import { UNLINK_FLAG } from "@/lib/members/race-record-unlink";
+import { UltraSignupImport } from "@/components/members/races/UltraSignupImport";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   formatFinishTime,
@@ -123,9 +124,13 @@ function ResultFields({
 export function RaceRecordManager({
   catalogueEvents,
   records: initial,
+  ultrasignupName,
+  userId,
 }: {
   catalogueEvents: CatalogueEvent[];
   records: MemberRaceRecord[];
+  ultrasignupName: string;
+  userId: number;
 }) {
   const [records, setRecords] = useState(initial);
   // The four selects live in `RaceClaimFields`, shared with the post editor's
@@ -346,6 +351,18 @@ export function RaceRecordManager({
 
   return (
     <div className="mt-6 space-y-8">
+      <UltraSignupImport
+        initialName={ultrasignupName}
+        onImported={(record) =>
+          setRecords((current) =>
+            [...current.filter((item) => item.id !== record.id), record].sort(
+              (a, b) => b.year - a.year,
+            ),
+          )
+        }
+        records={records}
+        userId={userId}
+      />
       <section className="space-y-4 border border-border p-4">
         <h2 className="font-heading text-sm font-semibold text-foreground/70">
           新增紀錄

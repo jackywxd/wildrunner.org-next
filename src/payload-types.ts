@@ -150,6 +150,10 @@ export interface User {
    */
   displayName?: string | null;
   /**
+   * The name on their results page, family name last. "Xu Dong Wu" is looked up as both Xu Dong / Wu and Xu / Dong Wu.
+   */
+  ultrasignupName?: string | null;
+  /**
    * Byline this account publishes under. Created automatically; edit the alias on the author record itself.
    */
   author?: (number | null) | Author;
@@ -340,6 +344,10 @@ export interface RaceEvent {
   key: string;
   name: string;
   /**
+   * One event title per line, as UltraSignup prints it before the distance. Leave empty until you have read that page.
+   */
+  ultrasignupAliases?: string | null;
+  /**
    * Only where Chinese runners actually use one. The site shows this instead of the name, so a transliteration nobody uses would hide the race.
    */
   nameZh?: string | null;
@@ -476,6 +484,10 @@ export interface RaceCategory {
    */
   verified?: boolean | null;
   source?: string | null;
+  /**
+   * Added by a member import from an UltraSignup result. Hidden from the line-up and pickers. Untick once checked against the event.
+   */
+  historical?: boolean | null;
   verifiedAt?: string | null;
   /**
    * On the published Western States qualifying-race list (wser.org/qualifying-races). Tick only against the list itself.
@@ -708,6 +720,7 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
+  ultrasignupName?: T;
   author?: T;
   invitePending?: T;
   invitedAt?: T;
@@ -829,6 +842,7 @@ export interface GalleriesSelect<T extends boolean = true> {
 export interface RaceEventsSelect<T extends boolean = true> {
   key?: T;
   name?: T;
+  ultrasignupAliases?: T;
   nameZh?: T;
   series?: T;
   country?: T;
@@ -852,6 +866,7 @@ export interface RaceCategoriesSelect<T extends boolean = true> {
   order?: T;
   verified?: T;
   source?: T;
+  historical?: T;
   verifiedAt?: T;
   qualifiesWser?: T;
   wserVerifiedAt?: T;
