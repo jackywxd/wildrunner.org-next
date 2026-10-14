@@ -16,6 +16,7 @@ import {
   existingRecord,
   groupOf,
   notInCatalogue,
+  picksFromRecords,
   resolved,
   rowState,
   rowTone,
@@ -160,7 +161,8 @@ export function UltraSignupImport({
       setPersonId(body.people[0]?.id ?? null);
       setFailedSplits(body.failedSplits ?? []);
       setChosen({});
-      setPicks({});
+      // Rows placed by hand on an earlier visit start out placed again.
+      setPicks(picksFromRecords(body.people.flatMap((item) => item.rows), records));
       setSeries({});
       setMapping({});
     } catch {
@@ -200,6 +202,10 @@ export function UltraSignupImport({
               eventId: picked?.eventId,
               finishSeconds: row.status === "finished" ? row.finishSeconds : null,
               result: row.status === "dnf" ? "dnf" : "finished",
+              // How this row is recognised on the next load, when the
+              // member's own pick is all that places it.
+              ultrasignupDate: row.date,
+              ultrasignupTitle: row.rawName,
               year: row.year,
             }),
           });

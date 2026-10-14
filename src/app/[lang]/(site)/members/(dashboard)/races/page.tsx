@@ -37,6 +37,8 @@ export default async function MemberRacesPage() {
     finishSeconds: doc.finishSeconds,
     id: doc.id,
     result: doc.result,
+    ultrasignupDate: doc.ultrasignupDate,
+    ultrasignupTitle: doc.ultrasignupTitle,
     year: doc.year,
   }));
 

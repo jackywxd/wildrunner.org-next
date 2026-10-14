@@ -256,6 +256,10 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
       { timeout: budget(15_000) },
     );
     await expect(page.getByTestId("ultrasignup-request-ask")).toHaveCount(0);
+    // The hand placement was never written to the catalogue; it comes back
+    // from the record it made, and the row is the green one it was.
+    await expect(placedRow).toHaveAttribute("data-tone", "logged");
+    await expect(page.getByTestId("ultrasignup-map-placed")).toHaveCount(0);
   });
 
   test("M-ULTRA-1: a single word is refused and nothing is fetched", async ({ page }) => {

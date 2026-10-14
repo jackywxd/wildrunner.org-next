@@ -33,6 +33,9 @@ export type LoggedRecord = {
   finishSeconds?: number | null;
   id: number;
   result?: "finished" | "dnf" | null;
+  /** The UltraSignup row it was imported from; absent on one typed in by hand. */
+  ultrasignupDate?: string | null;
+  ultrasignupTitle?: string | null;
   year: number;
 };
 
@@ -169,6 +172,31 @@ export function rowTone(row: ImportRow, state: RowState, pick: RowPick | undefin
   if (state.note) return null;
   if (notInCatalogue(row) && !resolved(row, pick)) return "missing";
   return null;
+}
+
+/**
+ * The hand placements a previous visit made, read back off the records.
+ *
+ * A record imported from an unplaced row carries that row's UltraSignup
+ * title and date; the same title and date on a later load is the same row,
+ * so it starts out placed where the member put it — and from there it is
+ * the logged, green row it was when they left. Only rows the catalogue
+ * cannot place are touched: a row the matcher places is answered by the
+ * matcher, and a stale record must not overrule it.
+ */
+export function picksFromRecords(
+  rows: ImportRow[],
+  records: LoggedRecord[],
+): Record<string, RowPick> {
+  const picks: Record<string, RowPick> = {};
+  for (const row of rows) {
+    if (!notInCatalogue(row)) continue;
+    const record = records.find(
+      (item) => item.ultrasignupTitle === row.rawName && item.ultrasignupDate === row.date,
+    );
+    if (record) picks[row.key] = { distanceId: record.distanceId, eventId: record.eventId };
+  }
+  return picks;
 }
 
 /** The rows that share this row's group, itself included. */

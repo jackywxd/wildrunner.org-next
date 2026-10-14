@@ -48,6 +48,8 @@ export type MemberRaceRecord = {
   id: number;
   /** Absent on every row written before `20260915_090000_add_race_record_result`. */
   result?: "finished" | "dnf" | null;
+  ultrasignupDate?: string | null;
+  ultrasignupTitle?: string | null;
   year: number;
 };
 

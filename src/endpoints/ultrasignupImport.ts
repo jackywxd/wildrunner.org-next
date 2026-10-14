@@ -167,6 +167,8 @@ export const ultrasignupImportEndpoint: Endpoint = {
         eventId: match.eventId,
         finishSeconds: result.status === 'finished' ? result.finishSeconds : null,
         result: result.status,
+        ultrasignupDate: result.date,
+        ultrasignupTitle: result.rawName,
         year: result.year,
       },
       overrideAccess: false,

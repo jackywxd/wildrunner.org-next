@@ -19,6 +19,7 @@ import { mergePeople, parseHistory } from "@/lib/ultrasignup/parse";
 import {
   existingRecord,
   groupOf,
+  picksFromRecords,
   rowState,
   rowTone,
   type LoggedRecord,
@@ -1062,5 +1063,57 @@ test.describe("U-ULTRA UltraSignup import", () => {
     const locked = rowState(group, unknown, {}, [logged], {});
     expect(locked.note).toBe("同一場已匯入，這筆不再匯入");
     expect(rowTone(unknown, locked, undefined)).toBeNull();
+  });
+
+  test("U-ULTRA-36: a row placed by hand on an earlier visit comes back placed, from the record it made", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "A",
+          Id: 1,
+          LastName: "B",
+          Results: [
+            row("Ultra Trail Du Mont Blanc by UTMB - TDS", "8/29/2025 12:00:00 AM", "39:24:51", 852, 1),
+            row("Tor des Geants - 330K", "9/15/2025 12:00:00 AM", "127:58:03", 362, 1),
+          ],
+        },
+      ],
+      { fname: "A", lname: "B" },
+    );
+    const events = CATALOGUE.map((event) => ({ ...event, aliases: [] }));
+    const rows = assemblePerson(person, events, NOW).rows;
+    const tds = rows.find((r) => r.rawName.startsWith("Ultra Trail"))!;
+    const tor = rows.find((r) => r.rawName.startsWith("Tor"))!;
+    const imported: LoggedRecord = {
+      distanceId: "tds",
+      eventId: "utmb-mont-blanc",
+      finishSeconds: 141891,
+      id: 9,
+      result: "finished",
+      ultrasignupDate: "2025-08-29",
+      ultrasignupTitle: "Ultra Trail Du Mont Blanc by UTMB - TDS",
+      year: 2025,
+    };
+
+    const picks = picksFromRecords(rows, [imported]);
+    expect(picks).toEqual({ [tds.key]: { distanceId: "tds", eventId: "utmb-mont-blanc" } });
+    const state = rowState([tds], tds, picks, [imported], {});
+    expect(rowTone(tds, state, picks[tds.key])).toBe("logged");
+
+    // The same title on another day is another race; a record typed in by
+    // hand carries no title at all. Neither places anything.
+    expect(picksFromRecords(rows, [{ ...imported, ultrasignupDate: "2024-08-29" }])).toEqual({});
+    expect(
+      picksFromRecords(rows, [{ ...imported, ultrasignupDate: null, ultrasignupTitle: null }]),
+    ).toEqual({});
+
+    // A row the matcher places is the matcher's answer, whatever a record says.
+    const stale: LoggedRecord = {
+      ...imported,
+      ultrasignupDate: "2025-09-15",
+      ultrasignupTitle: "Tor des Geants - 330K",
+    };
+    expect(picksFromRecords([tor], [stale])).toEqual({});
   });
 });

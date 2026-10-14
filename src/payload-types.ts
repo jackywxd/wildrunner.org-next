@@ -454,6 +454,11 @@ export interface RaceRecord {
    * Stored in seconds; the member form takes H:MM:SS.
    */
   finishSeconds?: number | null;
+  /**
+   * Set when imported from UltraSignup; how the import list recognises this record next time.
+   */
+  ultrasignupTitle?: string | null;
+  ultrasignupDate?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -944,6 +949,8 @@ export interface RaceRecordsSelect<T extends boolean = true> {
   category?: T;
   result?: T;
   finishSeconds?: T;
+  ultrasignupTitle?: T;
+  ultrasignupDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
