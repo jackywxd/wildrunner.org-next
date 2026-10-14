@@ -137,6 +137,14 @@ function indexEvents(events: MatchEvent[]): Map<string, Indexed[]> {
   return index;
 }
 
+/**
+ * Every event an UltraSignup event name resolves to, by name or alias. One
+ * id is a match; two are an ambiguity `matchRow` refuses; none is unknown.
+ */
+export function eventsNamed(events: MatchEvent[], eventName: string): string[] {
+  return (indexEvents(events).get(normalizeRaceName(eventName)) ?? []).map((event) => event.id);
+}
+
 function labelEquals(text: string, label: string): boolean {
   const name = normalizeRaceName(label);
   return text !== "" && name !== "" && text === name;

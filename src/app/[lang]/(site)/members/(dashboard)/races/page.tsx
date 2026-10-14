@@ -1,8 +1,12 @@
+import { isAdminUser } from "@/access";
 import { requireMember } from "@/lib/auth";
 import { memberFind } from "@/lib/members/data";
+import { getPayloadClient } from "@/lib/payload";
 import { RaceRecordManager } from "@/components/members/races/RaceRecordManager";
+import { UltraSignupAliasReview } from "@/components/members/races/UltraSignupAliasReview";
+import type { ImportMember } from "@/components/members/races/UltraSignupForMember";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
-import type { RaceCatalogueRequest, RaceRecord } from "@/payload-types";
+import type { RaceCatalogueRequest, RaceRecord, User } from "@/payload-types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +16,11 @@ export const dynamic = "force-dynamic";
  * scoping to the owner. That matters more here than elsewhere, because this
  * collection's read access is deliberately public — a plain query would
  * cheerfully return every member's records.
+ *
+ * An admin also gets every account, to import UltraSignup results for one
+ * of them, and the alias review. The list is read as the admin with access
+ * enforced — `users` read is admin-or-self, so for anyone else it would be
+ * their own row, and it is not asked for at all.
  */
 export default async function MemberRacesPage() {
   const user = await requireMember();
@@ -30,6 +39,8 @@ export default async function MemberRacesPage() {
       sort: "-createdAt",
     }),
   ]);
+
+  const members = isAdminUser(user) ? await importMembers(user) : undefined;
 
   const records = (result.docs as RaceRecord[]).map((doc) => ({
     distanceId: doc.distanceId,
@@ -62,10 +73,35 @@ export default async function MemberRacesPage() {
       <RaceRecordManager
         catalogueEvents={catalogueEvents}
         catalogueRequests={catalogueRequests}
+        members={members}
         records={records}
         ultrasignupName={user.ultrasignupName ?? ""}
         userId={user.id}
       />
+      {members && (
+        <div className="mt-8">
+          <UltraSignupAliasReview />
+        </div>
+      )}
     </div>
   );
+}
+
+async function importMembers(user: User): Promise<ImportMember[]> {
+  const payload = await getPayloadClient();
+  const { docs } = await payload.find({
+    collection: "users",
+    depth: 0,
+    limit: 0,
+    overrideAccess: false,
+    pagination: false,
+    select: { displayName: true, email: true, ultrasignupName: true },
+    sort: "email",
+    user,
+  });
+  return (docs as Pick<User, "displayName" | "email" | "id" | "ultrasignupName">[]).map((doc) => ({
+    id: doc.id,
+    label: doc.displayName ? `${doc.displayName}（${doc.email}）` : doc.email,
+    ultrasignupName: doc.ultrasignupName ?? "",
+  }));
 }

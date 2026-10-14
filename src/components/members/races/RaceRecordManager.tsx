@@ -13,6 +13,10 @@ import {
   UltraSignupImport,
   type CatalogueRequest,
 } from "@/components/members/races/UltraSignupImport";
+import {
+  UltraSignupOwnerPicker,
+  type ImportMember,
+} from "@/components/members/races/UltraSignupForMember";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   formatFinishTime,
@@ -129,12 +133,15 @@ function ResultFields({
 export function RaceRecordManager({
   catalogueEvents,
   catalogueRequests,
+  members,
   records: initial,
   ultrasignupName,
   userId,
 }: {
   catalogueEvents: CatalogueEvent[];
   catalogueRequests: CatalogueRequest[];
+  /** Present for an admin, who may import for any of these members. */
+  members?: ImportMember[];
   records: MemberRaceRecord[];
   ultrasignupName: string;
   userId: number;
@@ -356,22 +363,35 @@ export function RaceRecordManager({
     }
   }
 
+  const ownImport = (
+    <UltraSignupImport
+      catalogueEvents={catalogueEvents}
+      initialName={ultrasignupName}
+      initialRequests={catalogueRequests}
+      onImported={(record) =>
+        setRecords((current) =>
+          [...current.filter((item) => item.id !== record.id), record].sort(
+            (a, b) => b.year - a.year,
+          ),
+        )
+      }
+      records={records}
+      userId={userId}
+    />
+  );
+
   return (
     <div className="mt-6 space-y-8">
-      <UltraSignupImport
-        catalogueEvents={catalogueEvents}
-        initialName={ultrasignupName}
-        initialRequests={catalogueRequests}
-        onImported={(record) =>
-          setRecords((current) =>
-            [...current.filter((item) => item.id !== record.id), record].sort(
-              (a, b) => b.year - a.year,
-            ),
-          )
-        }
-        records={records}
-        userId={userId}
-      />
+      {members ? (
+        <UltraSignupOwnerPicker
+          catalogueEvents={catalogueEvents}
+          members={members}
+          own={ownImport}
+          userId={userId}
+        />
+      ) : (
+        ownImport
+      )}
       <section className="space-y-4 border border-border p-4">
         <h2 className="font-heading text-sm font-semibold text-foreground/70">
           新增紀錄

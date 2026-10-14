@@ -4,13 +4,15 @@ import { APIError } from 'payload'
 import { isRaceYearClaimable } from '@/lib/races/catalogue'
 import { historicalKey, matchRow, parseDistanceKm } from '@/lib/ultrasignup/match'
 import type { ParsedResult } from '@/lib/ultrasignup/parse'
-import { fetchOrFail, matchCatalogue, storedName } from '@/lib/ultrasignup/server'
+import { fetchOrFail, importTarget, jsonBody, matchCatalogue } from '@/lib/ultrasignup/server'
 import type { RaceCategory, RaceRecord } from '@/payload-types'
 
 /**
  * Import one UltraSignup row whose distance the catalogue does not list.
  *
- * The client names the row — person id, title, date — and nothing else.
+ * The client names the row — person id, title, date — and nothing else
+ * (plus, for an admin importing for a member, whose and under what name:
+ * `importTarget`).
  * What gets written to `race-categories` is shared reference data every
  * badge reads, so its label cannot come from the request: this re-fetches
  * UltraSignup under the member's stored name, finds that row, and runs the
@@ -117,14 +119,11 @@ export const ultrasignupImportEndpoint: Endpoint = {
   path: '/members/ultrasignup-import',
   method: 'post',
   handler: async (req) => {
-    const name = await storedName(req)
-
-    const body = (await req.json?.()) as
-      | { date?: unknown; personId?: unknown; rawName?: unknown }
-      | undefined
-    const personId = typeof body?.personId === 'number' ? body.personId : NaN
-    const rawName = typeof body?.rawName === 'string' ? body.rawName : ''
-    const date = typeof body?.date === 'string' ? body.date : ''
+    const body = await jsonBody(req)
+    const { name, ownerId } = await importTarget(req, body)
+    const personId = typeof body.personId === 'number' ? body.personId : NaN
+    const rawName = typeof body.rawName === 'string' ? body.rawName : ''
+    const date = typeof body.date === 'string' ? body.date : ''
     if (!Number.isInteger(personId) || !rawName || !date) {
       throw new APIError('缺少要匯入的成績。', 400)
     }
@@ -165,6 +164,8 @@ export const ultrasignupImportEndpoint: Endpoint = {
       data: {
         distanceId,
         eventId: match.eventId,
+        // An admin importing for a member; otherwise `setOwner` stamps the caller.
+        ...(ownerId !== null ? { owner: ownerId } : {}),
         finishSeconds: result.status === 'finished' ? result.finishSeconds : null,
         result: result.status,
         ultrasignupDate: result.date,

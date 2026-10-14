@@ -87,12 +87,19 @@ async function refusal(response: Response, fallback: string, ours: boolean): Pro
  * The switcher is the whole point of a repeated name. "Xu Dong Wu" is two
  * ids, and each id's finishes stay on their own list — picking one does not
  * merge the other in. Which rows are locked, and why, is `row-state.ts`.
+ *
+ * With `ownerId`, an admin is importing for that member: `records` are the
+ * member's, every write names them as owner, and the name is sent with each
+ * request instead of being saved to anyone's account (`importTarget`).
+ * Requests to add a race are the member's to file, and an admin can add the
+ * race directly, so that button does not appear.
  */
 export function UltraSignupImport({
   catalogueEvents,
   initialName,
   initialRequests,
   onImported,
+  ownerId,
   records,
   userId,
 }: {
@@ -100,6 +107,7 @@ export function UltraSignupImport({
   initialName: string;
   initialRequests: CatalogueRequest[];
   onImported: (record: LoggedRecord) => void;
+  ownerId?: number;
   records: LoggedRecord[];
   userId: number;
 }) {
@@ -108,6 +116,11 @@ export function UltraSignupImport({
   // The name as last stored, so 讀取成績 only writes the account (and runs
   // the Users hooks) when the member actually changed it.
   const [savedName, setSavedName] = useState(initialName.trim());
+  // The name the list on screen was read under. An admin's name travels
+  // with every request, so an import must not pick up a half-edited field.
+  const [loadedName, setLoadedName] = useState("");
+  const target = (forName: string) =>
+    ownerId === undefined ? {} : { name: forName, ownerId };
   const [people, setPeople] = useState<ImportPerson[] | null>(null);
   const [personId, setPersonId] = useState<number | null>(null);
   const [chosen, setChosen] = useState<Record<string, string>>({});
@@ -129,7 +142,7 @@ export function UltraSignupImport({
     setFailedSplits([]);
     try {
       const wanted = name.trim();
-      if (wanted !== savedName) {
+      if (ownerId === undefined && wanted !== savedName) {
         const saved = await fetch(`/api/users/${userId}`, {
           method: "PATCH",
           credentials: "same-origin",
@@ -147,6 +160,8 @@ export function UltraSignupImport({
       const response = await fetch("/api/members/ultrasignup-results", {
         method: "POST",
         credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(target(wanted)),
       });
       if (!response.ok) {
         setPeople(null);
@@ -158,6 +173,7 @@ export function UltraSignupImport({
         people: ImportPerson[];
       };
       setPeople(body.people);
+      setLoadedName(wanted);
       setPersonId(body.people[0]?.id ?? null);
       setFailedSplits(body.failedSplits ?? []);
       setChosen({});
@@ -191,7 +207,12 @@ export function UltraSignupImport({
             method: "POST",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date: row.date, personId: person.id, rawName: row.rawName }),
+            body: JSON.stringify({
+              date: row.date,
+              personId: person.id,
+              rawName: row.rawName,
+              ...target(loadedName),
+            }),
           })
         : await fetch("/api/race-records", {
             method: "POST",
@@ -201,6 +222,7 @@ export function UltraSignupImport({
               distanceId: picked?.distanceId,
               eventId: picked?.eventId,
               finishSeconds: row.status === "finished" ? row.finishSeconds : null,
+              ...(ownerId === undefined ? {} : { owner: ownerId }),
               result: row.status === "dnf" ? "dnf" : "finished",
               // How this row is recognised on the next load, when the
               // member's own pick is all that places it.
@@ -425,11 +447,13 @@ export function UltraSignupImport({
                 }}
                 onRequest={() => void requestRow(row)}
                 onUpdate={(existing, update) => void updateRow(existing, update)}
+                requests={ownerId === undefined}
                 pick={picks[row.key] ?? {}}
                 request={requestFor(requests, row)}
                 row={row}
                 series={series[row.key] ?? "utmb"}
                 state={state}
+                whose={ownerId === undefined ? "你的" : "會員的"}
               />
             );
             if (item.rows.length === 1) {
@@ -523,9 +547,11 @@ function RowView({
   onUpdate,
   pick,
   request,
+  requests,
   row,
   series,
   state,
+  whose,
 }: {
   busy: boolean;
   catalogueEvents: CatalogueEvent[];
@@ -539,9 +565,12 @@ function RowView({
   onUpdate: (existing: Existing, update: RecordUpdate) => void;
   pick: RowPick;
   request: CatalogueRequest | undefined;
+  /** Whether this list files catalogue requests: not when an admin imports for a member. */
+  requests: boolean;
   row: ImportRow;
   series: RaceSeries;
   state: RowState;
+  whose: string;
 }) {
   const { canImport, existing, note, radio, update } = state;
   const missingTime =
@@ -559,7 +588,7 @@ function RowView({
   // Nor once the member has placed the row by hand: they found the race in
   // the catalogue, so there is nothing to ask an admin to add.
   const canRequest =
-    tone === "missing" && (!request || request.status === "rejected");
+    requests && tone === "missing" && (!request || request.status === "rejected");
   return (
     <li
       className={`border border-border p-3 text-sm${note ? " text-foreground/50" : ""}${tone ? ` ${TONE_CLASS[tone]}` : ""}`}
@@ -596,14 +625,14 @@ function RowView({
           {existing && (
             <p className="text-foreground/70" data-testid={`ultrasignup-existing-${row.key}`}>
               {missingTime
-                ? "已在你的比賽紀錄，但沒有完賽時間"
+                ? `已在${whose}比賽紀錄，但沒有完賽時間`
                 : update
-                  ? `已在你的比賽紀錄 ${outcome(existing)}，和 UltraSignup 不同（${outcome(update)}）`
-                  : `已在你的比賽紀錄　${outcome(existing)}`}
+                  ? `已在${whose}比賽紀錄 ${outcome(existing)}，和 UltraSignup 不同（${outcome(update)}）`
+                  : `已在${whose}比賽紀錄　${outcome(existing)}`}
             </p>
           )}
           {note && <p data-testid={`ultrasignup-locked-${row.key}`}>{note}</p>}
-          {unplaced && request && (
+          {requests && unplaced && request && (
             <p className="text-foreground/70" data-testid={`ultrasignup-request-status-${row.key}`}>
               {requestLine(request)}
             </p>
