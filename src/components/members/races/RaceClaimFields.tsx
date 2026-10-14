@@ -8,7 +8,7 @@ import {
   raceYearOptions,
 } from "@/lib/races/catalogue";
 import type { RaceSeries } from "@/lib/races/catalogue";
-import { catalogueMap, eventsBySeries } from "@/lib/races/catalogue-shape";
+import { catalogueMap, eventsBySeries, offeredDistances } from "@/lib/races/catalogue-shape";
 import type { CatalogueEvent } from "@/lib/races/catalogue-shape";
 
 /**
@@ -120,6 +120,7 @@ export function RaceClaimFields({
     [catalogueEvents, value.series],
   );
   const event = value.eventId ? catalogue.get(value.eventId) : undefined;
+  const distances = offeredDistances(event, value.distanceId);
 
   // Built once per mount rather than per render: it only changes at a year
   // boundary, and rebuilding it would churn without changing anything.
@@ -132,15 +133,14 @@ export function RaceClaimFields({
   }
 
   function chooseEvent(eventId: string) {
-    const chosen = catalogue.get(eventId);
+    const offered = offeredDistances(catalogue.get(eventId));
     onChange({
       ...value,
       eventId,
       // Auto-picked only when there is nothing to pick. Western States runs
       // 100M and nothing else; making the member confirm that is friction
       // with no decision behind it.
-      distanceId:
-        chosen && chosen.distances.length === 1 ? chosen.distances[0].id : "",
+      distanceId: offered.length === 1 ? offered[0].id : "",
     });
   }
 
@@ -193,7 +193,7 @@ export function RaceClaimFields({
             value={value.distanceId}
           >
             <option value="">選擇距離…</option>
-            {(event?.distances ?? []).map((distance) => (
+            {distances.map((distance) => (
               <option key={distance.id} value={distance.id}>
                 {distance.label}
               </option>

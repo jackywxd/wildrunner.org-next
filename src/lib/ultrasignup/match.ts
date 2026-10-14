@@ -1,0 +1,215 @@
+import { normalizeRaceName } from "./normalize";
+
+/**
+ * Which catalogue race an UltraSignup row is, if exactly one.
+ *
+ * The event is the part before " - ". It matches a catalogue name or an
+ * admin alias, after `normalizeRaceName`, and only when that string belongs
+ * to one event. The distance is the part after. A category label that
+ * appears as a whole token wins (`TDS`, `CCC`); otherwise the kilometres
+ * parsed out of "100 Miler" or "50K" have to land on one category within
+ * max(3 km, 5%). Two categories in range means the member picks. A distance
+ * is never used to search the whole catalogue.
+ *
+ * A category with no `distanceKm` is read from its label. The catalogue
+ * leaves the number empty rather than derive it (Squamish "50M" has none),
+ * and without this "50 Miler" could never land on it. `M` after a number is
+ * miles: no trail race is measured in metres.
+ *
+ * A distance the event does not list is "new-distance" — importable, with
+ * UltraSignup's label becoming a historical category — only when it is
+ * provably new: the text reads as a distance, every category of the event
+ * has a known distance, and none is in range. One category of unknown
+ * length (Mt. FUJI's "Mt.FUJI 100") means "100 Miler" might be it, and
+ * creating a second entry for the same race is worse than refusing.
+ */
+
+export type MatchDistance = {
+  distanceKm?: number | null;
+  id: string;
+  label: string;
+};
+
+export type MatchEvent = {
+  aliases: string[];
+  distances: MatchDistance[];
+  id: string;
+  name: string;
+};
+
+export type DistanceChoice = {
+  id: string;
+  label: string;
+};
+
+export type RowMatch =
+  | {
+      distanceId: string;
+      distanceLabel: string;
+      eventId: string;
+      eventName: string;
+      kind: "ready";
+    }
+  | {
+      eventId: string;
+      eventName: string;
+      kind: "choose-distance";
+      options: DistanceChoice[];
+    }
+  | {
+      distanceLabel: string;
+      eventId: string;
+      eventName: string;
+      kind: "new-distance";
+    }
+  | {
+      kind: "unsupported";
+      /**
+       * event: no catalogue event. distance: the event, but the text is not
+       * a distance we can compare. unverifiable: a distance, but some
+       * category's length is unknown. year/status: set by the assembler.
+       */
+      reason: "event" | "distance" | "unverifiable" | "year" | "status";
+    };
+
+const KILOMETRES = /^(\d+(?:\.\d+)?)\s*(k|km)$/i;
+const MILES = /^(\d+(?:\.\d+)?)\s*(miler|miles|mile|mi|m)$/i;
+const MILES_TO_KM = 1.609344;
+
+export function parseDistanceKm(text: string): number | null {
+  const trimmed = text.trim();
+  const km = KILOMETRES.exec(trimmed);
+  if (km) return Number(km[1]);
+  const miles = MILES.exec(trimmed);
+  if (miles) return Number(miles[1]) * MILES_TO_KM;
+  return null;
+}
+
+function aliasLines(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/**
+ * The `race-categories.key` a historical entry is created under: "110K"
+ * becomes "110k", the shape the reviewed keys already have. Stable, so two
+ * members importing the same distance land on one row through the
+ * `(event, key)` unique index rather than creating two.
+ */
+export function historicalKey(label: string): string {
+  return label
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function aliasList(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return aliasLines(value);
+}
+
+type Indexed = {
+  distances: MatchDistance[];
+  id: string;
+  name: string;
+};
+
+function indexEvents(events: MatchEvent[]): Map<string, Indexed[]> {
+  const index = new Map<string, Indexed[]>();
+  for (const event of events) {
+    const names = [event.name, ...event.aliases];
+    const indexed = { distances: event.distances, id: event.id, name: event.name };
+    for (const name of names) {
+      const key = normalizeRaceName(name);
+      if (!key) continue;
+      const list = index.get(key) ?? [];
+      if (!list.some((item) => item.id === event.id)) list.push(indexed);
+      index.set(key, list);
+    }
+  }
+  return index;
+}
+
+function labelHit(distanceText: string, label: string): boolean {
+  const text = normalizeRaceName(distanceText);
+  const name = normalizeRaceName(label);
+  if (!text || !name) return false;
+  return text === name || text.split(" ").includes(name);
+}
+
+function within(actualKm: number, candidateKm: number): boolean {
+  return Math.abs(actualKm - candidateKm) <= Math.max(3, candidateKm * 0.05);
+}
+
+export function matchRow(
+  events: MatchEvent[],
+  eventName: string,
+  distanceText: string,
+): RowMatch {
+  const found = indexEvents(events).get(normalizeRaceName(eventName));
+  if (!found || found.length !== 1) return { kind: "unsupported", reason: "event" };
+  const event = found[0];
+
+  const byLabel = event.distances.filter((distance) =>
+    labelHit(distanceText, distance.label),
+  );
+  if (byLabel.length === 1) {
+    return {
+      distanceId: byLabel[0].id,
+      distanceLabel: byLabel[0].label,
+      eventId: event.id,
+      eventName: event.name,
+      kind: "ready",
+    };
+  }
+
+  const kilometres = parseDistanceKm(distanceText);
+  const lengths = event.distances.map(
+    (distance) => distance.distanceKm ?? parseDistanceKm(distance.label),
+  );
+  const byDistance =
+    kilometres === null
+      ? []
+      : event.distances.filter((_, index) => {
+          const candidate = lengths[index];
+          return typeof candidate === "number" && within(kilometres, candidate);
+        });
+
+  const options = (byLabel.length > 1 ? byLabel : byDistance).map((distance) => ({
+    id: distance.id,
+    label: distance.label,
+  }));
+  if (options.length === 1) {
+    return {
+      distanceId: options[0].id,
+      distanceLabel: options[0].label,
+      eventId: event.id,
+      eventName: event.name,
+      kind: "ready",
+    };
+  }
+  if (options.length > 1) {
+    return {
+      eventId: event.id,
+      eventName: event.name,
+      kind: "choose-distance",
+      options,
+    };
+  }
+  if (kilometres === null) {
+    return { kind: "unsupported", reason: "distance" };
+  }
+  if (lengths.some((length) => length === null)) {
+    return { kind: "unsupported", reason: "unverifiable" };
+  }
+  return {
+    distanceLabel: distanceText.trim(),
+    eventId: event.id,
+    eventName: event.name,
+    kind: "new-distance",
+  };
+}

@@ -85,6 +85,24 @@ export const RaceEvents: CollectionConfig = {
       required: true,
     },
     {
+      /**
+       * One UltraSignup event title per line. The catalogue `name` is already
+       * an alias. These exist for the titles that are a different string —
+       * "Western States Endurance Run" against "Western States 100" — and
+       * only after somebody has read both. A guessed line imports the wrong
+       * finish for every member who fetches.
+       */
+      name: 'ultrasignupAliases',
+      type: 'textarea',
+      label: { en: 'UltraSignup names', 'zh-TW': 'UltraSignup 名稱' },
+      admin: {
+        description: {
+          en: 'One event title per line, as UltraSignup prints it before the distance. Leave empty until you have read that page.',
+          'zh-TW': '一行一個賽事名稱，寫 UltraSignup 在距離前面印的那段。沒對過頁面就留空。',
+        },
+      },
+    },
+    {
       name: 'nameZh',
       type: 'text',
       label: { en: 'Name (Chinese)', 'zh-TW': '中文名稱' },

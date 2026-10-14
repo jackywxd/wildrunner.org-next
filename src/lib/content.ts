@@ -51,6 +51,7 @@ import { localisePost } from "@/lib/i18n/zh-post";
 import { getPayloadClient } from "@/lib/payload";
 import { scheduleWindow, toDateString } from "@/lib/races/calendar";
 import { qualifiersFor } from "@/lib/races/qualifiers";
+import { lineUpSummary } from "@/lib/races/line-up";
 import { isFinished } from "@/lib/races/race-state";
 import { articleAudioKeyForPost } from "@/lib/reader/article-audio";
 import { cache } from "react";
@@ -526,7 +527,7 @@ async function raceEventCatalogue(): Promise<{
       limit: 0,
       pagination: false,
       // Longest first, matching the event's own listing — carried straight
-      // into `distanceSummaryFor`, which does not re-sort.
+      // into `lineUpSummary`, which does not re-sort.
       sort: "order",
     }),
   ]);
@@ -543,12 +544,6 @@ async function raceEventCatalogue(): Promise<{
   }
 
   return { events, categoriesByEvent };
-}
-
-/** "UTMB / CCC / OCC / TDS", in the order `race-categories.order` gives them. */
-function distanceSummaryFor(categories: RaceCategory[] | undefined): string | undefined {
-  if (!categories || categories.length === 0) return undefined;
-  return categories.map((category) => category.label).join(" / ");
 }
 
 /**
@@ -587,7 +582,7 @@ function mapRaceEditionEntry(
 
   return {
     country: orUndefined(event.country),
-    distanceSummary: distanceSummaryFor(categories),
+    distanceSummary: lineUpSummary(categories),
     endDate: day(doc.endDate),
     eventId: event.key,
     id: doc.id,
@@ -598,7 +593,7 @@ function mapRaceEditionEntry(
     nameZh: orUndefined(event.nameZh),
     notes: orUndefined(doc.notes),
     // Free: `raceEventCatalogue` already loaded every category, and
-    // `distanceSummaryFor` above already walks this same list. No extra
+    // `lineUpSummary` above already walks this same list. No extra
     // query, no `select` to widen, no second round-trip.
     qualifiers: qualifiersFor(categories),
     registrationClosesAt: day(doc.registrationClosesAt),
@@ -2004,9 +1999,7 @@ export async function getRaceEditionDetail(
 
   const day = (value: string | null | undefined): string | undefined =>
     value ? value.slice(0, 10) : undefined;
-  const distanceSummary = categories.docs.length
-    ? (categories.docs as RaceCategory[]).map((category) => category.label).join(" / ")
-    : undefined;
+  const distanceSummary = lineUpSummary(categories.docs as RaceCategory[]);
 
   return {
     id: edition.id,

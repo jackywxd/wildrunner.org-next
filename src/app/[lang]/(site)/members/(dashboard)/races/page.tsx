@@ -1,3 +1,4 @@
+import { requireMember } from "@/lib/auth";
 import { memberFind } from "@/lib/members/data";
 import { RaceRecordManager } from "@/components/members/races/RaceRecordManager";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
  * cheerfully return every member's records.
  */
 export default async function MemberRacesPage() {
+  const user = await requireMember();
   const [result, catalogueEvents] = await Promise.all([
     memberFind("race-records", {
       depth: 0,
@@ -40,7 +42,12 @@ export default async function MemberRacesPage() {
         未完賽也可以登錄，徽章會以灰階顯示。六大馬拉松六場都「完賽」之後，會多一面
         「六大馬拉松」徽章，年份是你完成第六場的那一年。
       </p>
-      <RaceRecordManager catalogueEvents={catalogueEvents} records={records} />
+      <RaceRecordManager
+        catalogueEvents={catalogueEvents}
+        records={records}
+        ultrasignupName={user.ultrasignupName ?? ""}
+        userId={user.id}
+      />
     </div>
   );
 }
