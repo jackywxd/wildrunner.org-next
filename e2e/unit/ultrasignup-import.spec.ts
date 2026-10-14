@@ -20,6 +20,7 @@ import {
   existingRecord,
   groupOf,
   rowState,
+  rowTone,
   type LoggedRecord,
 } from "@/lib/ultrasignup/row-state";
 
@@ -932,5 +933,134 @@ test.describe("U-ULTRA UltraSignup import", () => {
       canImport: false,
       note: "同一場已匯入，這筆不再匯入",
     });
+  });
+
+  test("U-ULTRA-33: a row the catalogue cannot place is red until the member places it, then imports like any other", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "A",
+          Id: 1,
+          LastName: "B",
+          Results: [row("Ultra Trail Du Mont Blanc by UTMB - TDS", "8/29/2025 12:00:00 AM", "39:24:51", 852, 1)],
+        },
+      ],
+      { fname: "A", lname: "B" },
+    );
+    // No alias: the title names no catalogue event.
+    const events = CATALOGUE.map((event) => ({ ...event, aliases: [] }));
+    const [tds] = assemblePerson(person, events, NOW).rows;
+    expect(tds.match).toEqual({ kind: "unsupported", reason: "event" });
+
+    const unplaced = rowState([tds], tds, {}, [], {});
+    expect(unplaced.canImport).toBe(false);
+    expect(rowTone(tds, unplaced, undefined)).toBe("missing");
+
+    // Half a pick is not a place.
+    const half = { [tds.key]: { eventId: "utmb-mont-blanc" } };
+    expect(rowState([tds], tds, half, [], {}).canImport).toBe(false);
+
+    const placed = { [tds.key]: { distanceId: "tds", eventId: "utmb-mont-blanc" } };
+    const state = rowState([tds], tds, placed, [], {});
+    expect(state.canImport).toBe(true);
+    expect(rowTone(tds, state, placed[tds.key])).toBeNull();
+
+    // Logged under the member's own pick: green, and nothing to import.
+    const logged: LoggedRecord = {
+      distanceId: "tds",
+      eventId: "utmb-mont-blanc",
+      finishSeconds: 141891,
+      id: 9,
+      result: "finished",
+      year: 2025,
+    };
+    const done = rowState([tds], tds, placed, [logged], {});
+    expect(done.canImport).toBe(false);
+    expect(rowTone(tds, done, placed[tds.key])).toBe("logged");
+
+    // A pick on a row the matcher did place is ignored, not obeyed.
+    const [tor] = assemblePerson(
+      parseHistory(XU_DONG_WU, { fname: "Xu Dong", lname: "Wu" })[0],
+      CATALOGUE,
+      NOW,
+    ).rows.filter((r) => r.eventName === "Tor des Geants");
+    expect(existingRecord(tor, { [tor.key]: placed[tds.key] }, [logged])).toBeNull();
+  });
+
+  test("U-ULTRA-34: a record that disagrees with UltraSignup is yellow; one that agrees is green", () => {
+    const [person] = parseHistory(XU_DONG_WU, { fname: "Xu Dong", lname: "Wu" });
+    const tor = assemblePerson(person, CATALOGUE, NOW).rows.find(
+      (r) => r.eventName === "Tor des Geants",
+    )!;
+    const record = (finishSeconds: number | null): LoggedRecord => ({
+      distanceId: "330k",
+      eventId: "other-tor-des-geants",
+      finishSeconds,
+      id: 1,
+      result: "finished",
+      year: 2025,
+    });
+    const same = rowState([tor], tor, {}, [record(tor.finishSeconds)], {});
+    expect(rowTone(tor, same, undefined)).toBe("logged");
+    const other = rowState([tor], tor, {}, [record(1)], {});
+    expect(rowTone(tor, other, undefined)).toBe("differs");
+    // Not logged and placeable: no colour.
+    expect(rowTone(tor, rowState([tor], tor, {}, [], {}), undefined)).toBeNull();
+  });
+
+  test("U-ULTRA-35: an unplaced row in a repeated finish asks for no choice until it is placed", () => {
+    const [person] = parseHistory(
+      [
+        {
+          Age: 40,
+          FirstName: "A",
+          Id: 1,
+          LastName: "B",
+          Results: [
+            row("Race A - 50K", "3/1/2024 12:00:00 AM", "5:00:00", 10, 1),
+            row("Unknown Race - 50K", "3/5/2024 12:00:00 AM", "5:00:00", 10, 1),
+          ],
+        },
+      ],
+      { fname: "A", lname: "B" },
+    );
+    const events: MatchEvent[] = [
+      {
+        aliases: [],
+        distances: [{ distanceKm: 50, id: "50k", label: "50K" }],
+        id: "race-a",
+        name: "Race A",
+      },
+    ];
+    const rows = assemblePerson(person, events, NOW).rows;
+    const known = rows.find((r) => r.rawName === "Race A - 50K")!;
+    const unknown = rows.find((r) => r.rawName === "Unknown Race - 50K")!;
+    const group = groupOf(rows, known);
+    expect(group).toHaveLength(2);
+
+    // One importable row: it imports straight away, no radio.
+    expect(rowState(group, known, {}, [], {})).toMatchObject({ canImport: true, radio: null });
+
+    // Once the member places the other, there are two, and they pick one.
+    const picks = { [unknown.key]: { distanceId: "50k", eventId: "race-a" } };
+    expect(rowState(group, known, picks, [], {})).toMatchObject({
+      canImport: false,
+      radio: { checked: false },
+    });
+
+    // The known one imported: the unknown one is locked, and with nothing
+    // left to do about it, it is not drawn red.
+    const logged: LoggedRecord = {
+      distanceId: "50k",
+      eventId: "race-a",
+      finishSeconds: 18000,
+      id: 4,
+      result: "finished",
+      year: 2024,
+    };
+    const locked = rowState(group, unknown, {}, [logged], {});
+    expect(locked.note).toBe("同一場已匯入，這筆不再匯入");
+    expect(rowTone(unknown, locked, undefined)).toBeNull();
   });
 });

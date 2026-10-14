@@ -21,6 +21,7 @@ import { Media } from './collections/Media'
 import { Authors } from './collections/Authors'
 import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
+import { RaceCatalogueRequests } from './collections/RaceCatalogueRequests'
 import { RaceCategories } from './collections/RaceCategories'
 import { RaceEditions } from './collections/RaceEditions'
 import { RaceEvents } from './collections/RaceEvents'
@@ -207,6 +208,7 @@ export default buildConfig({
     RaceEditions,
     RaceRecords,
     RaceSchedule,
+    RaceCatalogueRequests,
   ],
   globals: [Site, AiSettings],
   endpoints: [
