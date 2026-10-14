@@ -9,7 +9,10 @@ import {
   raceClaimComplete,
 } from "@/components/members/races/RaceClaimFields";
 import { UNLINK_FLAG } from "@/lib/members/race-record-unlink";
-import { UltraSignupImport } from "@/components/members/races/UltraSignupImport";
+import {
+  UltraSignupImport,
+  type CatalogueRequest,
+} from "@/components/members/races/UltraSignupImport";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   formatFinishTime,
@@ -45,6 +48,8 @@ export type MemberRaceRecord = {
   id: number;
   /** Absent on every row written before `20260915_090000_add_race_record_result`. */
   result?: "finished" | "dnf" | null;
+  ultrasignupDate?: string | null;
+  ultrasignupTitle?: string | null;
   year: number;
 };
 
@@ -123,11 +128,13 @@ function ResultFields({
 
 export function RaceRecordManager({
   catalogueEvents,
+  catalogueRequests,
   records: initial,
   ultrasignupName,
   userId,
 }: {
   catalogueEvents: CatalogueEvent[];
+  catalogueRequests: CatalogueRequest[];
   records: MemberRaceRecord[];
   ultrasignupName: string;
   userId: number;
@@ -352,7 +359,9 @@ export function RaceRecordManager({
   return (
     <div className="mt-6 space-y-8">
       <UltraSignupImport
+        catalogueEvents={catalogueEvents}
         initialName={ultrasignupName}
+        initialRequests={catalogueRequests}
         onImported={(record) =>
           setRecords((current) =>
             [...current.filter((item) => item.id !== record.id), record].sort(

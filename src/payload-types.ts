@@ -77,6 +77,7 @@ export interface Config {
     'race-editions': RaceEdition;
     'race-records': RaceRecord;
     'race-schedule': RaceSchedule;
+    'race-catalogue-requests': RaceCatalogueRequest;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -94,6 +95,7 @@ export interface Config {
     'race-editions': RaceEditionsSelect<false> | RaceEditionsSelect<true>;
     'race-records': RaceRecordsSelect<false> | RaceRecordsSelect<true>;
     'race-schedule': RaceScheduleSelect<false> | RaceScheduleSelect<true>;
+    'race-catalogue-requests': RaceCatalogueRequestsSelect<false> | RaceCatalogueRequestsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -452,6 +454,11 @@ export interface RaceRecord {
    * Stored in seconds; the member form takes H:MM:SS.
    */
   finishSeconds?: number | null;
+  /**
+   * Set when imported from UltraSignup; how the import list recognises this record next time.
+   */
+  ultrasignupTitle?: string | null;
+  ultrasignupDate?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -609,6 +616,32 @@ export interface RaceSchedule {
   createdAt: string;
 }
 /**
+ * Races members asked to have added, from their UltraSignup results. Add the event and categories from the race's own page first, then approve here and link the event.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-catalogue-requests".
+ */
+export interface RaceCatalogueRequest {
+  id: number;
+  /**
+   * Whoever created this. Only admins can reassign it.
+   */
+  owner?: (number | null) | User;
+  ultrasignupTitle: string;
+  eventName: string;
+  distanceText?: string | null;
+  raceDate: string;
+  reason: 'event' | 'distance';
+  status: 'pending' | 'approved' | 'rejected';
+  /**
+   * The event this request became. If UltraSignup's title differs from the event name, add it to the event's UltraSignup aliases too, or the member's row still will not match.
+   */
+  event?: (number | null) | RaceEvent;
+  adminNote?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -671,6 +704,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'race-schedule';
         value: number | RaceSchedule;
+      } | null)
+    | ({
+        relationTo: 'race-catalogue-requests';
+        value: number | RaceCatalogueRequest;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -912,6 +949,8 @@ export interface RaceRecordsSelect<T extends boolean = true> {
   category?: T;
   result?: T;
   finishSeconds?: T;
+  ultrasignupTitle?: T;
+  ultrasignupDate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -938,6 +977,23 @@ export interface RaceScheduleSelect<T extends boolean = true> {
   sourceUrl?: T;
   verifiedAt?: T;
   notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "race-catalogue-requests_select".
+ */
+export interface RaceCatalogueRequestsSelect<T extends boolean = true> {
+  owner?: T;
+  ultrasignupTitle?: T;
+  eventName?: T;
+  distanceText?: T;
+  raceDate?: T;
+  reason?: T;
+  status?: T;
+  event?: T;
+  adminNote?: T;
   updatedAt?: T;
   createdAt?: T;
 }

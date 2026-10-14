@@ -133,6 +133,28 @@ const MAPPINGS = [
     },
   },
   {
+    // The request is one button on an import row, not a form. Every field it
+    // sends is that row's own UltraSignup text, which the member did not
+    // type and cannot edit — so each required field is listed as filled by
+    // the row, and the button that sends them is the screen.
+    collection: "src/collections/RaceCatalogueRequests.ts",
+    mode: "create",
+    screens: ["src/components/members/races/UltraSignupImport.tsx"],
+    fields: {},
+    exempt: {
+      ultrasignupTitle: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      eventName: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      raceDate: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      reason: "Derived from why the matcher could not place the row " +
+        "(no event, or no such distance).",
+      status: "Admin-only field access; a member's create gets the " +
+        "default, pending.",
+    },
+  },
+  {
     collection: "src/collections/Media.ts",
     mode: "update",
     screens: ["src/components/members/media/MediaDetailDialog.tsx"],
@@ -256,6 +278,18 @@ const CONSTRUCTED = {
     "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
   "ultrasignup-update-was-dnf":
     "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
+  "ultrasignup-map-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-map-${row.key}`} in RowView",
+  "ultrasignup-mapping-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-mapping-${row.key}`} in RowView",
+  "ultrasignup-request-ask":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
+  "ultrasignup-request-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
+  "ultrasignup-request-status-ask":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-status-${row.key}`} in RowView",
+  "ultrasignup-row-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-row-${row.key}`} in RowView",
   "ultrasignup-person-2304249":
     "UltraSignupImport.tsx: data-testid={`ultrasignup-person-${item.id}`} on the person switcher",
   "ultrasignup-person-2678040":

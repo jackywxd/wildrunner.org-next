@@ -13,7 +13,19 @@ import { recordUpdate, type ImportRow, type RecordUpdate } from "./assemble";
  * Every question here is asked of `records`, the page's live list, not of
  * anything the server sent with the rows: an import, an update or a delete
  * in the list below has to show here without reloading UltraSignup.
+ *
+ * A row the matcher could not place can be placed by the member: they pick
+ * the event and distance themselves (`RowPick`), exactly as they would when
+ * logging a race by hand, and from then on the row is asked every question
+ * above as if the matcher had found it. The pick is theirs alone — it is
+ * never written back to the catalogue as an alias.
  */
+
+/**
+ * What the member chose on a row: the distance on a "choose-distance" row,
+ * or the event and distance on a row the catalogue could not place.
+ */
+export type RowPick = { distanceId?: string; eventId?: string };
 
 export type LoggedRecord = {
   distanceId: string;
@@ -21,6 +33,9 @@ export type LoggedRecord = {
   finishSeconds?: number | null;
   id: number;
   result?: "finished" | "dnf" | null;
+  /** The UltraSignup row it was imported from; absent on one typed in by hand. */
+  ultrasignupDate?: string | null;
+  ultrasignupTitle?: string | null;
   year: number;
 };
 
@@ -37,18 +52,37 @@ export type RowState = {
   update: RecordUpdate | null;
 };
 
+/**
+ * A row the catalogue does not have — the race, or this distance of it —
+ * which the member may place by hand or ask to have added. A year outside
+ * the claimable range or a result that is not a finish/DNF is not a
+ * catalogue question, and placing it would not make it importable.
+ */
+export function notInCatalogue(row: ImportRow): boolean {
+  return (
+    row.status !== "other" &&
+    row.match.kind === "unsupported" &&
+    (row.match.reason === "event" ||
+      row.match.reason === "distance" ||
+      row.match.reason === "unverifiable")
+  );
+}
+
 /** The event and distance a row imports as, once any choice it needs is made. */
 export function resolved(
   row: ImportRow,
-  selectedDistance: string | undefined,
+  pick: RowPick | undefined,
 ): { distanceId: string; eventId: string } | null {
   if (row.match.kind === "ready") {
     return { distanceId: row.match.distanceId, eventId: row.match.eventId };
   }
-  if (row.match.kind === "choose-distance" && selectedDistance) {
-    const option = row.match.options.find((item) => item.id === selectedDistance);
+  if (row.match.kind === "choose-distance" && pick?.distanceId) {
+    const option = row.match.options.find((item) => item.id === pick.distanceId);
     if (!option) return null;
     return { distanceId: option.id, eventId: row.match.eventId };
+  }
+  if (notInCatalogue(row) && pick?.eventId && pick.distanceId) {
+    return { distanceId: pick.distanceId, eventId: pick.eventId };
   }
   return null;
 }
@@ -56,10 +90,10 @@ export function resolved(
 /** The member's record for this row, if they have one. */
 export function existingRecord(
   row: ImportRow,
-  distanceIds: Record<string, string>,
+  picks: Record<string, RowPick>,
   records: LoggedRecord[],
 ): Existing | null {
-  const picked = resolved(row, distanceIds[row.key]);
+  const picked = resolved(row, picks[row.key]);
   if (!picked) return null;
   const record = records.find(
     (item) =>
@@ -75,15 +109,20 @@ export function existingRecord(
   };
 }
 
+/**
+ * Could this row be imported now. An unplaced row becomes one only once the
+ * member has placed it: counting it before would put a radio on every
+ * repeated finish that has one unrecognised title.
+ */
 function candidate(
   row: ImportRow,
-  distanceIds: Record<string, string>,
+  picks: Record<string, RowPick>,
   records: LoggedRecord[],
 ): boolean {
   return (
     row.status !== "other" &&
-    row.match.kind !== "unsupported" &&
-    !existingRecord(row, distanceIds, records)
+    (row.match.kind !== "unsupported" || resolved(row, picks[row.key]) !== null) &&
+    !existingRecord(row, picks, records)
   );
 }
 
@@ -98,24 +137,66 @@ function candidate(
 export function rowState(
   group: ImportRow[],
   row: ImportRow,
-  distanceIds: Record<string, string>,
+  picks: Record<string, RowPick>,
   records: LoggedRecord[],
   chosen: Record<string, string>,
 ): RowState {
-  const existing = existingRecord(row, distanceIds, records);
+  const existing = existingRecord(row, picks, records);
   const update = existing ? recordUpdate(row, existing) : null;
   const placeable =
-    row.match.kind === "new-distance" || Boolean(resolved(row, distanceIds[row.key]));
-  const importable = placeable && candidate(row, distanceIds, records);
+    row.match.kind === "new-distance" || Boolean(resolved(row, picks[row.key]));
+  const importable = placeable && candidate(row, picks, records);
   const base = { existing, note: null, radio: null, update };
   if (group.length <= 1 || existing) return { ...base, canImport: existing ? false : importable };
-  if (group.some((other) => existingRecord(other, distanceIds, records))) {
+  if (group.some((other) => existingRecord(other, picks, records))) {
     return { ...base, canImport: false, note: "同一場已匯入，這筆不再匯入" };
   }
-  const candidates = group.filter((other) => candidate(other, distanceIds, records));
+  const candidates = group.filter((other) => candidate(other, picks, records));
   if (candidates.length < 2 || !candidates.includes(row)) return { ...base, canImport: importable };
   const checked = chosen[row.groupId ?? ""] === row.key;
   return { ...base, canImport: importable && checked, radio: { checked } };
+}
+
+/**
+ * The colour a row is drawn in. `logged`: the member's record says what
+ * UltraSignup says. `differs`: they have a record and it disagrees.
+ * `missing`: the catalogue has no place for it and the member has not placed
+ * it by hand. Everything else — importable, new distance, not a finish — is
+ * plain, and so is a row its group has locked: a sibling was imported, so
+ * there is nothing left to do about it, and red would say there is.
+ */
+export type RowTone = "logged" | "differs" | "missing" | null;
+
+export function rowTone(row: ImportRow, state: RowState, pick: RowPick | undefined): RowTone {
+  if (state.existing) return state.update ? "differs" : "logged";
+  if (state.note) return null;
+  if (notInCatalogue(row) && !resolved(row, pick)) return "missing";
+  return null;
+}
+
+/**
+ * The hand placements a previous visit made, read back off the records.
+ *
+ * A record imported from an unplaced row carries that row's UltraSignup
+ * title and date; the same title and date on a later load is the same row,
+ * so it starts out placed where the member put it — and from there it is
+ * the logged, green row it was when they left. Only rows the catalogue
+ * cannot place are touched: a row the matcher places is answered by the
+ * matcher, and a stale record must not overrule it.
+ */
+export function picksFromRecords(
+  rows: ImportRow[],
+  records: LoggedRecord[],
+): Record<string, RowPick> {
+  const picks: Record<string, RowPick> = {};
+  for (const row of rows) {
+    if (!notInCatalogue(row)) continue;
+    const record = records.find(
+      (item) => item.ultrasignupTitle === row.rawName && item.ultrasignupDate === row.date,
+    );
+    if (record) picks[row.key] = { distanceId: record.distanceId, eventId: record.eventId };
+  }
+  return picks;
 }
 
 /** The rows that share this row's group, itself included. */

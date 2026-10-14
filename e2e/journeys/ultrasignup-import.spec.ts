@@ -168,6 +168,100 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
     }
   });
 
+  // The two ways out of 「目錄裡沒有這場」. Placing a row by hand writes a
+  // plain race record from the member's own pick — the same POST as the
+  // add form — and nothing to the catalogue. Asking for the race files a
+  // request whose status the row then shows, and that status has to come
+  // back from the server on a reload, not live only in the page.
+  test("M-ULTRA-11: an unknown race is placed by hand and imported, another is requested", async ({
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+    await signIn(page);
+    const race = await cataloguePick(page);
+    const [year] = await freeYears(page, 1);
+    // Unique per run: an open request for the same title blocks a second.
+    const askTitle = `M-ULTRA-11 Unlisted ${Date.now()} - 100 Miler`;
+    const unplaced = (key: string, rawName: string) => ({
+      ...resultRow(key, Number(year), "finished", race, null, rawName),
+      distanceText: "100 Miler",
+      eventName: rawName.replace(/ - 100 Miler$/, ""),
+      match: { kind: "unsupported" as const, reason: "event" as const },
+    });
+    await page.route("**/api/members/ultrasignup-results", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        json: {
+          people: [
+            {
+              age: 55,
+              firstName: "Xu Dong",
+              id: 2304249,
+              lastName: "Wu",
+              rows: [
+                unplaced("placed", "Title The Catalogue Spells Differently - 100 Miler"),
+                unplaced("ask", askTitle),
+              ],
+            },
+          ],
+        },
+      }),
+    );
+
+    await page.getByTestId("ultrasignup-name").fill("Xu Dong Wu");
+    await page.getByTestId("ultrasignup-load").click();
+    const placedRow = page.getByTestId("ultrasignup-row-placed");
+    await expect(placedRow).toHaveAttribute("data-tone", "missing", { timeout: budget(15_000) });
+    await expect(page.getByTestId("ultrasignup-import-placed")).toHaveCount(0);
+
+    await page.getByTestId("ultrasignup-map-placed").click();
+    const mapping = page.getByTestId("ultrasignup-mapping-placed");
+    // The year is UltraSignup's, not a choice.
+    await expect(mapping.getByTestId("race-year-select")).toHaveCount(0);
+    await mapping.getByTestId("race-event-select").selectOption(race.eventId);
+    await mapping.getByTestId("race-distance-select").selectOption(race.distanceId);
+    await expect(placedRow).toHaveAttribute("data-tone", "plain");
+    // Found in the catalogue, so there is nothing to ask an admin for.
+    await expect(page.getByTestId("ultrasignup-request-placed")).toHaveCount(0);
+
+    await page.getByTestId("ultrasignup-import-placed").click();
+    const record = page.getByTestId("race-record-row").filter({ hasText: year });
+    await expect(record).toHaveCount(1, { timeout: budget(15_000) });
+    const recordId = await record.first().getAttribute("data-record-id");
+    if (recordId) {
+      created.push({ collection: "race-records", id: recordId });
+      recordCreated({ collection: "race-records", id: recordId, note: "M-ULTRA-11 placed" });
+    }
+    await expect(placedRow).toHaveAttribute("data-tone", "logged");
+
+    const filed = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/race-catalogue-requests") &&
+        response.request().method() === "POST",
+    );
+    await page.getByTestId("ultrasignup-request-ask").click();
+    const response = await filed;
+    expect(response.status(), await response.text()).toBe(201);
+    const { doc } = (await response.json()) as { doc: { id: number } };
+    created.push({ collection: "race-catalogue-requests", id: doc.id });
+    recordCreated({ collection: "race-catalogue-requests", id: doc.id, note: "M-ULTRA-11" });
+    await expect(page.getByTestId("ultrasignup-request-status-ask")).toContainText("等待管理員審核");
+    await expect(page.getByTestId("ultrasignup-request-ask")).toHaveCount(0);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForHydration(page);
+    await page.getByTestId("ultrasignup-load").click();
+    await expect(page.getByTestId("ultrasignup-request-status-ask")).toContainText(
+      "等待管理員審核",
+      { timeout: budget(15_000) },
+    );
+    await expect(page.getByTestId("ultrasignup-request-ask")).toHaveCount(0);
+    // The hand placement was never written to the catalogue; it comes back
+    // from the record it made, and the row is the green one it was.
+    await expect(placedRow).toHaveAttribute("data-tone", "logged");
+    await expect(page.getByTestId("ultrasignup-map-placed")).toHaveCount(0);
+  });
+
   test("M-ULTRA-1: a single word is refused and nothing is fetched", async ({ page }) => {
     test.setTimeout(budget(60_000));
     await signIn(page);

@@ -35,6 +35,8 @@ import * as migration_20260915_140000_add_post_views from './20260915_140000_add
 import * as migration_20261009_090000_add_ai_settings from './20261009_090000_add_ai_settings';
 import * as migration_20261013_120000_add_ultrasignup_import from './20261013_120000_add_ultrasignup_import';
 import * as migration_20261014_070000_add_race_category_historical from './20261014_070000_add_race_category_historical';
+import * as migration_20261014_180000_add_race_catalogue_requests from './20261014_180000_add_race_catalogue_requests';
+import * as migration_20261014_200000_add_race_record_ultrasignup_source from './20261014_200000_add_race_record_ultrasignup_source';
 
 export const migrations = [
   {
@@ -221,5 +223,15 @@ export const migrations = [
     up: migration_20261014_070000_add_race_category_historical.up,
     down: migration_20261014_070000_add_race_category_historical.down,
     name: '20261014_070000_add_race_category_historical',
+  },
+  {
+    up: migration_20261014_180000_add_race_catalogue_requests.up,
+    down: migration_20261014_180000_add_race_catalogue_requests.down,
+    name: '20261014_180000_add_race_catalogue_requests',
+  },
+  {
+    up: migration_20261014_200000_add_race_record_ultrasignup_source.up,
+    down: migration_20261014_200000_add_race_record_ultrasignup_source.down,
+    name: '20261014_200000_add_race_record_ultrasignup_source',
   },
 ];

@@ -86,6 +86,7 @@ export function RaceClaimFields({
   onChange,
   value,
   withDistance = true,
+  withYear = true,
 }: {
   busy?: boolean;
   /**
@@ -107,6 +108,11 @@ export function RaceClaimFields({
    * differently is the bug this component exists to have fixed once.
    */
   withDistance?: boolean;
+  /**
+   * Off for the UltraSignup import's manual match, where the year is the
+   * result's own and is not the member's to choose.
+   */
+  withYear?: boolean;
 }) {
   const catalogue = useMemo(
     () => catalogueMap(catalogueEvents),
@@ -202,22 +208,24 @@ export function RaceClaimFields({
         </label>
       )}
 
-      <label className="block space-y-1">
-        <span className="text-sm">年份</span>
-        <select
-          className={selectClass}
-          data-testid="race-year-select"
-          disabled={busy}
-          onChange={(e) => onChange({ ...value, year: Number(e.target.value) })}
-          value={value.year}
-        >
-          {years.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+      {withYear && (
+        <label className="block space-y-1">
+          <span className="text-sm">年份</span>
+          <select
+            className={selectClass}
+            data-testid="race-year-select"
+            disabled={busy}
+            onChange={(e) => onChange({ ...value, year: Number(e.target.value) })}
+            value={value.year}
+          >
+            {years.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }

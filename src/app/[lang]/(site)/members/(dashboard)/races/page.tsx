@@ -2,7 +2,7 @@ import { requireMember } from "@/lib/auth";
 import { memberFind } from "@/lib/members/data";
 import { RaceRecordManager } from "@/components/members/races/RaceRecordManager";
 import { getRaceCatalogueEvents } from "@/lib/races/catalogue-db";
-import type { RaceRecord } from "@/payload-types";
+import type { RaceCatalogueRequest, RaceRecord } from "@/payload-types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +15,20 @@ export const dynamic = "force-dynamic";
  */
 export default async function MemberRacesPage() {
   const user = await requireMember();
-  const [result, catalogueEvents] = await Promise.all([
+  const [result, catalogueEvents, requestResult] = await Promise.all([
     memberFind("race-records", {
       depth: 0,
       limit: 500,
       sort: "-year",
     }),
     getRaceCatalogueEvents(),
+    // Newest first: the import list shows the latest request per row.
+    memberFind("race-catalogue-requests", {
+      depth: 0,
+      limit: 500,
+      select: { adminNote: true, raceDate: true, status: true, ultrasignupTitle: true },
+      sort: "-createdAt",
+    }),
   ]);
 
   const records = (result.docs as RaceRecord[]).map((doc) => ({
@@ -30,7 +37,17 @@ export default async function MemberRacesPage() {
     finishSeconds: doc.finishSeconds,
     id: doc.id,
     result: doc.result,
+    ultrasignupDate: doc.ultrasignupDate,
+    ultrasignupTitle: doc.ultrasignupTitle,
     year: doc.year,
+  }));
+
+  const catalogueRequests = (requestResult.docs as RaceCatalogueRequest[]).map((doc) => ({
+    adminNote: doc.adminNote,
+    id: doc.id,
+    raceDate: doc.raceDate,
+    status: doc.status,
+    ultrasignupTitle: doc.ultrasignupTitle,
   }));
 
   return (
@@ -44,6 +61,7 @@ export default async function MemberRacesPage() {
       </p>
       <RaceRecordManager
         catalogueEvents={catalogueEvents}
+        catalogueRequests={catalogueRequests}
         records={records}
         ultrasignupName={user.ultrasignupName ?? ""}
         userId={user.id}
