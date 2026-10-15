@@ -365,6 +365,7 @@ export function RaceRecordManager({
 
   const ownImport = (
     <UltraSignupImport
+      admin={Boolean(members)}
       catalogueEvents={catalogueEvents}
       initialName={ultrasignupName}
       initialRequests={catalogueRequests}

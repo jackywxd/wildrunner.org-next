@@ -93,8 +93,14 @@ async function refusal(response: Response, fallback: string, ours: boolean): Pro
  * request instead of being saved to anyone's account (`importTarget`).
  * Requests to add a race are the member's to file, and an admin can add the
  * race directly, so that button does not appear.
+ *
+ * `admin` offers 導入比賽 on a row whose race the catalogue does not have:
+ * the server adds the event as UltraSignup names it and imports the row
+ * onto it (`addRace` in `ultrasignupImport.ts`), so the next member with
+ * that title matches without anybody placing it by hand.
  */
 export function UltraSignupImport({
+  admin = false,
   catalogueEvents,
   initialName,
   initialRequests,
@@ -103,6 +109,7 @@ export function UltraSignupImport({
   records,
   userId,
 }: {
+  admin?: boolean;
   catalogueEvents: CatalogueEvent[];
   initialName: string;
   initialRequests: CatalogueRequest[];
@@ -195,10 +202,13 @@ export function UltraSignupImport({
    * and creates the historical category before the record — so the request
    * names the row and nothing about the distance.
    */
-  async function importRow(row: ImportRow) {
-    if (!person || !rowState(groupOf(person.rows, row), row, picks, records, chosen).canImport) return;
+  async function importRow(row: ImportRow, addRace = false) {
+    if (!person) return;
+    if (addRace ? !canAddRace(row) : !rowState(groupOf(person.rows, row), row, picks, records, chosen).canImport) {
+      return;
+    }
     const picked = resolved(row, picks[row.key]);
-    const isNew = row.match.kind === "new-distance";
+    const isNew = addRace || row.match.kind === "new-distance";
     setBusy(true);
     setError(null);
     try {
@@ -211,6 +221,7 @@ export function UltraSignupImport({
               date: row.date,
               personId: person.id,
               rawName: row.rawName,
+              ...(addRace ? { addRace: true } : {}),
               ...target(loadedName),
             }),
           })
@@ -242,8 +253,9 @@ export function UltraSignupImport({
       // A hand-placed row has no names from the matcher; the catalogue the
       // page was rendered with has them.
       const placed = catalogue.get(doc.eventId);
-      const label =
-        row.match.kind === "new-distance"
+      const label = addRace
+        ? row.distanceText.trim()
+        : row.match.kind === "new-distance"
           ? row.match.distanceLabel
           : row.match.kind === "choose-distance"
             ? (row.match.options.find((option) => option.id === doc.distanceId)?.label ?? doc.distanceId)
@@ -251,8 +263,11 @@ export function UltraSignupImport({
               ? row.match.distanceLabel
               : (placed?.distances.find((distance) => distance.id === doc.distanceId)?.label ??
                 doc.distanceId);
-      const eventName =
-        row.match.kind === "unsupported" ? (placed?.name ?? doc.eventId) : row.match.eventName;
+      const eventName = addRace
+        ? row.eventName.trim()
+        : row.match.kind === "unsupported"
+          ? (placed?.name ?? doc.eventId)
+          : row.match.eventName;
       setPeople((current) =>
         current?.map((item) => ({
           ...item,
@@ -272,14 +287,26 @@ export function UltraSignupImport({
           ),
         })) ?? null,
       );
-      // The new category is not in the catalogue this page was rendered
-      // with; without a refresh the record's badge cannot name it.
+      // The new category (or event) is not in the catalogue this page was
+      // rendered with; without a refresh the record's badge cannot name it.
       if (isNew) router.refresh();
     } catch {
       setError("這筆沒有匯入，請再試一次。");
     } finally {
       setBusy(false);
     }
+  }
+
+  /**
+   * The race itself is missing — not a distance, not an ambiguity the
+   * member could resolve — and the row is still open to import.
+   */
+  function canAddRace(row: ImportRow): boolean {
+    if (!admin || !person || row.match.kind !== "unsupported" || row.match.reason !== "event") {
+      return false;
+    }
+    const state = rowState(groupOf(person.rows, row), row, picks, records, chosen);
+    return notInCatalogue(row) && !state.existing && !state.note;
   }
 
   /**
@@ -430,12 +457,25 @@ export function UltraSignupImport({
             const rowView = (row: ImportRow, state: RowState) => (
               <RowView
                 busy={busy}
+                canAddRace={canAddRace(row)}
                 catalogueEvents={catalogueEvents}
                 key={row.key}
                 mapping={Boolean(mapping[row.key])}
                 onChoose={() =>
                   row.groupId && setChosen((current) => ({ ...current, [row.groupId!]: row.key }))
                 }
+                onAddRace={() => {
+                  // UltraSignup titles often differ from the catalogue's
+                  // name for the same race ("Ultra Trail Du Mont Blanc by
+                  // UTMB"); adding one of those would split the race in two.
+                  if (
+                    window.confirm(
+                      `以「${row.eventName.trim()}」新增賽事、「${row.distanceText.trim()}」為分項，並匯入這筆？\n\n目錄裡若已有這場（只是名稱不同），請取消，改用手工對應目錄。`,
+                    )
+                  ) {
+                    void importRow(row, true);
+                  }
+                }}
                 onImport={() => void importRow(row)}
                 onMapping={(open) => {
                   setMapping((current) => ({ ...current, [row.key]: open }));
@@ -537,8 +577,10 @@ function requestLine(request: CatalogueRequest): string {
 
 function RowView({
   busy,
+  canAddRace,
   catalogueEvents,
   mapping,
+  onAddRace,
   onChoose,
   onImport,
   onMapping,
@@ -554,9 +596,12 @@ function RowView({
   whose,
 }: {
   busy: boolean;
+  /** An admin may add this row's race to the catalogue from UltraSignup. */
+  canAddRace: boolean;
   catalogueEvents: CatalogueEvent[];
   /** The manual picker is open on this row. */
   mapping: boolean;
+  onAddRace: () => void;
   onChoose: () => void;
   onImport: () => void;
   onMapping: (open: boolean) => void;
@@ -670,6 +715,17 @@ function RowView({
               variant="outline"
             >
               {mapping ? "取消對應" : "手工對應目錄"}
+            </Button>
+          )}
+          {canAddRace && !mapping && (
+            <Button
+              data-testid={`ultrasignup-add-race-${row.key}`}
+              disabled={busy}
+              onClick={onAddRace}
+              type="button"
+              variant="outline"
+            >
+              導入比賽
             </Button>
           )}
           {canRequest && (

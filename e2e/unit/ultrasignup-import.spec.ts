@@ -14,6 +14,7 @@ import {
   historicalKey,
   matchRow,
   parseDistanceKm,
+  raceFromRow,
   type MatchEvent,
 } from "@/lib/ultrasignup/match";
 import { mergePeople, parseHistory } from "@/lib/ultrasignup/parse";
@@ -1177,5 +1178,33 @@ test.describe("U-ULTRA UltraSignup import", () => {
       "Hardrock 100\nWestern States\nWestern States Endurance Run",
     );
     expect(withAlias("Western States™\n", "western  states")).toBeNull();
+  });
+
+  // The failure: an admin adds a race from one member's row and the next
+  // member's identical title still reads "not in the catalogue", so the
+  // race was added for nobody.
+  test("U-ULTRA-40: a race added from an UltraSignup row matches the next member's same title", () => {
+    const events = CATALOGUE.map((event) => ({ ...event, aliases: [] }));
+    expect(matchRow(events, "Alpenglow 100", "100K")).toEqual({ kind: "unsupported", reason: "event" });
+
+    const race = raceFromRow(" Alpenglow 100 ", "100K ");
+    expect(race).toEqual({
+      category: { distanceKm: 100, id: "100k", label: "100K" },
+      event: { key: "alpenglow-100", name: "Alpenglow 100" },
+    });
+    const added = [
+      ...events,
+      { aliases: [], distances: [race!.category], id: race!.event.key, name: race!.event.name },
+    ];
+    expect(matchRow(added, "Alpenglow 100", "100K")).toMatchObject({
+      distanceId: "100k",
+      eventId: "alpenglow-100",
+      kind: "ready",
+    });
+    // Another year's different distance is provably new, not a guess.
+    expect(matchRow(added, "Alpenglow 100", "50K")).toMatchObject({ kind: "new-distance" });
+
+    expect(raceFromRow("Alpenglow 100", "")).toBeNull();
+    expect(raceFromRow("†", "100K")).toBeNull();
   });
 });

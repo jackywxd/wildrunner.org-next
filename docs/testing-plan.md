@@ -159,7 +159,7 @@ Every one imports `test` from `e2e/helpers/test.ts`, so any `pageerror` or
 | J15 | M8 | record a race; the badge appears on the rider page |
 | J16 | M9 | AI drafts from an outline; an error leaves the existing text intact |
 | J17 | M10 | change display name; it appears on their post |
-| M-ULTRA | M12 | import from an UltraSignup name: the plain path (one person, one matching finish), then one word refused, switch people, a repeated finish imports once and stays locked, one placeable row in a repeat needs no choice, a split that did not answer is said, existing record marked, new finish and DNF, a distance the catalogue does not list imports through the server naming only the row, a record that disagrees with UltraSignup is updated to match it, a historical distance is not offered but a record on it still edits |
+| M-ULTRA | M12 | import from an UltraSignup name: the plain path (one person, one matching finish), then one word refused, switch people, a repeated finish imports once and stays locked, one placeable row in a repeat needs no choice, a split that did not answer is said, existing record marked, new finish and DNF, a distance the catalogue does not list imports through the server naming only the row, a record that disagrees with UltraSignup is updated to match it, a historical distance is not offered but a record on it still edits, an admin adds a race the catalogue lacks straight from the row |
 | J18 | A1 | invite → the link works → the invitee signs in |
 | J19 | A2 | admin → member area → back |
 | J20 | A4 | edit the schedule in admin; the public page reflects it |

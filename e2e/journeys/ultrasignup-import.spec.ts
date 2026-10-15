@@ -270,7 +270,7 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
   // is judged against the admin's records instead of the member's. The
   // results POST is fulfilled as in every journey here; what it is sent is
   // asserted, and the write after it is real.
-  test("M-ULTRA-12: an admin imports a finish onto a member's list, not their own", async ({
+  test("M-ULTRA-12: an admin imports a finish onto a member's list, not their own, and adds a race", async ({
     baseURL,
     page,
   }) => {
@@ -330,6 +330,7 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
       expect(sent).toEqual({ name: "Xu Dong Wu", ownerId: member.id });
       // The member files their own requests; the admin can add the race.
       await expect(page.getByTestId("ultrasignup-map-unlisted")).toBeVisible();
+      await expect(page.getByTestId("ultrasignup-add-race-unlisted")).toBeVisible();
       await expect(page.getByTestId("ultrasignup-request-unlisted")).toHaveCount(0);
 
       const written = page.waitForResponse(
@@ -356,6 +357,44 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
         }
       ).ultrasignupName ?? null;
       expect(nameAfter).toBe(nameBefore);
+
+      // 導入比賽: the server re-reads UltraSignup, so the import is fulfilled
+      // here as in M-ULTRA-8; what is asserted is that the row asks for the
+      // race to be added, for this member, and lands as logged.
+      let addSent: unknown = null;
+      await page.route("**/api/members/ultrasignup-import", async (route) => {
+        addSent = route.request().postDataJSON();
+        await route.fulfill({
+          contentType: "application/json",
+          json: {
+            doc: {
+              distanceId: "50k",
+              eventId: "unlisted-for-member",
+              finishSeconds: 36_000,
+              id: 987_654_322,
+              result: "finished",
+              year,
+            },
+          },
+          status: 201,
+        });
+      });
+      page.once("dialog", (dialog) => void dialog.accept());
+      await page.getByTestId("ultrasignup-add-race-unlisted").click();
+      await expect(page.getByTestId("ultrasignup-existing-unlisted")).toContainText(
+        "已在會員的比賽紀錄",
+        { timeout: budget(15_000) },
+      );
+      expect(addSent).toEqual({
+        addRace: true,
+        date: `${year}-08-01`,
+        name: "Xu Dong Wu",
+        ownerId: member.id,
+        personId: 2304249,
+        rawName: "Unlisted For Member - 50K",
+      });
+      await expect(page.getByTestId("ultrasignup-add-race-unlisted")).toHaveCount(0);
+      await expect(page.getByTestId("ultrasignup-map-unlisted")).toHaveCount(0);
     } finally {
       await admin.dispose();
     }
