@@ -27,6 +27,8 @@ import { TEST_ADMIN } from "../helpers/auth";
 import { recordCreated } from "../helpers/created";
 import { budget } from "../helpers/budget";
 import { deleteCreatedRows } from "../helpers/teardown";
+import { adminContext, ensureMemberUser, TEST_MEMBER } from "../helpers/members";
+import { EARLIEST_RACE_YEAR } from "@/lib/races/catalogue";
 
 type Ready = {
   distanceId: string;
@@ -260,6 +262,103 @@ test.describe("M-ULTRA a member imports UltraSignup results", () => {
     // from the record it made, and the row is the green one it was.
     await expect(placedRow).toHaveAttribute("data-tone", "logged");
     await expect(page.getByTestId("ultrasignup-map-placed")).toHaveCount(0);
+  });
+
+  // An admin importing for a member. The failures this guards: the record
+  // lands on the admin's own list (the owner never reaches the write), the
+  // name the admin typed overwrites the one the member saved, or "logged"
+  // is judged against the admin's records instead of the member's. The
+  // results POST is fulfilled as in every journey here; what it is sent is
+  // asserted, and the write after it is real.
+  test("M-ULTRA-12: an admin imports a finish onto a member's list, not their own", async ({
+    baseURL,
+    page,
+  }) => {
+    test.setTimeout(budget(90_000));
+    const admin = await adminContext(baseURL);
+    const member = (await ensureMemberUser(admin, TEST_MEMBER)) as { id: number };
+    const nameBefore = (
+      (await (await admin.get(`/api/users/${member.id}?depth=0`)).json()) as {
+        ultrasignupName?: string | null;
+      }
+    ).ultrasignupName ?? null;
+    const year = EARLIEST_RACE_YEAR + 1;
+
+    try {
+      await signIn(page);
+      const race = await cataloguePick(page);
+      // fixture-scoped: the one key this test writes; a clean corpus has
+      // no record there, and residue should fail here, not mid-journey.
+      const clash = await admin.get(
+        `/api/race-records?depth=0&limit=1&where[owner][equals]=${member.id}&where[eventId][equals]=${race.eventId}&where[distanceId][equals]=${race.distanceId}&where[year][equals]=${year}`,
+      );
+      expect(((await clash.json()) as { totalDocs: number }).totalDocs).toBe(0);
+      const ownRows = await page.getByTestId("race-record-row").count();
+
+      let sent: unknown = null;
+      await page.route("**/api/members/ultrasignup-results", (route) => {
+        sent = route.request().postDataJSON();
+        return route.fulfill({
+          contentType: "application/json",
+          json: {
+            people: [
+              {
+                age: 40,
+                firstName: "Xu Dong",
+                id: 2304249,
+                lastName: "Wu",
+                rows: [
+                  resultRow("theirs", year, "finished", race, null, "A finish for a member"),
+                  {
+                    ...resultRow("unlisted", year, "finished", race, null, "Unlisted For Member - 50K"),
+                    eventName: "Unlisted For Member",
+                    match: { kind: "unsupported" as const, reason: "event" as const },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      await page.getByTestId("ultrasignup-owner").selectOption(String(member.id));
+      await page.getByTestId("ultrasignup-name").fill("Xu Dong Wu");
+      await page.getByTestId("ultrasignup-load").click();
+      await expect(page.getByTestId("ultrasignup-row-theirs")).toBeVisible({
+        timeout: budget(15_000),
+      });
+      expect(sent).toEqual({ name: "Xu Dong Wu", ownerId: member.id });
+      // The member files their own requests; the admin can add the race.
+      await expect(page.getByTestId("ultrasignup-map-unlisted")).toBeVisible();
+      await expect(page.getByTestId("ultrasignup-request-unlisted")).toHaveCount(0);
+
+      const written = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/race-records") && response.request().method() === "POST",
+      );
+      await page.getByTestId("ultrasignup-import-theirs").click();
+      const response = await written;
+      expect(response.status(), await response.text()).toBe(201);
+      const { doc } = (await response.json()) as {
+        doc: { id: number; owner: number | { id: number } };
+      };
+      created.push({ collection: "race-records", id: doc.id });
+      recordCreated({ collection: "race-records", id: doc.id, note: "M-ULTRA-12" });
+      expect(typeof doc.owner === "object" ? doc.owner.id : doc.owner).toBe(member.id);
+
+      await expect(page.getByTestId("ultrasignup-row-theirs")).toHaveAttribute("data-tone", "logged");
+      await expect(page.getByTestId("ultrasignup-existing-theirs")).toContainText("已在會員的比賽紀錄");
+      await expect(page.getByTestId("race-record-row")).toHaveCount(ownRows);
+
+      const nameAfter = (
+        (await (await admin.get(`/api/users/${member.id}?depth=0`)).json()) as {
+          ultrasignupName?: string | null;
+        }
+      ).ultrasignupName ?? null;
+      expect(nameAfter).toBe(nameBefore);
+    } finally {
+      await admin.dispose();
+    }
   });
 
   test("M-ULTRA-1: a single word is refused and nothing is fetched", async ({ page }) => {

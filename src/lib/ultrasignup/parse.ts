@@ -53,7 +53,7 @@ function calendarDate(value: unknown): { date: string; year: number } | null {
   return { date, year };
 }
 
-function splitEventName(raw: string): { distanceText: string; eventName: string } {
+export function splitEventName(raw: string): { distanceText: string; eventName: string } {
   const at = raw.lastIndexOf(" - ");
   if (at === -1) return { distanceText: "", eventName: raw.trim() };
   return {

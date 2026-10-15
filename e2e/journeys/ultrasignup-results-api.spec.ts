@@ -10,6 +10,7 @@ import {
 import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { recordCreated } from "../helpers/created";
+import { EARLIEST_RACE_YEAR } from "@/lib/races/catalogue";
 
 /**
  * M-ULTRA-API — the two refusals `/api/members/ultrasignup-results` makes
@@ -183,6 +184,145 @@ test.describe("M-ULTRA-API the UltraSignup results endpoint", () => {
     } finally {
       if (id !== undefined) await admin.delete(`/api/race-catalogue-requests/${id}`);
       await Promise.all([admin.dispose(), member.dispose(), other.dispose(), anon.dispose()]);
+    }
+  });
+
+  // Importing for someone else writes records they own, so the only person
+  // who may name an owner is an admin — and a member who tries is refused,
+  // not quietly served their own results (a client that believes it is
+  // importing for somebody must not write to its own list). The alias
+  // endpoints write the shared catalogue. None of these reach UltraSignup.
+  test("M-ULTRA-API-4: only an admin imports for a member or aligns names", async ({ baseURL }) => {
+    test.setTimeout(budget(45_000));
+
+    const admin = await adminContext(baseURL);
+    const member = await ensureMemberUser(admin, TEST_MEMBER);
+    const memberContext = await loginContext(baseURL, TEST_MEMBER);
+    const anon = await anonContext(baseURL);
+    const forMember = { name: "Xu Dong Wu", ownerId: member.id as number };
+
+    try {
+      const results = await memberContext.post("/api/members/ultrasignup-results", { data: forMember });
+      expect(results.status()).toBe(403);
+      const imported = await memberContext.post("/api/members/ultrasignup-import", {
+        data: { ...forMember, date: "2024-07-06", personId: 1, rawName: "x" },
+      });
+      expect(imported.status()).toBe(403);
+      expect((await memberContext.get("/api/members/ultrasignup-aliases")).status()).toBe(403);
+      const add = await memberContext.post("/api/members/ultrasignup-aliases", {
+        data: { alias: "Anything", eventKey: "anything" },
+      });
+      expect(add.status()).toBe(403);
+      expect((await anon.get("/api/members/ultrasignup-aliases")).status()).toBe(401);
+
+      // An admin is still held to a real member and a usable name.
+      const nobody = await admin.post("/api/members/ultrasignup-results", {
+        data: { name: "Xu Dong Wu", ownerId: 2_000_000_000 },
+      });
+      expect(nobody.status()).toBe(404);
+      const oneWord = await admin.post("/api/members/ultrasignup-results", {
+        data: { name: "Wu", ownerId: member.id },
+      });
+      expect(oneWord.status()).toBe(400);
+    } finally {
+      await Promise.all([admin.dispose(), memberContext.dispose(), anon.dispose()]);
+    }
+  });
+
+  // The evidence is a record an admin imported for a member and placed by
+  // hand, carrying an UltraSignup title the catalogue does not know. The
+  // failures: the name is never proposed, accepting it does not make it
+  // match (it is still proposed after), or a name that already belongs to
+  // another event is added anyway and stops both matching.
+  test("M-ULTRA-API-5: a hand-placed title is proposed, accepted once, and then matches", async ({
+    baseURL,
+  }) => {
+    test.setTimeout(budget(60_000));
+
+    const admin = await adminContext(baseURL);
+    const member = await ensureMemberUser(admin, TEST_MEMBER_TWO);
+    const categories = (await (
+      await admin.get("/api/race-categories?depth=0&limit=1&sort=id&where[historical][not_equals]=true")
+    ).json()) as { docs: { event: number; key: string }[] };
+    const [first] = categories.docs;
+    const eventOf = async (rowId: number) =>
+      (await (await admin.get(`/api/race-events/${rowId}?depth=0`)).json()) as {
+        id: number;
+        key: string;
+        name: string;
+        ultrasignupAliases?: string | null;
+      };
+    const event = await eventOf(first.event);
+    const original = event.ultrasignupAliases ?? null;
+    // Unique per run: the spelling a parallel shard proposes is never this one.
+    const spelling = `M-ULTRA-API-5 Spelling ${Date.now()}`;
+    let recordId: number | undefined;
+
+    try {
+      // Precondition, not adaptation. fixture-scoped: the one key this test
+      // writes under; the seeded corpus gives this member no record there,
+      // and residue from an earlier run should fail loudly.
+      const clash = await admin.get(
+        `/api/race-records?depth=0&limit=1&where[owner][equals]=${member.id}&where[eventId][equals]=${event.key}&where[distanceId][equals]=${first.key}&where[year][equals]=${EARLIEST_RACE_YEAR}`,
+      );
+      expect(((await clash.json()) as { totalDocs: number }).totalDocs).toBe(0);
+
+      const created = await admin.post("/api/race-records?depth=0", {
+        data: {
+          distanceId: first.key,
+          eventId: event.key,
+          owner: member.id,
+          result: "finished",
+          ultrasignupDate: `${EARLIEST_RACE_YEAR}-06-01`,
+          ultrasignupTitle: `${spelling} - 50K`,
+          year: EARLIEST_RACE_YEAR,
+        },
+      });
+      expect(created.status(), await created.text()).toBe(201);
+      const { doc } = (await created.json()) as { doc: { id: number; owner: number } };
+      recordId = doc.id;
+      recordCreated({ collection: "race-records", id: recordId, note: "M-ULTRA-API-5" });
+      expect(doc.owner).toBe(member.id);
+
+      type Proposal = { alias: string; eventKey: string; records: number };
+      const proposals = async () =>
+        ((await (await admin.get("/api/members/ultrasignup-aliases")).json()) as {
+          proposals: Proposal[];
+        }).proposals.filter((proposal) => proposal.alias === spelling);
+      expect(await proposals()).toEqual([
+        expect.objectContaining({ alias: spelling, eventKey: event.key, records: 1 }),
+      ]);
+
+      // Another event's own name cannot become this event's alias.
+      const others = (await (
+        await admin.get(`/api/race-events?depth=0&limit=1&sort=id&where[id][not_equals]=${event.id}`)
+      ).json()) as { docs: { name: string }[] };
+      expect(others.docs, "the seeded catalogue has more than one event").toHaveLength(1);
+      const taken = await admin.post("/api/members/ultrasignup-aliases", {
+        data: { alias: others.docs[0].name, eventKey: event.key },
+      });
+      expect(taken.status()).toBe(409);
+
+      const add = await admin.post("/api/members/ultrasignup-aliases", {
+        data: { alias: spelling, eventKey: event.key },
+      });
+      expect(add.status(), await add.text()).toBe(200);
+      expect(await add.json()).toEqual({ added: true });
+      const after = await eventOf(first.event);
+      expect(after.ultrasignupAliases?.split("\n")).toContain(spelling);
+      expect(await proposals()).toEqual([]);
+
+      const again = await admin.post("/api/members/ultrasignup-aliases", {
+        data: { alias: spelling, eventKey: event.key },
+      });
+      expect(await again.json()).toEqual({ added: false });
+    } finally {
+      // The event's aliases go back to exactly what was read before.
+      await admin.patch(`/api/race-events/${first.event}`, {
+        data: { ultrasignupAliases: original },
+      });
+      if (recordId !== undefined) await admin.delete(`/api/race-records/${recordId}`);
+      await admin.dispose();
     }
   });
 });

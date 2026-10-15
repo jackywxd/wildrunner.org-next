@@ -41,6 +41,10 @@ import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { resolveRaceEditionEndpoint } from './endpoints/resolveRaceEdition'
+import {
+  ultrasignupAliasAddEndpoint,
+  ultrasignupAliasProposalsEndpoint,
+} from './endpoints/ultrasignupAliases'
 import { ultrasignupImportEndpoint } from './endpoints/ultrasignupImport'
 import { ultrasignupResultsEndpoint } from './endpoints/ultrasignupResults'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
@@ -234,6 +238,8 @@ export default buildConfig({
     resolveRaceEditionEndpoint,
     ultrasignupResultsEndpoint,
     ultrasignupImportEndpoint,
+    ultrasignupAliasProposalsEndpoint,
+    ultrasignupAliasAddEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the
   // console, and the invite endpoint hands the admin a link instead.

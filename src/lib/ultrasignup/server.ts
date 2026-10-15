@@ -1,6 +1,7 @@
 import type { PayloadRequest } from "payload";
 import { APIError } from "payload";
 
+import { isAdminUser } from "@/access";
 import type { RaceCategory, RaceEvent, User } from "@/payload-types";
 
 import { cachedFetch, fetchPeople } from "./fetch";
@@ -25,7 +26,11 @@ export async function storedName(req: PayloadRequest): Promise<string> {
     overrideAccess: false,
     user: req.user,
   })) as User;
-  const name = account.ultrasignupName?.trim() ?? "";
+  return usableName(account.ultrasignupName);
+}
+
+function usableName(value: unknown): string {
+  const name = typeof value === "string" ? value.trim() : "";
   if (!nameSplits(name)) {
     throw new APIError(
       `請填 UltraSignup 成績頁上的姓名，姓放在最後，2 到 ${MAX_NAME_WORDS} 個詞。`,
@@ -33,6 +38,45 @@ export async function storedName(req: PayloadRequest): Promise<string> {
     );
   }
   return name;
+}
+
+/** The request's JSON body, or an empty object when it has none. */
+export async function jsonBody(req: PayloadRequest): Promise<Record<string, unknown>> {
+  try {
+    const body = (await req.json?.()) as unknown;
+    return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Whose results these are, and under what name.
+ *
+ * A member reads their own: the name stored on their account, and the
+ * record is theirs (`ownerId` null, so `setOwner` stamps them). An admin
+ * importing for a member names both, and the name is used for this
+ * request only — it is not written to the member's account, where a typo
+ * would replace the name the member set. Anyone else naming an owner is
+ * refused, not silently served their own results: a client that thinks it
+ * is importing for somebody else must not write to its own records.
+ */
+export async function importTarget(
+  req: PayloadRequest,
+  body: Record<string, unknown>,
+): Promise<{ name: string; ownerId: number | null }> {
+  if (body.ownerId === undefined) return { name: await storedName(req), ownerId: null };
+  if (!req.user) throw new APIError("請先登入。", 401);
+  if (!isAdminUser(req.user)) throw new APIError("只有管理員可以代會員匯入。", 403);
+  const ownerId = body.ownerId;
+  if (typeof ownerId !== "number" || !Number.isInteger(ownerId)) {
+    throw new APIError("請選擇會員。", 400);
+  }
+  const member = await req.payload
+    .findByID({ collection: "users", depth: 0, disableErrors: true, id: ownerId, req })
+    .catch(() => null);
+  if (!member) throw new APIError("找不到這位會員。", 404);
+  return { name: usableName(body.name), ownerId };
 }
 
 /**

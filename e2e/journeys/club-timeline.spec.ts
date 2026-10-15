@@ -574,6 +574,12 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T2: 列印全部 loads the rest of the rail before opening the dialog", async ({
     page,
   }) => {
+    // Measured on six CI runs: 9.4s, 14.8s, 15.4s, 15.6s, 18.7s, and 20.2s
+    // on the one that hit the default 20s budget (PR #195) — every page of
+    // the rail has to load before printing, and the wait below alone is
+    // allowed 20s. Past 15s, so it declares its own budget as the config asks.
+    test.setTimeout(budget(60_000));
+
     // Stubbed before the page runs, because `window.print()` opens a native
     // dialog that nothing in Playwright can dismiss. The stub replaces an
     // external side effect; it does not touch anything this test asserts on.

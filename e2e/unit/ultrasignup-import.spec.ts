@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 import { offeredDistances } from "@/lib/races/catalogue-shape";
 import { lineUpSummary } from "@/lib/races/line-up";
 import { SEED_CATEGORIES, SEED_EVENTS } from "@/lib/races/seed-data";
+import { aliasProposals, withAlias } from "@/lib/ultrasignup/aliases";
 import { assemblePeople, assemblePerson, recordUpdate } from "@/lib/ultrasignup/assemble";
 import { CACHE_SECONDS, cachedFetch, fetchPeople, USER_AGENT } from "@/lib/ultrasignup/fetch";
 import { historyUrl, MAX_NAME_WORDS, nameSplits } from "@/lib/ultrasignup/name";
@@ -1115,5 +1116,66 @@ test.describe("U-ULTRA UltraSignup import", () => {
       ultrasignupTitle: "Tor des Geants - 330K",
     };
     expect(picksFromRecords([tor], [stale])).toEqual({});
+  });
+
+  // A hand placement is a member saying "this UltraSignup race is that
+  // catalogue race". The failure: a name the matcher already answers is
+  // proposed again (an admin adds a duplicate, or adds it to a second event
+  // and breaks both), or two members' disagreement is settled by count.
+  test("U-ULTRA-37: hand placements and approved requests become alias proposals, and only unknown names", () => {
+    const events = CATALOGUE.map((event) => ({ ...event, aliases: [] }));
+    const proposals = aliasProposals(events, [
+      { eventKey: "utmb-mont-blanc", kind: "record", ultrasignupTitle: "Ultra Trail Du Mont Blanc by UTMB - TDS" },
+      { eventKey: "utmb-mont-blanc", kind: "record", ultrasignupTitle: "ULTRA TRAIL DU MONT BLANC - UTMB" },
+      { eventKey: "utmb-mont-blanc", eventName: "Ultra Trail du Mont Blanc", kind: "request" },
+      // Already the catalogue's own name: matches today, nothing to add.
+      { eventKey: "other-tor-des-geants", kind: "record", ultrasignupTitle: "Tor des Géants - 330K" },
+      // An event the catalogue no longer has: nothing to attach it to.
+      { eventKey: "gone", kind: "record", ultrasignupTitle: "Gone Race - 50K" },
+    ]);
+    expect(proposals).toEqual([
+      {
+        // "by UTMB" is dropped by the normaliser, so all three are one name;
+        // the spelling shown is the one the most evidence used, first on a tie.
+        alias: "Ultra Trail Du Mont Blanc by UTMB",
+        conflict: false,
+        eventKey: "utmb-mont-blanc",
+        eventName: "UTMB Mont-Blanc",
+        name: "ultra trail du mont blanc",
+        records: 2,
+        requests: 1,
+      },
+    ]);
+
+    // Once it is an alias, the same evidence proposes nothing.
+    const aliased = events.map((event) =>
+      event.id === "utmb-mont-blanc" ? { ...event, aliases: ["Ultra Trail du Mont Blanc"] } : event,
+    );
+    expect(
+      aliasProposals(aliased, [
+        { eventKey: "utmb-mont-blanc", kind: "record", ultrasignupTitle: "Ultra Trail Du Mont Blanc by UTMB - TDS" },
+      ]),
+    ).toEqual([]);
+  });
+
+  test("U-ULTRA-38: one name claimed for two events is a conflict on both, not a majority", () => {
+    const events = CATALOGUE.map((event) => ({ ...event, aliases: [] }));
+    const proposals = aliasProposals(events, [
+      { eventKey: "utmb-mont-blanc", kind: "record", ultrasignupTitle: "Mountain Race - 50K" },
+      { eventKey: "utmb-mont-blanc", kind: "record", ultrasignupTitle: "Mountain Race - 50K" },
+      { eventKey: "other-tor-des-geants", kind: "record", ultrasignupTitle: "Mountain Race - 50K" },
+    ]);
+    expect(proposals.map((p) => [p.eventKey, p.records, p.conflict])).toEqual([
+      ["utmb-mont-blanc", 2, true],
+      ["other-tor-des-geants", 1, true],
+    ]);
+  });
+
+  test("U-ULTRA-39: an alias is appended once; a line that already normalises to it is a no-op", () => {
+    expect(withAlias(null, " Western States Endurance Run ")).toBe("Western States Endurance Run");
+    expect(withAlias("Hardrock 100\nWestern States", "Western States Endurance Run")).toBe(
+      "Hardrock 100\nWestern States\nWestern States Endurance Run",
+    );
+    expect(withAlias("Western States™\n", "western  states")).toBeNull();
   });
 });
