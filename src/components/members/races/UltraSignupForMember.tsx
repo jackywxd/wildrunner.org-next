@@ -119,6 +119,7 @@ function MemberImport({
   if (!records) return <p className="text-sm text-muted-foreground">讀取會員的比賽紀錄…</p>;
   return (
     <UltraSignupImport
+      admin
       catalogueEvents={catalogueEvents}
       initialName={member.ultrasignupName}
       initialRequests={[]}

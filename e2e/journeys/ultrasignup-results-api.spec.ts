@@ -192,7 +192,7 @@ test.describe("M-ULTRA-API the UltraSignup results endpoint", () => {
   // not quietly served their own results (a client that believes it is
   // importing for somebody must not write to its own list). The alias
   // endpoints write the shared catalogue. None of these reach UltraSignup.
-  test("M-ULTRA-API-4: only an admin imports for a member or aligns names", async ({ baseURL }) => {
+  test("M-ULTRA-API-4: only an admin imports for a member, adds a race, or aligns names", async ({ baseURL }) => {
     test.setTimeout(budget(45_000));
 
     const admin = await adminContext(baseURL);
@@ -208,6 +208,12 @@ test.describe("M-ULTRA-API the UltraSignup results endpoint", () => {
         data: { ...forMember, date: "2024-07-06", personId: 1, rawName: "x" },
       });
       expect(imported.status()).toBe(403);
+      // Adding a race writes shared catalogue rows: an admin's alone, even
+      // for a member importing their own list.
+      const addRace = await memberContext.post("/api/members/ultrasignup-import", {
+        data: { addRace: true, date: "2024-07-06", personId: 1, rawName: "x" },
+      });
+      expect(addRace.status()).toBe(403);
       expect((await memberContext.get("/api/members/ultrasignup-aliases")).status()).toBe(403);
       const add = await memberContext.post("/api/members/ultrasignup-aliases", {
         data: { alias: "Anything", eventKey: "anything" },

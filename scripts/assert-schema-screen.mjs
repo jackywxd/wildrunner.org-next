@@ -298,6 +298,10 @@ const CONSTRUCTED = {
     "UltraSignupImport.tsx: data-testid={`ultrasignup-row-${row.key}`} in RowView",
   "ultrasignup-map-unlisted":
     "UltraSignupImport.tsx: data-testid={`ultrasignup-map-${row.key}`} in RowView",
+  "ultrasignup-add-race-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-add-race-${row.key}`} in RowView",
+  "ultrasignup-existing-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
   "ultrasignup-request-unlisted":
     "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
   "ultrasignup-person-2304249":

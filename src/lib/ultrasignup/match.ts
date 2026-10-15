@@ -110,6 +110,28 @@ export function historicalKey(label: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * The catalogue rows an admin's 導入比賽 writes for a row whose race the
+ * catalogue lacks: the event named exactly as UltraSignup prints it, and its
+ * distance as the first category. Exact so that `matchRow` meets the next
+ * member's row with the same title by name, with no alias. Null when either
+ * part has no usable key.
+ */
+export function raceFromRow(
+  eventName: string,
+  distanceText: string,
+): { category: MatchDistance; event: { key: string; name: string } } | null {
+  const name = eventName.trim();
+  const label = distanceText.trim();
+  const key = historicalKey(name);
+  const distanceKey = historicalKey(label);
+  if (!key || !distanceKey) return null;
+  return {
+    category: { distanceKm: parseDistanceKm(label), id: distanceKey, label },
+    event: { key, name },
+  };
+}
+
 export function aliasList(value: string | null | undefined): string[] {
   if (!value) return [];
   return aliasLines(value);
