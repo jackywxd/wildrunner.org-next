@@ -257,11 +257,14 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       );
       // By clicking the tab — a soft navigation, which is where this suite
       // has shipped a bug before (docs/testing-incidents.md). The braid is the
-      // bare address, so arrive on the single line and click across to it.
-      await open(page, "/riders/timeline?view=single");
+      // bare address, so go to the single line and click back across to it —
+      // by tabs both ways, never by loading `?view=single` (see V-CLUB-T2).
+      await open(page, "/riders/timeline");
       await waitForHydration(page);
-      // One rail before clicking: see V-CLUB-T2 on a query-string page
-      // being mounted twice.
+      await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+      await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
       await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await page.locator('[data-testid="club-timeline-view"][data-view="braid"]').click();
       await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
@@ -625,13 +628,21 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       };
     });
 
-    // 列印全部 is the single rail's, which has a query string — and a page
-    // loaded with one is mounted twice: PageTransitionEffect only learns the
-    // query after hydration, re-keys, and swaps in a fresh copy. A click
-    // before that lands on (or is replayed onto) the copy being thrown away,
-    // so wait until there is one rail, and it is the one that stays.
-    await open(page, "/riders/timeline?view=single");
+    // 列印全部 is the single rail's, reached as a reader reaches it: the bare
+    // address is 交會, and 單線 is a tab. NOT by loading `?view=single`: a
+    // page loaded with a query string is mounted twice — PageTransitionEffect
+    // only learns the query after hydration, re-keys, and swaps in a fresh
+    // copy — and a click before that lands on the copy being thrown away.
+    // Waiting for "one rail" cannot tell the copies apart (CI saw 1, 2, 1).
+    // After a soft navigation the leaving copy is the braid, so a lone
+    // `data-view="single"` rail can only be the one that stays.
+    await open(page, "/riders/timeline");
     await waitForHydration(page);
+    await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+    await expect(page).toHaveURL(/\/riders\/timeline\?view=single$/, { timeout: budget(15_000) });
+    await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+      timeout: budget(15_000),
+    });
     await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
     await expect(
       page.getByTestId("club-timeline-sentinel"),
