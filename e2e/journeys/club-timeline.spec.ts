@@ -256,11 +256,18 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
         created,
       );
       // By clicking the tab — a soft navigation, which is where this suite
-      // has shipped a bug before (docs/testing-incidents.md).
+      // has shipped a bug before (docs/testing-incidents.md). The braid is the
+      // bare address, so go to the single line and click back across to it —
+      // by tabs both ways, never by loading `?view=single` (see V-CLUB-T2).
       await open(page, "/riders/timeline");
       await waitForHydration(page);
+      await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+      await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+        timeout: budget(15_000),
+      });
+      await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
       await page.locator('[data-testid="club-timeline-view"][data-view="braid"]').click();
-      await expect(page).toHaveURL(/\/riders\/timeline\?view=braid$/, { timeout: budget(15_000) });
+      await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
       // The site's page transition keeps the outgoing view mounted while the
       // new one arrives, so wait for the braid and then for it to be alone —
       // otherwise every locator below may be reading the view being left.
@@ -283,9 +290,9 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       }
       await expect(page.locator("[data-braid-meeting]:visible").first()).toBeVisible();
 
-      // And the default view is untouched by any of it.
+      // And the single line is untouched by any of it.
       await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
-      await expect(page).toHaveURL(/\/riders\/timeline$/, { timeout: budget(15_000) });
+      await expect(page).toHaveURL(/\/riders\/timeline\?view=single$/, { timeout: budget(15_000) });
       await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
         timeout: budget(15_000),
       });
@@ -479,10 +486,12 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
   }) => {
     test.setTimeout(budget(60_000));
 
-    // The real file is served, as an audio type...
-    const served = await page.request.get("/audio/life-long-love.m4a");
-    expect(served.status(), "the music file is not served").toBe(200);
-    expect(served.headers()["content-type"]).toMatch(/^audio\//);
+    // The real files are served, as an audio type...
+    for (const file of ["/audio/only-time.m4a", "/audio/life-long-love.m4a"]) {
+      const served = await page.request.get(file);
+      expect(served.status(), `${file} is not served`).toBe(200);
+      expect(served.headers()["content-type"]).toMatch(/^audio\//);
+    }
 
     // ...but this lane's Chromium ships without an AAC decoder, so the page
     // is given a tone it can decode in its place. Without that the music
@@ -490,6 +499,11 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
     // to draw — every assertion below about them would be unable to fail.
     // Whether the real song is audible, and survives a locked iPhone, is
     // checked on a device, not in this lane.
+    // The playlist's first track is made short, so that it ends inside this
+    // test and the move to the second can be watched.
+    await page.route("**/audio/only-time.m4a", (route) =>
+      route.fulfill({ body: toneWav(4), contentType: "audio/wav", status: 200 }),
+    );
     await page.route("**/audio/life-long-love.m4a", (route) =>
       route.fulfill({ body: toneWav(), contentType: "audio/wav", status: 200 }),
     );
@@ -537,6 +551,30 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       )
       .toBeGreaterThan(0);
 
+    // A playlist, not one looped song: when the first track ends the second
+    // plays on, and the page keeps drifting through the change — the end of
+    // a track fires `pause`, which must not read as somebody asking to stop.
+    await expect
+      .poll(() => audio.getAttribute("data-track"), {
+        message: "the playlist never moved past its first track",
+        timeout: budget(15_000),
+      })
+      .toBe("1");
+    await expect
+      .poll(() => audio.evaluate((node: HTMLAudioElement) => node.currentTime), {
+        message: "the second track did not start",
+        timeout: budget(10_000),
+      })
+      .toBeGreaterThan(0.5);
+    expect(await audio.evaluate((node: HTMLAudioElement) => node.paused)).toBe(false);
+    const afterSwitch = await page.evaluate(() => window.scrollY);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), {
+        message: "the drift stopped when the track changed",
+        timeout: budget(10_000),
+      })
+      .toBeGreaterThan(afterSwitch + 10);
+
     // While it drifts, a row entering at the bottom fades in with its own
     // position, so one in the lower part of the window is caught half-faded
     // for seconds at a time. Without that, rows below the fold are already
@@ -574,6 +612,12 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T2: 列印全部 loads the rest of the rail before opening the dialog", async ({
     page,
   }) => {
+    // Measured on six CI runs: 9.4s, 14.8s, 15.4s, 15.6s, 18.7s, and 20.2s
+    // on the one that hit the default 20s budget (PR #195) — every page of
+    // the rail has to load before printing, and the wait below alone is
+    // allowed 20s. Past 15s, so it declares its own budget as the config asks.
+    test.setTimeout(budget(60_000));
+
     // Stubbed before the page runs, because `window.print()` opens a native
     // dialog that nothing in Playwright can dismiss. The stub replaces an
     // external side effect; it does not touch anything this test asserts on.
@@ -584,7 +628,22 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
       };
     });
 
+    // 列印全部 is the single rail's, reached as a reader reaches it: the bare
+    // address is 交會, and 單線 is a tab. NOT by loading `?view=single`: a
+    // page loaded with a query string is mounted twice — PageTransitionEffect
+    // only learns the query after hydration, re-keys, and swaps in a fresh
+    // copy — and a click before that lands on the copy being thrown away.
+    // Waiting for "one rail" cannot tell the copies apart (CI saw 1, 2, 1).
+    // After a soft navigation the leaving copy is the braid, so a lone
+    // `data-view="single"` rail can only be the one that stays.
     await open(page, "/riders/timeline");
+    await waitForHydration(page);
+    await page.locator('[data-testid="club-timeline-view"][data-view="single"]').click();
+    await expect(page).toHaveURL(/\/riders\/timeline\?view=single$/, { timeout: budget(15_000) });
+    await expect(page.locator('[data-testid="club-timeline"][data-view="single"]')).toBeVisible({
+      timeout: budget(15_000),
+    });
+    await expect(page.getByTestId("club-timeline")).toHaveCount(1, { timeout: budget(10_000) });
     await expect(
       page.getByTestId("club-timeline-sentinel"),
       "the corpus fits in one page, so nothing would be left to load before printing",

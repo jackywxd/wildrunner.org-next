@@ -111,7 +111,7 @@ export const aiFixTyposEndpoint: Endpoint = {
       return Response.json({ text: stubFixTypos(text), stub: true });
     }
 
-    const reply = await callTextModel(env.AI, {
+    const reply = await callTextModel({ ai: env.AI, payload: req.payload }, {
       system: SYSTEM,
       text,
       maxTokens: MAX_OUTPUT_TOKENS,

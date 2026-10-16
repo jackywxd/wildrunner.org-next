@@ -22,6 +22,7 @@
 
 import type { SiteRaceScheduleEntry } from "@/lib/content-types";
 import type { CatalogueDistance, RaceCatalogueMap } from "./catalogue-db";
+import { offeredDistances } from "./catalogue-shape";
 import { isFinished } from "./race-state";
 
 export type RaceReportOption = {
@@ -65,11 +66,12 @@ export function toReportOption(
   entry: SiteRaceScheduleEntry,
 ): RaceReportOption | null {
   const event = entry.eventId ? catalogue.get(entry.eventId) : undefined;
-  if (!event || event.distances.length === 0) return null;
+  const distances = offeredDistances(event);
+  if (!event || distances.length === 0) return null;
 
   const zh = entry.nameZh?.trim();
   return {
-    distances: event.distances,
+    distances,
     eventId: event.id,
     label: zh || entry.name,
     sublabel: zh ? entry.name : undefined,

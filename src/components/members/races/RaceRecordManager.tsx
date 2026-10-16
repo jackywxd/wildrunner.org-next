@@ -9,6 +9,14 @@ import {
   raceClaimComplete,
 } from "@/components/members/races/RaceClaimFields";
 import { UNLINK_FLAG } from "@/lib/members/race-record-unlink";
+import {
+  UltraSignupImport,
+  type CatalogueRequest,
+} from "@/components/members/races/UltraSignupImport";
+import {
+  UltraSignupOwnerPicker,
+  type ImportMember,
+} from "@/components/members/races/UltraSignupForMember";
 import { RaceBadge } from "@/lib/races/badge";
 import {
   formatFinishTime,
@@ -44,6 +52,8 @@ export type MemberRaceRecord = {
   id: number;
   /** Absent on every row written before `20260915_090000_add_race_record_result`. */
   result?: "finished" | "dnf" | null;
+  ultrasignupDate?: string | null;
+  ultrasignupTitle?: string | null;
   year: number;
 };
 
@@ -122,10 +132,19 @@ function ResultFields({
 
 export function RaceRecordManager({
   catalogueEvents,
+  catalogueRequests,
+  members,
   records: initial,
+  ultrasignupName,
+  userId,
 }: {
   catalogueEvents: CatalogueEvent[];
+  catalogueRequests: CatalogueRequest[];
+  /** Present for an admin, who may import for any of these members. */
+  members?: ImportMember[];
   records: MemberRaceRecord[];
+  ultrasignupName: string;
+  userId: number;
 }) {
   const [records, setRecords] = useState(initial);
   // The four selects live in `RaceClaimFields`, shared with the post editor's
@@ -344,8 +363,36 @@ export function RaceRecordManager({
     }
   }
 
+  const ownImport = (
+    <UltraSignupImport
+      admin={Boolean(members)}
+      catalogueEvents={catalogueEvents}
+      initialName={ultrasignupName}
+      initialRequests={catalogueRequests}
+      onImported={(record) =>
+        setRecords((current) =>
+          [...current.filter((item) => item.id !== record.id), record].sort(
+            (a, b) => b.year - a.year,
+          ),
+        )
+      }
+      records={records}
+      userId={userId}
+    />
+  );
+
   return (
     <div className="mt-6 space-y-8">
+      {members ? (
+        <UltraSignupOwnerPicker
+          catalogueEvents={catalogueEvents}
+          members={members}
+          own={ownImport}
+          userId={userId}
+        />
+      ) : (
+        ownImport
+      )}
       <section className="space-y-4 border border-border p-4">
         <h2 className="font-heading text-sm font-semibold text-foreground/70">
           新增紀錄

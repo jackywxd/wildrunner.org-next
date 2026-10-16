@@ -22,6 +22,8 @@ import type { RaceSeries } from "./catalogue";
 export type CatalogueDistance = {
   id: string;
   label: string;
+  /** Set only when true. See `historical` in RaceCategories.ts. */
+  historical?: true;
 };
 
 export type CatalogueEvent = {
@@ -39,6 +41,24 @@ export type RaceCatalogueMap = Map<string, CatalogueEvent>;
 
 export function catalogueMap(events: CatalogueEvent[]): RaceCatalogueMap {
   return new Map(events.map((event) => [event.id, event]));
+}
+
+/**
+ * The distances a picker may offer.
+ *
+ * Historical entries stay in the catalogue so a badge can name them, and
+ * stay out of every "which distance did you run" question — the finish that
+ * created one proves it ran once, not that a member can enter it. `keep` is
+ * the value already chosen: editing a record that points at a historical
+ * entry has to be able to show it, or the select renders blank.
+ */
+export function offeredDistances(
+  event: CatalogueEvent | undefined,
+  keep?: string,
+): CatalogueDistance[] {
+  return (event?.distances ?? []).filter(
+    (distance) => !distance.historical || distance.id === keep,
+  );
 }
 
 export function eventsBySeries(

@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminUser } from '../access'
 import { inviteEmailHTML, inviteLinkFor } from '../lib/invite'
 import { defaultQuotaMb } from '../lib/quota'
+import { MAX_NAME_LENGTH, MAX_NAME_WORDS, nameSplits } from '../lib/ultrasignup/name'
 import { ensureAuthorIdentity } from './hooks/author-identity'
 import { clearInvitePending } from './hooks/clear-invite-pending'
 import { ensureFirstUserIsAdmin } from './hooks/first-user-admin'
@@ -97,6 +98,26 @@ export const Users: CollectionConfig = {
       admin: {
         description:
           'Seeds the author alias shown on the site. The alias itself lives on the author record.',
+      },
+    },
+    {
+      name: 'ultrasignupName',
+      type: 'text',
+      maxLength: MAX_NAME_LENGTH,
+      label: { en: 'UltraSignup name', 'zh-TW': 'UltraSignup 姓名' },
+      admin: {
+        description: {
+          en: 'The name on their results page, family name last. "Xu Dong Wu" is looked up as both Xu Dong / Wu and Xu / Dong Wu.',
+          'zh-TW':
+            '成績頁上的姓名，姓放最後。「Xu Dong Wu」會同時查 Xu Dong / Wu 和 Xu / Dong Wu。',
+        },
+      },
+      validate: (value: unknown) => {
+        if (value === undefined || value === null || value === '') return true
+        if (typeof value !== 'string' || nameSplits(value) === null) {
+          return `Enter the UltraSignup name with the family name last, 2 to ${MAX_NAME_WORDS} words.`
+        }
+        return true
       },
     },
     {

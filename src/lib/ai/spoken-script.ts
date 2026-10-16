@@ -1,4 +1,4 @@
-import { callTextModel, realAIAvailable } from "./call-model";
+import { callTextModel, realAIAvailable, type TextModelContext } from "./call-model";
 
 /**
  * The article, rewritten into how it is *said* rather than how it is written.
@@ -155,7 +155,10 @@ export function reconcileSpokenScript(original: string, reply: string): string {
  * failed reconciliation — narrate the article as written rather than not at
  * all.
  */
-export async function spokenScript(ai: Ai, script: string): Promise<string> {
+export async function spokenScript(
+  context: TextModelContext,
+  script: string,
+): Promise<string> {
   if (!realAIAvailable()) return script;
 
   const lines = script.split("\n");
@@ -170,17 +173,22 @@ export async function spokenScript(ai: Ai, script: string): Promise<string> {
   // ~10s this way and ~140s the other. `Promise.all` preserves order, and a
   // chunk that fails still degrades to its own ten lines — the failure mode
   // does not change, only the clock.
-  return (await Promise.all(chunks.map((chunk) => rewriteChunk(ai, chunk)))).join("\n");
+  return (await Promise.all(chunks.map((chunk) => rewriteChunk(context, chunk)))).join("\n");
 }
 
 /** One chunk, or the chunk unchanged. Never throws — see `spokenScript`. */
-async function rewriteChunk(ai: Ai, chunk: string): Promise<string> {
+async function rewriteChunk(
+  context: TextModelContext,
+  chunk: string,
+): Promise<string> {
   try {
-    const reply = await callTextModel(ai, {
+    const reply = await callTextModel(context, {
       system: SYSTEM,
       text: chunk,
       maxTokens: CHUNK_MAX_TOKENS,
       model: REWRITE_MODEL,
+      // Line-for-line number rewriting, chosen above for speed over judgement.
+      effort: "low",
     });
     return reconcileSpokenScript(chunk, reply);
   } catch (error) {

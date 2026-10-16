@@ -21,12 +21,14 @@ import { Media } from './collections/Media'
 import { Authors } from './collections/Authors'
 import { Posts } from './collections/Posts'
 import { Galleries } from './collections/Galleries'
+import { RaceCatalogueRequests } from './collections/RaceCatalogueRequests'
 import { RaceCategories } from './collections/RaceCategories'
 import { RaceEditions } from './collections/RaceEditions'
 import { RaceEvents } from './collections/RaceEvents'
 import { RaceRecords } from './collections/RaceRecords'
 import { RaceSchedule } from './collections/RaceSchedule'
 import { EDITOR_BLOCKS } from './lib/editor/blocks'
+import { AiSettings } from './globals/AiSettings'
 import { Site } from './globals/Site'
 import { migrations } from './migrations'
 import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
@@ -39,6 +41,12 @@ import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
 import { aiSummarisePostEndpoint } from './endpoints/aiSummarisePost'
 import { inviteMemberEndpoint } from './endpoints/inviteMember'
 import { resolveRaceEditionEndpoint } from './endpoints/resolveRaceEdition'
+import {
+  ultrasignupAliasAddEndpoint,
+  ultrasignupAliasProposalsEndpoint,
+} from './endpoints/ultrasignupAliases'
+import { ultrasignupImportEndpoint } from './endpoints/ultrasignupImport'
+import { ultrasignupResultsEndpoint } from './endpoints/ultrasignupResults'
 import { storageUsageEndpoint } from './endpoints/storageUsage'
 import { directUploadInitEndpoint } from './endpoints/directUploadInit'
 import { processMediaImageEndpoint } from './endpoints/processMediaImage'
@@ -204,8 +212,9 @@ export default buildConfig({
     RaceEditions,
     RaceRecords,
     RaceSchedule,
+    RaceCatalogueRequests,
   ],
-  globals: [Site],
+  globals: [Site, AiSettings],
   endpoints: [
     aiExpandPostEndpoint,
     articleAudioEndpoint,
@@ -227,6 +236,10 @@ export default buildConfig({
     unusedMediaSweepEndpoint,
     raceScheduleMaintenanceEndpoint,
     resolveRaceEditionEndpoint,
+    ultrasignupResultsEndpoint,
+    ultrasignupImportEndpoint,
+    ultrasignupAliasProposalsEndpoint,
+    ultrasignupAliasAddEndpoint,
   ],
   // Left undefined without a Resend key: Payload then logs mail to the
   // console, and the invite endpoint hands the admin a link instead.

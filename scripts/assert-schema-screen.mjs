@@ -133,6 +133,28 @@ const MAPPINGS = [
     },
   },
   {
+    // The request is one button on an import row, not a form. Every field it
+    // sends is that row's own UltraSignup text, which the member did not
+    // type and cannot edit — so each required field is listed as filled by
+    // the row, and the button that sends them is the screen.
+    collection: "src/collections/RaceCatalogueRequests.ts",
+    mode: "create",
+    screens: ["src/components/members/races/UltraSignupImport.tsx"],
+    fields: {},
+    exempt: {
+      ultrasignupTitle: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      eventName: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      raceDate: "Filled from the UltraSignup row the 申請加入目錄 button is on; " +
+        "the member types nothing, so there is no control to pair.",
+      reason: "Derived from why the matcher could not place the row " +
+        "(no event, or no such distance).",
+      status: "Admin-only field access; a member's create gets the " +
+        "default, pending.",
+    },
+  },
+  {
     collection: "src/collections/Media.ts",
     mode: "update",
     screens: ["src/components/members/media/MediaDetailDialog.tsx"],
@@ -215,6 +237,77 @@ const CONSTRUCTED = {
   // rather than a concrete id.
   "post-views-${postId}":
     "PostsList.tsx: data-testid={`post-views-${post.id}`}, published rows only",
+  // The UltraSignup list names each row by its `key`, which the journey's
+  // fixtures choose ("plain", "dup-drop", ...), and each person by the
+  // UltraSignup id the fixture gives them.
+  "ultrasignup-existing-already":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-fresh":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-no-time":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-plain":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-existing-was-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-import-already":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dup-drop":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-dup-keep":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-fresh":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-plain":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-import-unplaced":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-locked-dup-drop":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-locked-${row.key}`} in RowView",
+  "ultrasignup-new-distance-new":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-new-distance-${row.key}`} in RowView",
+  "ultrasignup-update-no-time":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
+  "ultrasignup-update-was-dnf":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-update-${row.key}`} in RowView",
+  "ultrasignup-map-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-map-${row.key}`} in RowView",
+  "ultrasignup-mapping-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-mapping-${row.key}`} in RowView",
+  "ultrasignup-request-ask":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
+  "ultrasignup-request-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
+  "ultrasignup-request-status-ask":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-status-${row.key}`} in RowView",
+  "ultrasignup-row-placed":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-row-${row.key}`} in RowView",
+  "ultrasignup-existing-theirs":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-import-theirs":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-import-${row.key}`} in RowView",
+  "ultrasignup-row-theirs":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-row-${row.key}`} in RowView",
+  "ultrasignup-map-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-map-${row.key}`} in RowView",
+  "ultrasignup-add-race-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-add-race-${row.key}`} in RowView",
+  "ultrasignup-existing-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-existing-${row.key}`} in RowView",
+  "ultrasignup-request-unlisted":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-request-${row.key}`} in RowView",
+  "ultrasignup-person-2304249":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-person-${item.id}`} on the person switcher",
+  "ultrasignup-person-2678040":
+    "UltraSignupImport.tsx: data-testid={`ultrasignup-person-${item.id}`} on the person switcher",
 };
 
 function checkTestIds() {

@@ -87,7 +87,7 @@ export const articleAudioEndpoint: Endpoint = {
     }
 
     const bucket = await getR2Bucket()
-    const outcome = await narrateArticle(ai, bucket, post, {
+    const outcome = await narrateArticle(ai, req.payload, bucket, post, {
       force: req.searchParams.get('force') === 'true',
     })
     return Response.json(outcome)

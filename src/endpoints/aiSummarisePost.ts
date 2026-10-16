@@ -115,10 +115,12 @@ export const aiSummarisePostEndpoint: Endpoint = {
       return Response.json({ text: stubSummary(text), stub: true });
     }
 
-    const summary = await callTextModel(env.AI, {
+    const summary = await callTextModel({ ai: env.AI, payload: req.payload }, {
       system: SYSTEM,
       text,
       maxTokens: MAX_OUTPUT_TOKENS,
+      // Two sentences drawn from the article's own words; nothing to weigh.
+      effort: "low",
     });
     // Flattened, because the field is a textarea whose value is printed as a
     // meta description: a summary that arrives as several lines would carry

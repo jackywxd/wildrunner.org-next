@@ -116,7 +116,7 @@ export const aiImprovePostEndpoint: Endpoint = {
     // handing back the member's own text as "the improved version" would put
     // an unchanged document in the accept pane and invite them to approve a
     // change that never happened. `callTextModel` throws instead.
-    const improved = await callTextModel(env.AI, {
+    const improved = await callTextModel({ ai: env.AI, payload: req.payload }, {
       system: SYSTEM,
       text,
       maxTokens: MAX_OUTPUT_TOKENS,

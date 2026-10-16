@@ -2,8 +2,8 @@
  * The braided view of 野馬營穿越時光: one lane per member, and the lanes of
  * everyone at the same race pulled together where that race sits on the rail.
  *
- * AN OPT-IN VIEW OVER THE SAME ROWS. `/riders/timeline` still draws its single
- * rail by default; `?view=braid` draws these lanes beside the very same
+ * A VIEW OVER THE SAME ROWS. `/riders/timeline` draws these lanes by default
+ * (`?view=single` is the plain rail), beside the very same
  * `ClubTimelineRow`s, paged by the very same cursor. Nothing here changes what
  * a row is — only how the space to the left of it is drawn.
  *

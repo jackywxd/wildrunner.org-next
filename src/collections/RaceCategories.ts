@@ -34,7 +34,7 @@ export const RaceCategories: CollectionConfig = {
   defaultSort: 'order',
   admin: {
     useAsTitle: 'label',
-    defaultColumns: ['label', 'event', 'distanceKm', 'elevationGainM', 'verified'],
+    defaultColumns: ['label', 'event', 'distanceKm', 'elevationGainM', 'verified', 'historical'],
     group: { en: 'Races', 'zh-TW': '賽事' },
   },
   access: {
@@ -132,6 +132,32 @@ export const RaceCategories: CollectionConfig = {
       type: 'text',
       label: { en: 'Source', 'zh-TW': '資料來源' },
       admin: { position: 'sidebar' },
+    },
+    /**
+     * AN ENTRY THAT EXISTED ONCE, KNOWN FROM A RESULT RATHER THAN A LINE-UP.
+     *
+     * Created by the UltraSignup import when a member's finish names a
+     * distance the event no longer lists — Québec Mega Trail ran a 110K in
+     * 2024 and lists QMT135/QMT80 now. A finish is evidence the entry ran
+     * that year, not that it runs now, so it is kept off the public line-up
+     * and out of the pickers: it exists so the record and its badge have
+     * something to point at. An admin who checks it unticks this.
+     *
+     * NOT INDEXED for the reason the qualifier flags below give: SQLite
+     * refuses `DROP COLUMN` on an indexed column.
+     */
+    {
+      name: 'historical',
+      type: 'checkbox',
+      label: { en: 'Historical (from UltraSignup)', 'zh-TW': '歷史分項（來自 UltraSignup）' },
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Added by a member import from an UltraSignup result. Hidden from the line-up and pickers. Untick once checked against the event.',
+          'zh-TW': '會員從 UltraSignup 成績匯入時新增。不出現在賽事陣容和選單。對照賽事資料查證後取消勾選。',
+        },
+      },
     },
     {
       name: 'verifiedAt',

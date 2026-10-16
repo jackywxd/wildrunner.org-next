@@ -181,7 +181,7 @@ test.describe("V-TIMELINE 穿越時光", () => {
     // so a server-side render would produce a PDF silently missing everything
     // past page one. Its print button loads the rest first, which nothing
     // outside a browser can do.
-    await open(page, "/riders/timeline");
+    await open(page, "/riders/timeline?view=single");
     await expect(page.getByTestId("club-timeline-print")).toBeVisible();
     await expect(page.getByTestId("rider-timeline-download")).toHaveCount(0);
   });

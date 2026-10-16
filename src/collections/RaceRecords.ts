@@ -221,5 +221,46 @@ export const RaceRecords: CollectionConfig = {
         },
       },
     },
+    {
+      /**
+       * WHICH ULTRASIGNUP ROW THIS RECORD WAS IMPORTED FROM, when it was.
+       *
+       * A row the catalogue cannot place by name is placed by the member
+       * by hand, and that pick is theirs alone — it is never written back
+       * as a catalogue alias. Without this the pick is forgotten on the
+       * next load: the row is red again beside a record that already says
+       * the same thing. With it, a record carrying this title and date is
+       * that row, and `picksFromRecords` restores the pick.
+       *
+       * Both are UltraSignup's own text, empty on every record entered by
+       * hand. Public like the rest of the record: the title names the race
+       * and distance, and the date the day of a year the record already
+       * shows.
+       */
+      name: 'ultrasignupTitle',
+      type: 'text',
+      label: { en: 'UltraSignup title', 'zh-TW': 'UltraSignup 標題' },
+      maxLength: 200,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Set when imported from UltraSignup; how the import list recognises this record next time.',
+          'zh-TW': '從 UltraSignup 匯入時填入；匯入列表下次用它認出這筆紀錄。',
+        },
+      },
+    },
+    {
+      name: 'ultrasignupDate',
+      type: 'text',
+      label: { en: 'UltraSignup date', 'zh-TW': 'UltraSignup 日期' },
+      admin: { position: 'sidebar' },
+      validate: (value: unknown) =>
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value))
+          ? true
+          : 'Date must be YYYY-MM-DD.',
+    },
   ],
 }
