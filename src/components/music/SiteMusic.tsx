@@ -46,12 +46,25 @@ import { claimPlaybackAudioSession } from "@/lib/audio-session";
  * browser cannot build it the element simply plays straight to the speakers,
  * without a spectrum.
  *
+ * A PLAYLIST, NOT ONE LOOPED SONG. The tracks play in order and the list
+ * starts over after the last. One element still: a track ending swaps its
+ * `src` and plays on, so the AudioContext graph (which belongs to the element,
+ * not the file) and the lock-screen session both carry across. The lock
+ * screen's next/previous buttons move through the same list.
+ *
  * NOTHING PLAYS UNTIL SOMEBODY ASKS. The only way in is `play()`, called from a
  * click (the timeline's 播放, or this file's own corner button once it has
  * appeared). Browsers refuse sound that nobody asked for, and so should we.
  */
 
-const SRC = "/audio/life-long-love.m4a";
+/**
+ * In play order. `title`/`artist` are what the lock screen shows; null falls
+ * back to the club's own names (the club's song).
+ */
+const PLAYLIST: { artist: string | null; src: string; title: string | null }[] = [
+  { artist: "Enya", src: "/audio/only-time.m4a", title: "Only Time" },
+  { artist: null, src: "/audio/life-long-love.m4a", title: null },
+];
 
 /** Seconds the sound takes to fade in or out. Long enough to hide the edge, short enough to feel immediate. */
 const FADE_S = 0.25;
@@ -91,6 +104,7 @@ export function SiteMusicProvider({ children }: { children: ReactNode }) {
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [pauses, setPauses] = useState(0);
+  const [track, setTrack] = useState(0);
   const graph = useRef<{ context: AudioContext; gain: GainNode } | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   // The pause waiting for its fade to finish, so a play pressed meanwhile can
@@ -138,12 +152,6 @@ export function SiteMusicProvider({ children }: { children: ReactNode }) {
       };
     }
     claimPlaybackAudioSession();
-    if ("mediaSession" in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        artist: t.music.artist,
-        title: t.clubTimeline.title,
-      });
-    }
     if (!graph.current) {
       try {
         const AudioContextClass =
@@ -181,18 +189,50 @@ export function SiteMusicProvider({ children }: { children: ReactNode }) {
     // Rejected when the browser cannot decode the file or refuses to play;
     // whatever asked for the music carries on without it.
     void element.play().catch(() => undefined);
-  }, [t]);
+  }, []);
+
+  /**
+   * Moves `by` tracks along the list, wrapping at either end, and keeps
+   * playing if it was (or if the last one just ended). THE `src` IS SET HERE,
+   * NOT BY REACT: in the `ended` handler itself, so the next song starts in
+   * the same task — a locked iPhone throttles anything left for later — and
+   * the `<audio>` element's `src` prop never changes, because React writing
+   * it again would reload the element and cut off whatever is playing.
+   */
+  const skip = useCallback((by: number, keepPlaying: boolean) => {
+    const element = audio.current;
+    if (!element) return;
+    const current = PLAYLIST.findIndex((song) => element.src.endsWith(song.src));
+    const next = (Math.max(current, 0) + by + PLAYLIST.length) % PLAYLIST.length;
+    element.src = PLAYLIST[next].src;
+    setTrack(next);
+    if (keepPlaying) void element.play().catch(() => undefined);
+  }, []);
+
+  // What the lock screen names: whichever track is on.
+  useEffect(() => {
+    if (!started || !("mediaSession" in navigator)) return;
+    const song = PLAYLIST[track];
+    navigator.mediaSession.metadata = new MediaMetadata({
+      artist: song.artist ?? t.music.artist,
+      title: song.title ?? t.clubTimeline.title,
+    });
+  }, [started, t, track]);
 
   // The phone's own controls — lock screen, headphones, control centre.
   useEffect(() => {
     if (!started || !("mediaSession" in navigator)) return;
     navigator.mediaSession.setActionHandler("play", () => play());
     navigator.mediaSession.setActionHandler("pause", () => pause());
+    navigator.mediaSession.setActionHandler("nexttrack", () => skip(1, !audio.current?.paused));
+    navigator.mediaSession.setActionHandler("previoustrack", () => skip(-1, !audio.current?.paused));
     return () => {
       navigator.mediaSession.setActionHandler("play", null);
       navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
+      navigator.mediaSession.setActionHandler("previoustrack", null);
     };
-  }, [pause, play, started]);
+  }, [pause, play, skip, started]);
 
   /*
    * THE FIRST PRESS FLIES TO THE CORNER, as on haijieliu.com: the button that
@@ -237,8 +277,13 @@ export function SiteMusicProvider({ children }: { children: ReactNode }) {
       {children}
       <audio
         data-testid="site-music-audio"
-        loop
+        data-track={track}
+        onEnded={() => skip(1, true)}
         onPause={(event) => {
+          // A track reaching its end fires `pause` just before `ended`. That
+          // is the playlist moving on, not anyone asking for quiet — counting
+          // it would stop the timeline's drift between songs.
+          if (event.currentTarget.ended) return;
           setPlaying(false);
           // A play that failed (no decoder, network) also fires `pause`.
           if (!event.currentTarget.error) setPauses((count) => count + 1);
@@ -248,7 +293,8 @@ export function SiteMusicProvider({ children }: { children: ReactNode }) {
         // fetched until someone presses play.
         preload="none"
         ref={audio}
-        src={SRC}
+        // The first track only; later ones are set by `skip`.
+        src={PLAYLIST[0].src}
       />
       {started && (
         // Behind the page (`-z-10`): the cards are opaque, so the bars show in
