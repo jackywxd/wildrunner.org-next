@@ -15,21 +15,22 @@ export type ClubTimelineView = "braid" | "single";
  * plain click. It also means the braid can be linked to, and that a reload
  * never flashes the single line before swapping to the one the reader chose.
  *
- * The single line keeps the bare address. It is the default, it is what every
- * existing link and the canonical URL point to, and a toggle must not turn
- * the page people already share into a different one.
+ * The braid has the bare address: 交會 is what the club asked people to land
+ * on, so it is the default, and the single line is `?view=single`.
+ * `?view=braid` is still read, because the homepage map and every link shared
+ * before the switch name it explicitly.
  */
 export function parseClubTimelineView(
   params: Record<string, string | string[] | undefined>,
 ): ClubTimelineView {
-  return params.view === "braid" ? "braid" : "single";
+  return params.view === "single" ? "single" : "braid";
 }
 
 export async function ClubTimelineViewTabs({ active }: { active: ClubTimelineView }) {
   const t = await getDictionary();
   const tabs = [
-    { href: "/riders/timeline", label: t.clubTimeline.viewSingle, view: "single" as const },
-    { href: "/riders/timeline?view=braid", label: t.clubTimeline.viewBraid, view: "braid" as const },
+    { href: "/riders/timeline?view=single", label: t.clubTimeline.viewSingle, view: "single" as const },
+    { href: "/riders/timeline", label: t.clubTimeline.viewBraid, view: "braid" as const },
   ];
 
   return (
