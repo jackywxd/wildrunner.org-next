@@ -38,6 +38,22 @@ RUN chmod +x /usr/local/bin/transcode.sh /usr/local/bin/poster.sh
 # ports will be accessible by your Worker" there.
 
 # The container is driven by `exec()` from the Durable Object, so there is no
-# HTTP server to run. It idles until told to do something, and Cloudflare
-# stops it after `sleepAfter`.
+# HTTP server to run. It idles until told to do something.
+#
+# `sleep` as PID 1 IGNORES SIGTERM — Linux delivers no signal to a
+# namespace's PID 1 unless it installed a handler, and `sleep` installs none.
+# So the library's `stop()` cannot end this container; only SIGKILL
+# (`destroy()`) can, which is why the Durable Object uses nothing else. See
+# `release` in src/index.ts: relying on `stop()` left containers running for
+# days.
+#
+# Not "fixed" with a trap or tini — yet — and the reason is an open
+# question, not a finding. Cloudflare's docs say a host restart or rollout
+# sends SIGTERM to this process and SIGKILL up to 15 minutes later. A trap
+# would make PID 1 exit at the SIGTERM and take a running ffmpeg with it;
+# ignoring it in principle lets an encode use that window. But that benefit
+# has not been observed: deploying this Worker mid-transcode produced
+# `transcode.sh exited 137` twice (see `run` in src/index.ts), i.e. the
+# encode did NOT survive. Until a rollout is watched end to end, neither
+# choice is shown to be better, so the existing one stays.
 ENTRYPOINT ["sleep", "infinity"]

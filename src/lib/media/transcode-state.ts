@@ -39,6 +39,12 @@ export const MAX_TRANSCODE_ATTEMPTS = 3;
  * minutes of transfer at the container's 100 Mbps cap. Fifteen minutes
  * leaves room for a slower vCPU without ever reclaiming a job that is still
  * making progress — reclaiming a live job would run it twice concurrently.
+ *
+ * The transcoder Worker's JOB_DEADLINE_MS (workers/transcoder/src/index.ts)
+ * must stay BELOW this: a job that hits that deadline reports nothing and
+ * relies on this lease to reclaim it, with the attempt counted. Lowering
+ * this without lowering that one lets the sweep re-dispatch into a container
+ * the Worker is still waiting on.
  */
 export const LEASE_TIMEOUT_MS = 15 * 60 * 1000;
 

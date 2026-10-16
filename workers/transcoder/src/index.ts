@@ -115,6 +115,130 @@ export class TranscodeContainer extends Container<Env> {
   sleepAfter = '30m'
 
   /**
+   * How many `run`/`runPoster` calls are between entry and their `finally`.
+   *
+   * One Durable Object per media id means one container per media id, and
+   * `accept` does not queue: a poster chosen mid-encode, or the sweep racing
+   * a retry, puts two `exec`s into the same container at once. Since the
+   * container is now ended with SIGKILL (see `release`), whichever job
+   * finished first would kill the other mid-ffmpeg. So the last one out
+   * turns off the light, and nobody else does.
+   *
+   * In memory, not storage, on purpose. If this object is evicted mid-job
+   * anyway (the case `accept`'s header allows for), the jobs it was counting
+   * died with it — their `exec` streams belonged to the old instance — so a
+   * fresh instance starting at zero is correct, and any container they left
+   * running is an orphan for `onActivityExpired` to collect.
+   */
+  private inflight = 0
+
+  /**
+   * The `destroy()` that `release` has under way, if any. A job arriving in
+   * that window would otherwise see `running` still true, skip `start()`,
+   * and `exec` into a container that is being killed — so `run` and
+   * `runPoster` wait for it before deciding whether to start one.
+   */
+  private releasing: Promise<void> | undefined
+
+  /**
+   * End the container if no job is using it.
+   *
+   * SIGKILL, never SIGTERM, and this is the fix for containers that ran for
+   * days. The image's PID 1 is `sleep infinity`; Linux delivers no signal to
+   * a namespace's PID 1 unless it installed a handler, and `sleep` installs
+   * none. So `stop()` — the library's SIGTERM — did nothing at all, and the
+   * library's default `onActivityExpired` is that same `stop()`, repeated
+   * every `sleepAfter` forever because its alarm loop re-arms for as long as
+   * the container reports `running`. Measured against the production image:
+   * still `running` five seconds after SIGTERM, `exited 137` after SIGKILL.
+   *
+   * Nothing is lost by not being graceful: by the time this runs, the output
+   * is in R2 and the callback has landed, or the job has already failed.
+   *
+   * Never throws. It runs in `finally`, after the result has been reported;
+   * a throw there would reject a promise `accept` deliberately never awaits,
+   * and nobody would see it.
+   */
+  private async release(reason?: string): Promise<void> {
+    if (this.inflight > 0 || !this.ctx.container?.running) return
+    this.releasing ??= this.ctx.container
+      .destroy(reason)
+      .catch(() => {})
+      .finally(() => {
+        this.releasing = undefined
+      })
+    await this.releasing
+  }
+
+  /**
+   * Run one script in the container and wait for it — but not forever.
+   *
+   * `exec()` has no timeout of its own (Cloudflare's docs say so), and
+   * neither did anything around it. A source download that stalled, or an
+   * ffmpeg that wedged, left `exitCode` pending indefinitely: the job never
+   * reached `finally`, `inflight` never returned to zero, the heartbeat kept
+   * renewing `sleepAfter`, and so neither `release` nor `onActivityExpired`
+   * would ever end the container. That is the same "runs for days" outcome
+   * `release` fixes, reached by a different road.
+   *
+   * At the deadline the whole container is destroyed, not just this process:
+   * `process.kill()` reaches only the process `exec` started, and the docs
+   * are explicit that its children — ffmpeg, curl — keep running. Any other
+   * job in the same container dies with it and reports `exited 137`, which
+   * `run` already treats as transient.
+   */
+  private async execScript(
+    argv: string[],
+    env: Record<string, string>,
+  ): Promise<{ exitCode: number; stderr: () => Promise<string>; stdout: string }> {
+    const process = await this.ctx.container!.exec(argv, { env })
+
+    // Tell the library the container is busy, because nothing else will.
+    // `exec()` is the raw container API and the library never sees it, so
+    // without this its inactivity timer runs down during the encode and
+    // stops the container out from under ffmpeg.
+    const heartbeat = setInterval(() => this.renewActivityTimeout(), 30_000)
+
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        void this.ctx.container?.destroy('job deadline').catch(() => {})
+        reject(new DeadlineExceeded(argv[0]))
+      }, JOB_DEADLINE_MS)
+    })
+
+    try {
+      // stdout is drained BEFORE awaiting the exit code. The script's output
+      // is one short JSON line so the pipe would not fill, but the documented
+      // shape is to read output rather than block on exit first, and a
+      // process that fills its stdout buffer while nobody reads it never
+      // exits at all.
+      const stdout = await Promise.race([new Response(process.stdout).text(), deadline])
+      const exitCode = await Promise.race([process.exitCode, deadline])
+      return { exitCode, stderr: () => new Response(process.stderr).text(), stdout }
+    } finally {
+      clearInterval(heartbeat)
+      clearTimeout(timer)
+    }
+  }
+
+  /**
+   * The idle backstop, made to actually stop something — see `release` for
+   * why the inherited `stop()` cannot. Reached when a container is running
+   * with no job: a DO restarted by a deploy while its container survived, or
+   * any path that started one and never got as far as `release`.
+   *
+   * Defers to a running job rather than trusting the heartbeat alone: the
+   * inherited version was harmless mid-encode only because SIGTERM was a
+   * no-op, and SIGKILL is not. A job that never finishes is not left to this
+   * method — the heartbeat would keep it from ever firing — but to
+   * `execScript`'s deadline.
+   */
+  override async onActivityExpired(): Promise<void> {
+    await this.release('idle past sleepAfter')
+  }
+
+  /**
    * Accept a job and return immediately.
    *
    * The split exists because of a bug that lost every single transcode. The
@@ -164,6 +288,10 @@ export class TranscodeContainer extends Container<Env> {
    * finishes, and this is the opposite situation.
    */
   async runPoster(job: PosterJob): Promise<void> {
+    // Before the first await, so a job arriving while this one starts up is
+    // already counted when the other finishes.
+    this.inflight++
+    let failure: string | undefined
     try {
       const containerEnv = {
         AWS_ACCESS_KEY_ID: this.env.AWS_ACCESS_KEY_ID,
@@ -172,36 +300,23 @@ export class TranscodeContainer extends Container<Env> {
         R2_S3_ENDPOINT: this.env.R2_S3_ENDPOINT,
       }
 
+      await this.releasing
       if (!this.ctx.container?.running) {
         await this.start({ envVars: containerEnv })
       }
 
-      const process = await this.ctx.container!.exec(
+      const { exitCode, stderr, stdout } = await this.execScript(
         [
           '/usr/local/bin/poster.sh',
           job.sourceUrl,
           posterKeyFor(job.mediaId),
           String(job.seconds),
         ],
-        { env: containerEnv },
+        containerEnv,
       )
 
-      // Same heartbeat as `run`, same reason: `exec()` is the raw container
-      // API, so the library's inactivity timer would otherwise stop the
-      // container while ffmpeg is still seeking a long file.
-      const heartbeat = setInterval(() => this.renewActivityTimeout(), 30_000)
-      let exitCode: number
-      let stdout: string
-      try {
-        stdout = await new Response(process.stdout).text()
-        exitCode = await process.exitCode
-      } finally {
-        clearInterval(heartbeat)
-      }
-
       if (exitCode !== 0) {
-        const stderr = await new Response(process.stderr).text()
-        throw new Error(`poster.sh exited ${exitCode}: ${stderr.slice(0, 500)}`)
+        throw new Error(`poster.sh exited ${exitCode}: ${(await stderr()).slice(0, 500)}`)
       }
 
       const line = stdout.trim().split('\n').filter(Boolean).pop() ?? ''
@@ -219,10 +334,15 @@ export class TranscodeContainer extends Container<Env> {
       })
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
-      await this.ctx.container?.destroy(reason).catch(() => {})
+      failure = reason
       // Best effort, like `run`'s: the member sees the poster not change and
       // can press again, which is the whole recovery story for this path.
       await this.reportPoster(job.mediaId, { message: reason, ok: false }).catch(() => {})
+    } finally {
+      // Success used to leave the container up, holding a `max_instances`
+      // slot until `sleepAfter` — which, per `release`, never came.
+      this.inflight--
+      await this.release(failure)
     }
   }
 
@@ -238,6 +358,9 @@ export class TranscodeContainer extends Container<Env> {
    */
   async run(job: TranscodeJob): Promise<void> {
     const started = Date.now()
+    // Before the first await — see `runPoster`.
+    this.inflight++
+    let failure: string | undefined
     try {
       await this.report(job.mediaId, { status: 'running' })
 
@@ -266,48 +389,27 @@ export class TranscodeContainer extends Container<Env> {
         R2_S3_ENDPOINT: this.env.R2_S3_ENDPOINT,
       }
 
+      await this.releasing
       if (!this.ctx.container?.running) {
         await this.start({ envVars: containerEnv })
       }
 
-      const process = await this.ctx.container!.exec(
+      const { exitCode, stderr, stdout } = await this.execScript(
         [
           '/usr/local/bin/transcode.sh',
           job.sourceUrl,
           destKeyFor(job.mediaId),
           posterKeyFor(job.mediaId),
         ],
-        { env: containerEnv },
+        containerEnv,
       )
 
-      // Tell the library the container is busy, because nothing else will.
-      // `exec()` is the raw container API and the library never sees it, so
-      // without this its inactivity timer runs down during the encode and
-      // stops the container out from under ffmpeg. Cleared in `finally` so a
-      // finished job goes back to idling and shuts down on schedule.
-      const heartbeat = setInterval(() => this.renewActivityTimeout(), 30_000)
-
-      let exitCode: number
-      let stdout: string
-      try {
-        // stdout is drained BEFORE awaiting the exit code. The script's
-        // output is one short JSON line so the pipe would not fill, but the
-        // documented shape is to read output rather than block on exit
-        // first, and a process that fills its stdout buffer while nobody
-        // reads it never exits at all.
-        stdout = await new Response(process.stdout).text()
-        exitCode = await process.exitCode
-      } finally {
-        clearInterval(heartbeat)
-      }
-
       if (exitCode !== 0) {
-        const stderr = await new Response(process.stderr).text()
         // "transcode.sh", not "ffmpeg": this is the SCRIPT's exit code, and
         // under `set -eu` it can come from curl, ffprobe or the upload just
         // as easily. Reporting every one of them as an ffmpeg failure sent
         // members looking at their video for a problem that was not there.
-        throw new Error(`transcode.sh exited ${exitCode}: ${stderr.slice(0, 500)}`)
+        throw new Error(`transcode.sh exited ${exitCode}: ${(await stderr()).slice(0, 500)}`)
       }
 
       // The script prints exactly one JSON line, last. Anything ffmpeg
@@ -349,29 +451,21 @@ export class TranscodeContainer extends Container<Env> {
           `transcoded media ${job.mediaId} in ${Date.now() - started}ms -> ${result.bytes} bytes`,
         )
       }
-
-      // Hand the slot back now that the work is done, instead of letting
-      // `sleepAfter` get round to it.
-      //
-      // Raising `sleepAfter` to 30m stopped the library killing a container
-      // mid-encode, and immediately caused the opposite failure: two short
-      // videos transcoded successfully, then sat `running` for half an hour
-      // holding both `max_instances` slots, so the next upload — a 1.04 GB
-      // file — could not start at all ("Maximum number of running container
-      // instances exceeded"). The inactivity timer is the wrong instrument
-      // for this: it exists to catch a container nobody told about, and this
-      // code knows exactly when the job finished.
-      //
-      // `stop()` rather than `destroy()`: SIGTERM lets the process exit
-      // cleanly, and there is nothing to race — the output is already in R2
-      // and the callback has already landed. The failure path still uses
-      // `destroy()`, where a stuck process is the likely reason for being
-      // there at all.
-      await this.stop().catch(() => {})
     } catch (error) {
       console.error(`transcode failed for media ${job.mediaId}`, error)
 
       const reason = error instanceof Error ? error.message : String(error)
+      failure = reason
+
+      // A job that hit its deadline reports NOTHING, on purpose. The row stays
+      // `running`, its lease expires, and the sweep reclaims it through the
+      // one path that counts attempts — so a video that is simply too long or
+      // too slow stops after MAX_TRANSCODE_ATTEMPTS and reaches `failed`
+      // with a mail to the member. Reporting `failed` here would end it on
+      // one try that may have been a stalled CDN; reporting `queued` would
+      // retry it forever, uncounted (see below). The deadline sits under the
+      // lease so this container is gone before the sweep re-dispatches.
+      if (error instanceof DeadlineExceeded) return
 
       // Some failures are about this video; this one is about the moment.
       // "Maximum number of running container instances exceeded" means the
@@ -417,23 +511,37 @@ export class TranscodeContainer extends Container<Env> {
       const signalled = /exited (137|143)\b/.test(reason)
       const transient = busy || signalled
 
-      // A failed job used to leave its container running. `max_instances`
-      // on this Worker is deliberately low — 2 on staging — specifically to
-      // cap what a runaway retry can spend, so three real test uploads
-      // (673, 674, 675) each starting their own container was enough to
-      // hit "Maximum number of running container instances exceeded" on the
-      // very next one. Every prior fix in this file added a missing
-      // capability; this is the one that stops a leak instead. It also
-      // means a retry never reuses a container that limped partway through
-      // an old failure with stale state.
-      await this.ctx.container?.destroy(reason).catch(() => {})
-
       // Best effort: if this callback also fails, the row stays `running`
       // and the lease sweep reclaims it. Nothing is lost either way.
       await this.report(job.mediaId, {
         message: reason,
         status: transient ? 'queued' : 'failed',
       }).catch(() => {})
+    } finally {
+      // Hand the slot back the moment the job ends, on both outcomes.
+      //
+      // Success: raising `sleepAfter` to 30m stopped the library killing a
+      // container mid-encode, and immediately caused the opposite failure —
+      // two short videos transcoded, then sat `running` holding both
+      // `max_instances` slots, so the next upload, a 1.04 GB file, could not
+      // start at all ("Maximum number of running container instances
+      // exceeded"). The inactivity timer exists to catch a container nobody
+      // told about; this code knows exactly when the job finished.
+      //
+      // Failure: a failed job used to leave its container running, and three
+      // real test uploads (673, 674, 675) each holding one was enough to hit
+      // that same limit on the very next upload.
+      //
+      // One thing this gave up: the failure path used to destroy BEFORE
+      // reporting, unconditionally. Now it reports first, and if another job
+      // is still in this container the destroy waits for that job — so for
+      // that long a retry could land in a container that just failed. The
+      // alternative was killing the other job, which is worse.
+      //
+      // Both were "fixed" before with `stop()` on success, which did nothing
+      // — see `release` for why, and for why this cannot throw.
+      this.inflight--
+      await this.release(failure)
     }
   }
 
@@ -483,6 +591,31 @@ export class TranscodeContainer extends Container<Env> {
     if (!response.ok) {
       throw new Error(`callback for media ${mediaId} returned ${response.status}`)
     }
+  }
+}
+
+/**
+ * How long one script may run before its container is destroyed.
+ *
+ * Sized from both sides. Below: the largest file in the corpus (1.17 GB /
+ * 481 s) measured at ~2.6 minutes of encoding plus ~1.6 of transfer, so 12
+ * minutes is almost three times the worst real job. Above: it must end
+ * before LEASE_TIMEOUT_MS (15 minutes, src/lib/media/transcode-state.ts),
+ * because a job that hits it reports nothing and leaves the lease to the
+ * sweep — and the sweep must not re-dispatch into a container this code is
+ * still waiting on. The three minutes between them cover the callback and
+ * `start()`, which happen before this clock starts.
+ *
+ * MIRRORED against that constant by hand, like `max_instances`. Raising this
+ * past the lease reintroduces two jobs on one container; raising the lease
+ * is the safe order.
+ */
+const JOB_DEADLINE_MS = 12 * 60 * 1000
+
+/** Thrown by `execScript` at JOB_DEADLINE_MS, so `run` can tell it apart. */
+class DeadlineExceeded extends Error {
+  constructor(script: string) {
+    super(`${script} exceeded the ${JOB_DEADLINE_MS / 60_000}-minute job deadline`)
   }
 }
 
