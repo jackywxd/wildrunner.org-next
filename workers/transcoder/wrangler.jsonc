@@ -65,9 +65,11 @@
 					// production — this session hit "Maximum number of
 					// running container instances exceeded" on staging for a
 					// case production would have absorbed. Cost is not the
-					// argument it looks like: containers now stop as soon as
-					// their job ends, so the cap bounds concurrency, not
-					// spend.
+					// argument it looks like: containers are destroyed as soon
+					// as their job ends, so the cap bounds concurrency, not
+					// spend. (This said "stop" for a while before it was true:
+					// the `stop()` it relied on is a SIGTERM the image's PID 1
+					// ignores — see `release` in src/index.ts.)
 					"max_instances": 3
 				}
 			],
