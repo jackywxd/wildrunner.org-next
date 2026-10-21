@@ -13,6 +13,18 @@
  * `no-place` and `not-found` are retried too, because they have no point; a
  * run is the way to find out whether an edition has since gained a location.
  *
+ * `--retry-not-found` widens that by one case and no more: an event whose
+ * `geoStatus` is `not-found` is processed even if it still carries a point.
+ * The default skips it, since "has a point" is how the script tells a placed
+ * event from an unplaced one, and a failed *refresh* keeps the old dot with
+ * an honest status (resolveAndWriteEvent) — which is exactly an event with a
+ * point and `not-found`. It exists for the day the geocoder's behaviour
+ * changes underneath rows that were judged by the old one (Nominatim's
+ * country codes: HKG and REU were all `not-found` until `osmCountryCode`),
+ * so those rows can be asked again on purpose. `manual` is still never
+ * touched, and neither is `ok`. The run prints the events it will process,
+ * by key and status, before it processes any.
+ *
  * ONE REQUEST A SECOND comes from `nominatim.ts` itself (Nominatim's usage
  * policy), and the model is asked once per event, never in a burst — Workers
  * AI allows about 20 calls a minute on Kimi.
@@ -37,9 +49,13 @@
  * error, and the totals count what the database holds, not what the client
  * said.
  *
- *   pnpm geocode:events [--export]              # local
- *   pnpm geocode:events:staging [--export]      # staging D1 — run by Jacky
- *   pnpm geocode:events:prod [--export]         # production D1 — run by Jacky
+ *   pnpm geocode:events [--retry-not-found] [--export]              # local
+ *   pnpm geocode:events:staging [--retry-not-found] [--export]      # staging D1 — run by Jacky
+ *   pnpm geocode:events:prod [--retry-not-found] [--export]         # production D1 — run by Jacky
+ *
+ * The flags reach the script as they stand: pnpm 10 forwards everything after
+ * the script name (`pnpm geocode:events:staging --retry-not-found`); a `--`
+ * before them is passed through too, and the script ignores it.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -47,6 +63,7 @@ import path from 'node:path'
 import { getPayload } from 'payload'
 
 const exportCsv = process.argv.includes('--export')
+const retryNotFound = process.argv.includes('--retry-not-found')
 const remote = process.argv.includes('--remote')
 
 if (remote) {
@@ -118,12 +135,24 @@ async function main() {
   const manual = events.docs.filter((event) => event.geoSource === 'manual')
   const targets = events.docs.filter(
     (event) =>
-      event.geoSource !== 'manual' && (typeof event.lat !== 'number' || event.geoStatus === 'failed'),
+      event.geoSource !== 'manual' &&
+      (typeof event.lat !== 'number' ||
+        event.geoStatus === 'failed' ||
+        (retryNotFound && event.geoStatus === 'not-found')),
   )
   console.log(
     `[geocode-race-events] ${events.totalDocs} events: ${targets.length} to place, ` +
-      `${manual.length} manual (left alone), ${events.totalDocs - targets.length - manual.length} already placed`,
+      `${manual.length} manual (left alone), ${events.totalDocs - targets.length - manual.length} already placed` +
+      (retryNotFound ? ' (--retry-not-found: not-found events included)' : ''),
   )
+  // Before anything is written, so a run that is about to do the wrong thing
+  // can be stopped by reading its first screen.
+  for (const event of targets) {
+    console.log(
+      `  will process ${event.key}: geoStatus=${event.geoStatus ?? 'empty'} ` +
+        `${typeof event.lat === 'number' ? `has point ${event.lat},${event.lng}` : 'no point'}`,
+    )
+  }
 
   const counts = { ok: 0, 'no-place': 0, 'not-found': 0, failed: 0 }
   const problems: string[] = []

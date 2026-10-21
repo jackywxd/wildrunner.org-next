@@ -1,3 +1,5 @@
+import { alpha2ToAlpha3 } from './iso-alpha'
+
 /**
  * Place name -> city-level coordinates, through OpenStreetMap's Nominatim.
  *
@@ -36,6 +38,18 @@
  * That is why the hit carries `category`. It is a separate request, so it goes through the
  * same one-per-second queue: the second query counts against the policy.
  *
+ * `countrycodes` AND `address.country_code` ARE OSM's COUNTRIES, NOT ISO's.
+ * OSM files Hong Kong and Macau under China and every French overseas
+ * department under France, so `countrycodes=hk` and `countrycodes=re` match
+ * nothing at all — every event with those countries ended `not-found`, which
+ * reads as "the place name is wrong" when the name was fine. `OSM_COUNTRY_OVERRIDES`
+ * is the explicit list of ISO countries that differ; `osmCountryCode` applies
+ * it when the request is built and `sameCountry` applies it when a hit is
+ * checked, so the two directions cannot drift apart. Each row was verified
+ * against the live service (one query per code, the ISO one returning nothing
+ * and the OSM one returning a hit whose `country_code` is that code); a code
+ * that was not checked is not in the list, and falls through unchanged.
+ *
  * Two outcomes are deliberately distinct. `null` means Nominatim answered and
  * had nothing (`not-found`: a person should look at the place name). A thrown
  * `GeocodeError` means it did not answer (`failed`: retry later). Collapsing
@@ -46,7 +60,7 @@
 export type GeocodeRequest = {
   /** Free-text place, e.g. "Squamish, British Columbia". */
   query: string
-  /** ISO alpha-2, any case. Restricts results to this country. */
+  /** ISO alpha-2, any case. Restricts results to this country (translated by `osmCountryCode`). */
   countryAlpha2?: string
   /** Drop `featureType=settlement`; see the header. Everything else is unchanged. */
   relaxed?: boolean
@@ -57,7 +71,11 @@ export type GeocodeHit = {
   lng: number
   /** The settlement's own name, as the geocoder spells it. */
   displayName: string
-  /** ISO alpha-2, upper case, when the geocoder reports one. */
+  /**
+   * Upper case, when the geocoder reports one. This is OSM's country, which is
+   * ISO's for most places and not for Hong Kong or the French overseas
+   * departments (`CN`, `FR`): compare it with `sameCountry`, never `===`.
+   */
   countryAlpha2?: string
   /** OSM top-level class of the match (jsonv2 `category`): "place", "boundary", "highway", "amenity"… */
   category?: string
@@ -68,6 +86,47 @@ export class GeocodeError extends Error {
     super(message, options)
     this.name = 'GeocodeError'
   }
+}
+
+// ISO alpha-3 (what `race-events.country` stores) then the lowercase code
+// Nominatim uses for the same place. Verified against
+// https://nominatim.openstreetmap.org/search on 2026-10-21; the queries are
+// in the PR that added this table.
+const OSM_OVERRIDES = `
+HKG cn, MAC cn,
+REU fr, GLP fr, MTQ fr, GUF fr, MYT fr, PYF fr, NCL fr, SPM fr, BLM fr, MAF fr, WLF fr,
+SJM no, ALA fi,
+PRI us, GUM us, VIR us, ASM us, MNP us,
+BES nl, CUW nl, SXM nl, ABW nl,
+NFK au
+`
+
+/** Every override row, for the test that checks its shape. */
+export const OSM_COUNTRY_OVERRIDES: readonly (readonly [string, string])[] = OSM_OVERRIDES.split(',')
+  .map((pair) => pair.trim().split(/\s+/) as [string, string])
+  .filter((pair) => pair.length === 2 && pair[0] !== '')
+
+const OSM_COUNTRY_BY_ALPHA3 = new Map<string, string>(OSM_COUNTRY_OVERRIDES)
+
+/**
+ * The code Nominatim knows this ISO alpha-2 country by, lower case. Anything
+ * not in the override list is passed through, because for most countries the
+ * two agree and an unlisted one was not measured.
+ */
+export function osmCountryCode(alpha2: string): string {
+  const lower = alpha2.trim().toLowerCase()
+  const alpha3 = alpha2ToAlpha3(lower)
+  return (alpha3 && OSM_COUNTRY_BY_ALPHA3.get(alpha3)) || lower
+}
+
+/**
+ * Is a result in the country that was asked for? `requestedAlpha2` is ISO;
+ * `hitAlpha2` is what `readHit` returned, which is OSM's. Hong Kong and China
+ * are one country here — OSM cannot tell them apart in an answer — but a
+ * result for any *other* country is still a mismatch.
+ */
+export function sameCountry(requestedAlpha2: string, hitAlpha2: string): boolean {
+  return osmCountryCode(requestedAlpha2) === hitAlpha2.trim().toLowerCase()
 }
 
 const ENDPOINT = 'https://nominatim.openstreetmap.org/search'
@@ -123,7 +182,7 @@ export function buildSearchUrl({ query, countryAlpha2, relaxed }: GeocodeRequest
     'accept-language': 'en',
   })
   if (!relaxed) params.set('featureType', 'settlement')
-  if (countryAlpha2) params.set('countrycodes', countryAlpha2.trim().toLowerCase())
+  if (countryAlpha2) params.set('countrycodes', osmCountryCode(countryAlpha2))
   return `${ENDPOINT}?${params.toString()}`
 }
 

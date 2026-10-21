@@ -1,5 +1,5 @@
 import { alpha2ToAlpha3, alpha3ToAlpha2 } from './iso-alpha'
-import type { GeocodeHit, GeocodeRequest } from './nominatim'
+import { sameCountry, type GeocodeHit, type GeocodeRequest } from './nominatim'
 
 /**
  * From a race event to a city-level point, without ever asking anyone for a
@@ -266,7 +266,14 @@ export async function resolveEventGeo(deps: GeoDeps, input: EventGeoInput): Prom
   // Belt and braces: `countrycodes` already makes this impossible against
   // Nominatim. It is checked anyway because the geocoder is a replaceable
   // file, and the guard should not live only in one implementation.
-  if (candidate.countryAlpha2 && hit.countryAlpha2 && hit.countryAlpha2 !== candidate.countryAlpha2) {
+  // `sameCountry`, not `!==`: the hit carries OSM's country code, which for a
+  // Hong Kong event is `CN` (nominatim.ts explains), and a strict comparison
+  // would reject exactly the answer the fix makes possible.
+  if (
+    candidate.countryAlpha2 &&
+    hit.countryAlpha2 &&
+    !sameCountry(candidate.countryAlpha2, hit.countryAlpha2)
+  ) {
     return {
       geoStatus: 'not-found',
       geocodedAt,
@@ -287,7 +294,7 @@ export async function resolveEventGeo(deps: GeoDeps, input: EventGeoInput): Prom
     geoPlace: relaxed ? `${hit.displayName}${RELAXED_MARK}` : hit.displayName,
     lat: roundCoord(hit.lat),
     lng: roundCoord(hit.lng),
-    ...(input.country ? {} : countryFrom(hit.countryAlpha2 ?? candidate.countryAlpha2)),
+    ...(input.country ? {} : countryFrom(countryToFill(candidate, hit))),
     geocodedAt,
     ...(relaxed ? { detail: `relaxed query matched "${hit.displayName}"` } : {}),
   }
@@ -322,6 +329,25 @@ export const RELAXED_MARK = ' (relaxed)'
  */
 function mayRelax(candidate: Candidate): boolean {
   return Boolean(candidate.countryAlpha2) || candidate.source === 'edition'
+}
+
+/**
+ * Which alpha-2 to write into an event that had no country.
+ *
+ * A hit's `country_code` is OSM's, and `CN` / `FR` are ambiguous: Hong Kong
+ * and Réunion answer with them too. When the place came from the model and the
+ * model named a country, that name was ISO's and the hit has just been
+ * checked to agree with it (`sameCountry`), so it is the better of the two —
+ * a model that said `HK` yields HKG, not CHN. With nothing but the hit to go
+ * on (an edition's location for an event with no country) the hit's code is
+ * all there is: such an event reads as CHN or FRA, which is the same country
+ * as far as OSM can say, and an admin can correct it in /admin.
+ */
+function countryToFill(candidate: Candidate, hit: GeocodeHit): string | undefined {
+  if (candidate.countryAlpha2 && hit.countryAlpha2 && sameCountry(candidate.countryAlpha2, hit.countryAlpha2)) {
+    return candidate.countryAlpha2
+  }
+  return hit.countryAlpha2 ?? candidate.countryAlpha2
 }
 
 function countryFrom(alpha2: string | undefined): { country?: string } {

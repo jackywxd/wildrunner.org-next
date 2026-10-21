@@ -403,12 +403,12 @@ export const SEED_EVENTS: SeedEvent[] = [
     "website": "https://ushuaia.utmb.world/"
   },
   {
-    "country": "BRA",
+    "country": "CHL",
     "key": "utmb-torrencial",
     "name": "Torrencial Trail",
     "series": "utmb",
     "source": "https://torrencial.utmb.world/races",
-    "verifiedAt": "2026-08-05",
+    "verifiedAt": "2026-10-21",
     "website": "https://torrencial.utmb.world/races"
   },
   {
