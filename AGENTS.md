@@ -110,6 +110,27 @@ round trip, not the write.
   so no update is issued, and there is no root cause here — only the
   observation and the rule.
 
+### A new `date` field kills a fresh database's migrations
+
+`20260829_041500_add_marathon_majors` reads `race-events` with `payload.find`,
+and it runs **before** any column added after it exists. Drizzle quotes column
+names with double quotes, and in SQLite a double-quoted name that matches no
+column is silently a *string literal* — so the missing column reads back as the
+text `"geocoded_at"`, and Payload's date transform runs
+`new Date("geocoded_at").toISOString()`:
+
+```
+Error running migration 20260829_041500_add_marathon_majors Invalid time value.
+```
+
+That fails `payload migrate` on every empty database — `db:reset:local` and the
+CI fixture build — while every deployed database, already past that migration,
+is untouched. So a green deploy proves nothing about it. `race-events.geocodedAt`
+is `type: 'text'` holding an ISO string for exactly this reason. A `number`,
+`text`, `select` or `checkbox` is harmless (a stray string where nothing reads
+it); only a `date` throws. **Before adding a `date` field to a collection an
+older migration reads through the Local API, run `pnpm db:reset:local`.**
+
 ### `payload.db.create` does not fall through to the SQL column default
 
 A new column added with a "safe" DDL default does not protect the scripts that

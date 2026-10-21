@@ -374,6 +374,21 @@ export interface RaceEvent {
    * The day somebody read the source. Empty means never. Do not bump it for rows you did not actually re-read.
    */
   verifiedAt?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  /**
+   * The settlement the geocoder matched, e.g. Squamish.
+   */
+  geoPlace?: string | null;
+  geoSource?: ('edition' | 'ai' | 'manual') | null;
+  /**
+   * Filter the list on this to review what automation could not place.
+   */
+  geoStatus?: ('ok' | 'no-place' | 'not-found' | 'failed') | null;
+  /**
+   * ISO timestamp of the last automatic lookup. Set by the system.
+   */
+  geocodedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -887,6 +902,12 @@ export interface RaceEventsSelect<T extends boolean = true> {
   itraUrl?: T;
   source?: T;
   verifiedAt?: T;
+  lat?: T;
+  lng?: T;
+  geoPlace?: T;
+  geoSource?: T;
+  geoStatus?: T;
+  geocodedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

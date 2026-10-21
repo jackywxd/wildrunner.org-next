@@ -95,6 +95,10 @@ export const getRaceCatalogueEvents = cache(
       nameZh: event.nameZh ?? undefined,
       series: event.series,
       country: event.country ?? undefined,
+      // Together or not at all: a lone coordinate would plot on an axis.
+      ...(typeof event.lat === "number" && typeof event.lng === "number"
+        ? { lat: event.lat, lng: event.lng }
+        : {}),
       distances: distancesByEventId.get(event.id) ?? [],
     }));
   },

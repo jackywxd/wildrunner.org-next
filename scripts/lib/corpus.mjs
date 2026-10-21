@@ -29,6 +29,13 @@ import { execSync } from "node:child_process";
  * when its (event, year) has none, and running the CSV import afterwards
  * upgrades any such stub with the reviewed data.
  *
+ * `geocode:events` is after `seed:editions` so the stand-in sees the same
+ * editions the hooks did. It is needed at all because the catalogue's events
+ * are inserted by migrations in raw SQL, which fires no `afterChange` — the
+ * events a record points at would otherwise have no coordinates, and the
+ * footprint map would have nothing to draw in CI. In this lane it makes no
+ * network call: `realAIAvailable()` is false, so it reads the committed CSV.
+ *
  * `seed:qualifiers` is order-independent — it only updates qualifier columns
  * on categories the schema step already created — and is last because it is
  * the cheapest to re-run alone.
@@ -39,6 +46,7 @@ export const SEED_STEPS = [
   ["pnpm seed:races", "race schedule"],
   ["pnpm seed:e2e:account", "the test account, and ownership"],
   ["pnpm seed:editions", "editions imported from the reviewed CSV"],
+  ["pnpm geocode:events", "event coordinates, from data/race-event-places.csv"],
   ["pnpm seed:qualifiers", "Western States / Hardrock qualifier flags"],
 ];
 
@@ -84,6 +92,10 @@ export function runSeeds(label) {
  * that already works against this file, and AGENTS.md is explicit that a probe
  * written five minutes ago is the wrong instrument.
  */
+//
+// A third element names a narrower set to count, for a step whose output is a
+// column rather than a table: `race_events` is full the moment the schema step
+// ends, so the geocode step is only visible in how many rows have a point.
 const MUST_NOT_BE_EMPTY = [
   ["posts", "pnpm migrate:velite"],
   ["media", "pnpm migrate:velite"],
@@ -91,6 +103,11 @@ const MUST_NOT_BE_EMPTY = [
   ["race_events", "pnpm seed:races"],
   ["users", "pnpm seed:e2e:account"],
   ["race_editions", "pnpm seed:editions"],
+  [
+    "race_events_placed",
+    "pnpm geocode:events",
+    "race_events WHERE lat IS NOT NULL AND lng IS NOT NULL",
+  ],
 ];
 
 export function verifyCorpus(label) {
@@ -104,7 +121,7 @@ export function verifyCorpus(label) {
   // output of running it, leaving `FROM  ,` and a syntax error. Also found by
   // running it.
   const sql = MUST_NOT_BE_EMPTY.map(
-    ([table]) => `(SELECT COUNT(*) FROM ${table}) AS ${table}`,
+    ([name, , from]) => `(SELECT COUNT(*) FROM ${from ?? name}) AS ${name}`,
   ).join(", ");
 
   const raw = execSync(

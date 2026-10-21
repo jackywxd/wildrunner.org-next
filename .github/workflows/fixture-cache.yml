@@ -71,6 +71,7 @@ jobs:
               'src/collections/**',
               'src/payload.config.ts',
               'src/lib/races/**',
+              'src/lib/geo/**',
               '.velite/**',
               'data/*.csv',
               'scripts/migrate-velite-to-payload.ts',
@@ -78,6 +79,8 @@ jobs:
               'scripts/seed-e2e-account.ts',
               'scripts/import-race-editions.ts',
               'scripts/import-race-qualifiers.ts',
+              'scripts/geocode-race-events.ts',
+              'scripts/lib/corpus.mjs',
               'pnpm-lock.yaml'
             ) }}
       - name: Seed the corpus

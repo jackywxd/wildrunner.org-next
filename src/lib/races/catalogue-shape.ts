@@ -33,6 +33,14 @@ export type CatalogueEvent = {
   series: RaceSeries;
   /** Not required on the collection — a handful of rows predate the check. */
   country?: string;
+  /**
+   * City-level position for the footprint map, 0.1° resolution
+   * (`race-events.lat/lng`, filled by src/lib/geo/). Both or neither; absent
+   * means the event has not been placed — the map leaves it out rather than
+   * drawing it at (0, 0) or at its country's centre.
+   */
+  lat?: number;
+  lng?: number;
   distances: CatalogueDistance[];
 };
 
