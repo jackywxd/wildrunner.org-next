@@ -67,6 +67,7 @@
   },
   "home": {
     "timeline": "穿越时光",
+    "footprints": "野马足迹",
     "viewPosts": "查看文章",
     "about": "关于我们",
     "upcomingRaces": "近期赛事",
@@ -175,7 +176,7 @@
   "footprints": {
     "title": "野马足迹",
     "subtitle": "野马营跑过的比赛，依时间在世界地图上连成一条航线。",
-    "pageDescription": "从最早的一场开始，逐站飞越每一场野马跑过的比赛。",
+    "pageDescription": "从最新的一场开始，逐站飞越每一场野马跑过的比赛。",
     "back": "← 穿越时光",
     "mapAria": "野马营跑过的比赛，依时间顺序在世界地图上连成的航线",
     "listTitle": "所有站点",
@@ -187,7 +188,6 @@
     "unplacedAdminLink": "到后台补上",
     "soundOn": "落地音效：开",
     "soundOff": "落地音效：关",
-    "playMusic": "播放音乐",
     "empty": "还没有可以画在地图上的比赛。"
   },
   "music": {

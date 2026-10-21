@@ -137,6 +137,17 @@ export default async function Home() {
             >
               {t.home.timeline}
             </Link>
+            {/* Beside the primary button, and outlined like the rest: the
+                view allows one primary. 野馬足跡 is the same history as 穿越時光
+                drawn on a map, so it sits next to it rather than among the
+                site-wide links. */}
+            <Link
+              href="/riders/footprints"
+              data-testid="home-footprints-link"
+              className={cn(buttonVariants({ variant: "outline" }), "px-6")}
+            >
+              {t.home.footprints}
+            </Link>
             <Link
               href="/posts"
               className={cn(buttonVariants({ variant: "outline" }), "px-6")}

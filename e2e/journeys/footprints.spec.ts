@@ -117,7 +117,7 @@ async function openFootprints(page: Page) {
 }
 
 test.describe("V-FOOT 野馬足跡", () => {
-  test("V-FOOT-T1: the list is the club's placed races in time order, and the map moves by itself", async ({
+  test("V-FOOT-T1: the list is the club's placed races newest first, and the map moves by itself", async ({
     page,
     request,
   }) => {
@@ -148,14 +148,15 @@ test.describe("V-FOOT 野馬足跡", () => {
     expect(new Set(keys).size).toBe(keys.length);
     expect([...keys].sort()).toEqual(expected.map((stop) => stop.key).sort());
 
-    // Oldest first. Each stop is placed by (year, date) from the API, and a
-    // stop with no date sorts to the start of its year, as the page does.
+    // Newest first, as the timeline. Each stop is placed by (year, date) from
+    // the API, and a stop with no date (sortDay "") sorts after every dated
+    // stop of its year, as the page does.
     const byKey = new Map(expected.map((stop) => [stop.key, stop]));
     const order = keys.map((key) => byKey.get(key)!);
     for (let i = 1; i < order.length; i++) {
       const [a, b] = [order[i - 1], order[i]];
       const ahead = a.year !== b.year ? a.year - b.year : a.sortDay < b.sortDay ? -1 : a.sortDay > b.sortDay ? 1 : 0;
-      expect(ahead, `${a.key} is listed before ${b.key}, but ran after it`).toBeLessThanOrEqual(0);
+      expect(ahead, `${a.key} is listed before ${b.key}, but ran before it`).toBeGreaterThanOrEqual(0);
     }
 
     // It starts without being asked: no click, no key, and the current stop
@@ -216,6 +217,19 @@ test.describe("V-FOOT 野馬足跡", () => {
     // real one, so any id on it is present twice and a strict locator refuses
     // to pick. race-report.spec.ts works round the same thing the same way.
     await expect(page.locator(`[id="${anchor}"]`).first()).toBeAttached();
+  });
+
+  test("V-FOOT-T3: the homepage's 野馬足跡 button opens the map", async ({ page }) => {
+    // The homepage is where most people arrive, so the button is the way in
+    // for a first-time visitor. By clicking, not by URL: a soft navigation is
+    // exactly what `goto` cannot exercise (AGENTS.md, "Tests navigate with
+    // goto; users click"). The map being visible is what separates "the link
+    // resolved" from "the page that answers is the footprints page".
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await waitForHydration(page);
+    await page.getByTestId("home-footprints-link").click();
+    await expect(page).toHaveURL(/\/riders\/footprints$/, { timeout: budget(15_000) });
+    await expect(page.getByTestId("footprint-map")).toBeVisible({ timeout: budget(15_000) });
   });
 
   test("V-FOOT-T2: asked for no motion, the whole route is drawn and nothing moves", async ({
