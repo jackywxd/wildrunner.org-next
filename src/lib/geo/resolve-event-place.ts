@@ -246,6 +246,15 @@ export async function resolveEventGeo(deps: GeoDeps, input: EventGeoInput): Prom
         countryAlpha2: candidate.countryAlpha2,
         relaxed: true,
       })
+      // A street is not where a race is (see `mayRelax`). Not-found, not
+      // failed: the geocoder answered, and what it answered is unusable.
+      if (hit && hit.category === 'highway') {
+        return {
+          geoStatus: 'not-found',
+          geocodedAt,
+          detail: `relaxed query for "${candidate.query}" matched a street ("${hit.displayName}")`,
+        }
+      }
       relaxed = hit !== null
     }
   } catch (error) {
@@ -301,6 +310,15 @@ export const RELAXED_MARK = ' (relaxed)'
  *     beside it has nothing: "Valdivia" or "Kimberley" unrestricted and
  *     unfiltered by feature type is exactly how a namesake on another
  *     continent wins. That stays `not-found`, where a person will see it.
+ *
+ * And even with a pin, the relaxed hit must not be a street (OSM category
+ * `highway`). The strict query excluded streets by construction; dropping
+ * `featureType` lets them back in, and the first local run proved it:
+ * utmb-pacific-trails ("Santa Ynez Valley, California") matched Santa Ynez
+ * Street in Orange County, 150km from the race. Other categories are kept —
+ * a hit on a clinic or a park in the right town is still the right town
+ * (Katoomba) and the " (relaxed)" mark flags it for review; a street can be
+ * in the right country and the wrong region with nothing to show for it.
  */
 function mayRelax(candidate: Candidate): boolean {
   return Boolean(candidate.countryAlpha2) || candidate.source === 'edition'

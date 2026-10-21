@@ -29,7 +29,11 @@
  * query finds nothing for a place that exists. The relaxed request is the
  * same text and the same `countrycodes`, with only `featureType` dropped —
  * nothing else is loosened, and whether it is allowed at all is decided in
- * resolve-event-place.ts. It is a separate request, so it goes through the
+ * resolve-event-place.ts, which also refuses a relaxed hit whose `category`
+ * is `highway`: without `featureType` the best text match for "Santa Ynez
+ * Valley" was Santa Ynez Street in Orange County, 150km from the race, and the
+ * settlement filter that used to exclude streets is exactly what was dropped.
+ * That is why the hit carries `category`. It is a separate request, so it goes through the
  * same one-per-second queue: the second query counts against the policy.
  *
  * Two outcomes are deliberately distinct. `null` means Nominatim answered and
@@ -55,6 +59,8 @@ export type GeocodeHit = {
   displayName: string
   /** ISO alpha-2, upper case, when the geocoder reports one. */
   countryAlpha2?: string
+  /** OSM top-level class of the match (jsonv2 `category`): "place", "boundary", "highway", "amenity"… */
+  category?: string
 }
 
 export class GeocodeError extends Error {
@@ -82,6 +88,7 @@ type NominatimRow = {
   lon?: string
   name?: string
   display_name?: string
+  category?: string
   address?: { country_code?: string }
 }
 
@@ -136,6 +143,7 @@ export function readHit(rows: unknown): GeocodeHit | null {
     lng,
     displayName,
     countryAlpha2: typeof country === 'string' && country ? country.toUpperCase() : undefined,
+    category: typeof row.category === 'string' && row.category ? row.category : undefined,
   }
 }
 

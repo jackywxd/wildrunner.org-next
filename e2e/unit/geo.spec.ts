@@ -335,8 +335,10 @@ test.describe("U-GEO placing a race event on the map", () => {
     expect(relaxed.searchParams.toString()).toBe(strictParams.toString());
 
     expect(
-      readHit([{ lat: "49.70", lon: "-123.15", name: "Squamish", address: { country_code: "ca" } }]),
-    ).toEqual({ lat: 49.7, lng: -123.15, displayName: "Squamish", countryAlpha2: "CA" });
+      readHit([
+        { lat: "49.70", lon: "-123.15", name: "Squamish", category: "boundary", address: { country_code: "ca" } },
+      ]),
+    ).toEqual({ lat: 49.7, lng: -123.15, displayName: "Squamish", countryAlpha2: "CA", category: "boundary" });
     // Nothing, or numbers that are not coordinates, is "not found".
     expect(readHit([])).toBeNull();
     expect(readHit([{ lat: "north", lon: "-123", name: "X" }])).toBeNull();
@@ -390,6 +392,45 @@ test.describe("U-GEO placing a race event on the map", () => {
     const miss = await resolveEventGeo(bothMiss.built, event({ editionLocation: "Nowhere" }));
     expect(miss.geoStatus).toBe("not-found");
     expect(miss.lat).toBeUndefined();
+
+    // (c2) STREETS. The loose query let "Santa Ynez Valley" resolve to Santa
+    // Ynez Street in the wrong county. A relaxed hit whose OSM category is
+    // `highway` is not-found (not failed — the geocoder answered); an amenity
+    // in the right town stays ok. The guard is for the relaxed path only: a
+    // strict hit is never category-checked, because `featureType` already
+    // excluded streets there.
+    const streetRelaxed = deps({
+      geocode: async (req) =>
+        req.relaxed
+          ? { lat: 33.7, lng: -118.0, displayName: "Santa Ynez Street", countryAlpha2: "US", category: "highway" }
+          : null,
+    });
+    const street = await resolveEventGeo(
+      streetRelaxed.built,
+      event({ country: "USA", editionLocation: "Santa Ynez Valley, California" }),
+    );
+    expect(street.geoStatus).toBe("not-found");
+    expect(street.lat).toBeUndefined();
+    expect(street.geoPlace).toBeUndefined();
+
+    const clinic = await resolveEventGeo(
+      deps({
+        geocode: async (req) =>
+          req.relaxed
+            ? { lat: -33.7, lng: 150.3, displayName: "Katoomba Community Dialysis Centre", countryAlpha2: "AU", category: "amenity" }
+            : null,
+      }).built,
+      event({ country: "AUS", editionLocation: "Katoomba, Blue Mountains, NSW" }),
+    );
+    expect(clinic).toMatchObject({ geoStatus: "ok", geoPlace: "Katoomba Community Dialysis Centre (relaxed)" });
+
+    const strictStreet = await resolveEventGeo(
+      deps({
+        geocode: async () => ({ lat: 1.5, lng: 2.5, displayName: "Main Street", countryAlpha2: "CA", category: "highway" }),
+      }).built,
+      event({ editionLocation: "Squamish, British Columbia" }),
+    );
+    expect(strictStreet.geoStatus).toBe("ok");
 
     // (d) the relaxed answer is held to the same country as the strict one.
     const wrongCountry = deps({
