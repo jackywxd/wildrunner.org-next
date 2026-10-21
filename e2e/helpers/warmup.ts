@@ -64,6 +64,10 @@ const ROUTES = [
   "/api/print/posts/warmup-not-a-real-post",
   "/api/print/riders/warmup-not-a-real-rider/timeline",
   "/gallery",
+  // The wall's paging Route Handler, the same shape as
+  // `/api/riders/timeline` below: its own compilation unit, which W-WALL
+  // reaches directly and would otherwise compile inside its own budget.
+  "/api/gallery/wall",
   "/gallery/warmup-not-a-real-gallery",
   "/gallery/m/999999999",
   "/races",
@@ -71,12 +75,33 @@ const ROUTES = [
   "/riders",
   "/riders/timeline",
   // The Route Handler the club timeline's infinite scroll pages through, and
-  // a compilation unit of its own: warming the page does not compile it.
-  // V-CLUB-T1 is the first test in its shard and the first thing to scroll,
-  // so it paid this compile inside a 20s budget — measured at 15.0s, 16.9s
-  // and 10.7s on #200-#202 and over 20s on #203. A bare GET without a cursor
-  // is enough to compile it; the answer is not read.
+  // a compilation unit of its own: warming the page does not compile it. A
+  // bare GET without a cursor is enough; the answer is not read.
+  //
+  // It was added (#203) as the reason V-CLUB-T1 took 10.7-20s, and it was
+  // not: it compiles in ~1.2s on CI, and the re-run with it in place still
+  // took 18.5s. What that test was paying for is the next entry.
   "/api/riders/timeline",
+  // PAYLOAD'S OWN REST HANDLER, `(payload)/api/[...slug]/route.ts`: one
+  // compilation unit behind every `/api/<collection>/...` address, and so
+  // behind `/api/media/file/<name>` — which is where every thumbnail in this
+  // lane points. The seeded corpus stores relative media URLs and CI's R2
+  // holds no bytes, so each thumbnail is a whole Payload request that ends in
+  // a 404. (Production's thumbnails point at the image CDN and never reach
+  // the Worker.)
+  //
+  // Nothing above compiles it, so the first page to show a thumbnail paid for
+  // it mid-test. In shard 2 that is V-CLUB-T1, the moment the rail lands:
+  // about thirty thumbnails ask at once and the first six sit on the compile
+  // — 6.2s on CI, and `next.js: 4.1s` of a 4.4s 404 in a laptop's dev-server
+  // log, against 0.16s once warm. Meanwhile the browser paints nothing, and
+  // on CI the scroll's request for the next page goes unanswered. Both CI
+  // failures (#201, #203) show 4.7-5.0s without a frame, ending exactly as
+  // those six 404s came back, and the test running out of its 20s with the
+  // next page still pending.
+  //
+  // A placeholder name compiles it as well as a real file would.
+  "/api/media/file/warmup-not-a-real-file",
   // A new compilation unit, not covered by the timeline beside it; V-FOOT
   // arrives here by clicking and would otherwise pay its first compile.
   "/riders/footprints",
