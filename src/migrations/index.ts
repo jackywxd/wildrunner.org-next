@@ -37,6 +37,7 @@ import * as migration_20261013_120000_add_ultrasignup_import from './20261013_12
 import * as migration_20261014_070000_add_race_category_historical from './20261014_070000_add_race_category_historical';
 import * as migration_20261014_180000_add_race_catalogue_requests from './20261014_180000_add_race_catalogue_requests';
 import * as migration_20261014_200000_add_race_record_ultrasignup_source from './20261014_200000_add_race_record_ultrasignup_source';
+import * as migration_20261020_200000_add_race_event_geo from './20261020_200000_add_race_event_geo';
 
 export const migrations = [
   {
@@ -233,5 +234,10 @@ export const migrations = [
     up: migration_20261014_200000_add_race_record_ultrasignup_source.up,
     down: migration_20261014_200000_add_race_record_ultrasignup_source.down,
     name: '20261014_200000_add_race_record_ultrasignup_source',
+  },
+  {
+    up: migration_20261020_200000_add_race_event_geo.up,
+    down: migration_20261020_200000_add_race_event_geo.down,
+    name: '20261020_200000_add_race_event_geo',
   },
 ];

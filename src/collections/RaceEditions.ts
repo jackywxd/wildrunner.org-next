@@ -2,6 +2,7 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminUser } from '../access'
 import { youTubeVideoId } from '../lib/youtube'
+import { geocodeFromEdition } from './hooks/geocode-race-event'
 
 /**
  * One running of a race: the 2026 Hardrock, the 2015 Hardrock.
@@ -67,6 +68,9 @@ export const RaceEditions: CollectionConfig = {
     delete: isAdmin,
     admin: ({ req }) => isAdminUser(req.user),
   },
+  // A location written or changed here may place the event on the footprint
+  // map (src/lib/geo/). After the response — see hooks/geocode-race-event.ts.
+  hooks: { afterChange: [geocodeFromEdition] },
   indexes: [{ fields: ['event', 'year'], unique: true }],
   fields: [
     {

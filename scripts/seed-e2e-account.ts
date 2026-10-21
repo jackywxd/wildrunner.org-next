@@ -239,11 +239,24 @@ async function seedRaceRecords(
     { eventId: "other-hardrock", distanceId: "100m", year: 2023 },
     { eventId: "utmb-mont-blanc", distanceId: "ccc", year: 2025 },
     { eventId: "utmb-mont-blanc", distanceId: "occ", year: 2024 },
+    // The fourth record exists for the footprint map (野馬足跡). The first
+    // three name two events, one in the Alps and one in the Rockies; a map
+    // that draws a route between races needs at least three places and one
+    // flight across the Pacific, and Hardrock -> Mt. Fuji is that flight
+    // (more than 180 degrees of longitude the short way round).
+    // wtm-mt-fuji is placed from its edition's location ("Yamanashi /
+    // Shizuoka" -> Yamanashi), no model involved, and no e2e spec claims it.
+    // Not utmb-whistler, which club-timeline.spec.ts picks, and not
+    // wtm-hk100, whose "Sai Kung" Nominatim does not find as a settlement.
+    { eventId: "wtm-mt-fuji", distanceId: "fuji100", year: 2025 },
   ];
 
   let created = 0;
-  for (const [index, owner] of users.entries()) {
-    const record = RECORDS[index % RECORDS.length];
+  // Over the records, not over the users: the first three keep the owners
+  // they always had (index modulo three accounts) and the fourth goes to the
+  // first account again, so nobody else's badges move.
+  for (const [index, record] of RECORDS.entries()) {
+    const owner = users[index % users.length];
     const existing = await payload.count({
       collection: "race-records",
       where: {

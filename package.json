@@ -74,6 +74,9 @@
     "seed:qualifiers": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --write",
     "seed:qualifiers:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --remote --write",
     "seed:qualifiers:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/import-race-qualifiers.ts --remote --write",
+    "geocode:events": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts",
+    "geocode:events:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
+    "geocode:events:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
     "generate:zh-hans": "tsx scripts/generate-zh-hans.ts"
   },
   "dependencies": {
