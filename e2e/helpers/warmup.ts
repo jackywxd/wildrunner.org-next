@@ -70,6 +70,13 @@ const ROUTES = [
   "/races/warmup-not-a-real-event/2026",
   "/riders",
   "/riders/timeline",
+  // The Route Handler the club timeline's infinite scroll pages through, and
+  // a compilation unit of its own: warming the page does not compile it.
+  // V-CLUB-T1 is the first test in its shard and the first thing to scroll,
+  // so it paid this compile inside a 20s budget — measured at 15.0s, 16.9s
+  // and 10.7s on #200-#202 and over 20s on #203. A bare GET without a cursor
+  // is enough to compile it; the answer is not read.
+  "/api/riders/timeline",
   // A new compilation unit, not covered by the timeline beside it; V-FOOT
   // arrives here by clicking and would otherwise pay its first compile.
   "/riders/footprints",
