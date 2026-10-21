@@ -21,6 +21,10 @@ import type { GeocodeHit, GeocodeRequest } from './nominatim'
  *      the middle of France for a race in Chamonix draws a route that was
  *      never flown, and a map that is wrong with confidence is worse than a
  *      map with a gap the admin can see in the `geoStatus` filter.
+ * Whichever name wins is geocoded strictly first (a settlement), then — if
+ * that finds nothing and `mayRelax` allows — once more without the
+ * settlement filter, same text and same country. A relaxed hit is stored
+ * with " (relaxed)" after its name so a person can find and review it.
  * A hand-entered point (`manual`) outranks all of it, but that rule lives
  * with the hooks (`shouldResolveEvent`), because it is about when to run at
  * all, not about how to resolve.
@@ -233,13 +237,22 @@ export async function resolveEventGeo(deps: GeoDeps, input: EventGeoInput): Prom
 
   // --- 2. a point ---------------------------------------------------------
   let hit: GeocodeHit | null
+  let relaxed = false
   try {
     hit = await deps.geocode({ query: candidate.query, countryAlpha2: candidate.countryAlpha2 })
+    if (!hit && mayRelax(candidate)) {
+      hit = await deps.geocode({
+        query: candidate.query,
+        countryAlpha2: candidate.countryAlpha2,
+        relaxed: true,
+      })
+      relaxed = hit !== null
+    }
   } catch (error) {
     return { geoStatus: 'failed', geocodedAt, detail: `geocoder: ${describe(error)}` }
   }
   if (!hit) {
-    return { geoStatus: 'not-found', geocodedAt, detail: `no settlement for "${candidate.query}"` }
+    return { geoStatus: 'not-found', geocodedAt, detail: `no place for "${candidate.query}"` }
   }
   // Belt and braces: `countrycodes` already makes this impossible against
   // Nominatim. It is checked anyway because the geocoder is a replaceable
@@ -255,12 +268,42 @@ export async function resolveEventGeo(deps: GeoDeps, input: EventGeoInput): Prom
   return {
     geoStatus: 'ok',
     geoSource: candidate.source,
-    geoPlace: hit.displayName,
+    // The name actually matched, plus a marker when it took the looser query:
+    // a relaxed hit can be a district or an island, which is fine for a
+    // city-level dot but is what a reviewer should look at first. It lives in
+    // `geoPlace` — a column that is already visible in the admin form and
+    // searchable in the list filter ("Place contains relaxed") — rather than
+    // in a new field, so it needs no migration and travels through
+    // data/race-event-places.csv untouched.
+    geoPlace: relaxed ? `${hit.displayName}${RELAXED_MARK}` : hit.displayName,
     lat: roundCoord(hit.lat),
     lng: roundCoord(hit.lng),
     ...(input.country ? {} : countryFrom(hit.countryAlpha2 ?? candidate.countryAlpha2)),
     geocodedAt,
+    ...(relaxed ? { detail: `relaxed query matched "${hit.displayName}"` } : {}),
   }
+}
+
+export const RELAXED_MARK = ' (relaxed)'
+
+/**
+ * May a place the strict query missed be asked again without
+ * `featureType=settlement`?
+ *
+ * Only where something other than the query still pins the answer.
+ *   - With a country, `countrycodes` is the pin: the looser question can
+ *     only land in the right country, which is the same guard the strict one
+ *     had.
+ *   - With no country, the pin has to come from the text. An edition's
+ *     `location` was written down by a person from the organiser's page and
+ *     usually carries its own region ("Sai Kung, New Territories"), so the
+ *     words constrain the match. A name the model produced with no country
+ *     beside it has nothing: "Valdivia" or "Kimberley" unrestricted and
+ *     unfiltered by feature type is exactly how a namesake on another
+ *     continent wins. That stays `not-found`, where a person will see it.
+ */
+function mayRelax(candidate: Candidate): boolean {
+  return Boolean(candidate.countryAlpha2) || candidate.source === 'edition'
 }
 
 function countryFrom(alpha2: string | undefined): { country?: string } {

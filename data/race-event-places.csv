@@ -1,8 +1,10 @@
 event_key,place,lat,lng,source,geocoded_at
+other-badwater,Death Valley (relaxed),36.4,-116.9,edition,2026-10-21T05:08:17.928Z
 other-black-spur,Kimberley,49.7,-116,edition,2026-10-21T04:02:03.918Z
 other-canadian-death-race,Hamlet of Grande Cache,53.9,-119.1,edition,2026-10-21T04:02:04.778Z
 other-cocodona,Black Canyon City,34.1,-112.2,edition,2026-10-21T04:02:05.594Z
 other-fat-dog,Keremeos,49.2,-119.8,edition,2026-10-21T04:02:08.108Z
+other-frosty-mountain,Manning Park East Gate (relaxed),49.1,-120.6,edition,2026-10-21T05:08:24.543Z
 other-hardrock,Silverton,37.8,-107.7,edition,2026-10-21T04:02:10.043Z
 other-leadville,Leadville,39.3,-106.3,edition,2026-10-21T04:02:11.848Z
 other-moab-240,Moab,38.6,-109.5,edition,2026-10-21T04:02:13.312Z
@@ -14,23 +16,32 @@ other-ticino-wildlands,Ticino,46.3,8.8,edition,2026-10-21T04:02:18.894Z
 other-tor-des-geants,Courmayeur,45.8,6.9,edition,2026-10-21T04:02:20.184Z
 other-transvulcania,La Palma,28.1,-15.5,edition,2026-10-21T04:02:22.542Z
 other-trofeo-kima,Val Masino,46.2,9.6,edition,2026-10-21T04:02:23.756Z
+other-wasatch,East Mountain Wilderness Park (relaxed),41.1,-111.9,edition,2026-10-21T05:08:33.532Z
 utmb-alsace,Obernai,48.5,7.5,edition,2026-10-21T04:02:27.231Z
 utmb-andorra,Ordino,42.6,1.5,edition,2026-10-21T04:02:28.530Z
 utmb-arc-of-attrition,Cornwall,50.4,-4.7,edition,2026-10-21T04:02:28.723Z
+utmb-australia,Katoomba Community Dialysis Centre (relaxed),-33.7,150.3,edition,2026-10-21T05:08:35.475Z
+utmb-bariloche,Patagonia (relaxed),-41.1,-71.5,edition,2026-10-21T05:08:37.368Z
 utmb-borealys,Mont-Tremblant,46.1,-74.6,edition,2026-10-21T04:02:32.019Z
 utmb-canyons,Auburn,38.9,-121.1,edition,2026-10-21T04:02:33.765Z
 utmb-chianti,Radda in Chianti,43.5,11.4,edition,2026-10-21T04:02:34.415Z
 utmb-desert-rats,Fruita,39.2,-108.7,edition,2026-10-21T04:02:35.439Z
 utmb-eiger,Grindelwald,46.6,8,edition,2026-10-21T04:02:36.476Z
+utmb-grindstone,Museum of the Shenandoah Valley (relaxed),39.2,-78.2,edition,2026-10-21T05:08:39.782Z
 utmb-istria,Umag,45.4,13.5,edition,2026-10-21T04:02:39.374Z
 utmb-kenting,Kenting,21.9,120.8,edition,2026-10-21T04:02:42.489Z
 utmb-kodiak,Big Bear Lake,34.2,-116.9,edition,2026-10-21T04:02:43.063Z
+utmb-kosciuszko,Snowy Mountains (relaxed),-36.4,148.3,edition,2026-10-21T05:08:46.770Z
 utmb-lavaredo,Cortina d'Ampezzo,46.6,12.1,edition,2026-10-21T04:02:46.587Z
 utmb-malaysia,Taiping,4.9,100.7,edition,2026-10-21T04:02:47.553Z
+utmb-mallorca,Majorca (relaxed),39.6,2.9,edition,2026-10-21T05:08:51.037Z
 utmb-mont-blanc,Chamonix-Mont-Blanc,45.9,6.9,edition,2026-10-21T04:02:49.820Z
+utmb-mozart,Salzkammergut Radweg (relaxed),47.8,13.3,edition,2026-10-21T05:08:53.465Z
 utmb-mrww,Aosta Valley,45.7,7.4,edition,2026-10-21T04:02:52.459Z
 utmb-mut,George,-34,22.5,edition,2026-10-21T04:02:52.973Z
 utmb-nice,Nice,43.7,7.3,edition,2026-10-21T04:02:54.452Z
+utmb-oh-my-deus,Serra da Estrela (relaxed),40.3,-7.6,edition,2026-10-21T05:08:55.465Z
+utmb-pacific-trails,Santa Ynez Street (relaxed),33.7,-118,edition,2026-10-21T05:09:00.025Z
 utmb-paraty,Paraty,-23.2,-44.7,edition,2026-10-21T04:02:58.522Z
 utmb-puerto-vallarta,Puerto Vallarta,20.6,-105.2,edition,2026-10-21T04:02:59.661Z
 utmb-quito,Quito,-0.2,-78.5,edition,2026-10-21T04:03:00.733Z
@@ -46,6 +57,7 @@ utmb-whistler,Whistler,50.1,-123,edition,2026-10-21T04:03:11.735Z
 utmb-wildstrubel,Crans-Montana,46.3,7.5,edition,2026-10-21T04:03:13.213Z
 wtm-black-canyon,Spring Valley,34.3,-112.2,edition,2026-10-21T04:03:14.025Z
 wtm-cape-town,Cape Town,-33.9,18.4,edition,2026-10-21T04:03:15.051Z
+wtm-grampians,Grampians National Park (relaxed),-37.1,142.5,edition,2026-10-21T05:09:04.974Z
 wtm-miut,Porto Moniz,32.9,-17.2,edition,2026-10-21T04:03:18.920Z
 wtm-mt-fuji,Yamanashi Prefecture,35.6,138.6,edition,2026-10-21T04:03:19.817Z
 wtm-quebec-mega-trail,Charlevoix,47.6,-70.7,edition,2026-10-21T04:03:20.884Z

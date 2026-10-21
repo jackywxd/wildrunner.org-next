@@ -23,6 +23,15 @@
  * country is impossible rather than merely unlikely — "Valdivia" cannot
  * resolve to a namesake elsewhere.
  *
+ * `relaxed: true` is the one step down from that. A race is often named for a
+ * district, an island or a valley ("Sai Kung", "Mallorca", "Lantau Island")
+ * that Nominatim files under something other than a settlement, so the strict
+ * query finds nothing for a place that exists. The relaxed request is the
+ * same text and the same `countrycodes`, with only `featureType` dropped —
+ * nothing else is loosened, and whether it is allowed at all is decided in
+ * resolve-event-place.ts. It is a separate request, so it goes through the
+ * same one-per-second queue: the second query counts against the policy.
+ *
  * Two outcomes are deliberately distinct. `null` means Nominatim answered and
  * had nothing (`not-found`: a person should look at the place name). A thrown
  * `GeocodeError` means it did not answer (`failed`: retry later). Collapsing
@@ -35,6 +44,8 @@ export type GeocodeRequest = {
   query: string
   /** ISO alpha-2, any case. Restricts results to this country. */
   countryAlpha2?: string
+  /** Drop `featureType=settlement`; see the header. Everything else is unchanged. */
+  relaxed?: boolean
 }
 
 export type GeocodeHit = {
@@ -94,17 +105,17 @@ function reserveSlot(): Promise<void> {
   return turn
 }
 
-export function buildSearchUrl({ query, countryAlpha2 }: GeocodeRequest): string {
+export function buildSearchUrl({ query, countryAlpha2, relaxed }: GeocodeRequest): string {
   const params = new URLSearchParams({
     q: query,
     format: 'jsonv2',
     limit: '1',
-    featureType: 'settlement',
     addressdetails: '1',
     // One spelling per place regardless of the caller's locale: the result is
     // stored and shown later, to readers of either language.
     'accept-language': 'en',
   })
+  if (!relaxed) params.set('featureType', 'settlement')
   if (countryAlpha2) params.set('countrycodes', countryAlpha2.trim().toLowerCase())
   return `${ENDPOINT}?${params.toString()}`
 }

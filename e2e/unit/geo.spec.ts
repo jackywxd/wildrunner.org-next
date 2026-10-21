@@ -35,7 +35,7 @@ const NOW = new Date("2026-10-20T12:00:00.000Z");
 
 /** Fakes that record whether they were asked, so "never called" is assertable. */
 function deps(overrides: Partial<GeoDeps> = {}) {
-  const calls = { model: 0, geocode: [] as { query: string; countryAlpha2?: string }[] };
+  const calls = { model: 0, geocode: [] as { query: string; countryAlpha2?: string; relaxed?: boolean }[] };
   const built: GeoDeps = {
     askModel: async () => {
       calls.model += 1;
@@ -320,6 +320,20 @@ test.describe("U-GEO placing a race event on the map", () => {
     expect(url.searchParams.get("q")).toBe("Valdivia");
     expect(new URL(buildSearchUrl({ query: "Valdivia" })).searchParams.has("countrycodes")).toBe(false);
 
+    // The relaxed request differs in exactly one parameter: no featureType.
+    // Same text, same single result, same country — so it can only be a
+    // looser question, never a wider one.
+    const relaxed = new URL(
+      buildSearchUrl({ query: "Valdivia", countryAlpha2: "CL", relaxed: true }),
+    );
+    expect(relaxed.searchParams.has("featureType")).toBe(false);
+    expect(relaxed.searchParams.get("limit")).toBe("1");
+    expect(relaxed.searchParams.get("countrycodes")).toBe("cl");
+    expect(relaxed.searchParams.get("q")).toBe("Valdivia");
+    const strictParams = new URL(buildSearchUrl({ query: "Valdivia", countryAlpha2: "CL" })).searchParams;
+    strictParams.delete("featureType");
+    expect(relaxed.searchParams.toString()).toBe(strictParams.toString());
+
     expect(
       readHit([{ lat: "49.70", lon: "-123.15", name: "Squamish", address: { country_code: "ca" } }]),
     ).toEqual({ lat: 49.7, lng: -123.15, displayName: "Squamish", countryAlpha2: "CA" });
@@ -328,5 +342,115 @@ test.describe("U-GEO placing a race event on the map", () => {
     expect(readHit([{ lat: "north", lon: "-123", name: "X" }])).toBeNull();
     expect(readHit([{ lat: "95", lon: "0", name: "X" }])).toBeNull();
     expect(readHit({ error: "rate limited" })).toBeNull();
+  });
+
+  test("U-GEO-T7: a place the settlement query misses is asked once more, loosely, and only where something still pins it", async () => {
+    // Protects against: a district or island ("Sai Kung", "Mallorca") left
+    // off the map for want of a second question — and, the other way, a
+    // loose question that is allowed to run with no country and no human
+    // text behind it, where a namesake on another continent would win.
+    const strictMiss = (hit: { lat: number; lng: number; displayName: string; countryAlpha2?: string }) =>
+      deps({
+        geocode: async (req) => {
+          calls.push(req);
+          return req.relaxed ? hit : null;
+        },
+      });
+    const calls: { query: string; countryAlpha2?: string; relaxed?: boolean }[] = [];
+    const sai = { lat: 22.3833, lng: 114.2703, displayName: "Sai Kung", countryAlpha2: "HK" };
+
+    // (a) strict miss -> relaxed hit -> ok, marked, rounded, same text and country.
+    const hit = await resolveEventGeo(
+      strictMiss(sai).built,
+      event({ key: "wtm-hk100", country: "HKG", editionLocation: "Sai Kung, New Territories" }),
+    );
+    expect(hit).toMatchObject({
+      geoStatus: "ok",
+      geoSource: "edition",
+      geoPlace: "Sai Kung (relaxed)",
+      lat: 22.4,
+      lng: 114.3,
+    });
+    expect(calls).toEqual([
+      { query: "Sai Kung, New Territories", countryAlpha2: "HK" },
+      { query: "Sai Kung, New Territories", countryAlpha2: "HK", relaxed: true },
+    ]);
+
+    // (b) a strict hit never spends the second query and carries no marker.
+    const strict = deps();
+    const strictHit = await resolveEventGeo(
+      strict.built,
+      event({ editionLocation: "Squamish, British Columbia" }),
+    );
+    expect(strict.calls.geocode).toHaveLength(1);
+    expect(strictHit.geoPlace).toBe("Squamish");
+
+    // (c) both miss -> not-found, after exactly two questions.
+    const bothMiss = deps({ geocode: async () => null });
+    const miss = await resolveEventGeo(bothMiss.built, event({ editionLocation: "Nowhere" }));
+    expect(miss.geoStatus).toBe("not-found");
+    expect(miss.lat).toBeUndefined();
+
+    // (d) the relaxed answer is held to the same country as the strict one.
+    const wrongCountry = deps({
+      geocode: async (req) =>
+        req.relaxed ? { lat: 1, lng: 2, displayName: "Elsewhere", countryAlpha2: "AR" } : null,
+    });
+    expect(
+      (await resolveEventGeo(wrongCountry.built, event({ country: "CHL", editionLocation: "Valdivia" })))
+        .geoStatus,
+    ).toBe("not-found");
+
+    // (e) a transport error on the second question is `failed` (retry), not not-found.
+    const secondDown = deps({
+      geocode: async (req) => {
+        if (req.relaxed) throw new Error("timeout");
+        return null;
+      },
+    });
+    expect(
+      (await resolveEventGeo(secondDown.built, event({ editionLocation: "Nowhere" }))).geoStatus,
+    ).toBe("failed");
+
+    // (f) NO COUNTRY. A person's edition text may be relaxed; a model's name
+    // with no country beside it may not.
+    const seen: { relaxed?: boolean }[] = [];
+    const record = (relaxedHit: boolean) =>
+      deps({
+        askModel: async () => '{"city":"Kimberley","region":"BC"}',
+        geocode: async (req) => {
+          seen.push({ relaxed: req.relaxed });
+          return req.relaxed && relaxedHit
+            ? { lat: 49.67, lng: -116.0, displayName: "Kimberley", countryAlpha2: "CA" }
+            : null;
+        },
+      });
+
+    const aiNoCountry = await resolveEventGeo(record(true).built, event({ country: null }));
+    expect(aiNoCountry.geoStatus).toBe("not-found");
+    expect(seen).toEqual([{ relaxed: undefined }]);
+
+    seen.length = 0;
+    const editionNoCountry = await resolveEventGeo(
+      record(true).built,
+      event({ country: null, editionLocation: "Kimberley, BC" }),
+    );
+    expect(editionNoCountry).toMatchObject({ geoStatus: "ok", geoPlace: "Kimberley (relaxed)", country: "CAN" });
+    expect(seen).toEqual([{ relaxed: undefined }, { relaxed: true }]);
+
+    // …but a model name that DID bring its own country is pinned by it.
+    seen.length = 0;
+    const aiWithCountry = deps({
+      askModel: async () => '{"city":"Kimberley","region":"BC","country_alpha2":"CA"}',
+      geocode: async (req) => {
+        seen.push({ relaxed: req.relaxed });
+        return req.relaxed
+          ? { lat: 49.67, lng: -116.0, displayName: "Kimberley", countryAlpha2: "CA" }
+          : null;
+      },
+    });
+    const pinned = await resolveEventGeo(aiWithCountry.built, event({ country: null }));
+    expect(pinned).toMatchObject({ geoStatus: "ok", geoSource: "ai", geoPlace: "Kimberley (relaxed)" });
+    expect(seen).toEqual([{ relaxed: undefined }, { relaxed: true }]);
   });
 });
