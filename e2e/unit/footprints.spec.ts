@@ -133,6 +133,32 @@ test("U-FOOT-T2: one race in one year is one stop, and each runner counts once",
   });
 });
 
+test("U-FOOT-T9: a stop names the city its pin was placed from, never a review marker", () => {
+  // The card says where the pin is. A looser geocoder match carries a
+  // " (relaxed)" note for the admin who reviews it; a visitor must not read it.
+  const events = [
+    event("geo", { ...CHAMONIX, geoPlace: "Silverton (relaxed)" }),
+    event("both", { ...CHAMONIX, geoPlace: "Silverton" }),
+    event("edition", CHAMONIX),
+    event("blank", { ...CHAMONIX, geoPlace: " (relaxed)" }),
+    event("none", CHAMONIX),
+  ];
+  const rows = [
+    row("geo", 2024, { sortDay: "2024-01-01" }),
+    // The geocoded city wins over the edition's free text.
+    row("both", 2024, { sortDay: "2024-02-01", location: "Silverton, Colorado" }),
+    // No geocoded city: the edition's location is the fallback.
+    row("edition", 2024, { sortDay: "2024-03-01", location: "Chamonix" }),
+    // A marker with nothing in front of it is not a place.
+    row("blank", 2024, { sortDay: "2024-04-01", location: "Sierre" }),
+    row("none", 2024, { sortDay: "2024-05-01" }),
+  ];
+
+  const { stops } = buildFootprints(rows, events);
+
+  expect(stops.map((stop) => stop.location)).toEqual(["Silverton", "Silverton", "Chamonix", "Sierre", undefined]);
+});
+
 test("U-FOOT-T3: a race with no coordinates is reported, never pinned at (0,0)", () => {
   const events = [
     event("placed", CHAMONIX),

@@ -229,12 +229,17 @@ export function FootprintMap({
           role="img"
           viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`}
         >
+          {/* The same token in both themes, a different opacity in each. The
+              dark token is a light grey (65%) on a near-black page, and at the
+              light theme's 0.35 the land read as dust on a phone; dark gets
+              0.7. Opacity is a class rather than an attribute because an
+              attribute cannot be switched by theme. */}
           <path
+            className="[stroke-opacity:0.35] dark:[stroke-opacity:0.7]"
             d={WORLD_DOTS_PATH}
             fill="none"
             stroke={DOT_COLOR}
             strokeLinecap="round"
-            strokeOpacity={0.35}
             strokeWidth={1.2}
           />
           <g ref={glow} />

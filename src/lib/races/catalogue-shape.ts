@@ -41,6 +41,12 @@ export type CatalogueEvent = {
    */
   lat?: number;
   lng?: number;
+  /**
+   * The city the coordinates were found for (`race-events.geoPlace`), as the
+   * geocoder wrote it — it may carry a " (relaxed)" review marker. Public
+   * data, shown on the footprint card.
+   */
+  geoPlace?: string;
   distances: CatalogueDistance[];
 };
 

@@ -32,24 +32,29 @@ import { TIMING } from "@/lib/footprints/footprints";
  * in the seed so that the trans-Pacific pair exists.
  */
 
-type EventDoc = { key: string; lat?: number | null; lng?: number | null };
+type EventDoc = { key: string; lat?: number | null; lng?: number | null; geoPlace?: string | null };
 type TimelineRow = { key: string; sortDay?: string; year: number; race?: { eventId: string } };
 type TimelinePage = { rows: TimelineRow[]; nextCursor: Record<string, string | number> | null };
 
 /** A stop as the test expects it: the (event, year) the page must list. */
-type Expected = { key: string; lng: number; sortDay: string; year: number };
+type Expected = { key: string; lng: number; place?: string; sortDay: string; year: number };
 
-async function events(request: APIRequestContext): Promise<Map<string, { lat: number; lng: number }>> {
+/** What a visitor should read: the geocoded city, without the admin-only review note. */
+const visiblePlace = (geoPlace?: string | null) => geoPlace?.replace(" (relaxed)", "").trim() || undefined;
+
+async function events(
+  request: APIRequestContext,
+): Promise<Map<string, { lat: number; lng: number; place?: string }>> {
   const response = await request.get("/api/race-events?limit=0&depth=0&pagination=false");
   expect(response.ok(), await response.text()).toBeTruthy();
   const docs = ((await response.json()) as { docs: EventDoc[] }).docs;
-  const placed = new Map<string, { lat: number; lng: number }>();
+  const placed = new Map<string, { lat: number; lng: number; place?: string }>();
   for (const doc of docs) {
     // The same refusal the page makes: a coordinate pair that is really there,
     // and not the (0, 0) a declared column default would write.
     if (typeof doc.lat !== "number" || typeof doc.lng !== "number") continue;
     if (doc.lat === 0 && doc.lng === 0) continue;
-    placed.set(doc.key, { lat: doc.lat, lng: doc.lng });
+    placed.set(doc.key, { lat: doc.lat, lng: doc.lng, place: visiblePlace(doc.geoPlace) });
   }
   return placed;
 }
@@ -86,7 +91,7 @@ async function expectedStops(request: APIRequestContext): Promise<Expected[]> {
       if (!known.sortDay && row.sortDay) known.sortDay = row.sortDay;
       continue;
     }
-    byKey.set(key, { key, lng: position.lng, sortDay: row.sortDay ?? "", year: row.year });
+    byKey.set(key, { key, lng: position.lng, place: position.place, sortDay: row.sortDay ?? "", year: row.year });
   }
   return [...byKey.values()];
 }
@@ -129,6 +134,11 @@ test.describe("V-FOOT 野馬足跡", () => {
     expect(
       expected.some((stop) => stop.lng < -60) && expected.some((stop) => stop.lng > 100),
       "the seeded stops do not include one in the Americas and one in Asia",
+    ).toBe(true);
+
+    expect(
+      expected.some((stop) => stop.place),
+      "no seeded stop has a geocoded place, so the card's city could not be observed",
     ).toBe(true);
 
     await openFootprints(page);
@@ -177,6 +187,7 @@ test.describe("V-FOOT 野馬足跡", () => {
         ).length,
         card: document.querySelector('[data-testid="footprint-card"]')?.textContent ?? "",
         currentAria: current.map((row) => row.getAttribute("aria-current")),
+        key: current[0]?.getAttribute("data-stop-key") ?? "",
         name: current[0]?.querySelector("a")?.textContent?.trim() ?? "",
       };
     });
@@ -184,6 +195,13 @@ test.describe("V-FOOT 野馬足跡", () => {
     expect(snapshot.ariaOnOthers).toBe(0);
     expect(snapshot.name).not.toBe("");
     expect(snapshot.card).toContain(snapshot.name);
+
+    // The card names the city the pin sits on, between the date and the head
+    // count ("2023 年 · Silverton · 1 位野馬"). Stripping the admin-only
+    // "(relaxed)" note is U-FOOT-T9's: no seeded stop carries one, so a
+    // browser assertion for it could not fail.
+    const place = byKey.get(snapshot.key)?.place;
+    if (place) expect(snapshot.card).toContain(` · ${place} · `);
 
     // The card leads to the 交會 row. Which stop it describes may change
     // under the click, so this asserts the shape of where it lands, not which.
