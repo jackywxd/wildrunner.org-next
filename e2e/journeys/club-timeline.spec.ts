@@ -105,6 +105,16 @@ test.describe("V-CLUB 野馬營穿越時光", () => {
   test("V-CLUB-T1: scrolling to the end brings the next page, once each", async ({
     page,
   }) => {
+    // Its own budget, because the suite's 20s is less than its steps: a goto,
+    // a soft navigation allowed 15s, and a poll allowed 15s. Measured on CI
+    // with the paging API already warmed: 10.7s, 16.9s, 17.4s, 18.5s passing,
+    // then a red at 20.6s whose trace shows the API asked at +11.3s and
+    // answering 200 in 1.4s, and the second page rendering at +19.0s (it is in
+    // the failure's own screenshot). The reader got the page; the test cap
+    // fired first and reported "Received: 3", which reads as "paging is
+    // broken". With the cap above the steps, a slow step fails as itself.
+    test.setTimeout(budget(40_000));
+
     // By clicking, from the directory — the tab is a soft navigation, and this
     // suite has already shipped one bug that lived only there
     // (docs/testing-incidents.md).
