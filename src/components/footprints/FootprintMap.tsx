@@ -19,7 +19,7 @@ import { rowAnchor } from "@/lib/riders/trail-map";
 import { cn } from "@/lib/utils";
 
 /**
- * 野馬足跡: the club's races, flown oldest first over a map made of dots.
+ * 野馬足跡: the club's races, flown newest first over a map made of dots.
  *
  * WHAT THE SERVER SENDS IS WHAT A CARD SHOWS and nothing else — a stop's name,
  * date, place and head-count. Never an owner, never a runner's slug: the
@@ -182,22 +182,6 @@ export function FootprintMap({
   return (
     <section data-mode={reduced === null ? "idle" : reduced ? "static" : "playing"} data-testid="footprint-map">
       <div className="mt-6 flex items-center justify-end gap-2 print:hidden">
-        {!music.started && (
-          // Only ever the way in, as on the timeline: the first press hands
-          // over to the corner button that `SiteMusic` shows on every page.
-          <button
-            className="hit-area inline-flex min-h-9 items-center gap-1.5 border border-border bg-background px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
-            data-music-control=""
-            data-testid="footprint-play-music"
-            onClick={(event) => music.play(event.currentTarget)}
-            type="button"
-          >
-            <svg aria-hidden className="h-3 w-3" viewBox="0 0 12 12">
-              <path d="M2 1l9 5-9 5z" fill="currentColor" />
-            </svg>
-            {t.footprints.playMusic}
-          </button>
-        )}
         {reduced === false && stops.length > 0 && (
           <button
             aria-pressed={enabled}

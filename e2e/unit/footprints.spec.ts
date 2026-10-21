@@ -24,8 +24,10 @@ import { WORLD_DOTS, WORLD_DOTS_PATH, WORLD_DOTS_PROJECTION } from "@/lib/footpr
  * THE FAILURES THESE PROTECT AGAINST, each one costly and none of them an
  * error — the page renders a map either way:
  *
- * - A route flown newest-first, because that is the order the timeline hands
- *   rows over.
+ * - A route that starts from the oldest race instead of the newest: the map
+ *   would open on the club's first outing rather than its latest, and the
+ *   loop would fly forwards through time while the list beside the timeline
+ *   reads backwards.
  * - One race drawn as three stops because it has three distances, or its
  *   runners counted once per distance.
  * - A race with no coordinates pinned at (0,0) in the Gulf of Guinea and the
@@ -76,32 +78,35 @@ function numbers(d: string): number[] {
   return (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
 }
 
-test("U-FOOT-T1: the route is flown oldest first, the reverse of the timeline", () => {
-  // The loader hands rows over newest first. A route in that order would fly
-  // the club's history backwards and the map would read as a trip home.
+test("U-FOOT-T1: the route starts from the newest race and flies back in time, like the timeline", () => {
+  // The route must not start from the oldest race. Rows arrive in the
+  // timeline's own order here, so a sort that is missing or ascending shows.
   const events = [
     event("a", CHAMONIX),
     event("b", CHAMONIX),
     event("c", CHAMONIX),
     event("d", CHAMONIX),
     event("e", CHAMONIX),
+    event("f", CHAMONIX),
   ];
   const timelineOrder = [
     row("a", 2024, { sortDay: "2024-09-01" }),
     row("b", 2024, { sortDay: "2024-03-10" }),
-    // Dateless: "some time in 2024", so it goes first in its year, not last.
+    // Dateless: "some time in 2024", so it goes last in its year, as on the timeline.
     row("c", 2024),
     row("d", 2023, { sortDay: "2023-12-31" }),
-    // Same day as `d`: the key decides, ascending.
+    // Same day as `d`: the key decides, ascending, as `clubRowOrder` does.
     row("e", 2023, { sortDay: "2023-12-31" }),
+    row("f", 2022),
   ];
+  const expected = ["a", "b", "c", "d", "e", "f"];
 
   const { stops } = buildFootprints(timelineOrder, events);
 
-  expect(stops.map((stop) => stop.eventId)).toEqual(["d", "e", "c", "b", "a"]);
+  expect(stops.map((stop) => stop.eventId)).toEqual(expected);
   // And it is a function of the rows, not of the order they arrived in.
-  const shuffled = [timelineOrder[2], timelineOrder[4], timelineOrder[0], timelineOrder[3], timelineOrder[1]];
-  expect(buildFootprints(shuffled, events).stops.map((stop) => stop.eventId)).toEqual(["d", "e", "c", "b", "a"]);
+  const shuffled = [timelineOrder[2], timelineOrder[4], timelineOrder[5], timelineOrder[0], timelineOrder[3], timelineOrder[1]];
+  expect(buildFootprints(shuffled, events).stops.map((stop) => stop.eventId)).toEqual(expected);
 });
 
 test("U-FOOT-T2: one race in one year is one stop, and each runner counts once", () => {
@@ -119,11 +124,11 @@ test("U-FOOT-T2: one race in one year is one stop, and each runner counts once",
   const { stops, unplaced } = buildFootprints(rows, events);
 
   expect(stops.map((stop) => [stop.year, stop.runners])).toEqual([
-    [2024, 3],
     [2025, 1],
+    [2024, 3],
   ]);
   expect(unplaced).toEqual([]);
-  expect(stops[0]).toMatchObject({
+  expect(stops[1]).toMatchObject({
     key: "utmb|2024",
     name: "環勃朗峰",
     location: "Chamonix",
@@ -156,7 +161,7 @@ test("U-FOOT-T9: a stop names the city its pin was placed from, never a review m
 
   const { stops } = buildFootprints(rows, events);
 
-  expect(stops.map((stop) => stop.location)).toEqual(["Silverton", "Silverton", "Chamonix", "Sierre", undefined]);
+  expect(stops.map((stop) => stop.location)).toEqual([undefined, "Sierre", "Chamonix", "Silverton", "Silverton"]);
 });
 
 test("U-FOOT-T3: a race with no coordinates is reported, never pinned at (0,0)", () => {
@@ -184,12 +189,13 @@ test("U-FOOT-T3: a race with no coordinates is reported, never pinned at (0,0)",
   const { stops, unplaced } = buildFootprints(rows, events);
 
   expect(stops.map((stop) => stop.eventId)).toEqual(["placed"]);
-  expect(unplaced.map((stop) => stop.eventId)).toEqual(["bare", "nulls", "zero", "pole", "half", "gone"]);
+  // Newest first, the same order the placed stops get.
+  expect(unplaced.map((stop) => stop.eventId)).toEqual(["gone", "half", "pole", "zero", "nulls", "bare"]);
   // Not a single stop sits on the origin of the map.
   expect(stops.some((stop) => stop.x === 0 && stop.y === 0)).toBe(false);
   // An unplaced race keeps its name so the page can say which, and has no position at all.
-  expect(unplaced[5]).toMatchObject({ eventId: "gone", name: "gone" });
-  expect(unplaced[0]).not.toHaveProperty("x");
+  expect(unplaced[0]).toMatchObject({ eventId: "gone", name: "gone" });
+  expect(unplaced[1]).not.toHaveProperty("x");
 });
 
 test("U-FOOT-T4: a crossing of the Pacific leaves one edge of the map and enters the other", () => {
