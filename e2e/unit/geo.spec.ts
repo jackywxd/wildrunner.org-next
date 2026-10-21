@@ -8,7 +8,13 @@ import {
   alpha2ToAlpha3,
   alpha3ToAlpha2,
 } from "@/lib/geo/iso-alpha";
-import { buildSearchUrl, readHit } from "@/lib/geo/nominatim";
+import {
+  OSM_COUNTRY_OVERRIDES,
+  buildSearchUrl,
+  osmCountryCode,
+  readHit,
+  sameCountry,
+} from "@/lib/geo/nominatim";
 import { parsePlaceCsv, serializePlaceCsv } from "@/lib/geo/place-csv";
 import {
   isHandEditedPoint,
@@ -359,7 +365,8 @@ test.describe("U-GEO placing a race event on the map", () => {
         },
       });
     const calls: { query: string; countryAlpha2?: string; relaxed?: boolean }[] = [];
-    const sai = { lat: 22.3833, lng: 114.2703, displayName: "Sai Kung", countryAlpha2: "HK" };
+    // What Nominatim really answers for Sai Kung: country_code is `cn`, not `hk`.
+    const sai = { lat: 22.3833, lng: 114.2703, displayName: "Sai Kung", countryAlpha2: "CN" };
 
     // (a) strict miss -> relaxed hit -> ok, marked, rounded, same text and country.
     const hit = await resolveEventGeo(
@@ -493,5 +500,101 @@ test.describe("U-GEO placing a race event on the map", () => {
     const pinned = await resolveEventGeo(aiWithCountry.built, event({ country: null }));
     expect(pinned).toMatchObject({ geoStatus: "ok", geoSource: "ai", geoPlace: "Kimberley (relaxed)" });
     expect(seen).toEqual([{ relaxed: undefined }, { relaxed: true }]);
+  });
+
+  test("U-GEO-T8: Nominatim's country codes are OSM's — Hong Kong and Réunion are asked as cn and fr, and a hit is judged the same way", async () => {
+    // Protects against: every event in Hong Kong, Macau or a French overseas
+    // department ending `not-found` because `countrycodes=hk` / `re` match
+    // nothing in OSM (verified live, 2026-10-21) — which looked exactly like
+    // a bad place name — and, the other way, a hit in the wrong country being
+    // waved through now that the comparison is no longer a plain `===`.
+    const countrycodes = (alpha2: string) =>
+      new URL(buildSearchUrl({ query: "x", countryAlpha2: alpha2 })).searchParams.get("countrycodes");
+    expect(countrycodes("HK")).toBe("cn");
+    expect(countrycodes("hk")).toBe("cn");
+    expect(countrycodes("RE")).toBe("fr");
+    expect(countrycodes("MO")).toBe("cn");
+    expect(
+      new URL(buildSearchUrl({ query: "x", countryAlpha2: "HK", relaxed: true })).searchParams.get("countrycodes"),
+    ).toBe("cn");
+    // Unmapped codes are unchanged — including the ones that look related.
+    for (const [alpha2, osm] of [["CL", "cl"], ["JP", "jp"], ["CN", "cn"], ["FR", "fr"], ["TW", "tw"], ["ZZ", "zz"]]) {
+      expect(countrycodes(alpha2), alpha2).toBe(osm);
+      expect(osmCountryCode(alpha2), alpha2).toBe(osm);
+    }
+
+    // The table: every row is a real ISO alpha-3, names a real country as its
+    // OSM code, and actually differs from the country's own alpha-2 — a row
+    // that does not differ is noise, and one whose code is not a country is a
+    // typo that would silently pin an event to nowhere.
+    const alpha3s = new Set(OSM_COUNTRY_OVERRIDES.map(([alpha3]) => alpha3));
+    expect(alpha3s.size).toBe(OSM_COUNTRY_OVERRIDES.length);
+    for (const [alpha3, osm] of OSM_COUNTRY_OVERRIDES) {
+      const own = alpha3ToAlpha2(alpha3);
+      expect(own, `${alpha3} is not an ISO alpha-3`).toBeDefined();
+      expect(alpha2ToAlpha3(osm.toUpperCase()), `${alpha3} -> ${osm}`).toBeDefined();
+      expect(osm, alpha3).toMatch(/^[a-z]{2}$/);
+      expect(osm, `${alpha3} maps to its own code`).not.toBe(own!.toLowerCase());
+    }
+
+    // sameCountry: a cn hit is Hong Kong's answer, but is still not Japan's.
+    expect(sameCountry("HK", "CN")).toBe(true);
+    expect(sameCountry("RE", "FR")).toBe(true);
+    expect(sameCountry("CN", "CN")).toBe(true);
+    expect(sameCountry("JP", "CN")).toBe(false);
+    expect(sameCountry("HK", "JP")).toBe(false);
+
+    const cnHit = { lat: 22.3822, lng: 114.2728, displayName: "Sai Kung", countryAlpha2: "CN", category: "place" };
+    const seen: { countryAlpha2?: string }[] = [];
+    const answers = (hit: typeof cnHit) =>
+      deps({
+        geocode: async (req) => {
+          seen.push(req);
+          return hit;
+        },
+      });
+
+    // An HKG event accepts the cn hit.
+    const hk = await resolveEventGeo(
+      answers(cnHit).built,
+      event({ key: "wtm-hk100", country: "HKG", editionLocation: "Sai Kung, New Territories" }),
+    );
+    expect(hk).toMatchObject({ geoStatus: "ok", lat: 22.4, lng: 114.3 });
+    expect(seen[0].countryAlpha2).toBe("HK");
+
+    // A JPN event does not — whatever asked for it, a cn answer is wrong there.
+    const jp = await resolveEventGeo(
+      answers(cnHit).built,
+      event({ key: "x", country: "JPN", editionLocation: "Hachioji" }),
+    );
+    expect(jp.geoStatus).toBe("not-found");
+    expect(jp.lat).toBeUndefined();
+
+    // A REU event accepts an fr hit; a CHL event does not.
+    const frHit = { lat: -21.34, lng: 55.48, displayName: "Saint-Pierre", countryAlpha2: "FR", category: "boundary" };
+    expect(
+      (await resolveEventGeo(answers(frHit).built, event({ country: "REU", editionLocation: "Saint-Pierre, La Réunion" })))
+        .geoStatus,
+    ).toBe("ok");
+    expect(
+      (await resolveEventGeo(answers(frHit).built, event({ country: "CHL", editionLocation: "Valdivia" }))).geoStatus,
+    ).toBe("not-found");
+
+    // NO COUNTRY on the event, and a cn hit is ambiguous (Hong Kong or China).
+    // With only the hit to go on the event reads CHN, as it did before; when
+    // the model named the country itself, its ISO answer wins over OSM's.
+    const editionOnly = await resolveEventGeo(
+      answers(cnHit).built,
+      event({ country: null, editionLocation: "Sai Kung, New Territories" }),
+    );
+    expect(editionOnly).toMatchObject({ geoStatus: "ok", country: "CHN" });
+    const modelSaidHk = await resolveEventGeo(
+      deps({
+        askModel: async () => '{"city":"Sai Kung","country_alpha2":"HK"}',
+        geocode: async () => cnHit,
+      }).built,
+      event({ country: null }),
+    );
+    expect(modelSaidHk).toMatchObject({ geoStatus: "ok", country: "HKG" });
   });
 });
