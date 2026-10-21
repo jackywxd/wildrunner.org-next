@@ -56,6 +56,8 @@ export type FootprintEvent = {
   nameZh?: string;
   lat?: number | null;
   lng?: number | null;
+  /** The city the geocoder matched (`race-events.geoPlace`); see `placeOf`. */
+  geoPlace?: string | null;
 };
 
 export type FootprintStop = {
@@ -81,6 +83,29 @@ export type FootprintStop = {
 export type UnplacedFootprint = Omit<FootprintStop, "x" | "y">;
 
 type Draft = Omit<FootprintStop, "x" | "y"> & { slugs: Set<string> };
+
+/**
+ * The marker `resolve-event-place.ts` (RELAXED_MARK) appends to a `geoPlace`
+ * that matched on the looser query. It is there for the admin who reviews the
+ * geocoder's work and means nothing to a visitor reading a card. Repeated
+ * rather than imported: that module reaches the server, and this one ships to
+ * the browser.
+ */
+const RELAXED_MARK = /\s*\(relaxed\)\s*$/;
+
+/**
+ * The place a stop shows: the event's own city if the geocoder found one,
+ * otherwise whatever the edition's `location` said, otherwise nothing.
+ *
+ * `geoPlace` first because it is what the dot on the map was placed from — a
+ * card naming a different town than the pin sits on reads as a mistake — and
+ * because an edition's location is free text ("Silverton, Colorado",
+ * "Yamanashi / Shizuoka") that exists on only some editions.
+ */
+function placeOf(event: FootprintEvent | undefined, edition: string | undefined): string | undefined {
+  const geo = event?.geoPlace?.replace(RELAXED_MARK, "").trim();
+  return geo || edition || undefined;
+}
 
 /** `<` on strings, never `localeCompare`: the order must not depend on a locale. */
 function compareText(a: string, b: string): number {
@@ -153,8 +178,8 @@ export function buildFootprints(
   const unplaced: UnplacedFootprint[] = [];
 
   for (const { slugs, ...draft } of [...drafts.values()].sort(chronological)) {
-    const facts = { ...draft, runners: slugs.size };
     const event = byId.get(draft.eventId);
+    const facts = { ...draft, location: placeOf(event, draft.location), runners: slugs.size };
     if (hasCoordinates(event)) {
       stops.push({ ...facts, ...project([event.lng, event.lat]) });
     } else {

@@ -99,6 +99,7 @@ export const getRaceCatalogueEvents = cache(
       ...(typeof event.lat === "number" && typeof event.lng === "number"
         ? { lat: event.lat, lng: event.lng }
         : {}),
+      ...(event.geoPlace ? { geoPlace: event.geoPlace } : {}),
       distances: distancesByEventId.get(event.id) ?? [],
     }));
   },
