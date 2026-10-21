@@ -106,8 +106,12 @@ function realDeps(payload: Payload, ai: Ai | undefined): GeoDeps {
   }
 }
 
-/** The newest edition that has a usable location, by year. */
-async function newestEditionWithLocation(payload: Payload, eventId: number) {
+/**
+ * The newest edition that has a usable location, by year. None means the
+ * resolver will ask the model — which is how scripts/geocode-race-events.ts
+ * counts the events it cannot place without one.
+ */
+export async function newestEditionWithLocation(payload: Payload, eventId: number) {
   const editions = await payload.find({
     collection: 'race-editions',
     where: { and: [{ event: { equals: eventId } }, { location: { exists: true } }] },
