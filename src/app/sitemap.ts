@@ -52,6 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/races",
     "/riders",
     "/riders/timeline",
+    "/riders/footprints",
     "/about",
     ...postSlugs.map((slug) => `/posts/${slug}`),
     ...riderSlugs.flatMap((slug) => [`/riders/${slug}`, `/riders/${slug}/timeline`]),
