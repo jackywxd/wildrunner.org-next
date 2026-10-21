@@ -70,6 +70,9 @@ const ROUTES = [
   "/races/warmup-not-a-real-event/2026",
   "/riders",
   "/riders/timeline",
+  // A new compilation unit, not covered by the timeline beside it; V-FOOT
+  // arrives here by clicking and would otherwise pay its first compile.
+  "/riders/footprints",
   "/riders/compare",
   "/riders/warmup-not-a-real-rider",
   "/riders/warmup-not-a-real-rider/timeline",

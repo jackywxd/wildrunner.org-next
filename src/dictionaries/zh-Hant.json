@@ -161,7 +161,26 @@
     "meeting": "交會",
     "otherMembers": "其他成員",
     "compare": "對照",
+    "footprints": "足跡",
     "play": "播放"
+  },
+  "footprints": {
+    "title": "野馬足跡",
+    "subtitle": "野馬營跑過的比賽，依時間在世界地圖上連成一條航線。",
+    "pageDescription": "從最早的一場開始，逐站飛越每一場野馬跑過的比賽。",
+    "back": "← 穿越時光",
+    "mapAria": "野馬營跑過的比賽，依時間順序在世界地圖上連成的航線",
+    "listTitle": "所有站點",
+    "listAria": "依時間排列的站點",
+    "runnerCount": "{count} 位野馬",
+    "openRow": "在穿越時光中看這場 →",
+    "unplaced": "另有 {count} 場未定位",
+    "unplacedAdmin": "還沒有座標的比賽",
+    "unplacedAdminLink": "到後台補上",
+    "soundOn": "落地音效：開",
+    "soundOff": "落地音效：關",
+    "playMusic": "播放音樂",
+    "empty": "還沒有可以畫在地圖上的比賽。"
   },
   "music": {
     "play": "播放音樂",

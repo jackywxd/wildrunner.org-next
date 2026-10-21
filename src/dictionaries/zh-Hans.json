@@ -169,7 +169,26 @@
     "meeting": "交会",
     "otherMembers": "其他成员",
     "compare": "对照",
+    "footprints": "足迹",
     "play": "播放"
+  },
+  "footprints": {
+    "title": "野马足迹",
+    "subtitle": "野马营跑过的比赛，依时间在世界地图上连成一条航线。",
+    "pageDescription": "从最早的一场开始，逐站飞越每一场野马跑过的比赛。",
+    "back": "← 穿越时光",
+    "mapAria": "野马营跑过的比赛，依时间顺序在世界地图上连成的航线",
+    "listTitle": "所有站点",
+    "listAria": "依时间排列的站点",
+    "runnerCount": "{count} 位野马",
+    "openRow": "在穿越时光中看这场 →",
+    "unplaced": "另有 {count} 场未定位",
+    "unplacedAdmin": "还没有座标的比赛",
+    "unplacedAdminLink": "到后台补上",
+    "soundOn": "落地音效：开",
+    "soundOff": "落地音效：关",
+    "playMusic": "播放音乐",
+    "empty": "还没有可以画在地图上的比赛。"
   },
   "music": {
     "play": "播放音乐",

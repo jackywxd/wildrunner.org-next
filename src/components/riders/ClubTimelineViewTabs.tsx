@@ -60,6 +60,15 @@ export async function ClubTimelineViewTabs({ active }: { active: ClubTimelineVie
         {/* 播放 watches this page scroll by, with music; it works on either
             drawing, so it sits with 對照 rather than among the two tabs. */}
         <TimelinePlayer />
+        {/* Like 對照, a way out of the two drawings rather than one of them:
+            the same races, flown over a map instead of laid along a rail. */}
+        <Link
+          className="border border-border bg-background hit-area inline-flex min-h-9 items-center px-3 text-tag text-muted-foreground transition-colors hover:text-foreground"
+          data-testid="club-timeline-footprints"
+          href="/riders/footprints"
+        >
+          {t.clubTimeline.footprints}
+        </Link>
         {/* Beside the two drawings rather than one of them: it leaves this
             page for 成員對照, the same rail narrowed to two or three people. */}
         <Link
