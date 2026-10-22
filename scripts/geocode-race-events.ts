@@ -33,10 +33,20 @@
  * a plain local run reads `data/race-event-places.csv` and calls no one. That
  * is what `db:reset:local` uses to give the corpus coordinates. To geocode for
  * real from a laptop, set `AI_IN_DEV=true`; the :staging and :prod variants
- * run with NODE_ENV=production and are always real. Note a local real run has
- * no Workers AI binding (it is `remote: true` in wrangler.jsonc and local
- * runs do not open remote sessions), so an event with no edition location is
- * reported `failed` locally, not guessed at.
+ * run with NODE_ENV=production and are always real. Note a local real run
+ * cannot reach Workers AI (it is `remote: true` in wrangler.jsonc and local
+ * runs do not open remote sessions).
+ *
+ * A REAL RUN CHECKS IT CAN CALL THE MODEL BEFORE IT WRITES. Events with no
+ * edition location are placed by the model, and a run that cannot call it —
+ * Claude chosen in ai-settings with no ANTHROPIC_API_KEY in this process, or
+ * Workers AI with no remote session — would otherwise write every one of them
+ * `failed`. That happened to production on 2026-10-21: 32 events, the six
+ * Marathon Majors among them. So the run counts those events first and exits 1
+ * with the fix if any exist and the model is out of reach;
+ * `src/lib/geo/model-preflight.ts` holds the rules and the incident.
+ * `--skip-ai` places only the events with an edition location and reports how
+ * many it left.
  *
  * `--export` rewrites data/race-event-places.csv from the database after the
  * run. That file is the reviewable record of where the map's dots are and the
@@ -49,9 +59,9 @@
  * error, and the totals count what the database holds, not what the client
  * said.
  *
- *   pnpm geocode:events [--retry-not-found] [--export]              # local
- *   pnpm geocode:events:staging [--retry-not-found] [--export]      # staging D1 — run by Jacky
- *   pnpm geocode:events:prod [--retry-not-found] [--export]         # production D1 — run by Jacky
+ *   pnpm geocode:events [--retry-not-found] [--skip-ai] [--export]              # local
+ *   pnpm geocode:events:staging [--retry-not-found] [--skip-ai] [--export]      # staging D1 — run by Jacky
+ *   pnpm geocode:events:prod [--retry-not-found] [--skip-ai] [--export]         # production D1 — run by Jacky
  *
  * The flags reach the script as they stand: pnpm 10 forwards everything after
  * the script name (`pnpm geocode:events:staging --retry-not-found`); a `--`
@@ -64,7 +74,10 @@ import { getPayload } from 'payload'
 
 const exportCsv = process.argv.includes('--export')
 const retryNotFound = process.argv.includes('--retry-not-found')
+const skipAi = process.argv.includes('--skip-ai')
 const remote = process.argv.includes('--remote')
+// Named in the preflight's message, so the fix it prints can be pasted.
+let command = 'pnpm geocode:events'
 
 if (remote) {
   const target = process.env.CLOUDFLARE_ENV ?? 'staging'
@@ -72,6 +85,7 @@ if (remote) {
     console.error(`CLOUDFLARE_ENV must be "staging" or "production", got "${target}".`)
     process.exit(1)
   }
+  command = target === 'production' ? 'pnpm geocode:events:prod' : 'pnpm geocode:events:staging'
   Object.assign(process.env, { NODE_ENV: 'production' })
   if (target === 'production') {
     delete process.env.CLOUDFLARE_ENV
@@ -101,7 +115,11 @@ function causeChain(error: unknown): string {
 
 async function main() {
   const { default: config } = await import('../src/payload.config')
-  const { geoMode, resolveAndWriteEvent } = await import('../src/lib/geo/geocode-event')
+  const { geoMode, newestEditionWithLocation, resolveAndWriteEvent } = await import(
+    '../src/lib/geo/geocode-event'
+  )
+  const { modelPreflight } = await import('../src/lib/geo/model-preflight')
+  const { resolveAiProvider } = await import('../src/lib/ai/provider')
   const { serializePlaceCsv } = await import('../src/lib/geo/place-csv')
   const payload = await getPayload({ config })
 
@@ -145,11 +163,49 @@ async function main() {
       `${manual.length} manual (left alone), ${events.totalDocs - targets.length - manual.length} already placed` +
       (retryNotFound ? ' (--retry-not-found: not-found events included)' : ''),
   )
+
+  // Can this run call the model it is about to need? Asked before the first
+  // write, because the answer does not change between events and a "no"
+  // discovered per event is written per event as `failed`. The stand-in asks
+  // no one, so only a real run counts. The count uses the same lookup
+  // resolveAndWriteEvent makes; the provider is read the way callTextModel
+  // reads it.
+  const needModel = new Set<number>()
+  let preflight: ReturnType<typeof modelPreflight> = { run: 'all' }
+  if (mode === 'real') {
+    for (const event of targets) {
+      if (!(await newestEditionWithLocation(payload, event.id))) needModel.add(event.id)
+    }
+    const settings = await payload.findGlobal({ slug: 'ai-settings', depth: 0 })
+    const provider = resolveAiProvider(settings.provider)
+    console.log(
+      `[geocode-race-events] ${needModel.size} of ${targets.length} have no edition location and need the model; ` +
+        `ai-settings provider: ${provider}`,
+    )
+    preflight = modelPreflight({
+      mode,
+      needModel: needModel.size,
+      provider,
+      anthropicKeySet: Boolean(process.env.ANTHROPIC_API_KEY),
+      workersAiReachable: remote && ai !== undefined,
+      skipAi,
+      command,
+    })
+  }
+  if (preflight.run === 'refuse') {
+    console.error(`\n[geocode-race-events] ${preflight.message}`)
+    await disposeProxy?.()
+    process.exit(1)
+  }
+  const work =
+    preflight.run === 'edition-only' ? targets.filter((event) => !needModel.has(event.id)) : targets
+
   // Before anything is written, so a run that is about to do the wrong thing
   // can be stopped by reading its first screen.
   for (const event of targets) {
+    const verb = work.includes(event) ? 'will process' : 'skip (needs the model, --skip-ai)'
     console.log(
-      `  will process ${event.key}: geoStatus=${event.geoStatus ?? 'empty'} ` +
+      `  ${verb} ${event.key}: geoStatus=${event.geoStatus ?? 'empty'} ` +
         `${typeof event.lat === 'number' ? `has point ${event.lat},${event.lng}` : 'no point'}`,
     )
   }
@@ -157,7 +213,7 @@ async function main() {
   const counts = { ok: 0, 'no-place': 0, 'not-found': 0, failed: 0 }
   const problems: string[] = []
 
-  for (const event of targets) {
+  for (const event of work) {
     try {
       const result = await resolveAndWriteEvent(payload, event.id, { ai, mode })
       if (!result.written) {
@@ -198,7 +254,10 @@ async function main() {
   }
   console.log(
     `\n[geocode-race-events] this run: ok=${counts.ok} no-place=${counts['no-place']} ` +
-      `not-found=${counts['not-found']} failed=${counts.failed}`,
+      `not-found=${counts['not-found']} failed=${counts.failed}` +
+      (preflight.run === 'edition-only'
+        ? ` skipped=${preflight.skipped} (--skip-ai: no edition location, left untouched)`
+        : ''),
   )
   console.log(
     `[geocode-race-events] database now: ${[...byStatus].map(([status, n]) => `${status}=${n}`).join(' ')} ` +
