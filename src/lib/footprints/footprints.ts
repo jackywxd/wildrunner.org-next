@@ -11,15 +11,19 @@
  * arrays, with no server and no browser. The component's only jobs are to
  * schedule timers from `nextStep` and to draw what these functions return.
  *
- * ORDER IS THE REVERSE OF THE TIMELINE. `/riders/timeline` lists newest first;
- * a route is flown oldest first. `buildFootprints` therefore sorts ascending
- * by `sortDay` (the date the timeline orders by, including its inferred
- * "typical day"), then by `key`. Both are compared as "YYYY-MM-DD" strings —
- * a `Date` built from a stored value lands on the previous day west of
- * Greenwich, see `src/lib/races/calendar.ts`. A race with no date at all
- * sorts to the *start* of its year: that is the exact mirror of the timeline,
- * which puts it at the bottom of the year, and it keeps the claim the data
- * makes ("some time that year") from being turned into "after everything".
+ * ORDER IS THE TIMELINE'S: NEWEST FIRST. That was the owner's call — the map
+ * opens on the most recent race and the loop flies back through the club's
+ * history, then returns to the newest (`nextStep`: after `fade` comes
+ * `land(0)`). `buildFootprints` therefore sorts descending by `sortDay` (the
+ * date the timeline orders by, including its inferred "typical day"), then by
+ * `key` ascending, which is also how `clubRowOrder` breaks a tie. Both are
+ * compared as "YYYY-MM-DD" strings — a `Date` built from a stored value lands
+ * on the previous day west of Greenwich, see `src/lib/races/calendar.ts`.
+ * A race with no date at all sorts to the *end* of its year, exactly as it
+ * does on the timeline: it is "some time that year", and placing it first
+ * would turn that into "after everything". `unplaced` goes through the same
+ * comparator, so the list an admin reads is in the order the route would have
+ * had.
  *
  * A STOP IS (EVENT, YEAR), NOT A TIMELINE ROW. The timeline draws a 100M and
  * a 50K of the same race as two rows because a badge is (event, distance,
@@ -123,17 +127,19 @@ function hasCoordinates(event: FootprintEvent | undefined): event is FootprintEv
   return onMap([lng, lat]);
 }
 
-/** Oldest first; a race with no date sorts to the start of its year. */
-function chronological(
+/**
+ * Newest first, and total — the same rule as `clubRowOrder` in
+ * `club-timeline.ts`: year descending, then `sortDay` descending, a race with
+ * no date after every dated one of its year, `key` ascending for the rest.
+ */
+function newestFirst(
   a: Pick<UnplacedFootprint, "key" | "sortDay" | "year">,
   b: Pick<UnplacedFootprint, "key" | "sortDay" | "year">,
 ): number {
-  if (a.year !== b.year) return a.year - b.year;
-  if (a.sortDay !== b.sortDay) {
-    if (!a.sortDay) return -1;
-    if (!b.sortDay) return 1;
-    return compareText(a.sortDay, b.sortDay);
-  }
+  if (a.year !== b.year) return b.year - a.year;
+  if (a.sortDay && b.sortDay && a.sortDay !== b.sortDay) return compareText(b.sortDay, a.sortDay);
+  if (a.sortDay && !b.sortDay) return -1;
+  if (!a.sortDay && b.sortDay) return 1;
   return compareText(a.key, b.key);
 }
 
@@ -177,7 +183,7 @@ export function buildFootprints(
   const stops: FootprintStop[] = [];
   const unplaced: UnplacedFootprint[] = [];
 
-  for (const { slugs, ...draft } of [...drafts.values()].sort(chronological)) {
+  for (const { slugs, ...draft } of [...drafts.values()].sort(newestFirst)) {
     const event = byId.get(draft.eventId);
     const facts = { ...draft, location: placeOf(event, draft.location), runners: slugs.size };
     if (hasCoordinates(event)) {
