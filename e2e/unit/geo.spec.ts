@@ -15,6 +15,7 @@ import {
   readHit,
   sameCountry,
 } from "@/lib/geo/nominatim";
+import { modelPreflight, type ModelPreflightInput } from "@/lib/geo/model-preflight";
 import { parsePlaceCsv, serializePlaceCsv } from "@/lib/geo/place-csv";
 import {
   isHandEditedPoint,
@@ -596,5 +597,71 @@ test.describe("U-GEO placing a race event on the map", () => {
       event({ country: null }),
     );
     expect(modelSaidHk).toMatchObject({ geoStatus: "ok", country: "HKG" });
+  });
+});
+
+/**
+ * U-GEO-T9..T15 — a backfill that needs the model stops before writing when
+ * it cannot call it.
+ *
+ * The failure: 2026-10-21, `pnpm geocode:events:prod` from a laptop, provider
+ * Claude, no ANTHROPIC_API_KEY in the process — 32 events written `failed`,
+ * the six Marathon Majors among them, when the run could have known before
+ * the first row that it would call the model zero times.
+ */
+test.describe("U-GEO model preflight for pnpm geocode:events", () => {
+  const blocked: ModelPreflightInput = {
+    mode: "real",
+    needModel: 32,
+    provider: "claude",
+    anthropicKeySet: false,
+    workersAiReachable: false,
+    skipAi: false,
+    command: "pnpm geocode:events:prod",
+  };
+
+  test("U-GEO-T9: Claude with no key in the process refuses, and the message names both fixes", () => {
+    const result = modelPreflight(blocked);
+    expect(result.run).toBe("refuse");
+    const message = result.run === "refuse" ? result.message : "";
+    expect(message).toContain("ANTHROPIC_API_KEY=… pnpm geocode:events:prod");
+    expect(message).toContain("switch ai-settings to Workers AI in /admin, run, then switch it back");
+    expect(message).toContain("32");
+  });
+
+  test("U-GEO-T10: Claude with a key proceeds", () => {
+    expect(modelPreflight({ ...blocked, anthropicKeySet: true })).toEqual({ run: "all" });
+  });
+
+  test("U-GEO-T11: Workers AI through a remote session proceeds, whether or not a Claude key is set", () => {
+    const workersAi = { ...blocked, provider: "workers-ai" as const, workersAiReachable: true };
+    expect(modelPreflight(workersAi)).toEqual({ run: "all" });
+    expect(modelPreflight({ ...workersAi, anthropicKeySet: true })).toEqual({ run: "all" });
+  });
+
+  test("U-GEO-T12: Workers AI with no remote session refuses — a local real run's binding throws on every call", () => {
+    const result = modelPreflight({ ...blocked, provider: "workers-ai", anthropicKeySet: true });
+    expect(result.run).toBe("refuse");
+    expect(result.run === "refuse" ? result.message : "").toContain("--skip-ai");
+  });
+
+  test("U-GEO-T13: with no event needing the model, nothing about the model is consulted", () => {
+    expect(modelPreflight({ ...blocked, needModel: 0 })).toEqual({ run: "all" });
+    expect(modelPreflight({ ...blocked, needModel: 0, provider: "workers-ai" })).toEqual({ run: "all" });
+  });
+
+  test("U-GEO-T14: the stand-in never refuses — db:reset:local and CI's corpus seed run it", () => {
+    expect(modelPreflight({ ...blocked, mode: "stand-in" })).toEqual({ run: "all" });
+    expect(modelPreflight({ ...blocked, mode: "stand-in", provider: "workers-ai" })).toEqual({ run: "all" });
+  });
+
+  test("U-GEO-T15: --skip-ai places only edition-sourced events and says how many it left", () => {
+    expect(modelPreflight({ ...blocked, skipAi: true })).toEqual({ run: "edition-only", skipped: 32 });
+    expect(modelPreflight({ ...blocked, provider: "workers-ai", skipAi: true })).toEqual({
+      run: "edition-only",
+      skipped: 32,
+    });
+    // Nothing to skip is not a reason to report a skip.
+    expect(modelPreflight({ ...blocked, needModel: 0, skipAi: true })).toEqual({ run: "all" });
   });
 });
