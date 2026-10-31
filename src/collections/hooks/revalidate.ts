@@ -156,6 +156,24 @@ export const revalidatePosts: CollectionAfterChangeHook = async (args) => {
 };
 
 /**
+ * A deleted post's page has to leave the cache with it.
+ *
+ * `afterChange` never fires for a delete, and until the article page was
+ * actually cached nothing needed this: a removed post answered 404 on the
+ * next request because every request rendered. Cached, it would go on being
+ * served — for up to the page's `revalidate` window, and from the R2 copy
+ * after that until somebody visited it. Un-publishing may not lag.
+ */
+export const revalidateDeletedPost: CollectionAfterDeleteHook = async ({
+  doc,
+  req,
+}) => {
+  revalidateForPost(doc.slug);
+  const slug = await authorSlug(doc.author, req);
+  if (slug) revalidateForRider(slug);
+};
+
+/**
  * No video ids any more, and their absence is a fix rather than a loss.
  *
  * This used to read `doc.videos[].videoId` and pass the result on so that

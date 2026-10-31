@@ -3,20 +3,15 @@ import Link from "@/components/i18n/locale-link";
 
 import SiteHeader from "@/components/site-header";
 import { siteConfig } from "@/config/site";
-import { getCurrentUser } from "@/lib/auth";
 import { getSiteGlobals } from "@/lib/content";
 import { resolveNavItems } from "@/lib/nav";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
 export default async function App({ children }: PropsWithChildren) {
-  // getCurrentUser is React-cached (auth.ts), so this costs nothing extra on
-  // pages that also call requireMember/getCurrentUser themselves — same
-  // payload.auth() call, deduped per request.
-  const [globals, user, t] = await Promise.all([
-    getSiteGlobals(),
-    getCurrentUser(),
-    getDictionary(),
-  ]);
+  // No `getCurrentUser()` here: it reads `headers()`, which would make every
+  // public route dynamic. The header asks for the member itself — see
+  // `useMember` in site-header.tsx.
+  const [globals, t] = await Promise.all([getSiteGlobals(), getDictionary()]);
   // The four words named one at a time rather than handing over `t.nav`.
   // `U-DICT-1` proves every key in the dictionary is read by something, and
   // it can only see a key that appears in the source — a whole-section
@@ -28,11 +23,10 @@ export default async function App({ children }: PropsWithChildren) {
     riders: t.nav.riders,
     about: t.nav.about,
   });
-  const member = user ? { displayName: user.displayName ?? null, email: user.email } : null;
 
   return (
     <div className="flex min-h-dvh flex-col space-y-6">
-      <SiteHeader member={member} navItems={navItems} />
+      <SiteHeader navItems={navItems} />
       {/* No `container` here: every page carries its own, with the
           `max-w-*` that suits it, and the two stacked doubled the gutter —
           32px a side on a phone instead of 16, 48 under the gallery's layout,

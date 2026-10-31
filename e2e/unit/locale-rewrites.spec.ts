@@ -3,7 +3,11 @@ import { join, sep } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-import { LOCALIZED_SEGMENTS, defaultLocaleRewrites } from "@/lib/i18n/rewrites";
+import {
+  LOCALIZED_SEGMENTS,
+  defaultLocaleRewrites,
+  routePathsFor,
+} from "@/lib/i18n/rewrites";
 
 /**
  * U-REWRITE — the unprefixed addresses reach the default language's pages.
@@ -90,5 +94,22 @@ test.describe("U-REWRITE the unprefixed addresses", () => {
     ]) {
       expect(rewrite(path), `${path} was rewritten`).toBeNull();
     }
+  });
+
+  test("U-REWRITE-4: a cache bust names the page each address is served from", () => {
+    // `revalidatePath` matches the route path, not the address — Next's
+    // reference says so for rewrites in as many words. A hook busting
+    // `/posts/x` while the page is cached as `/zh-hant/posts/x` changes
+    // nothing, silently. So the bust list has to contain wherever the
+    // rewrite actually sends the address, read off the real rewrite list
+    // rather than restated here.
+    for (const path of ["/", "/posts/a-slug", "/posts/2024/a-slug", "/gallery", "/about"]) {
+      const served = rewrite(path);
+      expect(served, `${path} is not rewritten at all`).not.toBeNull();
+      expect(routePathsFor(path)).toContain(served);
+    }
+    // And the other language's copy of the same article, which no rewrite
+    // produces but which goes stale on the same edit.
+    expect(routePathsFor("/posts/a-slug")).toContain("/zh-hans/posts/a-slug");
   });
 });
