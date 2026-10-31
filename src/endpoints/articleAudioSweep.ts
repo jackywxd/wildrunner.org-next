@@ -5,6 +5,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { isAdminUser } from '@/access'
 import { getR2Bucket } from '@/lib/r2-bucket'
 import {
+  MAX_SCRIPT_CHARS,
   articleAudioKeyForPost,
   articleScript,
   orphanAudioKeys,
@@ -134,15 +135,30 @@ export const articleAudioSweepEndpoint: Endpoint = {
       page += 1
     }
 
-    const chars = pending.reduce((total, item) => total + item.chars, 0)
+    /**
+     * TOO LONG FOR THE VOICE IS NOT PENDING. Left in the queue, post 33 was
+     * picked first on every run, cost a rewrite of 134,839 characters, failed
+     * at the voice, and was picked first again the next time — so `remaining`
+     * read 0 while one article never moved. These are reported by id and
+     * length and narrated on a Mac with `pnpm narrate:local --post <id>`; once
+     * that file is uploaded under the same key, the `head()` above stops
+     * listing the article at all.
+     */
+    const tooLong = pending
+      .filter((item) => item.chars > MAX_SCRIPT_CHARS)
+      .map(({ id, chars }) => ({ id, chars }))
+    const narratable = pending.filter((item) => item.chars <= MAX_SCRIPT_CHARS)
+
+    const chars = narratable.reduce((total, item) => total + item.chars, 0)
     if (!apply) {
       return Response.json({
         applied: false,
         scanned,
-        pending: pending.length,
+        pending: narratable.length,
         chars,
-        wouldNarrate: pending.slice(0, MAX_PER_RUN).map((item) => item.id),
+        wouldNarrate: narratable.slice(0, MAX_PER_RUN).map((item) => item.id),
         maxPerRun: MAX_PER_RUN,
+        tooLong,
         ...(await orphanReport(bucket, wanted)),
       })
     }
@@ -155,7 +171,7 @@ export const articleAudioSweepEndpoint: Endpoint = {
 
     const narrated: unknown[] = []
     const failed: { id: number | string; reason: string }[] = []
-    for (const candidate of pending.slice(0, MAX_PER_RUN)) {
+    for (const candidate of narratable.slice(0, MAX_PER_RUN)) {
       const post = await req.payload.findByID({
         collection: 'posts',
         id: candidate.id,
@@ -180,10 +196,11 @@ export const articleAudioSweepEndpoint: Endpoint = {
     return Response.json({
       applied: true,
       scanned,
-      pending: pending.length,
+      pending: narratable.length,
       narrated,
       failed,
-      remaining: Math.max(0, pending.length - MAX_PER_RUN),
+      remaining: Math.max(0, narratable.length - MAX_PER_RUN),
+      tooLong,
     })
   },
 }

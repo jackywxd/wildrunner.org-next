@@ -77,3 +77,4 @@ backup*.sql
 
 # local TTS audition output (scripts/tts-audition.py)
 /tts-audition-out/
+/narration-out/
