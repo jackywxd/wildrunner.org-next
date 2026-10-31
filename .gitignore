@@ -74,3 +74,6 @@ next-env.d.ts
 /*.sql
 prod-backup-*.sql
 backup*.sql
+
+# local TTS audition output (scripts/tts-audition.py)
+/tts-audition-out/
