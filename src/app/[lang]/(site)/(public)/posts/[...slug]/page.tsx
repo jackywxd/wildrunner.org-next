@@ -64,6 +64,20 @@ export async function generateMetadata({
 }
 
 /**
+ * A time floor under the per-slug invalidation, the same backstop
+ * `gallery/page.tsx` keeps and for the same kind of reason.
+ *
+ * `revalidatePosts` busts this page when the post itself changes. It does not
+ * see what the page borrows from elsewhere: the byline's avatar (an
+ * `authors` write), a race's name in the badge (the catalogue), the nav and
+ * the fallback music (the `site` global) — none of those hooks knows which
+ * articles show them. Nor does anything written past Payload's document layer
+ * (`pnpm sync:staging`). An hour bounds how long any of that can lag, and a
+ * reader past the hour is still served the cached copy while it rebuilds.
+ */
+export const revalidate = 3600;
+
+/**
  * The published posts, prerendered at build time.
  *
  * KEPT, unlike `/gallery/[slug]`'s. AGENTS.md's rule is that a route which is
@@ -109,44 +123,40 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
   if (!blog) {
     notFound();
   }
-  // `React.cache`'d, so fetching it here costs nothing extra on a page that
-  // also renders `RiderBadgeRow`/`RiderBadgeWall` elsewhere in the request —
-  // and most posts have no race attached, so the common case does one lookup
-  // in a Map rather than a second query.
-  const catalogue = blog.race
-    ? catalogueMap(await getRaceCatalogueEvents())
-    : null;
 
   /**
-   * Narration, if this exact article has been through the voice already.
+   * Three lookups that depend on the post and on nothing else, so they go out
+   * together. They were awaited one after another — a D1 query, an R2
+   * `head()`, another D1 query — each round trip waiting on the last.
    *
+   * The race catalogue. `React.cache`'d, so fetching it here costs nothing
+   * extra on a page that also renders `RiderBadgeRow`/`RiderBadgeWall`
+   * elsewhere in the request — and most posts have no race attached, so the
+   * common case asks for nothing.
+   *
+   * Narration, if this exact article has been through the voice already.
    * One `head()` against R2 — there is no column for this, the key is the
    * index (see `article-audio.ts`). `null` is the ordinary answer for an
    * article nobody has generated yet, and for every prerender that runs
    * without bindings; both fall through to `ArticleReader` and the device's
    * own voice, which is what this page did before any of it existed.
-   */
-  const narration = blog.narrationKey
-    ? await narrationUrl(blog.id, blog.narrationKey)
-    : null;
-
-  /**
-   * The byline's face.
    *
-   * `getBylineAvatar` rather than reading it off `blog.author`, and that is
-   * not a stylistic choice: the avatar is a relationship *inside* the author,
-   * so reaching it from the post would mean `depth: 2` — which also walks
-   * `raceRecord → owner` into a whole `users` row. That helper exists to be
-   * the second query instead, and the print route has been using it for
-   * exactly this since it was written.
-   *
-   * Undefined is a real answer, not a failure: an author row with no account
-   * behind it was imported rather than registered, and `RiderAvatar` then
-   * draws the generated avatar the rider directory already shows for them.
+   * The byline's face. `getBylineAvatar` rather than reading it off
+   * `blog.author`, and that is not a stylistic choice: the avatar is a
+   * relationship *inside* the author, so reaching it from the post would mean
+   * `depth: 2` — which also walks `raceRecord → owner` into a whole `users`
+   * row. That helper exists to be the second query instead, and the print
+   * route has been using it for exactly this since it was written. Undefined
+   * is a real answer, not a failure: an author row with no account behind it
+   * was imported rather than registered, and `RiderAvatar` then draws the
+   * generated avatar the rider directory already shows for them.
    */
-  const bylineAvatar = blog.authorSlug
-    ? await getBylineAvatar(blog.authorSlug)
-    : undefined;
+  const [catalogueEvents, narration, bylineAvatar] = await Promise.all([
+    blog.race ? getRaceCatalogueEvents() : null,
+    blog.narrationKey ? narrationUrl(blog.id, blog.narrationKey) : null,
+    blog.authorSlug ? getBylineAvatar(blog.authorSlug) : undefined,
+  ]);
+  const catalogue = catalogueEvents ? catalogueMap(catalogueEvents) : null;
 
   // The share subject, built once and handed to both the panel and the
   // thumbnail. `slugAsParams` rather than `slug` because that is what the
