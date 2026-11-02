@@ -208,6 +208,18 @@ jobs:
     # per-test budget is 5x (e2e/helpers/budget.ts), so 20 leaves generous room
     # and stops a wedged run holding the pipeline for an hour.
     timeout-minutes: 20
+    # The same image e2e.yml's browser lane runs in, for a reason that job's
+    # comment does not cover. Run 41458920160 (the #208 merge) failed here in
+    # one second: `ubuntu-latest` had moved to Ubuntu 26.04, and
+    # `playwright install --with-deps chromium` answered "Playwright does not
+    # support chromium on ubuntu26.04-x64" — so production never deployed,
+    # and every later run would have stopped at the same line. Browsers and
+    # their OS deps come baked into the image, so the runner's OS no longer
+    # decides whether this job can start. Pinned to `@playwright/test` in
+    # package.json (1.56.1); bump both together, here and in e2e.yml.
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,7 +230,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
 
       # PLAYWRIGHT_BASE_URL must match the deployed NEXT_PUBLIC_SITE_URL
       # exactly: Payload derives its CSRF allowlist from `serverURL`, so a
