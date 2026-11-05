@@ -683,6 +683,37 @@ jobs:
             [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
           done
 
+          # One real article, because none of the paths above is one.
+          #
+          # `/posts` is a listing and never exercises the article route. The
+          # incident this follows is in AGENTS.md, "Cache interception turns
+          # every stale page into a 500".
+          #
+          # The slug is read from the listing rather than hardcoded, because
+          # articles get deleted and renamed and a stale constant would fail
+          # every deploy for a reason unrelated to the deploy.
+          #
+          # What this still cannot see: anything that only breaks AFTER the
+          # revalidate window, since a fresh deploy has nothing stale. That is
+          # what production-monitor.yml is for (it runs on GitHub's schedule,
+          # which is delivered hours apart, not minutes); do not read a green
+          # run here as proof the cache path works.
+          #
+          # Plain-ASCII slugs only. Slugs are typed by members and the href is
+          # HTML as React wrote it: `&` arrives as `&amp;`, a space makes curl
+          # refuse the URL, `?`/`#` change the path. Each would be a red run
+          # with every article fine. Any article proves the route.
+          article=$(curl -sS --max-time 30 "https://wildrunner.org/posts" \
+            | LC_ALL=C grep -o 'href="/posts/[A-Za-z0-9._~-][A-Za-z0-9._~/-]*"' | head -1 \
+            | sed -e 's/^href="//' -e 's/"$//' || true)
+          if [ -z "$article" ]; then
+            echo "::error::/posts page listed no article link"
+            exit 1
+          fi
+          code=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "https://wildrunner.org$article")
+          echo "$article -> $code"
+          [ "$code" = "200" ] || { echo "::error::$article returned $code"; exit 1; }
+
   # Its own job, deliberately, and not a step inside `staging`.
   #
   # As a step it was the LAST thing before `Deploy to staging`, so when it
