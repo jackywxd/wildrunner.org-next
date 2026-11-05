@@ -17,26 +17,4 @@ export default defineCloudflareConfig({
 	// single database. Requires a `revalidations` table (see the
 	// add_tag_cache migration).
 	tagCache: d1NextTagCache,
-	// Serve a cached page before the Next.js server is even loaded.
-	//
-	// Without this a cache HIT still boots the whole server bundle — Next,
-	// Payload, every route — and only then reads the page out of R2. On a
-	// site with this little traffic most requests land on a cold isolate, so
-	// that load is most of what a cached article costs. The interceptor
-	// (@opennextjs/aws `core/routing/cacheInterceptor.js`) answers from the
-	// incremental cache straight after routing, so rewrites have already run
-	// and `/posts/x` is looked up as `/zh-hant/posts/x`.
-	//
-	// It still consults the tag cache: a page `revalidatePath` has busted
-	// falls through to the server and re-renders, so an edit shows on the
-	// next request exactly as before.
-	//
-	// A *time*-stale page (past the route's `revalidate`) is handed to the
-	// revalidation queue, and no queue is configured here — the default is
-	// OpenNext's `dummy`, whose `send` throws. The interceptor catches that
-	// and falls through to the server, which is what every request did
-	// before this flag, so it costs nothing that was not already being paid.
-	//
-	// Incompatible with PPR, which this app does not use.
-	enableCacheInterception: true,
 });

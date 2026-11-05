@@ -72,17 +72,10 @@ export async function generateMetadata({
  * `authors` write), a race's name in the badge (the catalogue), the nav and
  * the fallback music (the `site` global) — none of those hooks knows which
  * articles show them. Nor does anything written past Payload's document layer
- * (`pnpm sync:staging`). This bounds how long any of that can lag.
- *
- * A day rather than the hour it started as, because of how articles are
- * edited: often in the first few days after publishing, rarely after. Every
- * one of those edits goes through `revalidatePosts` and shows on the next
- * request whatever this says, so the floor only ever decides how fast the
- * indirect changes above arrive — and an hour paid for a background re-render
- * (Payload boot, D1, an R2 write) of every visited article, every hour, for
- * pages that had not changed.
+ * (`pnpm sync:staging`). An hour bounds how long any of that can lag, and a
+ * reader past the hour is still served the cached copy while it rebuilds.
  */
-export const revalidate = 86400;
+export const revalidate = 3600;
 
 /**
  * The published posts, prerendered at build time.
