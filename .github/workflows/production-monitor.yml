@@ -1,0 +1,111 @@
+name: Production monitor
+
+# A synthetic check of the live site, asked for every 30 minutes.
+#
+# Why it exists: in November 2026 every stale page answered 500 for ~46h
+# (AGENTS.md, "Cache interception turns every stale page into a 500"). The
+# deploy's smoke check runs once, immediately, when nothing is stale yet,
+# and nothing looked at production afterwards. This is the "afterwards".
+#
+# Asked for every 30 minutes, DELIVERED far less often, and the delivered
+# number is the honest one. GitHub drops scheduled runs under load and never
+# reports the ones it skipped: transcode-sweep.yml asks for */15, and its 40
+# scheduled runs from 2026-10-27 to 2026-11-05 came 3.0h to 9.9h apart (median
+# 5.7h); race-schedule-maintenance fires 3-7h after its 16:05. So expect
+# detection in hours, not minutes. That is still far inside 46h, but it is not
+# a half-hour bound. Minutes 17/47 rather than :00/:30 because GitHub's docs
+# name the top of the hour as peak load; that is a hope, not a measurement.
+#
+# Deliberately curl-only: no checkout, no install, no browser, no secrets.
+# A monitor that can break for reasons unrelated to production trains people to
+# ignore it. The example is the STAGING smoke check in deploy.yml
+# (verify-staging): `ubuntu-latest` moved to Ubuntu 26.04, `playwright
+# install` refused it, and the check went red with the site perfectly healthy.
+# (The production check there is already plain curl.) curl ships on the
+# runner image and needs nothing.
+#
+# Status codes only. The incident answered 500, and matching on body text would
+# be a second thing to keep in step with the site.
+#
+# How it notifies: there is no alerting integration. GitHub emails a failed
+# scheduled run to ONE account: whoever last changed the `cron:` line, or
+# last re-enabled the workflow, and only if that account's Settings ->
+# Notifications -> Actions allows it. Nobody else hears, so the job must
+# genuinely exit non-zero. Commits here are authored by an agent account,
+# and whether GitHub credits the cron to it or to whoever merged is not
+# verified, so after this file first merges the owner disables and
+# re-enables it once (Actions -> Production monitor -> "Disable workflow",
+# then "Enable workflow") to be certain of being that recipient — and again
+# whenever someone else edits the cron. On a public repository, scheduled
+# workflows are also disabled after 60 days without repository activity;
+# re-enable the same way. A disabled workflow cannot be dispatched.
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    name: Check production
+    runs-on: ubuntu-latest
+    # Worst case, everything hanging: discovery is 3 x 30s + 2 x 20s = 130s,
+    # and each of the 6 paths (/, /posts, /gallery, /about, /races, one
+    # article) is also 130s, so 130 + 6 x 130 = 910s, a little over 15
+    # minutes. At 10 GitHub would cancel the job mid-loop and the ::error::
+    # lines would never print; 20 leaves room for runner startup.
+    timeout-minutes: 20
+    steps:
+      - name: Check production responds
+        run: |
+          # GitHub runs a step with no `shell:` as `bash -e {0}`, so -e is ON
+          # unless this turns it off. Off on purpose: a non-200 is the thing
+          # being measured, and the retry loop has to survive it.
+          set +e -uo pipefail
+
+          base="https://wildrunner.org"
+          attempts=3
+          delay=20
+
+          # Same discovery as deploy.yml's smoke check: the first real article
+          # on /posts, never a hardcoded slug. Listing failure is itself a
+          # breakage signal, so it is retried and then reported, not skipped.
+          # Plain-ASCII slugs only. Slugs are typed by members and the href is
+          # HTML as React wrote it: `&` arrives as `&amp;`, a space makes curl
+          # refuse the URL, `?`/`#` change the path. Each would be a red run
+          # with every article fine. Any article proves the route.
+          article=""
+          for attempt in $(seq 1 "$attempts"); do
+            article=$(curl -sS --max-time 30 "$base/posts" \
+              | LC_ALL=C grep -o 'href="/posts/[A-Za-z0-9._~-][A-Za-z0-9._~/-]*"' | head -1 \
+              | sed -e 's/^href="//' -e 's/"$//' || true)
+            [ -n "$article" ] && break
+            echo "/posts listed no article (attempt $attempt/$attempts)"
+            [ "$attempt" -lt "$attempts" ] && sleep "$delay"
+          done
+
+          paths=(/ /posts /gallery /about /races)
+          [ -n "$article" ] && paths+=("$article")
+
+          failed=0
+          for path in "${paths[@]}"; do
+            code=""
+            for attempt in $(seq 1 "$attempts"); do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$base$path" || true)
+              echo "$path attempt $attempt/$attempts -> $code"
+              [ "$code" = "200" ] && break
+              [ "$attempt" -lt "$attempts" ] && sleep "$delay"
+            done
+            if [ "$code" != "200" ]; then
+              echo "::error::$base$path returned $code on all $attempts attempts"
+              failed=1
+            fi
+          done
+
+          if [ -z "$article" ]; then
+            echo "::error::$base/posts listed no article link on all $attempts attempts"
+            failed=1
+          fi
+
+          exit "$failed"
