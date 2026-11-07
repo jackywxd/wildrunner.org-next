@@ -58,6 +58,7 @@
     "build:prod": "node scripts/with-env.mjs .env.production opennextjs-cloudflare build",
     "deploy:prod": "pnpm run build:prod && node scripts/assert-no-secrets-in-bundle.mjs && node scripts/patch-assets-headers.mjs && node scripts/deploy-with-build-id.mjs",
     "seed:e2e:account": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/seed-e2e-account.ts",
+    "seed:e2e:narration": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed-e2e-narration.ts",
     "seed:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/csv-to-seed.ts",
     "validate:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/validate-catalogue.ts",
     "validate:editions": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/validate-race-editions.ts",
@@ -78,7 +79,8 @@
     "geocode:events": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts",
     "geocode:events:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
     "geocode:events:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
-    "generate:zh-hans": "tsx scripts/generate-zh-hans.ts"
+    "generate:zh-hans": "tsx scripts/generate-zh-hans.ts",
+    "narrate:local": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/narrate-local.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -159,6 +161,7 @@
     "d3-geo": "^3.1.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.20",
+    "pinyin-pro": "3.29.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "topojson-client": "^3.1.0",

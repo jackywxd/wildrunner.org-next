@@ -1,8 +1,12 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { useRef } from "react";
 
 import { useDictionary } from "@/components/i18n/dictionary-provider";
+import { formatClock } from "@/lib/reader/narration-position";
+
+import { useResume } from "./narration/use-resume";
 
 /**
  * Playing the narration that was generated for this article.
@@ -28,13 +32,22 @@ import { useDictionary } from "@/components/i18n/dictionary-provider";
 export function ArticleAudio({
   /** The generated narration, already an absolute R2 URL. */
   src,
+  /**
+   * The R2 key of that file — what a remembered position is filed under. Not
+   * the key the article's current words hash to: an edited article plays its
+   * previous narration, and the position belongs to the file being played.
+   */
+  audioKey,
   /** This article's id — the download goes through our own origin. */
   postId,
 }: {
   src: string;
+  audioKey: string;
   postId: number | string;
 }) {
   const t = useDictionary();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const { resumeAt, startOver } = useResume(audioRef, audioKey);
   return (
     <div
       className="my-6 flex flex-wrap items-center gap-3"
@@ -47,15 +60,37 @@ export function ArticleAudio({
         support and the system media session wired up.
       */}
       <audio
+        ref={audioRef}
         data-testid="article-audio-player"
         src={src}
         controls
         // Nothing is fetched until a reader asks for it. The file is a few
-        // megabytes and most visitors are here to read.
-        preload="none"
+        // megabytes and most visitors are here to read. The exception is a
+        // reader with a remembered position, who is likely to press play: they
+        // get the first bytes, which is what lets the duration be checked
+        // before the offer is made. `resumeAt` is null on the server render and
+        // on a first visit, so neither is ever asked to fetch anything.
+        preload={resumeAt === null ? "none" : "metadata"}
         aria-label={t.reader.readAria}
         className="h-10 min-w-0 flex-1"
       />
+
+      {resumeAt !== null && (
+        <p
+          data-testid="article-audio-resume"
+          className="flex basis-full flex-wrap items-center gap-x-3 text-sm text-muted-foreground"
+        >
+          {t.reader.resumeNotice.replace("{time}", formatClock(resumeAt))}
+          <button
+            type="button"
+            data-testid="article-audio-restart"
+            onClick={startOver}
+            className="underline underline-offset-4"
+          >
+            {t.reader.resumeRestart}
+          </button>
+        </p>
+      )}
 
       {/*
         A plain link, not a button and not a fetch. The server sets
