@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { articleAudioKeyForPost } from "@/lib/reader/article-audio";
 import { articleSegments } from "@/lib/reader/article-text";
 
 /**
@@ -123,5 +124,69 @@ test.describe("U-READER an article body becomes the sentences a voice says", () 
     for (const segment of segments)
       expect(segment.length).toBeLessThanOrEqual(180);
     expect(segments.join("")).toBe(runOn);
+  });
+
+  test("U-READER-9: the whole output, and the key it hashes to, are pinned", () => {
+    // Guards: a refactor of the walk, the splitter or the pronunciation rules
+    // that silently changes ONE spoken sentence. The narration key is a hash
+    // of that text, so every narration in production would then be looked up
+    // under a new key and not found — the page falls back to the device's
+    // voice, and the generation sweep, seeing no audio for any article,
+    // offers to pay for all of them again. Nothing would fail; it would just
+    // cost money and quietly remove the recordings from the site.
+    //
+    // The cases above each pin one rule. This pins the composition — the
+    // order they apply in and how they interact — over one fixture that has
+    // every shape in it, and then the literal key. Change the expected values
+    // only when changing what is said is the intent, and then remember that it
+    // IS what regenerates every narration.
+    const t = (text: string) => ({ type: "text", text });
+    const content = doc([
+      { type: "heading", children: [t("第一章 起跑")] },
+      para("他說「跑吧。」然後就走了。"),
+      para("比賽視頻 https://www.youtube.com/watch?v=abc 很好看。"),
+      para("Held in Canada. It is 3.5 km. See utmb.world now"),
+      para("https://www.youtube.com/watch?v=hmidfqoX6cc"),
+      { type: "upload", value: { alt: "終點線" } },
+      {
+        type: "list",
+        children: [
+          { type: "listitem", children: [t("水")] },
+          { type: "listitem", children: [t("鹽，還有35K的補給")] },
+        ],
+      },
+      {
+        type: "paragraph",
+        children: [t("第一行"), { type: "linebreak" }, t("第二行。")],
+      },
+      para("跑".repeat(400)),
+      para("胖狗120M，另一場 10KM，和 5Kg，100Kcal；這個“習慣”很好。"),
+      { type: "quote", children: [t("慢慢來，比較快！")] },
+    ]);
+
+    expect(articleSegments(content)).toEqual([
+      "第一章 起跑",
+      "他說「跑吧。」",
+      "然後就走了。",
+      "比賽視頻 很好看。",
+      "Held in Canada.",
+      "It is 3.5 km.",
+      "See utmb.world now",
+      "水",
+      "鹽，還有35公里的補給",
+      "第一行 第二行。",
+      "跑".repeat(180),
+      "跑".repeat(180),
+      "跑".repeat(40),
+      "胖狗120英里，另一場 10KM，和 5Kg，100Kcal；",
+      "這個習慣很好。",
+      "慢慢來，比較快！",
+    ]);
+
+    // Computed once from the code at the time this was written, and compared
+    // with the segments above by eye. The title is part of the hash.
+    expect(
+      articleAudioKeyForPost({ id: 7, title: "黃金測試", content }),
+    ).toBe("article-audio/7-1280718c.mp3");
   });
 });

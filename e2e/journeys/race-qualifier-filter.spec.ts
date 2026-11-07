@@ -1,6 +1,7 @@
 import type { APIRequestContext } from "@playwright/test";
 
 import { budget } from "../helpers/budget";
+import { waitForHydration } from "../helpers/hydration";
 import { adminContext } from "../helpers/members";
 import { expect, test } from "../helpers/test";
 
@@ -78,7 +79,10 @@ test.describe("Q race qualifier filters", () => {
     // server, and this journey is almost all writes — the admin sign-in and
     // the PATCH are exactly the calls that cost 5x against a deployed
     // Worker (e2e/helpers/budget.ts).
-    test.setTimeout(budget(60_000));
+    //
+    // 90s since the two render waits below were added: each may legitimately
+    // take up to 30s on a cold dev server (see them), on top of the above.
+    test.setTimeout(budget(90_000));
 
     const admin = await adminContext(baseURL);
 
@@ -104,10 +108,39 @@ test.describe("Q race qualifier filters", () => {
       expect(patched.ok(), await patched.text()).toBeTruthy();
 
       await page.reload({ waitUntil: "domcontentloaded" });
+      // Before the click: the chip is a Link, and clicked before React takes
+      // over it is a hard load of a query-string URL, which mounts the page
+      // twice (PageTransitionEffect re-keys it) and the click lands on the
+      // copy that is discarded.
+      await waitForHydration(page);
       await page.getByTestId("race-filter-wser").click();
 
       // The URL moved...
       await expect(page).toHaveURL(/[?&]qualifier=wser/, { timeout: budget(15_000) });
+
+      // THE URL MOVES BEFORE THE LIST DOES. On a query-only soft navigation
+      // Next updates the address at once, and the page changes only when the
+      // server's render for the new URL arrives; until then
+      // PageTransitionEffect's FrozenRouter keeps the PREVIOUS page on screen,
+      // and once it lands the old copy stays in the DOM while it exits. So
+      // everything below could be reading the old list. Observed on the dev
+      // server: URL already `?qualifier=wser`, DOM still the unfiltered 45
+      // rows, and the log reading `GET /races?qualifier=wser 200 in 20.0s`.
+      // Warm renders of /races measured 3.7-9.6s over nine requests and CI's
+      // warmup 6.5s — the default 5s expect timeout sits inside that. (Production
+      // answers in 0.2-0.3s; this is a dev-server cost, not a user one.)
+      //
+      // So wait for the new render's own mark: the chip is `aria-current`
+      // when active, decided on the server from the filters, which the frozen
+      // copy can never have. Not a strict locator — during the exit both
+      // copies are in the DOM, and a strict one would throw on two.
+      const activeChip = page.locator(
+        '[data-testid="race-filter-wser"][aria-current="true"]',
+      );
+      await expect(
+        activeChip.first(),
+        "the filtered render never arrived — the list on screen is still the previous page",
+      ).toBeAttached({ timeout: budget(30_000) });
 
       // ...and so did the list. The race whose category was just flagged is
       // still here, which is what stops the next assertion being vacuous.
@@ -131,7 +164,9 @@ test.describe("Q race qualifier filters", () => {
         ),
       ).toHaveCount(0);
       // fixture-scoped: the PATCH above guarantees at least one row, so the
-      // assertion cannot be passing over an empty list.
+      // assertion cannot be passing over an empty list. Read only now: the
+      // zero-untagged count above cannot hold while the old copy is in the
+      // DOM, since the unfiltered list contains untagged rows.
       const filtered = await rows.count();
       expect(filtered).toBeGreaterThan(0);
 
@@ -140,6 +175,13 @@ test.describe("Q race qualifier filters", () => {
       await expect(page).toHaveURL((url) => !url.search.includes("qualifier="), {
         timeout: budget(15_000),
       });
+      // Same wait, mirrored: the filtered copy still carries the active chip
+      // while it exits, so its absence is the unfiltered render having
+      // arrived. Without it the count below can read the old filtered list.
+      await expect(
+        activeChip,
+        "the unfiltered render never arrived — the filtered list is still on screen",
+      ).toHaveCount(0, { timeout: budget(30_000) });
       // Strictly more rows once the filter is off, which is also the proof
       // that the filter was removing something rather than doing nothing.
       await expect(rows).not.toHaveCount(filtered);

@@ -36,7 +36,9 @@
     "noVoice": "這台裝置沒有中文語音，無法朗讀。",
     "voice": "聲音",
     "speed": "語速",
-    "download": "下載語音"
+    "download": "下載語音",
+    "resumeNotice": "上次聽到 {time}，按播放從這裡繼續",
+    "resumeRestart": "從頭開始"
   },
   "gallery": {
     "shareAria": "分享 {label}",

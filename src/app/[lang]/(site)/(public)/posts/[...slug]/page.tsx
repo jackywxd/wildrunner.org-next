@@ -319,7 +319,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
             with no `speechSynthesis`. */}
         {blog.content &&
           (narration ? (
-            <ArticleAudio src={narration} postId={blog.id} />
+            <ArticleAudio
+              src={narration.url}
+              audioKey={narration.key}
+              postId={blog.id}
+            />
           ) : (
             <ArticleReader title={blog.title} content={blog.content} />
           ))}

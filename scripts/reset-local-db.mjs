@@ -27,6 +27,7 @@
  * making the unsafe combination fail loudly is what cannot be reintroduced
  * quietly.
  */
+import { execSync } from "node:child_process";
 import { existsSync, rmSync, statSync } from "node:fs";
 
 import { runSeeds, verifyCorpus } from "./lib/corpus.mjs";
@@ -72,3 +73,10 @@ if (r2Before && !existsSync(R2_DIR)) {
 runSeeds("reset");
 
 verifyCorpus("reset");
+
+// After the count check, so an empty seed is reported as that and not as "no
+// post to attach audio to". Not one of SEED_STEPS: it writes to R2, which the
+// database cache does not hold — the CI workflow runs it as its own step for
+// the same reason. See the header of seed-e2e-narration.ts.
+console.log("[reset] pnpm seed:e2e:narration  (the audio the listening journey plays)");
+execSync("pnpm seed:e2e:narration", { stdio: "inherit" });

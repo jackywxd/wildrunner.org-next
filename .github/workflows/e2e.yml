@@ -345,6 +345,14 @@ jobs:
             export PAYLOAD_SECRET="ci-payload-secret-change-me-32chars-min"
           fi
           pnpm seed:e2e:account
+      # Every run, hit or miss, because the cache above holds `d1` and nothing
+      # else: on a hit the database is restored and local R2 is empty, so the
+      # listening journey would find an article with no narration. It writes
+      # one small object under a key derived from a row, so it is also safe
+      # after a seed. Refuses to run against anything but local R2.
+      - name: Put the narration fixture in local R2
+        timeout-minutes: 5
+        run: pnpm seed:e2e:narration
       - name: Run Playwright (shard ${{ matrix.shard }}/5)
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET }}

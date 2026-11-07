@@ -188,6 +188,14 @@ test.describe("V what a visitor can do", () => {
   test("V11: a 404 is a page of this site, and it leads back into it", async ({
     page,
   }) => {
+    // THREE RENDERS AND A CLICK DO NOT FIT THE 20s DEFAULT, same shape as
+    // V4/V5 above (504d420). Measured on CI: 16.6s, 18.0s and 18.6s on the
+    // last three green runs (2026-11-02, then 2026-11-05 twice), and over 20s
+    // on 2026-11-07 — the failing run's snapshot shows the root 404 already
+    // rendered, so it was the last step running out of clock, not an
+    // assertion failing.
+    test.setTimeout(budget(60_000));
+
     // V8 above asserts the status and deliberately not the body. This is the
     // other half, and it is a separate test because the two fail for
     // unrelated reasons: V8 goes red when a route stops throwing

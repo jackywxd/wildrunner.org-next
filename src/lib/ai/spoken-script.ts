@@ -68,7 +68,7 @@ const REWRITE_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct";
  * measured in this corpus rather than invented ones, so the model is being
  * shown the domain rather than told about it.
  */
-const SYSTEM = [
+export const SYSTEM = [
   "你是一個把中文文章改寫成「唸出來的樣子」的工具，輸出只給語音合成使用。",
   "輸入是一行一句。規則：",
   "1. 逐行對應。輸出的行數必須和輸入完全相同，不可合併、拆分、新增或刪除任何一行。",
@@ -101,7 +101,7 @@ const SYSTEM = [
  * length, and it makes the failure granular: a chunk the model mangles falls
  * back to its own ten lines rather than costing the whole article its rewrite.
  */
-const CHUNK_LINES = 10;
+export const CHUNK_LINES = 10;
 
 /**
  * Room for the reply, and no longer for a model's thinking.

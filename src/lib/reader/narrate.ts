@@ -1,9 +1,10 @@
 import type { Payload } from "payload";
+import { APIError } from "payload";
 
 import { speakArticle } from "@/lib/ai/speak";
 import { spokenScript } from "@/lib/ai/spoken-script";
 
-import { articleAudioKeyForPost, articleScript } from "./article-audio";
+import { MAX_SCRIPT_CHARS, articleAudioKeyForPost, articleScript } from "./article-audio";
 
 /**
  * Narrate one article into R2, or report that it is already there.
@@ -54,6 +55,19 @@ export async function narrateArticle(
   const key = articleAudioKeyForPost(post);
   if (!options.force && (await bucket.head(key))) {
     return { key, chars: script.length, skipped: true, rewritten: false };
+  }
+
+  // Refused BEFORE the rewrite, not only by `speakArticle` after it. The
+  // rewrite is a model call per ten lines, all at once, and post 33 — 134,839
+  // characters — paid for roughly two hundred of them on every sweep before
+  // the voice turned it away. An article this long is narrated on a Mac
+  // instead (`scripts/narrate-local.ts`); the check in `speakArticle` stays,
+  // because a rewrite can push a script that fitted past the limit.
+  if (script.length > MAX_SCRIPT_CHARS) {
+    throw new APIError(
+      `Script is ${script.length} characters; the voice accepts ${MAX_SCRIPT_CHARS}. Narrate it locally: pnpm narrate:local --post ${post.id}`,
+      413,
+    );
   }
 
   const spoken = await spokenScript({ ai, payload }, script);
