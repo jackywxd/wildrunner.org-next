@@ -27,6 +27,7 @@ import { TEST_ADMIN } from "../helpers/auth";
 import { budget } from "../helpers/budget";
 import { getWithRetry } from "../helpers/request";
 import { deleteCreatedRows, leavePostEditor } from "../helpers/teardown";
+import { isFinished } from "@/lib/races/race-state";
 
 test.describe("R what a member does with a race report", () => {
   /**
@@ -348,15 +349,37 @@ test.describe("R what a member does with a race report", () => {
     // been run guarantees the window contains a finished row, and leaves the
     // claim under test untouched: arrive from the race itself, and the
     // refusal comes from submitting the second report.
+    //
+    // "Started before now" IS NOT "run", and that was the second way this went
+    // red. From 2026-11-05 the latest start was `wtm-grampians`
+    // (2026-11-05 to 11-08, data/race-editions.csv), still running, so its row
+    // is "ongoing", never offers `race-write-report`, and the control could
+    // not appear in any window. It recurs whenever the latest-started race is
+    // a multi-day one in progress. So the choice uses the app's own rule,
+    // `isFinished`, over a handful of the latest starts; dates stay
+    // "YYYY-MM-DD" strings, never a `Date` built from a stored value.
+    const now = new Date();
     const editions = await getWithRetry(
       page.request,
-      "/api/race-editions?limit=1&depth=0&sort=-startDate" +
-        `&where[startDate][less_than]=${new Date().toISOString()}`,
+      "/api/race-editions?limit=20&depth=0&sort=-startDate" +
+        `&where[startDate][less_than]=${now.toISOString()}`,
     );
     expect(editions.ok(), "could not read race editions").toBeTruthy();
-    const ran = ((await editions.json()) as { docs: { startDate: string }[] })
-      .docs[0]?.startDate;
-    if (!ran) throw new Error("the corpus contains no race that has been run");
+    const ran = (
+      (await editions.json()) as {
+        docs: { startDate: string; endDate?: string | null }[];
+      }
+    ).docs
+      .map((d) => ({
+        startDate: d.startDate.slice(0, 10),
+        endDate: d.endDate ? d.endDate.slice(0, 10) : null,
+      }))
+      .find((d) => isFinished(d, now))?.startDate;
+    if (!ran) {
+      throw new Error(
+        "none of the 20 latest-started races has finished — the corpus has no race that has been run",
+      );
+    }
 
     await page.goto(`/races?from=${ran.slice(0, 7)}`, {
       waitUntil: "domcontentloaded",

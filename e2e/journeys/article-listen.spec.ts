@@ -104,10 +104,12 @@ async function leaveAndReturn(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${localizedPath("zh-hans", "/posts")}$`), {
     timeout: budget(20_000),
   });
-  await page
-    .locator(`a[href$="/${NARRATED_SLUG}"]:visible`)
-    .first()
-    .click();
+  // The card's own link, matched whole. A suffix match also catches the
+  // card's print link (`/print/posts/2024/my-ultra-races`), `.first()` took
+  // it on CI, and the journey ended up on the print page. The card renders
+  // `postPublicPath(slug)` through `LocaleLink`, which prefixes the language
+  // the reader is on — the same address as `ARTICLE`.
+  await page.locator(`a[href="${ARTICLE}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`${ARTICLE}$`), {
     timeout: budget(20_000),
   });
