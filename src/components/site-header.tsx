@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "@/components/i18n/locale-link";
 import { AlignLeft, LogIn, User as UserIcon, X } from "lucide-react";
 
@@ -13,17 +13,65 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import type { NavItemData } from "@/lib/nav";
 import { useDictionary } from "@/components/i18n/dictionary-provider";
+import { cn } from "@/lib/utils";
 
 type Member = { displayName: string | null; email: string };
 
+/**
+ * Who is signed in, asked from the browser.
+ *
+ * WHY NOT ON THE SERVER. This used to arrive as a prop from `App`, which read
+ * it with `getCurrentUser()` — and that reads `headers()`. Inside the layout
+ * that wraps the whole public site, one `headers()` makes every route beneath
+ * it dynamic, so the article page's `generateStaticParams` and the R2 cache it
+ * was written for never served a single request. Every view booted Payload and
+ * walked D1 for a page that is the same for everybody, and field data put that
+ * at a 4.1s P75 time to first byte — most of the article's LCP. The member's
+ * name is the only per-visitor thing on these pages, so it is the part that
+ * moves.
+ *
+ * `undefined` is "not known yet", distinct from `null` for "nobody". Until the
+ * answer is in, the sign-in link is laid out but not shown: a member would
+ * otherwise see 登入 flash before their own name, and a visitor's header would
+ * shift sideways as the slot filled. A failed request reads as nobody, which
+ * is what the page showed a visitor before.
+ *
+ * Same request `members/login` already makes, for the same reason. A
+ * client-side `fetch` sends `Origin`, so it is not subject to the
+ * missing-Origin rejection `src/lib/auth-origin.ts` exists for.
+ */
+function useMember(): Member | null | undefined {
+  const [member, setMember] = useState<Member | null | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/users/me", { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (cancelled) return;
+        const user = (body as { user?: Partial<Member> | null } | null)?.user;
+        setMember(
+          user?.email
+            ? { displayName: user.displayName ?? null, email: user.email }
+            : null,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setMember(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return member;
+}
+
 export default function SiteHeader({
-  member,
   navItems,
 }: {
-  member: Member | null;
   navItems: NavItemData[];
 }) {
   const t = useDictionary();
+  const member = useMember();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   // Stable, because the menu keys its scroll lock and Escape listener on it.
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
@@ -50,7 +98,12 @@ export default function SiteHeader({
             </Link>
           ) : (
             <Link
-              className="flex h-11 min-w-11 items-center justify-center gap-1.5 text-sm text-foreground/80 hover:text-primary"
+              className={cn(
+                "flex h-11 min-w-11 items-center justify-center gap-1.5 text-sm text-foreground/80 hover:text-primary",
+                member === undefined && "invisible",
+              )}
+              aria-hidden={member === undefined || undefined}
+              tabIndex={member === undefined ? -1 : undefined}
               data-testid="header-login-link"
               href="/members/login"
             >

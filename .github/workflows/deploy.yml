@@ -208,6 +208,18 @@ jobs:
     # per-test budget is 5x (e2e/helpers/budget.ts), so 20 leaves generous room
     # and stops a wedged run holding the pipeline for an hour.
     timeout-minutes: 20
+    # The same image e2e.yml's browser lane runs in, for a reason that job's
+    # comment does not cover. Run 41458920160 (the #208 merge) failed here in
+    # one second: `ubuntu-latest` had moved to Ubuntu 26.04, and
+    # `playwright install --with-deps chromium` answered "Playwright does not
+    # support chromium on ubuntu26.04-x64" — so production never deployed,
+    # and every later run would have stopped at the same line. Browsers and
+    # their OS deps come baked into the image, so the runner's OS no longer
+    # decides whether this job can start. Pinned to `@playwright/test` in
+    # package.json (1.56.1); bump both together, here and in e2e.yml.
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,7 +230,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
 
       # PLAYWRIGHT_BASE_URL must match the deployed NEXT_PUBLIC_SITE_URL
       # exactly: Payload derives its CSRF allowlist from `serverURL`, so a
@@ -671,6 +682,37 @@ jobs:
             echo "$path -> $code"
             [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
           done
+
+          # One real article, because none of the paths above is one.
+          #
+          # `/posts` is a listing and never exercises the article route. The
+          # incident this follows is in AGENTS.md, "Cache interception turns
+          # every stale page into a 500".
+          #
+          # The slug is read from the listing rather than hardcoded, because
+          # articles get deleted and renamed and a stale constant would fail
+          # every deploy for a reason unrelated to the deploy.
+          #
+          # What this still cannot see: anything that only breaks AFTER the
+          # revalidate window, since a fresh deploy has nothing stale. That is
+          # what production-monitor.yml is for (it runs on GitHub's schedule,
+          # which is delivered hours apart, not minutes); do not read a green
+          # run here as proof the cache path works.
+          #
+          # Plain-ASCII slugs only. Slugs are typed by members and the href is
+          # HTML as React wrote it: `&` arrives as `&amp;`, a space makes curl
+          # refuse the URL, `?`/`#` change the path. Each would be a red run
+          # with every article fine. Any article proves the route.
+          article=$(curl -sS --max-time 30 "https://wildrunner.org/posts" \
+            | LC_ALL=C grep -o 'href="/posts/[A-Za-z0-9._~-][A-Za-z0-9._~/-]*"' | head -1 \
+            | sed -e 's/^href="//' -e 's/"$//' || true)
+          if [ -z "$article" ]; then
+            echo "::error::/posts page listed no article link"
+            exit 1
+          fi
+          code=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "https://wildrunner.org$article")
+          echo "$article -> $code"
+          [ "$code" = "200" ] || { echo "::error::$article returned $code"; exit 1; }
 
   # Its own job, deliberately, and not a step inside `staging`.
   #

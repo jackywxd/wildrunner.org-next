@@ -5,7 +5,7 @@ import { ownerField } from '../fields/owner'
 import { guardPostContent } from './hooks/guard-content'
 import { setOwner } from './hooks/owner'
 import { stampPublishDates } from './hooks/publish-dates'
-import { revalidatePosts } from './hooks/revalidate'
+import { revalidateDeletedPost, revalidatePosts } from './hooks/revalidate'
 import { resetPostViewsOnCreate } from './hooks/reset-post-views'
 import { derivePostSlug } from './hooks/derive-slug'
 import { uniquePostSlug } from './hooks/unique-slug'
@@ -30,6 +30,7 @@ export const Posts: CollectionConfig = {
     beforeValidate: [guardPostContent, derivePostSlug, uniquePostSlug],
     beforeChange: [setOwner, stampPublishDates],
     afterChange: [resetPostViewsOnCreate, revalidatePosts],
+    afterDelete: [revalidateDeletedPost],
   },
   versions: {
     drafts: true,

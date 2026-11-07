@@ -292,32 +292,48 @@ export async function getPublishedPosts(locale: string): Promise<SitePost[]> {
   return result.docs.map((doc) => localisePost(mapPayloadPost(doc), locale));
 }
 
-export async function getPostBySlugParam(
+/**
+ * One article, by the slug in its address.
+ *
+ * `React.cache`'d because the article route asks twice per render — once from
+ * `generateMetadata`, once from the page — and each ask was a full query.
+ *
+ * ONE QUERY FOR ALL THREE SPELLINGS. A stored slug may or may not carry the
+ * `posts/` prefix the Velite-era imports had, so the address is tried as
+ * written, with the prefix, and without it. Those were three round trips in
+ * sequence, and a miss on the first — the common case for a prefixed slug —
+ * paid for two before anything rendered. `in` asks once; the order of
+ * `attempts` still decides which document wins if more than one matches.
+ */
+export const getPostBySlugParam = cache(async (
   slugParam: string,
   locale: string,
-): Promise<SitePost | null> {
+): Promise<SitePost | null> => {
   const payload = await getPayloadClient();
   const attempts = [
-    slugParam,
-    `posts/${slugParam}`,
-    slugParam.replace(/^posts\//, ""),
+    ...new Set([
+      slugParam,
+      `posts/${slugParam}`,
+      slugParam.replace(/^posts\//, ""),
+    ]),
   ];
 
+  const result = await payload.find({
+    collection: "posts",
+    depth: 1,
+    select: POST_DETAIL_SELECT,
+    limit: attempts.length,
+    pagination: false,
+    where: {
+      and: [
+        { slug: { in: attempts } },
+        { _status: { equals: "published" } },
+      ],
+    },
+  });
   for (const slug of attempts) {
-    const result = await payload.find({
-      collection: "posts",
-      depth: 1,
-      select: POST_DETAIL_SELECT,
-      limit: 1,
-      where: {
-        and: [
-          { slug: { equals: slug } },
-          { _status: { equals: "published" } },
-        ],
-      },
-    });
-    if (result.docs[0]) {
-      const doc = result.docs[0];
+    const doc = result.docs.find((d) => d.slug === slug);
+    if (doc) {
       // Resolved here rather than inside `mapPayloadPost`, which is shared
       // with every card query and is synchronous. The fallback list lives on
       // the `site` global, so knowing the answer costs a second read that a
@@ -342,7 +358,7 @@ export async function getPostBySlugParam(
     }
   }
   return null;
-}
+});
 
 export async function getPublishedPostSlugs(): Promise<string[]> {
   // A slug is an address, and `localisePost` never converts one — so the

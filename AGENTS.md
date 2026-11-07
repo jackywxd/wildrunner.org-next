@@ -385,6 +385,83 @@ The general rule this file already states, and which is what finally found it:
 real cookie answered in seconds what two green browser runs had actively
 obscured — and the green runs were the more convincing of the two.
 
+### Cache interception turns every stale page into a 500
+
+PR #207 (deployed 2026-11-02 02:14 UTC, Worker version `ea260cf2`) made
+`/[lang]/posts/[...slug]`, `/about` and `/gallery` actually cacheable by
+removing a `headers()` read from the public layout. PR #208 reached production
+with #209's deploy (2026-11-02 21:52 UTC, Worker version `5cfaed2c`). It set
+`enableCacheInterception: true` in `open-next.config.ts` — OpenNext files it
+under `dangerous` — and raised the article `revalidate` from 3600 to 86400.
+
+The project has never configured a revalidation `queue`, so OpenNext uses its
+default `dummy` one (`@opennextjs/cloudflare` `dist/api/config.js`,
+`resolveQueue(value = "dummy")`), whose `send` throws
+`FatalError("Dummy queue is not implemented")`. Without interception the throw
+does not fail the request: the server path's `revalidateIfRequired`
+(`@opennextjs/aws` `dist/core/routing/util.js`) wraps `queue.send` in a
+try/catch and only logs (`Failed to revalidate stale page`).
+
+With interception it does. In `@opennextjs/aws` 4.1.0
+`dist/core/routing/cacheInterceptor.js`, line 243 is `return generateResult(...)`
+inside a `try` **without `await`**. For a stale entry `computeCacheControl`
+awaits `queue.send`, so the rejection comes out of the returned promise after
+the function has left the `try`, and the `catch` at line 277 never sees it.
+`routingHandler`'s own catch one level up does
+(`dist/core/routingHandler.js:205`) and rewrites the request to `/500`; this
+app has no error page, so Next answers with its bare fallback — plain-text
+`Internal Server Error`, HTTP 500 (`next/dist/server/base-server.js:1931`).
+
+**The Worker log is the tell**: `Error in routingHandler` followed by `Dummy
+queue is not implemented`. The plain-text body only says no error page
+rendered; every unhandled server error here looks the same.
+
+Nothing is stale right after a deploy, so the deploy's smoke check passed.
+`/gallery` (`revalidate` 3600) is inferred to have broken about an hour after
+the deploy and every article about 24 hours after it, from 2026-11-03 ~21:52
+UTC. `/about` has no `revalidate` (it is SSG and never stale on time), which is
+why it did not break. All of that is inferred from the code and the revalidate
+windows, not observed in logs. Reported on 2026-11-05; restored at 20:19 UTC by
+reverting #208 (PR #210) and redeploying, ~46 h after articles began failing.
+
+Recovery took ~20 minutes from the first deploy attempt. A `workflow_dispatch`
+deploy from the revert branch was refused at the `production` environment,
+which only accepts `main`, so the revert had to be merged and rebuilt. (The
+refused dispatch still ran "Deploy transcoder (production)" from the branch —
+that job has no `environment:` gate.) The fastest path is
+`wrangler rollback <version-id>` (here, `ea260cf2`) or Cloudflare dashboard →
+Deployments → Rollback, which needs Cloudflare access an agent session does
+not have. Take the ID from the `Current Version ID:` line of the "Deploy
+production" job specifically; each run prints four (staging, both transcoders,
+production).
+
+- **Do not re-enable `enableCacheInterception` without a real revalidation
+  queue** — OpenNext's `memoryQueue` or `doQueue`. The `WORKER_SELF_REFERENCE`
+  binding `memoryQueue` needs is already in `wrangler.jsonc`. A real queue is
+  necessary, not sufficient: `memoryQueue.send` still throws if that binding is
+  missing, and otherwise awaits a full re-render (up to 10 s) inside the
+  interceptor, so the stale-page check below still applies. `U-OPENNEXT-1` in
+  `e2e/unit/open-next-config.spec.ts`, added alongside this note, fails the
+  PR's unit lane (`pnpm test:unit`) if interception is on with the dummy queue.
+- **A caching change is verified only once a page has gone stale on staging
+  and been requested.** Reading the vendor source is still where to start, but
+  whether a `catch` covers a throw turns on one `await`: #208's description
+  said the throw "is caught and the request falls through to the server", from
+  reading exactly this code, and its staging check (`x-opennext-cache: HIT`,
+  edits showing on reload) only looked at fresh pages, so it could not have
+  gone red. Deploy to staging, wait past the route's `revalidate` (or lower it
+  there temporarily), request the page, check the status.
+- **The deploy smoke check cannot see a failure that only appears after the
+  revalidate window.** Articles were down ~46 h and `/gallery` ~69 h (both
+  inferred). `.github/workflows/production-monitor.yml` now checks `/`,
+  `/posts`, `/gallery`, `/about`, `/races` and one article discovered from
+  `/posts` on a 30-minute cron — which GitHub delivers hours apart, not every
+  30 minutes (see `transcode-sweep.yml`), so detection typically takes hours
+  (gaps up to ~10 h observed), not the 46 h it took, and the only alert is one
+  email to one account (the workflow's header says whose). deploy.yml's
+  "Smoke-check production" now also requests an article, but that only covers
+  an article broken at deploy time.
+
 ### Closing a PR does not revert the database
 
 Schema reaches D1 during a *build*, so it survives a discarded branch. PR #25
