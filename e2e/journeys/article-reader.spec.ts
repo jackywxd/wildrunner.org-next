@@ -23,6 +23,8 @@
  */
 import { expect, test } from "../helpers/test";
 import { budget } from "../helpers/budget";
+import { waitForHydration } from "../helpers/hydration";
+import { NARRATED_SLUG } from "../fixtures/narration";
 
 /** 1×1 transparent GIF, answered in-process so no request leaves the sandbox. */
 const PIXEL = Buffer.from(
@@ -143,7 +145,7 @@ async function longestArticle(
     musicUrl?: string | null;
   }[];
   const withBody = docs
-    .filter((doc) => doc.content)
+    .filter((doc) => doc.content && doc.slug !== NARRATED_SLUG)
     .sort(
       (a, b) =>
         JSON.stringify(b.content).length - JSON.stringify(a.content).length,
@@ -191,6 +193,11 @@ test.describe("V-READER an article can be listened to", () => {
     await stubImages(page);
     await stubVoice(page);
     await page.goto(`/posts/${post.slug}`, { waitUntil: "domcontentloaded" });
+    // The no-voice message is the SERVER's render; only a client effect reads
+    // the stubbed voices and removes it. Asserting its absence before
+    // hydration races that effect — it passes on a warm CI runner and fails on
+    // a cold dev server, where hydration was measured at 11-45s.
+    await waitForHydration(page);
 
     await expect(page.getByTestId("article-reader")).toBeVisible({
       timeout: budget(20_000),

@@ -24,6 +24,12 @@ import { findNarration } from "./article-audio";
  * visitor had before any of this existed.
  */
 /**
+ * `key` is returned beside `url` because the page can no longer assume the
+ * file it plays is the one it asked for: for an edited article `findNarration`
+ * answers with the previous narration (`stale`), and anything that remembers a
+ * position has to remember it against the file actually playing, not against
+ * the key the current words would hash to.
+ *
  * Takes the KEY, not the article: the page holds the article as the reader
  * reads it, which on the Simplified site is not the text the narration was
  * made from. `getPostBySlugParam` works the key out from the stored words
@@ -35,11 +41,13 @@ import { findNarration } from "./article-audio";
 export async function narrationUrl(
   postId: number | string,
   key: string,
-): Promise<string | null> {
+): Promise<{ url: string; key: string; stale: boolean } | null> {
   try {
     const bucket = await getR2Bucket();
     const found = await findNarration(bucket, postId, key);
-    return found ? publicMediaUrl(found.key) : null;
+    return found
+      ? { url: publicMediaUrl(found.key), key: found.key, stale: found.stale }
+      : null;
   } catch {
     // Deliberately silent. A missing binding is the ordinary case in a
     // prerender and would otherwise log once per post on every build.
