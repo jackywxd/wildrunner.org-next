@@ -3,9 +3,12 @@
 import { Download } from "lucide-react";
 import { useRef } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { useDictionary } from "@/components/i18n/dictionary-provider";
 import { formatClock } from "@/lib/reader/narration-position";
 
+import { useFollow } from "./narration/use-follow";
 import { useResume } from "./narration/use-resume";
 
 /**
@@ -40,17 +43,40 @@ export function ArticleAudio({
   audioKey,
   /** This article's id — the download goes through our own origin. */
   postId,
+  follow,
 }: {
   src: string;
   audioKey: string;
   postId: number | string;
+  /**
+   * Present only when the page tagged its paragraphs for THIS narration (not a
+   * stale one): `lines` is how many lines its script has, `titled` whether the
+   * first is the title. The timing table has to agree with `lines` before
+   * anything is highlighted — see `canFollow`.
+   */
+  follow?: { lines: number; titled: boolean };
 }) {
   const t = useDictionary();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
   const { resumeAt, startOver } = useResume(audioRef, audioKey);
+  const following = useFollow(
+    audioRef,
+    playerRef,
+    follow ? { postId, audioKey, ...follow } : null,
+  );
   return (
     <div
-      className="my-6 flex flex-wrap items-center gap-3"
+      ref={playerRef}
+      // Absent until the first press of play, so the first client render is
+      // the server's. Values are documented in `narration/follow.ts`.
+      data-follow={following.state ?? undefined}
+      // `py-2` + `my-4` is the old `my-6` split so that turning sticky on
+      // moves nothing: the background has to reach past the controls.
+      className={cn(
+        "my-4 flex flex-wrap items-center gap-3 py-2",
+        following.sticky && "sticky top-16 z-30 bg-background",
+      )}
       data-testid="article-audio"
     >
       {/*
@@ -75,21 +101,31 @@ export function ArticleAudio({
         className="h-10 min-w-0 flex-1"
       />
 
-      {resumeAt !== null && (
-        <p
-          data-testid="article-audio-resume"
-          className="flex basis-full flex-wrap items-center gap-x-3 text-sm text-muted-foreground"
-        >
-          {t.reader.resumeNotice.replace("{time}", formatClock(resumeAt))}
+      {following.state !== null && following.state !== "unavailable" && (
+        <>
           <button
             type="button"
-            data-testid="article-audio-restart"
-            onClick={startOver}
-            className="underline underline-offset-4"
+            data-testid="article-audio-follow"
+            aria-pressed={following.state !== "off"}
+            onClick={() => following.setEnabled(following.state === "off")}
+            className={cn(
+              "border border-border px-3 py-1.5 text-sm",
+              following.state !== "off" && "bg-secondary",
+            )}
           >
-            {t.reader.resumeRestart}
+            {t.reader.follow}
           </button>
-        </p>
+          {following.state === "detached" && (
+            <button
+              type="button"
+              data-testid="article-audio-follow-back"
+              onClick={following.returnToText}
+              className="border border-border bg-background px-3 py-1.5 text-sm"
+            >
+              {t.reader.followBack}
+            </button>
+          )}
+        </>
       )}
 
       {/*
@@ -111,6 +147,25 @@ export function ArticleAudio({
       >
         <Download className="size-4" />
       </a>
+
+      {/* Last, so that its full-width row does not push the download button
+          onto a line of its own (seen on production). */}
+      {resumeAt !== null && (
+        <p
+          data-testid="article-audio-resume"
+          className="flex basis-full flex-wrap items-center gap-x-3 text-sm text-muted-foreground"
+        >
+          {t.reader.resumeNotice.replace("{time}", formatClock(resumeAt))}
+          <button
+            type="button"
+            data-testid="article-audio-restart"
+            onClick={startOver}
+            className="underline underline-offset-4"
+          >
+            {t.reader.resumeRestart}
+          </button>
+        </p>
+      )}
     </div>
   );
 }

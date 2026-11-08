@@ -102,6 +102,23 @@ const BLOCK = new Set([
   "root",
 ]);
 
+/**
+ * A block with no block inside it: the unit the walk below speaks, and so the
+ * unit a page can highlight. A `list` is not one (its items are); a `listitem`
+ * holding only text is. `root` never is, even when empty.
+ *
+ * Shared by `walk`, `leafBlocks` and `narrationPlan`, because the follow-along
+ * feature is only correct while the speaking side and the page side count the
+ * same things in the same order — one predicate is how that is kept true.
+ */
+export function isLeafBlock(node: LexicalNode): boolean {
+  return (
+    BLOCK.has(node.type ?? "") &&
+    node.type !== "root" &&
+    !(node.children ?? []).some((child) => BLOCK.has(child.type ?? ""))
+  );
+}
+
 /** Collect the text of one block, walking inline children (links included). */
 function blockText(node: LexicalNode): string {
   if (typeof node.text === "string") return node.text;
@@ -151,9 +168,8 @@ function hardSplit(sentence: string): string[] {
  */
 function walk(node: LexicalNode, into: string[]): void {
   const children = node.children ?? [];
-  const hasBlockChild = children.some((child) => BLOCK.has(child.type ?? ""));
 
-  if (BLOCK.has(node.type ?? "") && !hasBlockChild && node.type !== "root") {
+  if (isLeafBlock(node)) {
     // A paragraph that is nothing but a YouTube URL is a VIDEO on the page,
     // not a sentence — `payload-rich-text.tsx` swaps it for a player. Reading
     // it would say "h t t p s colon slash slash…" aloud, and the corpus has
@@ -194,4 +210,82 @@ export function articleSegments(content: unknown): string[] {
   // every rule about document shape above and every rule about pronunciation
   // below. See pronounce.ts for why that list is as short as it is.
   return out.map(pronounce).filter(Boolean);
+}
+
+/**
+ * Every leaf block of a tree, in the order `walk` speaks them — including the
+ * ones that speak nothing (a video, an empty paragraph). Those are kept so a
+ * caller can zip this list against `NarrationPlan.blocks` position by position.
+ */
+export function leafBlocks(content: unknown): LexicalNode[] {
+  const root = (content as { root?: LexicalNode } | null)?.root;
+  const out: LexicalNode[] = [];
+  const visit = (node: LexicalNode) => {
+    if (isLeafBlock(node)) out.push(node);
+    else for (const child of node.children ?? []) visit(child);
+  };
+  if (root) visit(root);
+  return out;
+}
+
+/** How many segments one leaf block contributes to `articleSegments`. */
+function leafSegmentCount(node: LexicalNode): number {
+  // Same two steps as `walk` followed by `articleSegments`' tail, in the same
+  // order: a YouTube-only paragraph says nothing, and a sentence that
+  // `pronounce` empties is dropped. Counting anything else would put every
+  // later paragraph's number off by the difference.
+  if (soleYouTubeUrl(node)) return 0;
+  const text = blockText(node).trim();
+  return text ? sentences(text).map(pronounce).filter(Boolean).length : 0;
+}
+
+/**
+ * How an article's script divides into its blocks.
+ *
+ * `titled`: whether line 0 of `articleScript` is the title. `blocks[i]`: how
+ * many body sentences the i-th leaf block contributes (0 for a video). Line
+ * `n` of the script is therefore body sentence `n - (titled ? 1 : 0)`.
+ */
+export type NarrationPlan = { titled: boolean; blocks: number[] };
+
+/**
+ * The plan, or null if the blocks do not add up to what `articleSegments`
+ * says. Null is the honest answer there: a plan that disagrees with the script
+ * the audio was made from would highlight the wrong paragraph.
+ */
+export function narrationPlan(title: string, content: unknown): NarrationPlan | null {
+  const blocks = leafBlocks(content).map(leafSegmentCount);
+  const total = blocks.reduce((sum, n) => sum + n, 0);
+  if (total !== articleSegments(content).length) return null;
+  return { titled: Boolean(title), blocks };
+}
+
+/**
+ * Which sentence each block starts at, for the tree that is about to be
+ * RENDERED — keyed by the node objects of that tree.
+ *
+ * WHY THE TREE BEING RENDERED AND NOT THE ONE THE PLAN CAME FROM. The
+ * Simplified site renders `toSimplifiedRichText`'s copy: same structure, new
+ * node objects, so a map built from the stored tree finds none of them. The
+ * plan is numbers only and survives the conversion; this zips it onto whatever
+ * tree it is handed, leaf by leaf.
+ *
+ * Null when the tree has a different number of leaf blocks than the plan. The
+ * page then tags nothing, because a tag that is off by one block is worse than
+ * none. A leaf that speaks nothing (a video) gets no entry.
+ */
+export function assignSegments(
+  content: unknown,
+  plan: NarrationPlan | null | undefined,
+): Map<object, number> | null {
+  if (!plan) return null;
+  const leaves = leafBlocks(content);
+  if (leaves.length !== plan.blocks.length) return null;
+  const out = new Map<object, number>();
+  let next = 0;
+  leaves.forEach((leaf, i) => {
+    if (plan.blocks[i] > 0) out.set(leaf, next);
+    next += plan.blocks[i];
+  });
+  return out;
 }

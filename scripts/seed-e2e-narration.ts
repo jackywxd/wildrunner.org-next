@@ -28,16 +28,18 @@
  * not the same as the page finding what it put.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
   NARRATED_SLUG,
   NARRATION_BYTES,
+  NARRATION_DURATION_SECONDS,
   NARRATION_FILE,
 } from "../e2e/fixtures/narration";
-import { articleAudioKeyForPost } from "../src/lib/reader/article-audio";
+import { articleAudioKeyForPost, articleScript } from "../src/lib/reader/article-audio";
+import { parseTiming } from "../src/lib/reader/narration-timing";
 
 if (process.env.CLOUDFLARE_ENV) {
   console.error(
@@ -92,6 +94,29 @@ function main() {
   const { id, title, content } = rows[0];
   const key = articleAudioKeyForPost({ id, title, content: JSON.parse(content) });
 
+  // A FIXTURE, AND ONLY A FIXTURE. One start per line of the script, spaced
+  // evenly over the 120 s clip, so the journey has a table to follow. Evenly
+  // spaced starts are exactly what must never be produced for real audio:
+  // nothing corrects them, so the error grows to the end of the file
+  // (PLAN-narration-follow.md, risk 3). Real tables come from
+  // `narrate-local.ts` (known piece boundaries) or forced alignment.
+  const lines = articleScript(title, JSON.parse(content)).split("\n").length;
+  const timing = parseTiming({
+    version: 1,
+    audio: key,
+    bytes: NARRATION_BYTES,
+    duration: NARRATION_DURATION_SECONDS,
+    lines,
+    precision: "block",
+    source: "pieces",
+    starts: Array.from(
+      { length: lines },
+      (_, i) => Math.round(((i * NARRATION_DURATION_SECONDS) / lines) * 100) / 100,
+    ),
+  });
+  if (!timing) throw new Error("the fixture timing does not pass parseTiming — fix the seed, not the parser");
+  const timingJson = JSON.stringify(timing);
+
   const bytes = readFileSync(NARRATION_FILE);
   if (bytes.length !== NARRATION_BYTES) {
     throw new Error(
@@ -119,13 +144,26 @@ function main() {
     if (!readFileSync(back).equals(bytes)) {
       throw new Error(`read ${key} back from local R2 and it differs from the fixture`);
     }
+
+    // The table beside it, under the name `findTiming` reads.
+    const source = path.join(scratch, "timing.json");
+    writeFileSync(source, timingJson);
+    wrangler([
+      "r2", "object", "put", `${BUCKET}/${key}.json`, "--local",
+      "--file", source, "--content-type", "application/json",
+    ]);
+    const backJson = path.join(scratch, "back.json");
+    wrangler(["r2", "object", "get", `${BUCKET}/${key}.json`, "--local", "--file", backJson]);
+    if (readFileSync(backJson, "utf8") !== timingJson) {
+      throw new Error(`read ${key}.json back from local R2 and it differs from what was written`);
+    }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
 
   console.log(
     `[seed:e2e:narration] post ${id} (${NARRATED_SLUG}) -> ${key}, ` +
-      `${bytes.length} bytes, read back identical`,
+      `${bytes.length} bytes, read back identical; timing table of ${lines} lines beside it`,
   );
 }
 

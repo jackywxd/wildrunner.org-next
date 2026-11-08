@@ -38,7 +38,9 @@
     "speed": "语速",
     "download": "下载语音",
     "resumeNotice": "上次听到 {time}，按播放从这里继续",
-    "resumeRestart": "从头开始"
+    "resumeRestart": "从头开始",
+    "follow": "跟随朗读",
+    "followBack": "回到朗读位置"
   },
   "gallery": {
     "shareAria": "分享 {label}",

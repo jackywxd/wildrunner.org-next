@@ -1,8 +1,9 @@
 /**
  * V-LISTEN — a reader listens to an article, leaves, and comes back to it.
  *
- * ONLY THE RESUME HALF EXISTS YET. The follow-the-text half (highlight,
- * detach, sticky player) belongs to a later change and is not in this file.
+ * Two journeys: T1 is the resume half (leave, come back, carry on), T2 the
+ * follow half (the page highlights the paragraph being read, lets go when the
+ * reader scrolls, and takes them back on request).
  *
  * WHY A BROWSER TEST WHEN `U-RESUME` COVERS THE RULES. Those prove what to do
  * with a number. They cannot see whether the player's events reach them, whether
@@ -49,6 +50,9 @@ import { waitForHydration } from "../helpers/hydration";
 import { expect, test } from "../helpers/test";
 
 const MP3 = readFileSync(NARRATION_FILE);
+
+/** The table the seed wrote beside the fixture: `starts[i]` is where script line i begins. */
+type Table = { starts: number[]; lines: number };
 
 /**
  * Read rather than imported, as `e2e/unit/dictionary.spec.ts` explains: the
@@ -208,5 +212,131 @@ test.describe("V-LISTEN a reader comes back to where they stopped", () => {
     await expect
       .poll(() => player.evaluate((audio: HTMLAudioElement) => audio.currentTime))
       .toBe(0);
+  });
+
+  test("V-LISTEN-T2: the text follows the voice, lets go when the reader scrolls, and comes back on request", async ({
+    page,
+  }) => {
+    test.setTimeout(budget(60_000));
+    await serveNarration(page);
+
+    // zh-hans on purpose: that page renders a CONVERTED copy of the article,
+    // so a block tagged here was numbered against the stored Traditional text.
+    await page.goto(ARTICLE, { waitUntil: "domcontentloaded" });
+    await waitForHydration(page);
+
+    const root = page.getByTestId("article-audio");
+    const player = page.getByTestId("article-audio-player");
+    await expect(
+      player,
+      `${NARRATED_SLUG} rendered no player — run pnpm seed:e2e:narration`,
+    ).toBeVisible({ timeout: budget(20_000) });
+
+    // Before anyone presses play the server's markup is untouched: no state, no
+    // controls, nothing fetched.
+    await expect(root).not.toHaveAttribute("data-follow", /.*/);
+    await expect(page.getByRole("button", { name: hans.reader.follow })).toHaveCount(0);
+
+    // Play, muted (an unmuted `play()` with no gesture is refused). Following
+    // starts on this press, and only now is the timing table fetched.
+    await player.evaluate(async (audio: HTMLAudioElement) => {
+      audio.muted = true;
+      await audio.play();
+    });
+    await expect(
+      root,
+      "pressing play did not start following — the table was refused or never fetched",
+    ).toHaveAttribute("data-follow", "following", { timeout: budget(15_000) });
+    const toggle = page.getByRole("button", { name: hans.reader.follow });
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    // Paused from here on: a playing 120 s file moves a line a second, and the
+    // assertions below are about where the page is for ONE moment.
+    await player.evaluate((audio: HTMLAudioElement) => audio.pause());
+
+    // The table as the page got it, and whether line 0 is the title. Neither
+    // is recomputed here: the mapping from line to paragraph is the thing
+    // under test, so it is read from where the app reads it.
+    const src = (await player.getAttribute("src")) ?? "";
+    const key = /article-audio\/[^/?]+\.mp3/.exec(src)?.[0] ?? "";
+    const href = (await page.getByTestId("article-audio-download").getAttribute("href")) ?? "";
+    const postId = /article-audio\/(\d+)\//.exec(href)?.[1];
+    const response = await page.request.get(
+      `/api/article-audio/${postId}/timing?key=${encodeURIComponent(key)}`,
+    );
+    expect(response.status(), "the timing endpoint refused the fixture's own table").toBe(200);
+    const table = (await response.json()) as Table;
+    const titled = (await page.locator("h1[data-narration-title]").innerText()).trim() !== "";
+
+    // A paragraph far enough down that reaching it takes a scroll, with room
+    // below it to scroll to. If the article ever shrinks below that the test
+    // says so rather than passing on a paragraph that was already on screen.
+    const k = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      const total = document.documentElement.scrollHeight;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-seg]")) {
+        const y = el.getBoundingClientRect().top + window.scrollY;
+        if (y > 2 * vh && total - y > 1.5 * vh) return Number(el.dataset.seg);
+      }
+      return null;
+    });
+    expect(k, "no tagged paragraph sits two screens down — nothing here needs a scroll").not.toBeNull();
+    const block = page.locator(`[data-seg="${k}"]`);
+    const line = (k as number) + (titled ? 1 : 0);
+    expect(line).toBeLessThan(table.lines);
+
+    const where = () =>
+      page.evaluate((n) => {
+        const top = document.querySelector(`[data-seg="${n}"]`)!.getBoundingClientRect().top;
+        const header = document.querySelector("header.sticky")!.getBoundingClientRect().bottom;
+        return { top, header, vh: window.innerHeight };
+      }, k);
+    /** Clear of the header and in the upper part of the screen, where a listener reads. */
+    const inBand = async () => {
+      const { top, header, vh } = await where();
+      return top >= header && top <= vh * 0.6;
+    };
+
+    // Seek into that paragraph. `currentTime` stands in for the native seek
+    // bar, which lives in a closed UA shadow root no locator reaches; it raises
+    // the same `seeked` the bar does, and a seek is what returns the page to
+    // following. 0.1 s past the line's start is inside it, not on the edge.
+    await player.evaluate(
+      (audio: HTMLAudioElement, at: number) =>
+        new Promise<void>((resolve) => {
+          audio.addEventListener("seeked", () => resolve(), { once: true });
+          audio.currentTime = at;
+        }),
+      table.starts[line] + 0.1,
+    );
+    await expect(block).toHaveAttribute("data-narrating", "", { timeout: budget(5_000) });
+    await expect
+      .poll(inBand, {
+        message: "the paragraph was highlighted but the page did not bring it into view",
+        timeout: budget(5_000),
+      })
+      .toBe(true);
+    // One paragraph at a time.
+    await expect(page.locator("[data-narrating]")).toHaveCount(1);
+
+    // The reader takes the page: wheel up, far enough to leave the paragraph
+    // behind. The highlight stays on it; the page lets go and the player
+    // stays on screen with a way back.
+    await page.mouse.move(640, 400);
+    await page.mouse.wheel(0, -4000);
+    await expect(root).toHaveAttribute("data-follow", "detached", { timeout: budget(5_000) });
+    await expect(root).toHaveCSS("position", "sticky");
+    await expect.poll(inBand, { timeout: budget(5_000) }).toBe(false);
+    await expect(block).toHaveAttribute("data-narrating", "");
+
+    // Back to where the voice is.
+    await page.getByRole("button", { name: hans.reader.followBack }).click();
+    await expect(root).toHaveAttribute("data-follow", "following", { timeout: budget(5_000) });
+    await expect
+      .poll(inBand, {
+        message: "「回到朗讀位置」 did not bring the paragraph back into view",
+        timeout: budget(5_000),
+      })
+      .toBe(true);
+    await expect(page.getByRole("button", { name: hans.reader.followBack })).toHaveCount(0);
   });
 });

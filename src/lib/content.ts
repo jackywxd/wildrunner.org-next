@@ -54,6 +54,7 @@ import { qualifiersFor } from "@/lib/races/qualifiers";
 import { lineUpSummary } from "@/lib/races/line-up";
 import { isFinished } from "@/lib/races/race-state";
 import { articleAudioKeyForPost } from "@/lib/reader/article-audio";
+import { narrationPlan } from "@/lib/reader/article-text";
 import { cache } from "react";
 
 /**
@@ -345,6 +346,9 @@ export const getPostBySlugParam = cache(async (
         // Before `localisePost`, from the words as stored: those are what the
         // narration was generated from. See `SitePost.narrationKey`.
         narrationKey: doc.content ? articleAudioKeyForPost(doc) : undefined,
+        narrationPlan: doc.content
+          ? (narrationPlan(doc.title ?? "", doc.content) ?? undefined)
+          : undefined,
         // The same resolution an album gets, keyed on the post's slug: its
         // own link goes first, then the site list, rotated to start at this
         // post's own place in it. See `buildMusicPlaylist` for why the start

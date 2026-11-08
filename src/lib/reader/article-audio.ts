@@ -157,8 +157,8 @@ export const MAX_SCRIPT_CHARS = 10_000;
  * Which objects under `article-audio/` no published article asks for.
  *
  * Separated from the bucket so the one rule with a corner in it — that a
- * `<key>.txt` is judged by the audio it belongs to, not on its own — can be
- * asserted without an R2 binding. Without that rule every healthy narration
+ * `<key>.txt` or `<key>.json` is judged by the audio it belongs to, not on
+ * its own — can be asserted without an R2 binding. Without that rule every healthy narration
  * reports a companion orphan, and a report where half the entries are noise is
  * a report nobody reads twice.
  */
@@ -167,7 +167,8 @@ export function orphanAudioKeys(
   wanted: ReadonlySet<string>,
 ): string[] {
   return keys.filter((key) => {
-    const audioKey = key.endsWith(".txt") ? key.slice(0, -".txt".length) : key;
+    // `<key>.mp3.txt` is the script, `<key>.mp3.json` the timing table.
+    const audioKey = key.replace(/\.(txt|json)$/, "");
     return !wanted.has(audioKey);
   });
 }

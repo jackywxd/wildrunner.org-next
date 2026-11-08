@@ -214,6 +214,22 @@ h6 {
     font-size: 18px;
   }
 }
+/* The paragraph being read aloud (`narration/follow.ts` sets the attribute
+ * after the reader presses play; nothing renders it). A tint with the same
+ * tint spread sideways as a shadow, so the highlight reaches past the text
+ * without shifting it — padding would reflow the page every time the voice
+ * moved on. `scroll-margin-top` is the fallback for anything that scrolls to a
+ * block with `scrollIntoView`; the follow code measures and scrolls itself. */
+.article-body [data-seg],
+[data-narration-title] {
+  scroll-margin-top: 9rem;
+}
+.article-body [data-narrating],
+[data-narration-title][data-narrating] {
+  background-color: hsl(var(--primary) / 0.12);
+  box-shadow: 0 0 0 0.4rem hsl(var(--primary) / 0.12);
+  border-radius: 0.125rem;
+}
 .article-body h1 {
   @apply mb-3 mt-8 text-3xl font-semibold;
 }

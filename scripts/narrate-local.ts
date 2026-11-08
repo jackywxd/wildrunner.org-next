@@ -6,6 +6,13 @@
  *   pnpm narrate:local --post 33 --env staging   # staging's
  *   pnpm narrate:local --post 33 --limit 12      # the first 12 pieces, to listen to
  *   pnpm narrate:local --post 31 --temperature 0.5 --tempo 1.15
+ *   pnpm narrate:local --post 33 --timing-only   # the timing table for an MP3 already made
+ *
+ * `--timing-only` rebuilds `<mp3>.json` from the cached pieces and the MP3 in
+ * `--out`, and refuses if any piece or rewrite is not already cached: it never
+ * calls a model. Run it with the same voice, temperature, tempo and models as
+ * the run that made the MP3 — a different tempo is caught (the pieces no longer
+ * add up to the file's length), a different voice only shows as missing pieces.
  *
  * WHY THIS EXISTS. The Worker path (`narrateArticle`) sends the whole script to
  * `minimax/speech-2.8-hd` in one call, and post 33 is 134,839 characters —
@@ -96,10 +103,10 @@ import { parseArgs } from 'node:util'
 
 import { CHUNK_LINES, SYSTEM as REWRITE_SYSTEM, reconcileSpokenScript } from '@/lib/ai/spoken-script'
 import { toSimplified } from '@/lib/i18n/to-simplified'
-import { articleAudioKeyForPost, articleScript } from '@/lib/reader/article-audio'
-import { articleSegments } from '@/lib/reader/article-text'
+import { articleAudioKeyForPost } from '@/lib/reader/article-audio'
 
-import { editDistance, rewriteKeepsWords, speakable, tidyPauses, type Wav } from './lib/narration-check'
+import { editDistance, rewriteKeepsWords, tidyPauses, type Wav } from './lib/narration-check'
+import { articleBlocks, attempt, numberSpoken, packBlocks, piecesToStarts, type Chunk, type Numbered } from './lib/narration-timing'
 
 const { values: args } = parseArgs({
   options: {
@@ -118,6 +125,7 @@ const { values: args } = parseArgs({
     'no-rewrite': { type: 'boolean', default: false },
     concurrency: { type: 'string', default: '1' },
     limit: { type: 'string' },
+    'timing-only': { type: 'boolean', default: false },
     out: { type: 'string', default: 'narration-out' },
   },
 })
@@ -190,8 +198,6 @@ const CACHE_VERSION = 'v3'
  */
 const WRANGLER_PUT_LIMIT_BYTES = 300 * 1024 * 1024
 
-type Chunk = { text: string; gapAfter: number }
-
 /** What is known about a cached piece, stored beside its audio. */
 type Verdict = {
   seconds: number
@@ -229,59 +235,24 @@ function wranglerRows<T>(db: string, sql: string): T[] {
 }
 
 /**
- * The article as blocks of sentences: the title alone, then each top-level
- * block of the body.
- *
- * Built from `articleSegments` run over one block at a time, and checked
- * against `articleScript` over the whole article — the text the key is hashed
- * from. If the two ever disagree this refuses to run rather than narrate
- * something the key does not describe.
+ * The article as blocks of sentences (`articleBlocks`), refusing to go on if
+ * they are not exactly the lines the key was hashed from.
  */
 function blocks(title: string, content: unknown): string[][] {
-  const body = ((content as { root?: { children?: unknown[] } } | null)?.root?.children ?? []).map((block) =>
-    articleSegments({ root: { type: 'root', children: [block] } }),
-  )
-  const out = [...(title ? [[title]] : []), ...body].filter((sentences) => sentences.length > 0)
-
-  const bare = (text: string) => text.replace(/\s+/g, '')
-  if (bare(out.flat().join('')) !== bare(articleScript(title, content))) {
-    fail('splitting by block does not reproduce articleScript — refusing to narrate text the key does not describe')
+  try {
+    return articleBlocks(title, content)
+  } catch (error) {
+    fail((error as Error).message)
   }
-  return out
 }
 
-/**
- * Blocks into requests: each block one piece, a long one split at sentence
- * boundaries into pieces of at most `MAX_CHUNK_CHARS`.
- */
-function pack(spokenBlocks: string[][]): Chunk[] {
-  const out: Chunk[] = []
-  for (const sentences of spokenBlocks) {
-    let current: string[] = []
-    const flush = (gapAfter: number) => {
-      if (current.length) out.push({ text: joinSentences(current), gapAfter })
-      current = []
-    }
-    for (const sentence of sentences) {
-      if (current.length && joinSentences([...current, sentence]).length > MAX_CHUNK_CHARS) {
-        flush(CHUNK_GAP_SECONDS)
-      }
-      current.push(sentence)
-    }
-    flush(BLOCK_GAP_SECONDS)
-  }
-  return out
-}
-
-/**
- * Sentences back into running text: nothing after a full-width mark, a space
- * after anything else, so English prose reads "Canada. It's" and not
- * "Canada.It's".
- */
-function joinSentences(sentences: string[]): string {
-  return sentences.reduce((text, sentence) =>
-    !text || /[　-〿＀-￯」』）]$/.test(text) ? text + sentence : `${text} ${sentence}`,
-  '')
+/** Blocks into requests, with this script's size and gap settings. */
+function pack(spokenBlocks: Numbered[][]): Chunk[] {
+  return packBlocks(spokenBlocks, {
+    maxChars: MAX_CHUNK_CHARS,
+    chunkGap: CHUNK_GAP_SECONDS,
+    blockGap: BLOCK_GAP_SECONDS,
+  })
 }
 
 /**
@@ -324,6 +295,9 @@ async function rewrite(input: string[][], cacheDir: string) {
   const cached = (sentence: string) => path.join(cacheDir, `${sha(model, REWRITE_SYSTEM, sentence)}.txt`)
   const wanted = [...new Set(input.flat().filter((sentence) => /\d/.test(sentence)))]
   const missing = wanted.filter((sentence) => !existsSync(cached(sentence)))
+  if (args['timing-only'] && missing.length) {
+    fail(`--timing-only found ${missing.length} sentences with no cached rewrite — the pieces would differ from the ones published, and this mode never calls a model`)
+  }
 
   const requests: string[][] = []
   for (let i = 0; i < missing.length; i += CHUNK_LINES) requests.push(missing.slice(i, i + CHUNK_LINES))
@@ -544,16 +518,9 @@ async function transcribe(wav: Wav): Promise<string> {
   return ((await response.json()) as { text: string }).text
 }
 
-/**
- * One piece, generated until it says its text or the attempts run out.
- *
- * Every attempt is tidied, levelled and transcribed, and the best one kept:
- * plausible first, then fewest sounds wrong, then closest to the expected
- * length. A piece already in the cache with a verdict beside it is returned as
- * it is.
- */
-async function ensurePiece(text: string, cacheDir: string): Promise<{ file: string; verdict: Verdict; fresh: boolean }> {
-  const digest = sha(
+/** The cache name of a piece: everything that shapes its audio, hashed. */
+function pieceDigest(text: string): string {
+  return sha(
     CACHE_VERSION,
     args.model,
     args.voice,
@@ -563,6 +530,14 @@ async function ensurePiece(text: string, cacheDir: string): Promise<{ file: stri
     args['asr-model'],
     text,
   )
+}
+
+/**
+ * A piece already in the cache with a verdict beside it, or null. Never
+ * generates — `--timing-only` is built on it.
+ */
+function cachedPiece(text: string, cacheDir: string): { file: string; verdict: Verdict; fresh: boolean } | null {
+  const digest = pieceDigest(text)
   const file = path.join(cacheDir, `${digest}.wav`)
   const meta = path.join(cacheDir, `${digest}.json`)
   if (existsSync(file) && existsSync(meta)) {
@@ -572,6 +547,23 @@ async function ensurePiece(text: string, cacheDir: string): Promise<{ file: stri
     const verdict = JSON.parse(readFileSync(meta, 'utf8')) as Verdict
     return { file, verdict: { ...verdict, edits: editDistance(text, verdict.heard) }, fresh: false }
   }
+  return null
+}
+
+/**
+ * One piece, generated until it says its text or the attempts run out.
+ *
+ * Every attempt is tidied, levelled and transcribed, and the best one kept:
+ * plausible first, then fewest sounds wrong, then closest to the expected
+ * length. A piece already in the cache with a verdict beside it is returned as
+ * it is.
+ */
+async function ensurePiece(text: string, cacheDir: string): Promise<{ file: string; verdict: Verdict; fresh: boolean }> {
+  const hit = cachedPiece(text, cacheDir)
+  if (hit) return hit
+  const digest = pieceDigest(text)
+  const file = path.join(cacheDir, `${digest}.wav`)
+  const meta = path.join(cacheDir, `${digest}.json`)
 
   // Lower is better, compared in order: plausible, sounds wrong, length.
   const worse = (a: number[], b: number[]) => {
@@ -636,6 +628,58 @@ async function checkModels(): Promise<void> {
   }
 }
 
+function probeSeconds(mp3: string): number {
+  return Number(
+    execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp3], {
+      encoding: 'utf8',
+    }).trim(),
+  )
+}
+
+/**
+ * `<mp3>.json`: where each line of the script starts (format and the reasons
+ * it is trusted: `src/lib/reader/narration-timing.ts`). Built from the MP3 as
+ * it is on disk — its size and measured length — so the table describes
+ * exactly the file that will be uploaded, and `piecesToStarts` throws if the
+ * pieces do not add up to that file.
+ */
+function writeTiming(
+  mp3: string,
+  key: string,
+  pieces: Chunk[],
+  results: { verdict: Verdict }[],
+  tempo: number,
+  lineCount: number,
+  duration: number,
+): string {
+  const starts = piecesToStarts(
+    pieces.map((piece, i) => ({
+      seconds: results[i].verdict.seconds,
+      gapAfter: piece.gapAfter,
+      lines: piece.lines,
+      sentences: piece.sentences,
+    })),
+    tempo,
+    duration,
+    lineCount,
+  )
+  const file = `${mp3}.json`
+  writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      audio: key,
+      bytes: readFileSync(mp3).length,
+      duration: Math.round(duration * 100) / 100,
+      lines: lineCount,
+      precision: 'block',
+      source: 'pieces',
+      starts,
+    }),
+  )
+  return file
+}
+
 function hhmmss(seconds: number): string {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
@@ -663,7 +707,10 @@ async function main(): Promise<void> {
   } catch {
     fail('ffmpeg is not installed — `brew install ffmpeg`')
   }
-  await checkModels()
+  const timingOnly = args['timing-only']
+  if (timingOnly && limit !== undefined) fail('--timing-only describes the whole file; it cannot be combined with --limit')
+  // No model is called in this mode, so none needs to be up.
+  if (!timingOnly) await checkModels()
 
   console.log(`Reading post ${postId} from ${target.db} …`)
   const [post] = wranglerRows<{ id: number; title: string | null; content: string | null; _status: string }>(
@@ -692,7 +739,9 @@ async function main(): Promise<void> {
   const rewritesFile = path.join(workDir, 'rewrites.txt')
   writeFileSync(rewritesFile, changes.join('\n\n') + (changes.length ? '\n' : ''))
 
-  const all = pack(spoken.map((sentences) => sentences.map(speakable).filter(Boolean)))
+  const all = pack(numberSpoken(spoken))
+  // Every line of the script, including any `speakable` emptied.
+  const lineCount = written.flat().length
   const pieces = limit === undefined ? all : all.slice(0, limit)
   const chars = pieces.reduce((total, piece) => total + piece.text.length, 0)
   console.log(
@@ -710,6 +759,16 @@ async function main(): Promise<void> {
   let remainingChars = chars
   let completed = 0
   const results = await pool(pieces, concurrency, async (piece) => {
+    if (timingOnly) {
+      const hit = cachedPiece(piece.text, cacheDir)
+      if (!hit) {
+        fail(
+          `--timing-only: a piece is not in the cache, and this mode never generates:\n  ${piece.text.slice(0, 60)}…\n` +
+            `Pass the same --voice, --temperature, --model, --asr-model and --out as the run that made the MP3.`,
+        )
+      }
+      return hit
+    }
     const result = await ensurePiece(piece.text, cacheDir)
     completed += 1
     remainingChars -= piece.text.length
@@ -742,6 +801,27 @@ async function main(): Promise<void> {
       )
     }
     offset += verdict.seconds + pieces[index].gapAfter
+  }
+
+  if (timingOnly) {
+    // For an article whose MP3 is already made: the table is rebuilt from the
+    // cached pieces and the MP3 beside them, and nothing is generated or joined.
+    const existing = path.join(workDir, path.basename(key))
+    if (!existsSync(existing)) fail(`--timing-only needs the MP3 this run made at ${existing}, and it is not there`)
+    const made = attempt(() => writeTiming(existing, key, pieces, results, tempo, lineCount, probeSeconds(existing)))
+    if ('refused' in made) fail(`timing table refused: ${made.refused}`)
+    const timingFile = made.value
+    console.log(
+      [
+        '',
+        `✓ ${timingFile} — ${lineCount} lines from ${pieces.length} cached pieces; nothing was generated.`,
+        'To publish it (the MP3 is already up; the page uses the table only while its size matches that MP3):',
+        '',
+        `npx wrangler r2 object put ${target.bucket}/${key}.json --remote --file "${timingFile}" \\`,
+        `  --content-type application/json`,
+      ].join('\n'),
+    )
+    return
   }
 
   const rate = parseWav(readFileSync(results[0].file), results[0].file).rate
@@ -781,11 +861,7 @@ async function main(): Promise<void> {
   writeFileSync(reviewFile, review.join('\n\n') + (review.length ? '\n' : ''))
 
   const bytes = readFileSync(mp3).length
-  const duration = Number(
-    execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp3], {
-      encoding: 'utf8',
-    }).trim(),
-  )
+  const duration = probeSeconds(mp3)
   const byEdits = new Map<number, number>()
   for (const { verdict } of results) byEdits.set(verdict.edits, (byEdits.get(verdict.edits) ?? 0) + 1)
   const retried = results.filter(({ verdict }) => verdict.attempts > 1).length
@@ -812,6 +888,10 @@ async function main(): Promise<void> {
     return
   }
 
+  const made = attempt(() => writeTiming(mp3, key, pieces, results, tempo, lineCount, duration))
+  const timingFile = 'value' in made ? made.value : null
+  if ('refused' in made) console.log(`\n✗ timing table refused: ${made.refused}\n  The MP3 is unaffected; publishing it without follow-along.`)
+
   if (bytes > WRANGLER_PUT_LIMIT_BYTES) {
     fail(`the MP3 is over wrangler's 300 MiB upload limit — rerun with a lower --bitrate (e.g. 32k)`)
   }
@@ -820,8 +900,16 @@ async function main(): Promise<void> {
   console.log(
     [
       '',
-      'Listen to it first, starting with review.txt. Then, to publish, run these two commands:',
+      'Listen to it first, starting with review.txt. Then, to publish, run these ' + (timingFile ? 'three' : 'two') + ' commands:',
       '',
+      // Either order is safe: `findTiming` requires the MP3 to exist with
+      // exactly the table's byte count, so a table without its MP3 (or for a
+      // `force`d one of another size) is refused, and the MP3 without a table
+      // just has no follow-along. Table first means follow-along works from
+      // the moment the audio is live.
+      ...(timingFile
+        ? [`npx wrangler r2 object put ${object}.json --remote --file "${timingFile}" \\`, `  --content-type application/json`]
+        : []),
       `npx wrangler r2 object put ${object} --remote --file "${mp3}" \\`,
       `  --content-type audio/mpeg --cache-control "public, max-age=31536000, immutable"`,
       `npx wrangler r2 object put ${object}.txt --remote --file "${txt}" \\`,

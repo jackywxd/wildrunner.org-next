@@ -7,6 +7,13 @@ import {
   tidyPauses,
   type Wav,
 } from "../../scripts/lib/narration-check";
+import {
+  articleBlocks,
+  attempt,
+  numberSpoken,
+  packBlocks,
+  piecesToStarts,
+} from "../../scripts/lib/narration-timing";
 
 /**
  * U-NARRATE — the checks that decide whether a locally narrated piece is
@@ -163,5 +170,97 @@ test.describe("U-NARRATE pauses inside a piece", () => {
 
   test("U-NARRATE-13: a piece with no speech at all comes back empty", () => {
     expect(tidyPauses(wav(silence(800)), { maxPause: 0.5, edge: 0.05 }).samples.length).toBe(0);
+  });
+});
+
+/**
+ * U-NARRATE timing — the per-line start times `narrate-local` writes beside the
+ * MP3. A wrong table is invisible: the file plays, the page highlights a
+ * paragraph, and it is the wrong one.
+ */
+test.describe("U-NARRATE the timing table", () => {
+  // Two sentences with the same number of syllables, so a split inside a piece
+  // is exactly half. (Not numerals: `comparable` drops those.)
+  const four = ["跑步训练", "山路越野"];
+  const pieces = [
+    { seconds: 10, gapAfter: 0.5, lines: [0], sentences: ["山路越野"] },
+    { seconds: 20, gapAfter: 0.25, lines: [1, 2], sentences: four },
+    { seconds: 6, gapAfter: 0.8, lines: [3], sentences: ["跑步训练"] },
+  ];
+
+  test("U-NARRATE-17: piece starts are exact; gaps, tempo, last piece and scaling are accounted for", () => {
+    // At 2x the pieces last 5, 10 and 3 s, and the gaps (0.5, 0.25) are part
+    // of the stream the tempo is applied to, so they halve too. A at 0;
+    // B at 5 + 0.25; B's second sentence halfway through B's 10 s; C at
+    // 5.25 + 10 + 0.125. The 0.8 s after C is not in the file.
+    expect(piecesToStarts(pieces, 2, 18.375, 4)).toEqual([0, 5.25, 10.25, 15.38]);
+    // Nothing is scaled when the measure agrees exactly.
+    expect(piecesToStarts(pieces, 1, 36.75, 4)).toEqual([0, 10.5, 20.5, 30.75]);
+
+    // Encoder padding: 0.2 s longer than the arithmetic. Scaled, and still
+    // non-decreasing and inside the file.
+    const scaled = piecesToStarts(pieces, 2, 18.575, 4);
+    expect(scaled[0]).toBe(0);
+    expect(scaled[3]).toBeCloseTo(15.375 * (18.575 / 18.375), 2);
+    expect(scaled).toEqual([...scaled].sort((a, b) => a - b));
+    expect(scaled[3]).toBeLessThanOrEqual(18.575);
+
+    // A line no piece speaks (an emoji on its own) shares the next spoken
+    // start; a trailing one sits at the end of the file.
+    expect(piecesToStarts([pieces[0], { ...pieces[2], lines: [2] }], 1, 16.5, 4)).toEqual([0, 10.5, 10.5, 16.5]);
+  });
+
+  test("U-NARRATE-17b: pieces that do not add up to the MP3 are refused, not stretched to fit", () => {
+    // The wrong tempo is the realistic mistake, and over seven hours a stretch
+    // would put the end of the table minutes out.
+    expect(() => piecesToStarts(pieces, 1, 18.375, 4)).toThrow(/add up/);
+    expect(() => piecesToStarts(pieces, 2, 19.0, 4)).toThrow(/add up/);
+    expect(() => piecesToStarts(pieces, 2, 18.375 + 0.49, 4)).not.toThrow();
+    expect(() => piecesToStarts([{ ...pieces[0], lines: [9] }], 1, 10, 4)).toThrow(/line 9/);
+  });
+
+  test("U-NARRATE-17c: a refused table is a reason, not an exception, so the MP3 keeps its commands", () => {
+    const refused = attempt(() => piecesToStarts(pieces, 1, 18.375, 4));
+    expect("refused" in refused && refused.refused).toMatch(/add up/);
+    const fine = attempt(() => piecesToStarts(pieces, 2, 18.375, 4));
+    expect("value" in fine && fine.value).toEqual([0, 5.25, 10.25, 15.38]);
+  });
+
+  const para = (text: string) => ({ type: "paragraph", children: [{ type: "text", text }] });
+  const doc = (...children: unknown[]) => ({ root: { type: "root", children } });
+
+  test("U-NARRATE-18: a sentence keeps its line through speakable and pack", () => {
+    const written = articleBlocks("標題", doc(para("第一段。"), para("第二段。"), para("第三段。第四段。")));
+    expect(written).toEqual([["標題"], ["第一段。"], ["第二段。"], ["第三段。", "第四段。"]]);
+
+    // What the voice is given after the rewrite: line 2 has become only an
+    // emoji, which `speakable` empties. (`articleSegments` already drops most
+    // such sentences, so this is the rewrite's doing or a future change's;
+    // either way the numbering must not depend on it.) Counting lines after
+    // the drop would number the last block 2, 3 instead of 3, 4, and every
+    // start after it would sit one line early.
+    const spoken = [["標題"], ["第一段。"], ["😀"], ["第三段。", "第四段。"]];
+    const numbered = numberSpoken(spoken);
+    expect(numbered.map((block) => block.map((s) => s.line))).toEqual([[0], [1], [], [3, 4]]);
+
+    const limits = { maxChars: 100, chunkGap: 0.35, blockGap: 0.8 };
+    const chunks = packBlocks(numbered, limits);
+    expect(chunks.map((c) => c.lines)).toEqual([[0], [1], [3, 4]]);
+    expect(chunks[2].sentences).toEqual(["第三段。", "第四段。"]);
+    expect(chunks.map((c) => c.gapAfter)).toEqual([0.8, 0.8, 0.8]);
+
+    // A block too long for one request splits, with the short gap between the
+    // halves, and each half keeps its own lines.
+    const split = packBlocks(numbered, { ...limits, maxChars: 5 });
+    expect(split.map((c) => c.lines)).toEqual([[0], [1], [3], [4]]);
+    expect(split.map((c) => c.gapAfter)).toEqual([0.8, 0.8, 0.35, 0.8]);
+  });
+
+  test("U-NARRATE-18b: a split that is not articleScript line for line is refused", () => {
+    // A title with a newline is two lines of the script and one sentence of
+    // the split. The old whitespace-stripped comparison called that equal.
+    expect(() => articleBlocks("上\n下", doc(para("內文。")))).toThrow(/line for line/);
+    // No title: no title line, and the body is line 0.
+    expect(articleBlocks("", doc(para("內文。")))).toEqual([["內文。"]]);
   });
 });

@@ -158,6 +158,16 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
   ]);
   const catalogue = catalogueEvents ? catalogueMap(catalogueEvents) : null;
 
+  // The page follows the voice only for the narration of THESE words. A stale
+  // narration (an edited article still playing its previous audio) has a
+  // different script, so sentence numbers from today's text point at the wrong
+  // paragraphs in it; tagging nothing is what makes the player fall back to
+  // plain playback.
+  const followPlan =
+    narration && !narration.stale && blog.narrationPlan
+      ? blog.narrationPlan
+      : undefined;
+
   // The share subject, built once and handed to both the panel and the
   // thumbnail. `slugAsParams` rather than `slug` because that is what the
   // poster endpoints resolve with, and what the page's own URL is.
@@ -207,7 +217,11 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
           </time>
         )}
 
-        <h1 className="mt-2 inline-block text-3xl font-extrabold capitalize leading-tight text-foreground md:text-4xl lg:text-5xl">
+        <h1
+          // Marks the title line for the follow-along highlight, and only on a
+          // page that follows: line 0 of the narration is the title.
+          data-narration-title={followPlan ? "" : undefined}
+          className="mt-2 inline-block text-3xl font-extrabold capitalize leading-tight text-foreground md:text-4xl lg:text-5xl">
           {blog.title}
         </h1>
 
@@ -323,12 +337,26 @@ export default async function BlogPageItem({ params }: BlogPageItemProps) {
               src={narration.url}
               audioKey={narration.key}
               postId={blog.id}
+              follow={
+                followPlan
+                  ? {
+                      titled: followPlan.titled,
+                      lines:
+                        (followPlan.titled ? 1 : 0) +
+                        followPlan.blocks.reduce((sum, n) => sum + n, 0),
+                    }
+                  : undefined
+              }
             />
           ) : (
             <ArticleReader title={blog.title} content={blog.content} />
           ))}
         {blog.content && (
-          <PayloadRichText data={blog.content} className="article-body" />
+          <PayloadRichText
+            data={blog.content}
+            className="article-body"
+            narrationPlan={followPlan}
+          />
         )}
         <hr className="mt-12 h-0 border-t-2 border-border" />
         <div className="flex flex-wrap items-center justify-between gap-4 py-6 lg:py-10">

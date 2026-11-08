@@ -201,6 +201,25 @@ test.describe("U-AUDIOKEY the key R2 is indexed by", () => {
     ).toEqual([]);
   });
 
+  test("U-AUDIOKEY-11: a timing table is judged by the audio it belongs to, like the script", () => {
+    // `<key>.mp3.json` is the third object of a narration. Weighed on its own
+    // it would never be wanted, and every narration with a table would be
+    // reported as an orphan — and `apply` would offer to delete it.
+    const wanted = new Set(["article-audio/7-abcd1234.mp3"]);
+    expect(
+      orphanAudioKeys(
+        [
+          "article-audio/7-abcd1234.mp3",
+          "article-audio/7-abcd1234.mp3.txt",
+          "article-audio/7-abcd1234.mp3.json",
+          // The control: a table for audio nobody wants is still an orphan.
+          "article-audio/9-eeeeeeee.mp3.json",
+        ],
+        wanted,
+      ),
+    ).toEqual(["article-audio/9-eeeeeeee.mp3.json"]);
+  });
+
   test("U-AUDIOKEY-9: an unwanted narration is reported with its script", () => {
     // Exactly the shape production produced: the key changed, so both halves
     // of the old pair became unreachable together.

@@ -41,6 +41,7 @@ journey test exists for an entry here, or it does not exist.
 | V8 | asks for something that does not exist and gets a real 404 |
 | V9 | sees none of anyone's account data, on any public page |
 | V10 | reads the about page |
+| V12 | listens to an article: the text follows the voice and lets go when they scroll, and coming back later resumes where they stopped (V11 is already the 404 test's ID in `visitor.spec.ts`) |
 
 Derived from the routes that actually exist, not from imagination — the first
 draft of this list omitted `/about` (live, 200 on staging) and had no position
@@ -141,6 +142,8 @@ Every one imports `test` from `e2e/helpers/test.ts`, so any `pageerror` or
 |---|---|---|
 | J1 | V1 | open an article from the index by clicking; assert text, an image, a table, a code block and the video player all render |
 | V-POSTVIDEO | V1 | the video-player half of J1, which had been written down here and never built: a post whose body holds an uploaded video renders a player rather than a broken image |
+| V-LISTEN-T1 | V12 | play, stop partway, leave by a link and return by one: the place is offered in the page's language and play carries on from it; "from the start" forgets it |
+| V-LISTEN-T2 | V12 | play, then seek to a paragraph two screens down: it is highlighted and brought into view; a wheel detaches (sticky player, return button); the button brings the paragraph back |
 | J2 | V2 | gallery index → one gallery → one photo, all by clicking |
 | J3 | V3 | gallery → video → the share URL opens the same video directly |
 | J4 | V4 | calendar: move forward, move back, filter by series, all without a reload |
