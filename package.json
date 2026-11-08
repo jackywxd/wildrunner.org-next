@@ -80,7 +80,8 @@
     "geocode:events:staging": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=staging NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
     "geocode:events:prod": "cross-env NODE_OPTIONS=--no-deprecation CLOUDFLARE_ENV=production NODE_ENV=production tsx --env-file-if-exists=.env.local scripts/geocode-race-events.ts --remote",
     "generate:zh-hans": "tsx scripts/generate-zh-hans.ts",
-    "narrate:local": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/narrate-local.ts"
+    "narrate:local": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/narrate-local.ts",
+    "narration:timing": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/narration-timing.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
