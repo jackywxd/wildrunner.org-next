@@ -1,5 +1,6 @@
 /** Public-site shapes decoupled from Velite and Payload document types. */
 
+import type { NarrationPlan } from "./reader/article-text";
 import type { RaceSeries } from "./races/catalogue";
 import type { RaceQualifiers } from "./races/qualifiers";
 
@@ -279,6 +280,15 @@ export type SitePost = {
    * one passes through untouched.
    */
   narrationKey?: string;
+  /**
+   * How that article's script divides into blocks (`narrationPlan`), worked out
+   * beside `narrationKey` from the same stored words and for the same reason:
+   * the sentence numbers the narration was cut by are the Traditional text's,
+   * and they do not change when the page is converted to Simplified.
+   * `toSimplifiedPost` leaves it alone. Numbers only; null/absent when the
+   * blocks do not add up to the script.
+   */
+  narrationPlan?: NarrationPlan;
   /**
    * Set when this post is a race report. Absent on an ordinary post.
    *

@@ -142,6 +142,18 @@ test.describe("Q race qualifier filters", () => {
         "the filtered render never arrived — the list on screen is still the previous page",
       ).toBeAttached({ timeout: budget(30_000) });
 
+      // THE MARKER PROVES ARRIVAL, NOT DEPARTURE. The new copy mounts while the
+      // old one is still fading out (`transitionApple`, 0.3s, popLayout), and
+      // both contain the flagged race — so the strict locator below threw
+      // "resolved to 2 elements" the instant it ran inside that window. Playwright
+      // does not retry a strict-mode violation, so it failed after ~170ms, not
+      // after the timeout. Every copy of the page carries exactly one such chip,
+      // so a count of 1 means the exiting copy is gone. `toHaveCount` retries;
+      // the default 5s is >15x the fade, so no budget() is needed. The second
+      // click on this chip, further down, is strict for the same reason and
+      // relies on this wait.
+      await expect(page.getByTestId("race-filter-wser")).toHaveCount(1);
+
       // ...and so did the list. The race whose category was just flagged is
       // still here, which is what stops the next assertion being vacuous.
       await expect(

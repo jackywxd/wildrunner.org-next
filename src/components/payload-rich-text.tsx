@@ -1,5 +1,10 @@
 import Image from "next/image";
-import type { ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 import type { Media, Post } from "@/payload-types";
 import { mediaImageSrc } from "@/lib/cf-image";
@@ -14,6 +19,7 @@ import {
   imageWidthSizes,
 } from "@/lib/editor/image-width";
 import { cn } from "@/lib/utils";
+import { assignSegments, type NarrationPlan } from "@/lib/reader/article-text";
 import {
   RichText,
   type JSXConvertersFunction,
@@ -51,8 +57,27 @@ function orDefault<Args>(
  * already went through next/image; only rich-text bodies were bypassing it.
  */
 const buildConverters =
-  (youtubeTitle: string, transcodingLabel: string): JSXConvertersFunction =>
-  ({ defaultConverters }) => ({
+  (
+    youtubeTitle: string,
+    transcodingLabel: string,
+    segments: Map<object, number> | null,
+  ): JSXConvertersFunction =>
+  ({ defaultConverters }) => {
+  /**
+   * `data-seg` on the element a block converter produced, when that block is
+   * one the narration plan numbered. The follow-along code finds paragraphs by
+   * this attribute; see `assignSegments` for what the number means and why the
+   * lookup is by the node object in the tree being rendered.
+   */
+  const mark = (element: ReactNode, node: object): ReactNode => {
+    const first = segments?.get(node);
+    return first === undefined || !isValidElement(element)
+      ? element
+      : cloneElement(element as ReactElement<Record<string, unknown>>, {
+          "data-seg": first,
+        });
+  };
+  return {
   ...defaultConverters,
 
   /**
@@ -65,8 +90,11 @@ const buildConverters =
   paragraph: (args) => {
     const videoId = soleYouTubeUrl(args.node as unknown as JsonNode);
     if (videoId) return <YouTubeEmbed title={youtubeTitle} videoId={videoId} />;
-    return orDefault(defaultConverters.paragraph, args);
+    return mark(orDefault(defaultConverters.paragraph, args), args.node);
   },
+  heading: (args) => mark(orDefault(defaultConverters.heading, args), args.node),
+  listitem: (args) => mark(orDefault(defaultConverters.listitem, args), args.node),
+  quote: (args) => mark(orDefault(defaultConverters.quote, args), args.node),
 
   /**
    * And a real `link` node pointing at one, which is what a post written in
@@ -232,11 +260,19 @@ const buildConverters =
       return <div dangerouslySetInnerHTML={{ __html: html }} />;
     },
   },
-});
+  };
+};
 
 type PayloadRichTextProps = {
   data: Post["content"];
   className?: string;
+  /**
+   * Passed by the article page when the page follows its narration, and by
+   * nothing else: the print page and the member preview render this without it
+   * and are unchanged. Zipped onto THIS tree, not the stored one — see
+   * `assignSegments`.
+   */
+  narrationPlan?: NarrationPlan | null;
 };
 
 /**
@@ -247,11 +283,16 @@ type PayloadRichTextProps = {
  * `getDictionary()` answers there with the default locale rather than
  * throwing, which is the whole reason it is written that way.
  */
-export async function PayloadRichText({ data, className }: PayloadRichTextProps) {
+export async function PayloadRichText({
+  data,
+  className,
+  narrationPlan,
+}: PayloadRichTextProps) {
   const t = await getDictionary();
+  const segments = assignSegments(data, narrationPlan);
   return (
     <div className={className}>
-      <RichText data={data} converters={buildConverters(t.video.youtubeTitle, t.video.transcoding)} />
+      <RichText data={data} converters={buildConverters(t.video.youtubeTitle, t.video.transcoding, segments)} />
     </div>
   );
 }

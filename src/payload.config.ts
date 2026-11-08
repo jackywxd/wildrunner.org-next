@@ -35,6 +35,7 @@ import { aiExpandPostEndpoint } from './endpoints/aiExpandPost'
 import { aiFixTyposEndpoint } from './endpoints/aiFixTypos'
 import { articleAudioEndpoint } from './endpoints/articleAudio'
 import { articleAudioDownloadEndpoint } from './endpoints/articleAudioDownload'
+import { articleAudioTimingEndpoint } from './endpoints/articleAudioTiming'
 import { articleAudioSweepEndpoint } from './endpoints/articleAudioSweep'
 import { changePasswordEndpoint } from './endpoints/changePassword'
 import { aiImprovePostEndpoint } from './endpoints/aiImprovePost'
@@ -220,6 +221,7 @@ export default buildConfig({
     articleAudioEndpoint,
     articleAudioSweepEndpoint,
     articleAudioDownloadEndpoint,
+    articleAudioTimingEndpoint,
     changePasswordEndpoint,
     aiFixTyposEndpoint,
     aiImprovePostEndpoint,

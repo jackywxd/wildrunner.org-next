@@ -57,6 +57,15 @@ const ROUTES = [
   "/admin",
   "/posts",
   "/posts/warmup-not-a-real-post",
+  // V-LISTEN reaches the article on the Simplified site by name. It is the same
+  // `[lang]` route file as the line above, but listing the address the spec
+  // actually opens keeps that true if the two ever stop sharing a unit.
+  "/zh-hans/posts/warmup-not-a-real-post",
+  // The narration timing table, which V-LISTEN-T2 fetches on the press of play.
+  // A custom Payload endpoint is served by the same `(payload)/api/[...slug]`
+  // handler as the media route further down, so this adds a request rather than
+  // a compile — and puts the address on the list by name.
+  "/api/article-audio/0/timing",
   // Its own compilation unit, and not covered by `/posts/...`: the print
   // route lives outside `(site)` under a second root layout of its own. The
   // API route beside it compiles separately again.
